@@ -21,8 +21,6 @@ import {
   Typography,
   Chip,
 } from '@material-ui/core';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheck } from '@fortawesome/free-solid-svg-icons';
 
 // Additional components
 import Card from '../../components/animated-card'; // The exceled parcels in which almost all features are based
@@ -116,10 +114,6 @@ const Row = ({
         <Highlight highlight={highlight}>
           {pdbInfo && pdbInfo.compound}
         </Highlight>
-      </TableCell>
-      {/* membrane */}
-      <TableCell>
-        <FontAwesomeIcon icon={faCheck} />
       </TableCell>
       {/* preview */}
       <TableCell>
@@ -231,7 +225,6 @@ const Browse = ({ location, history }) => {
               <TableCell>accession</TableCell>
               <TableCell>PDB accession</TableCell>
               <TableCell>name</TableCell>
-              <TableCell>membrane</TableCell>
               <TableCell>preview</TableCell>
               <TableCell>analyses</TableCell>
             </TableRow>
