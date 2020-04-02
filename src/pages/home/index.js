@@ -36,9 +36,20 @@ const Home = () => (
         <LazyImg src={homeImage300} loading="eager" alt="home page" />
       </picture>
       <Typography variant="h5">
-        <strong>MoDEL_CNS</strong> is a platform designed to provide web-access
-        to <strong>atomistic-MD trajectories</strong> for relevant{' '}
-        <strong>signal transduction proteins</strong>.
+        <strong>MoDEL_COVID-19</strong> is a platform designed to provide
+        web-access to <strong>atomistic-MD trajectories</strong> for relevant{' '}
+        <strong>proteins involved in mechanism of COVID-19 disease</strong>.
+      </Typography>
+      <Typography variant="h5">
+        This is an exceptional branch of{' '}
+        <a
+          href="http://mmb.irbbarcelona.org/MoDEL-CNS/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          MoDEL_CNS
+        </a>
+        , which is focused on <strong>signal transduction proteins</strong>.
       </Typography>
       <Typography variant="h5">
         The project is part of the Service for providing molecular
