@@ -36,53 +36,24 @@ const Home = () => (
         <LazyImg src={homeImage300} loading="eager" alt="home page" />
       </picture>
       <Typography variant="h5">
-        <strong>MoDEL_COVID-19</strong> is a platform designed to provide
-        web-access to <strong>atomistic-MD trajectories</strong> for relevant{' '}
-        <strong>proteins involved in mechanism of COVID-19 disease</strong>.
+        <strong>BioExcel-CV19</strong> is a platform designed to provide
+        web-access to <strong>atomistic-MD trajectories</strong> for
+        macromolecules involved in the COVID-19 disease.
       </Typography>
       <Typography variant="h5">
-        This is an exceptional branch of{' '}
-        <a
-          href="http://mmb.irbbarcelona.org/MoDEL-CNS/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          MoDEL_CNS
-        </a>
-        , which is focused on <strong>signal transduction proteins</strong>.
+        The project is part of the open access initiatives promoted by the
+        world-wide scientific community to share information about COVID-10
+        research.
       </Typography>
       <Typography variant="h5">
-        The project is part of the Service for providing molecular
-        simulation-based predictions for systems neurobiology of the{' '}
-        <strong>Human Brain Project</strong>.
-      </Typography>
-      <Typography variant="h5">
-        <strong>MoDEL_CNS</strong> expands the <strong>Mo</strong>
-        lecular <strong>D</strong>
-        ynamics <strong>E</strong>
-        xtended <strong>L</strong>
-        ibrary (
-        <a
-          href="http://mmb.pcb.ub.es/MoDEL/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          MoDEL
-        </a>
-        ) database of atomistic Molecular Dynamics trajectories with proteins
-        involved in <strong>Central Nervous System</strong> (CNS) processes,
-        including membrane proteins.
-      </Typography>
-      <Typography variant="h5">
-        <strong>MoDEL_CNS web server interface</strong> presents the resulting
-        trajectories, analyses, and protein properties. All data produced by the
-        project is available to download.
+        <strong>BioExcel-CV19 web server interface</strong> presents the
+        resulting trajectories, with a set of quality control analyses and
+        system information. All data produced by the project is available to
+        download from an associated programmatic access API.
       </Typography>
       <Typography variant="h5" className={style['with-background']}>
-        <strong>MoDEL_CNS</strong> will contribute in the improvement of the
-        understanding of neuronal signalling cascades by protein structure-based
-        simulations, calculating molecular flexibility and dynamics, and guiding
-        systems level modelling.
+        <strong>BioExcel-CV19</strong> will contribute in the critical and
+        essential work towards finding a cure against COVID-19.
       </Typography>
     </CardContent>
   </Card>
