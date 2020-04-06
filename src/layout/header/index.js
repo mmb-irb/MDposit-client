@@ -11,7 +11,7 @@ import style from './style.module.css';
 import logo from '../../images/logo.png';
 import logoWebP from '../../images/logo.webp';
 
-// Renders the MoDEL logo and all the menu buttons next to it
+// Renders the logo and all the menu buttons next to it
 const Header = () => (
   <AppBar position="sticky">
     <Toolbar className={style.toolbar}>
