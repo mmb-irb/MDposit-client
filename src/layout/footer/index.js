@@ -5,10 +5,13 @@ import LazyImg from '../../components/lazy-img';
 
 import style from './style.module.css';
 
-import logoHBP from '../../images/logo-hbp.png';
 import logoIRB from '../../images/logo-irb.png';
-import logoHBPWebP from '../../images/logo-hbp.webp';
 import logoIRBWebP from '../../images/logo-irb.webp';
+
+import logoBSC from '../../images/logo-bsc.png';
+import logoBioExcel from '../../images/logo-bioexcel.png';
+import logoBSCWebP from '../../images/logo-bsc.webp';
+import logoBioExcelWebP from '../../images/logo-bioexcel.webp';
 
 // for (const img of [logoHBP, logoIRB]) {
 //   const el = document.createElement('link');
@@ -24,17 +27,28 @@ const Footer = React.memo(() => (
     <Paper>
       <Toolbar className={style.footer}>
         <a
-          href="https://www.humanbrainproject.eu/"
+          href="https://bioexcel.eu/"
           target="_blank"
           rel="noreferrer noopener"
         >
           <picture>
-            <source type="image/webp" srcSet={logoHBPWebP} />
+            <source type="image/webp" srcSet={logoBioExcelWebP} />
             <LazyImg
               height="100px"
-              src={logoHBP}
+              src={logoBioExcel}
               loading="lazy"
-              alt="Human Brain Project website"
+              alt="BioExcel website"
+            />
+          </picture>
+        </a>
+        <a href="https://www.bsc.es/" target="_blank" rel="noreferrer noopener">
+          <picture>
+            <source type="image/webp" srcSet={logoBSCWebP} />
+            <LazyImg
+              height="100px"
+              src={logoBSC}
+              loading="lazy"
+              alt="Barcelona Supercomputing Center website"
             />
           </picture>
         </a>
