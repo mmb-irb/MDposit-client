@@ -58,38 +58,7 @@ exports[`<Home /> should render 1`] = `
     <WithStyles(ForwardRef(Typography))
       variant="h5"
     >
-      <strong>
-        MoDEL_CNS
-      </strong>
-       expands the 
-      <strong>
-        Mo
-      </strong>
-      lecular 
-      <strong>
-        D
-      </strong>
-      ynamics 
-      <strong>
-        E
-      </strong>
-      xtended 
-      <strong>
-        L
-      </strong>
-      ibrary (
-      <a
-        href="http://mmb.pcb.ub.es/MoDEL/"
-        rel="noopener noreferrer"
-        target="_blank"
-      >
-        MoDEL
-      </a>
-      ) database of atomistic Molecular Dynamics trajectories with proteins involved in 
-      <strong>
-        Central Nervous System
-      </strong>
-       (CNS) processes, including membrane proteins.
+      The project is part of the open access initiatives promoted by the world-wide scientific community to share information about COVID-19 research.
     </WithStyles(ForwardRef(Typography))>
     <WithStyles(ForwardRef(Typography))
       variant="h5"
