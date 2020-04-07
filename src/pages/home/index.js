@@ -42,7 +42,7 @@ const Home = () => (
       </Typography>
       <Typography variant="h5">
         The project is part of the open access initiatives promoted by the
-        world-wide scientific community to share information about COVID-10
+        world-wide scientific community to share information about COVID-19
         research.
       </Typography>
       <Typography variant="h5">
