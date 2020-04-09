@@ -7,20 +7,38 @@ exports[`<Footer /> should render 1`] = `
       className="footer"
     >
       <a
-        href="https://www.humanbrainproject.eu/"
+        href="https://bioexcel.eu/"
         rel="noreferrer noopener"
         target="_blank"
       >
         <picture>
           <source
-            srcSet="logo-hbp.webp"
+            srcSet="logo-bioexcel.webp"
             type="image/webp"
           />
           <LazyImg
-            alt="Human Brain Project website"
+            alt="BioExcel website"
             height="100px"
             loading="lazy"
-            src="logo-hbp.png"
+            src="logo-bioexcel.png"
+          />
+        </picture>
+      </a>
+      <a
+        href="https://www.bsc.es/"
+        rel="noreferrer noopener"
+        target="_blank"
+      >
+        <picture>
+          <source
+            srcSet="logo-bsc.webp"
+            type="image/webp"
+          />
+          <LazyImg
+            alt="Barcelona Supercomputing Center website"
+            height="100px"
+            loading="lazy"
+            src="logo-bsc.png"
           />
         </picture>
       </a>

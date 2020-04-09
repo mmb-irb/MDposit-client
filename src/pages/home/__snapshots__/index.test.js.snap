@@ -32,28 +32,13 @@ exports[`<Home /> should render 1`] = `
       variant="h5"
     >
       <strong>
-        MoDEL_CNS
+        BioExcel-CV19
       </strong>
        is a platform designed to provide web-access to 
       <strong>
         atomistic-MD trajectories
       </strong>
-       for relevant
-       
-      <strong>
-        signal transduction proteins
-      </strong>
-      .
-    </WithStyles(ForwardRef(Typography))>
-    <WithStyles(ForwardRef(Typography))
-      variant="h5"
-    >
-      The project is part of the Service for providing molecular simulation-based predictions for systems neurobiology of the
-       
-      <strong>
-        Human Brain Project
-      </strong>
-      .
+       for macromolecules involved in the COVID-19 disease.
     </WithStyles(ForwardRef(Typography))>
     <WithStyles(ForwardRef(Typography))
       variant="h5"
@@ -64,18 +49,18 @@ exports[`<Home /> should render 1`] = `
       variant="h5"
     >
       <strong>
-        MoDEL_CNS web server interface
+        BioExcel-CV19 web server interface
       </strong>
-       presents the resulting trajectories, analyses, and protein properties. All data produced by the project is available to download.
+       presents the resulting trajectories, with a set of quality control analyses and system information. All data produced by the project is available to download from an associated programmatic access API.
     </WithStyles(ForwardRef(Typography))>
     <WithStyles(ForwardRef(Typography))
       className="with-background"
       variant="h5"
     >
       <strong>
-        MoDEL_CNS
+        BioExcel-CV19
       </strong>
-       will contribute in the improvement of the understanding of neuronal signalling cascades by protein structure-based simulations, calculating molecular flexibility and dynamics, and guiding systems level modelling.
+       will contribute in the critical and essential work towards finding a cure against COVID-19.
     </WithStyles(ForwardRef(Typography))>
   </WithStyles(ForwardRef(CardContent))>
 </ForwardRef>
