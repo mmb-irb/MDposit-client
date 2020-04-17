@@ -19,7 +19,9 @@ import style from './style.module.css';
 const COMMA_SEPARATOR = /\s*,\s*/;
 
 export default React.memo(() => {
-  const { pdbInfo, accession, identifier, published } = useContext(ProjectCtx);
+  const { pdbInfo, accession, identifier, published, metadata } = useContext(
+    ProjectCtx,
+  );
 
   const imgSrc =
     pdbInfo &&
@@ -132,6 +134,33 @@ export default React.memo(() => {
           </CardActions>
         </Card>
       )}
+      <Card className={style.card}>
+        <CardContent className={style['card-content']}>
+          <Typography variant="h6">MD information</Typography>
+          <div className={style['summary-list']}>
+            <div>
+              Authors: {(metadata && metadata.AUTHORS) || 'Not available'}
+            </div>
+            <div>
+              Program: {(metadata && metadata.PROGRAM) || 'Not available'}
+            </div>
+            <div>
+              Version: {(metadata && metadata.VERSION) || 'Not available'}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      <Card className={style.card}>
+        <CardContent className={style['card-content']}>
+          <Typography variant="h6">Molecule information</Typography>
+          <div className={style['summary-list']}>
+            <div>
+              Description:{' '}
+              {(metadata && metadata.DESCRIPTION) || 'Not available'}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
       <Card className={style.card}>
         <CardContent className={style['card-content']}>
           <Typography variant="h6">Project information</Typography>
