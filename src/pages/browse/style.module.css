@@ -50,3 +50,7 @@
 .analysis {
   margin: 1ch;
 }
+
+.reduced-margin {
+  margin: -0.5ch;
+}

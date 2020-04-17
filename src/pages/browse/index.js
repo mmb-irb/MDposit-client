@@ -40,6 +40,13 @@ import style from './style.module.css';
 // It is used to check if the user has the reduced motion setting active
 import reducedMotion from '../../utils/reduced-motion';
 
+// This is a standard preview used by all projects, since their structures look quite the same
+import standardPreview1 from '../../images/rbd-ace2_preview.png';
+
+const unitPreview = unit => {
+  if (unit === 'RBD-ACE2') return standardPreview1;
+};
+
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
 const na = 'Not available';
@@ -105,12 +112,6 @@ const Row = ({
           </Highlight>
         </Link>
       </TableCell>
-      {/* PDB accession */}
-      <TableCell>
-        <Highlight highlight={highlight}>
-          {(pdbInfo && pdbInfo.identifier) || '-'}
-        </Highlight>
-      </TableCell>
       {/* name */}
       <TableCell>
         <Highlight highlight={highlight}>
@@ -121,24 +122,22 @@ const Row = ({
             : na}
         </Highlight>
       </TableCell>
-      {/* preview */}
+      {/* unit */}
       <TableCell>
-        {(pdbInfo && pdbInfo.identifier && (
+        {(metadata && metadata.UNIT && (
           <LazyImg
-            width="150px"
-            height="150px"
+            width="110px"
+            height="110px"
             // Take the image from a specific URL which is processed from the PDB identifier
-            src={`//cdn.rcsb.org/images/hd/${pdbInfo.identifier
-              .toLowerCase()
-              .substr(
-                1,
-                2,
-              )}/${pdbInfo.identifier.toLowerCase()}/${pdbInfo.identifier.toLowerCase()}.0_chimera_tm_350_350.png`}
+            src={unitPreview(metadata.UNIT)}
             loading="lazy"
-            alt={`3D view of the ${pdbInfo.identifier.toLowerCase()} structure`}
+            alt={'No available preview'}
           />
         )) ||
           na}
+        <Typography className={style['reduced-margin']}>
+          {metadata && metadata.UNIT}
+        </Typography>
       </TableCell>
       {/* analyses */}
       <TableCell>
@@ -230,9 +229,8 @@ const Browse = ({ location, history }) => {
           <TableHead className={style['table-head']}>
             <TableRow>
               <TableCell>accession</TableCell>
-              <TableCell>PDB accession</TableCell>
               <TableCell>name</TableCell>
-              <TableCell>preview</TableCell>
+              <TableCell>unit</TableCell>
               <TableCell>analyses</TableCell>
             </TableRow>
           </TableHead>
