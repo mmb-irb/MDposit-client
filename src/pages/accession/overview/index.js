@@ -196,6 +196,11 @@ export default React.memo(() => {
       <Card className={style.card}>
         <CardContent className={style['card-content']}>
           <Typography variant="h6">Citation</Typography>
+          <div>
+            The use of any trajectory data in any reports or publications of
+            results obtained with the trajectory data should be acknowledged by
+            including a citation to:
+          </div>
           <div className={style['summary-list']}>
             <div>{citation || 'Not available'}</div>
           </div>
