@@ -10,6 +10,8 @@
   margin: 0.5ch;
 }
 
+/* 'pre-wrap' allows js break lines (\n) */
 .summary-list > div {
   margin: 1ch 0;
+  white-space: pre-wrap;
 }

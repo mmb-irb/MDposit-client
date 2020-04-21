@@ -44,6 +44,29 @@ export default React.memo(() => {
     );
     publishDate = new Date(pdbInfo.ascDate);
   }
+  let citation;
+  if (metadata && metadata.CITATION) {
+    // Replace the metadat break lines by proper JSX break lines
+    citation = metadata.CITATION.replace(/\(br\)/g, '\n');
+    // Get all sup characters
+    const pattern = /\^([\S\s])/g;
+    const sups = [];
+    let sup;
+    while ((sup = pattern.exec(metadata.CITATION)) != null) {
+      sups.push(sup[1]);
+    }
+    // Split the citation by 'sups' and remove them
+    const fragments = citation.split(/\^[\S\s]/g);
+    // Foreach sup, join the previous fragment with it
+    const compiled = [];
+    for (const sup in sups) {
+      compiled.push(fragments[sup]);
+      compiled.push(<sup key={sup}>{sups[sup]}</sup>);
+    }
+    compiled.push(fragments[fragments.length - 1]);
+    // Finally, join everything into a single string
+    citation = compiled;
+  }
 
   return (
     <>
@@ -154,10 +177,27 @@ export default React.memo(() => {
         <CardContent className={style['card-content']}>
           <Typography variant="h6">Molecule information</Typography>
           <div className={style['summary-list']}>
+            <div>Name: {(metadata && metadata.NAME) || 'Not available'}</div>
             <div>
               Description:{' '}
               {(metadata && metadata.DESCRIPTION) || 'Not available'}
             </div>
+          </div>
+        </CardContent>
+      </Card>
+      <Card className={style.card}>
+        <CardContent className={style['card-content']}>
+          <Typography variant="h6">License</Typography>
+          <div className={style['summary-list']}>
+            <div>{(metadata && metadata.LICENSE) || 'Not available'}</div>
+          </div>
+        </CardContent>
+      </Card>
+      <Card className={style.card}>
+        <CardContent className={style['card-content']}>
+          <Typography variant="h6">Citation</Typography>
+          <div className={style['summary-list']}>
+            <div>{citation || 'Not available'}</div>
           </div>
         </CardContent>
       </Card>
