@@ -42,9 +42,13 @@ import reducedMotion from '../../utils/reduced-motion';
 
 // This is a standard preview used by all projects, since their structures look quite the same
 import standardPreview1 from '../../images/rbd-ace2_preview.png';
+import standardPreview2 from '../../images/rbd_preview.png';
+import standardPreview3 from '../../images/ace2_preview.png';
 
 const unitPreview = unit => {
   if (unit === 'RBD-ACE2') return standardPreview1;
+  if (unit === 'RBD') return standardPreview2;
+  if (unit === 'ACE2') return standardPreview3;
 };
 
 const DEFAULT_PAGE = 1;
