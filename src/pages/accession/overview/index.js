@@ -190,6 +190,13 @@ export default React.memo(() => {
           <Typography variant="h6">License</Typography>
           <div className={style['summary-list']}>
             <div>{(metadata && metadata.LICENSE) || 'Not available'}</div>
+            <a
+              href={metadata && metadata.LINKCENSE}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {metadata && metadata.LINKCENSE && 'More information'}
+            </a>
           </div>
         </CardContent>
       </Card>
