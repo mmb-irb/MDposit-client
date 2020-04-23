@@ -85,7 +85,7 @@ const NGLViewerWithControls = forwardRef(
     ref,
   ) => {
     // Context
-    const { chains } = useContext(ProjectCtx);
+    const { chains } = useContext(ProjectCtx) || [];
 
     // references
     const containerRef = useRef(null);
