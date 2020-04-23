@@ -11,6 +11,7 @@ import { useInView } from 'react-intersection-observer';
 import { debounce, throttle, clamp } from 'lodash-es';
 import cn from 'classnames';
 import { Stage, ColormakerRegistry, Matrix4 } from 'ngl';
+
 import { frame } from 'timing-functions';
 
 import payloadToNGLFile from './payload-to-ngl-file';
@@ -39,7 +40,8 @@ const changeOpacity = throttle((representation, membraneOpacity) => {
 const DEFAULT_NUMBER_OF_FRAMES = 25;
 const DEFAULT_ORIENTATION_TRANSITION_DURATION = 500; // 500 ms
 
-const CHAIN_SELECTION = 'polymer and not hydrogen';
+const DEFAULT_CHAIN_SELECTION = 'polymer and not hydrogen ';
+//const CHAIN_SELECTION = 'polymer and not hydrogen and not :A and not :C';
 
 const NGLViewer = memo(
   forwardRef(
@@ -60,9 +62,12 @@ const NGLViewer = memo(
         darkBackground,
         perspective,
         speed,
+        bannedChains,
       },
       ref,
     ) => {
+      const CHAIN_SELECTION = DEFAULT_CHAIN_SELECTION + bannedChains;
+
       // data from context
       const accession = useContext(AccessionCtx);
       const { metadata, curatedOrientation } = useContext(ProjectCtx);
@@ -294,24 +299,46 @@ const NGLViewer = memo(
           originalOritentationRef.current = stageRef.current.viewerControls.getOrientation();
         }
 
-        // main structure
-        structureComponent.addRepresentation('cartoon', {
-          sele: CHAIN_SELECTION, // This may do nothing
-          name: 'structure',
-          opacity: 1,
-        });
-        // membrane
-        const membraneRepresentation = structureComponent.addRepresentation(
-          'licorice',
-          {
-            sele: '(not polymer or hetero) and not (water or ion)',
-            opacity: 0.5,
-            name: 'membrane',
-          },
+        // Find if there is a previous structure representation
+        const previousStructureRepresentation = stageRef.current.compList[0].reprList.find(
+          representation => representation.name === 'structure',
         );
-        // Hide the membrane if this is a PCA projection
-        if (isProjection) membraneRepresentation.setVisibility(false);
-      }, [pdbFile, isProjection]);
+
+        // If there is an existing representation just update the selection
+        if (previousStructureRepresentation) {
+          previousStructureRepresentation.setSelection(CHAIN_SELECTION);
+        }
+        // If not, create it
+        else {
+          // main structure
+          structureComponent.addRepresentation('cartoon', {
+            sele: CHAIN_SELECTION, // This may do nothing
+            name: 'structure',
+            opacity: 1,
+          });
+        }
+
+        // Find if there is a previous membrane representation
+        const previousMembraneRepresentation = stageRef.current.compList[0].reprList.find(
+          representation => representation.name === 'membrane',
+        );
+
+        // If not, create it
+        if (!previousMembraneRepresentation) {
+          // membrane
+          const membraneRepresentation = structureComponent.addRepresentation(
+            'licorice',
+            {
+              sele: '(not polymer or hetero) and not (water or ion)',
+              opacity: 0.5,
+              name: 'membrane',
+            },
+          );
+
+          // Hide the membrane if this is a PCA projection
+          if (isProjection) membraneRepresentation.setVisibility(false);
+        }
+      }, [pdbFile, isProjection, CHAIN_SELECTION]);
 
       // highlight hovered atoms from other components
       useEffect(() => {
@@ -415,6 +442,7 @@ const NGLViewer = memo(
         handleFrameChange,
         dcdCounts,
         isProjection,
+        CHAIN_SELECTION,
       ]);
 
       // play/pause
@@ -549,7 +577,7 @@ const NGLViewer = memo(
         };
         window.addEventListener('change', handler);
         return () => window.removeEventListener('change', handler);
-      }, []);
+      }, [CHAIN_SELECTION]);
 
       // Expose public methods and getters/setters
       useImperativeHandle(

@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useRef,
   useMemo,
+  useContext,
   forwardRef,
   useImperativeHandle,
 } from 'react';
@@ -36,6 +37,7 @@ import {
   faVideo,
   faAdjust,
   faCube,
+  faPuzzlePiece,
   faPaintBrush,
   faWalking,
   faRunning,
@@ -45,7 +47,10 @@ import {
   faUnlock,
 } from '@fortawesome/free-solid-svg-icons';
 
+import { ProjectCtx } from '../../contexts';
+
 import Slider from '../slider';
+import Chains from '../chains';
 
 import { get, setAsync } from '../../utils/storage';
 import NGLViewer from '../ngl-viewer';
@@ -79,6 +84,9 @@ const NGLViewerWithControls = forwardRef(
     },
     ref,
   ) => {
+    // Context
+    const { chains } = useContext(ProjectCtx);
+
     // references
     const containerRef = useRef(null);
     const viewerRef = useRef(null);
@@ -117,6 +125,7 @@ const NGLViewerWithControls = forwardRef(
       }, []),
     );
     const [speed, setSpeed] = useState(useMemo(() => get('speed', 50), []));
+    const [bannedChains, chainBanner] = useState('');
 
     let speedIcon = faWalking;
     if (speed > 45) speedIcon = faRunning;
@@ -188,6 +197,7 @@ const NGLViewerWithControls = forwardRef(
             perspective={perspective}
             projection={projection}
             speed={speed}
+            bannedChains={bannedChains}
             {...props}
           />
           {noTrajectory || (
@@ -346,6 +356,17 @@ const NGLViewerWithControls = forwardRef(
             >
               <FontAwesomeIcon icon={perspective ? faSquare : faCube} />
             </IconButton>
+
+            <Chains
+              className={style.slider}
+              label="Chains display:"
+              title="Change displayed chains"
+              chains={chains}
+              bannedChains={bannedChains}
+              chainBanner={chainBanner}
+            >
+              <FontAwesomeIcon icon={faPuzzlePiece} />
+            </Chains>
 
             {!Number.isFinite(projection) && (
               <Slider
