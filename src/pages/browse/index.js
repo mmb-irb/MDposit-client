@@ -1,5 +1,5 @@
 // React logic
-import React, { useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useEffect, useState, useLayoutEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 // String managers
@@ -20,6 +20,10 @@ import {
   TableFooter,
   Typography,
   Chip,
+  Select,
+  InputLabel,
+  MenuItem,
+  FormControl,
 } from '@material-ui/core';
 
 // Additional components
@@ -168,15 +172,27 @@ const Row = ({
 };
 
 const Browse = ({ location, history }) => {
-  // This "parse" comes from the "qs" library
-  // Add the prefix "?search=" to the location.search
-  const search = parse(location.search, { ignoreQueryPrefix: true });
+  // The 'unit' tab selection
+  const [unitFilter, setUnitFilter] = useState('');
+  const currentUnit = unitFilter.replace('&filter=metadata.UNIT+*', '');
 
-  // Convert into a single encoded string all parameters listed below
+  // Convert the URL string into an object
+  // This "parse" comes from the "qs" library
+  // WARNING: The default "parse" decoding behaviour has a strong conflict between '+' and blank space character
+  // This workaround first decodes and then parses without decoding
+  // The 'decoder' option is necessary for not decoding
+  const decoded = decodeURIComponent(location.search);
+  const search = parse(decoded + unitFilter, {
+    ignoreQueryPrefix: true,
+    decoder: c => c,
+  });
+
+  // Convert the specified object back to a single encoded string
   const searchString = stringify({
     search: search.search,
     page: search.page || DEFAULT_PAGE,
     limit: search.limit || DEFAULT_LIMIT,
+    filter: search.filter,
   });
 
   // Scroll up when the page is changed
@@ -189,6 +205,7 @@ const Browse = ({ location, history }) => {
 
   // Download all necessary data from the API
   // 'payload' contains the main data
+  //console.log(searchString + unitFilter);
   const ApiUrl = `${BASE_PATH_PROJECTS}?${searchString}`;
   const { loading, payload, error } = useAPI(ApiUrl);
 
@@ -234,7 +251,28 @@ const Browse = ({ location, history }) => {
             <TableRow>
               <TableCell>accession</TableCell>
               <TableCell>name</TableCell>
-              <TableCell>unit</TableCell>
+              <TableCell>
+                <FormControl className={style.tab}>
+                  <InputLabel id="label">unit</InputLabel>
+                  <Select
+                    id="select"
+                    value={currentUnit}
+                    onChange={event =>
+                      setUnitFilter(
+                        event.target.value
+                          ? '&filter=metadata.UNIT+*' + event.target.value
+                          : '',
+                      )
+                    }
+                  >
+                    <MenuItem value="">All</MenuItem>
+                    <MenuItem value="RBD">RBD</MenuItem>
+                    <MenuItem value="ACE2">ACE2</MenuItem>
+                    <MenuItem value="RBD-ACE2">RBD-ACE2</MenuItem>
+                    <MenuItem value="RBD-ACE2-CD147">RBD-ACE2-CD147</MenuItem>
+                  </Select>
+                </FormControl>
+              </TableCell>
               <TableCell>analyses</TableCell>
             </TableRow>
           </TableHead>

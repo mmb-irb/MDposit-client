@@ -11,6 +11,7 @@
 
   .table-body td,
   .table-head th {
+    font: bold 'Fira Sans';
     padding: 0;
   }
 }
@@ -53,4 +54,9 @@
 
 .reduced-margin {
   margin: -0.5ch;
+}
+
+.tab {
+  transform: translate(0px, -9px);
+  width: 100px;
 }
