@@ -542,6 +542,25 @@ const Trajectory = () => {
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
   const [nightingaleRef, isNightingaleVisible] = useInView(useInViewOptions);
 
+  // Get the current project metadata and chains
+  const { metadata, chains } = useContext(ProjectCtx);
+
+  // Set the chains to be represented in the NGL viewer
+  const chainsNGL = [];
+  for (const chain of chains) {
+    chainsNGL.push({
+      name: 'Chain ' + chain,
+      selection: ':' + chain,
+    });
+  }
+  if (metadata.MEMBRANE !== 'No')
+    chainsNGL.push({
+      selection: '(not polymer or hetero) and not (water or ion)',
+      name: metadata.MEMBRANE,
+      defaultDrawingMethod: 'licorice',
+      defaultOpacity: 0.5,
+    });
+
   return (
     <>
       <Card className={style.card}>
@@ -553,7 +572,10 @@ const Trajectory = () => {
       <Card className={style.card} ref={nglRef}>
         {/* Render the NGL viewer when it is on screen*/}
         {isNglVisible ? (
-          <NGLViewerWithControls className={style.container} />
+          <NGLViewerWithControls
+            className={style.container}
+            chains={chainsNGL}
+          />
         ) : (
           <div style={{ height: '50vh' }} />
         )}

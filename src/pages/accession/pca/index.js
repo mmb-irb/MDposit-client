@@ -11,6 +11,7 @@ import Loading from '../../../components/loading';
 import useAPI from '../../../hooks/use-api';
 
 import { AccessionCtx } from '../../../contexts';
+import { ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
@@ -38,7 +39,11 @@ const nglPlaceholder = (
 );
 
 const PCA = () => {
+  // Get the accession
   const accession = useContext(AccessionCtx);
+  // Get the current project metadata and chains
+  const { chains } = useContext(ProjectCtx);
+  // Load the main data from the API
   const { loading, payload, error } = useAPI(
     `${BASE_PATH_PROJECTS}${accession}/analyses/pca/`,
   );
@@ -57,6 +62,22 @@ const PCA = () => {
   if (error) {
     return error.toString();
   }
+
+  let projectionURL;
+  if (projections[0] !== undefined)
+    // It may be 0
+    projectionURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory.pca-${projections[0] +
+      1}.bin`;
+
+  // Set the chains to be represented in the NGL viewer
+  const chainsNGL = [];
+  for (const chain of chains) {
+    chainsNGL.push({
+      name: 'Chain ' + chain,
+      selection: ':' + chain,
+    });
+  }
+
   return (
     <>
       <Card className={style.card}>
@@ -83,6 +104,9 @@ const PCA = () => {
                 accession={accession}
                 className={style['ngl-viewer-with-controls']}
                 projection={projections[0]}
+                framesSelect={false}
+                trajectoryURL={projectionURL}
+                chains={chainsNGL}
               />
             </Suspense>
           )}
@@ -105,6 +129,7 @@ const PCA = () => {
         <NGLViewerSpawner
           accession={accession}
           requestedFrame={requestedFrame}
+          chains={chainsNGL}
         />
       )}
     </>

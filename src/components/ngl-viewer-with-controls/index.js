@@ -5,7 +5,6 @@ import React, {
   useEffect,
   useRef,
   useMemo,
-  useContext,
   forwardRef,
   useImperativeHandle,
 } from 'react';
@@ -37,7 +36,6 @@ import {
   faVideo,
   faAdjust,
   faCube,
-  faPuzzlePiece,
   faPaintBrush,
   faWalking,
   faRunning,
@@ -47,10 +45,8 @@ import {
   faUnlock,
 } from '@fortawesome/free-solid-svg-icons';
 
-import { ProjectCtx } from '../../contexts';
-
 import Slider from '../slider';
-import Chains from '../chains';
+import Paints from '../paints';
 
 import { get, setAsync } from '../../utils/storage';
 import NGLViewer from '../ngl-viewer';
@@ -76,16 +72,61 @@ const NGLViewerWithControls = forwardRef(
     {
       className,
       startsPlaying = defaultStartsPlaying,
+      // This is true when showing just 1 frame
       noTrajectory,
       close,
       nail,
+      // The number of the PCA projection
       projection,
+      // Set if the frame number selector is allowed for trajectories (false in PCA projections)
+      framesSelect = true,
+      // The chains to be represented
+      // It is an array with objects with the following structure:
+      // { selection: (OBLIGATORY) The NGL selection string to define this string,
+      //   name: (by default, the selection string) The string label of this chain,
+      //   show: (by default, true) Boolean to set if this chain is represented or not,
+      //   defaultDrawingMethod: (by default, 'cartoon') The initial representation 'type',
+      //   defaultColoringMethod: (by default, 'chainid') The initial representation 'colorScheme',
+      //   defaultOpacity: (by default, 1) The initial representation opacity }
+      chains,
       ...props
     },
     ref,
   ) => {
-    // Context
-    const { chains } = useContext(ProjectCtx) || [];
+    // Fill the missing 'chains' values with some default values
+    for (const chain of chains) {
+      if (!chain.selection)
+        return console.error(
+          'Chains must have at least the "selection" parameter',
+        );
+      if (!chain.name) chain.name = chain.selection;
+      if (!chain.show) chain.show = true;
+      if (!chain.defaultDrawingMethod) chain.defaultDrawingMethod = 'cartoon';
+      if (!chain.defaultColoringMethod) chain.defaultColoringMethod = 'chainid';
+      if (!chain.defaultOpacity) chain.defaultOpacity = 1;
+    }
+
+    const [drawingMethods, setDrawingMethods] = useState(() => {
+      const init = [];
+      for (const chain of chains) {
+        init.push(chain.defaultDrawingMethod);
+      }
+      return init;
+    });
+    const [coloringMethods, setColoringMethods] = useState(() => {
+      const init = [];
+      for (const chain of chains) {
+        init.push(chain.defaultColoringMethod);
+      }
+      return init;
+    });
+    const [opacities, setOpacities] = useState(() => {
+      const init = [];
+      for (const chain of chains) {
+        init.push(chain.defaultOpacity);
+      }
+      return init;
+    });
 
     // references
     const containerRef = useRef(null);
@@ -106,11 +147,6 @@ const NGLViewerWithControls = forwardRef(
     // states
     const [progress, setProgress] = useState(0);
     const [isFullscreen, setIsFullscreen] = useState(screenfull.isFullscreen);
-    const [membraneOpacity, setMembraneOpacity] = useState(
-      Number.isFinite(projection)
-        ? 0
-        : useMemo(() => get('membrane-opacity', 0.5), []),
-    );
     const [nFrames, setNFrames] = useState(
       useMemo(() => {
         switch (connectionLevel()) {
@@ -125,7 +161,6 @@ const NGLViewerWithControls = forwardRef(
       }, []),
     );
     const [speed, setSpeed] = useState(useMemo(() => get('speed', 50), []));
-    const [bannedChains, chainBanner] = useState('');
 
     let speedIcon = faWalking;
     if (speed > 45) speedIcon = faRunning;
@@ -187,17 +222,20 @@ const NGLViewerWithControls = forwardRef(
           <NGLViewer
             playing={playing}
             spinning={spinning}
-            membraneOpacity={membraneOpacity}
             smooth={smooth}
             onProgress={setProgress}
             ref={viewerRef}
             noTrajectory={noTrajectory}
+            framesSelect={framesSelect}
             nFrames={nFrames}
             darkBackground={darkBackground}
             perspective={perspective}
             projection={projection}
             speed={speed}
-            bannedChains={bannedChains}
+            drawingMethods={drawingMethods}
+            coloringMethods={coloringMethods}
+            opacities={opacities}
+            chains={chains}
             {...props}
           />
           {noTrajectory || (
@@ -357,31 +395,17 @@ const NGLViewerWithControls = forwardRef(
               <FontAwesomeIcon icon={perspective ? faSquare : faCube} />
             </IconButton>
 
-            <Chains
-              className={style.slider}
-              label="Chains display:"
-              title="Change displayed chains"
+            <Paints
               chains={chains}
-              bannedChains={bannedChains}
-              chainBanner={chainBanner}
+              drawingMethods={drawingMethods}
+              setDrawingMethods={setDrawingMethods}
+              coloringMethods={coloringMethods}
+              setColoringMethods={setColoringMethods}
+              opacities={opacities}
+              setOpacities={setOpacities}
             >
-              <FontAwesomeIcon icon={faPuzzlePiece} />
-            </Chains>
-
-            {!Number.isFinite(projection) && (
-              <Slider
-                className={style.slider}
-                label="Membrane opacity:"
-                title="Change membrane opacity"
-                value={membraneOpacity * 100}
-                handleChange={(_, value) => {
-                  setMembraneOpacity(value / 100);
-                  setAsync('membrane-opacity', value / 100);
-                }}
-              >
-                <FontAwesomeIcon icon={faPaintBrush} />
-              </Slider>
-            )}
+              <FontAwesomeIcon icon={faPaintBrush} />
+            </Paints>
 
             <Slider
               className={style.slider}
@@ -396,7 +420,7 @@ const NGLViewerWithControls = forwardRef(
               <FontAwesomeIcon icon={speedIcon} />
             </Slider>
 
-            {!Number.isFinite(projection) && !noTrajectory && (
+            {framesSelect && !noTrajectory && (
               <FormControl>
                 <InputLabel>frames</InputLabel>
                 <Select
