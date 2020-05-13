@@ -60,6 +60,15 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
             className={style['tab-link']}
           />
         ))}
+
+      <Tab
+        component={Link}
+        to={`/browse/${accession}/electrostatic`}
+        label="electrostatic"
+        value="electrostatic"
+        className={style['tab-link']}
+      />
+
       <Tab
         component={Link}
         to={`/browse/${accession}/files`}

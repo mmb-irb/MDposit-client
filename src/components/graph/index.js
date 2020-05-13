@@ -41,16 +41,36 @@ const scheme = new ColormakerRegistry.schemes.element({});
 const dPR = window.devicePixelRatio || 1;
 
 const Graph = ({
+  // The main data
   y: yData,
+  //start = 0,
+  // The difference beyween x values
   step = 1,
+  // Set if the x origin is not 0, but 1. This is for the fluctuation analysis
   startsAtOne = false,
+  //
   defaultPrecision,
+  // The y axis label text
   yLabel,
+  //
   xScaleFactor = 1,
+  // The x axis label text
   xLabel,
+  // Define the unit (and also the magnitude implicitly) of the x axis
+  // This is used to show the right text when the mouse is over it
+  // Accepted values: ns, frame, atom
+  xUnit = 'ns',
+  // Set the type of grapg to render
+  // Accepted values: line, dash
   type = 'line',
+  // Display the mean line in the graph
   mean = true,
+  // Display the standard deviation area in the graph
   standardDeviation = true,
+  // Start number of activated keys
+  // A value of 'null' stands for all activated
+  startKeys = null,
+  // React hooks
   onHover,
   selected,
   onSelect,
@@ -64,8 +84,16 @@ const Graph = ({
 
   const yEntries = Object.entries(yData);
   const yKeys = yEntries.map(([key]) => key);
-  const [lab, setLabels] = useState(
-    useMemo(() => fromPairs(yKeys.map(key => [key, true])), [yKeys]),
+  let counter = 0;
+  const activateKey = () => {
+    if (startKeys === null || counter < startKeys) {
+      counter += 1;
+      return true;
+    }
+    return false;
+  };
+  const [lab, setLabels] = useState(() =>
+    fromPairs(yKeys.map(key => [key, activateKey()])),
   );
   const [pr, setPrecision] = useState(defaultPrecision || 1);
 
@@ -216,6 +244,7 @@ const Graph = ({
             .tickFormat(d => {
               const tickValue = (d + (startsAtOne ? step : 0)) * xScaleFactor;
               if (tickValue >= xMin && tickValue <= xMax) {
+                // The 'toFixed' function converts the number to a string decimal
                 return +tickValue.toFixed(2);
               }
             }),
@@ -238,6 +267,7 @@ const Graph = ({
         )
         .nice()
         .range([height - MARGIN.bottom, MARGIN.top]);
+
       const yAxis = g =>
         g
           .attr('transform', `translate(${MARGIN.left}, 0)`)
@@ -255,7 +285,7 @@ const Graph = ({
           .enter()
           .append('line')
           .attr('class', 'mean')
-          .attr('stroke', d => COLORS.get(d))
+          .attr('stroke', d => COLORS.get(d) || '#000000')
           .merge(meanLines)
           .attr('x1', x(xMin))
           .attr('x2', x(xMax))
@@ -271,7 +301,7 @@ const Graph = ({
           .enter()
           .append('rect')
           .attr('class', 'sd')
-          .attr('fill', d => COLORS.get(d))
+          .attr('fill', d => COLORS.get(d) || '#000000')
           .merge(sdRects)
           .attr('x', x(xMin))
           .attr('width', x(xMax) - x(xMin))
@@ -290,18 +320,20 @@ const Graph = ({
       const maxIndex = Math.ceil(x.invert(width) / step / precision);
       // if type of graph is line
       if (type === 'line') {
-        // lines
+        // Define the data line positions
         const lineFn = line()
           .defined((_, i) => i >= minIndex && i <= maxIndex)
           .x((_, i) => x(i * step * precision))
           .y(d => y(d));
+
+        // Draw the data lines
         const lines = main.selectAll('path.line').data(yKeys);
         lines
           .enter()
           .append('path')
           .attr('class', 'line')
           .attr('fill', 'none')
-          .attr('stroke', d => COLORS.get(d))
+          .attr('stroke', d => COLORS.get(d) || '#000000')
           .attr('stroke-linejoin', 'round')
           .attr('stroke-linecap', 'round')
           .merge(lines)
@@ -343,7 +375,7 @@ const Graph = ({
               height * dPR,
             );
           }
-          canvasContext.fillStyle = COLORS.get(key);
+          canvasContext.fillStyle = COLORS.get(key) || '#000000';
           const maxInView = Math.min(data.length - 1, maxIndex);
           // each atom in view
           for (
@@ -388,27 +420,31 @@ const Graph = ({
         .attr('cx', 0)
         .attr('cy', 0)
         .attr('r', 5)
-        .attr('fill', d => COLORS.get(d));
+        .attr('fill', d => COLORS.get(d) || '#000000');
       dotGroups
         .append('text')
         .style('text-anchor', 'middle')
         .style('font-weight', 'bold')
         .style('paint-order', 'stroke')
         .attr('y', '-5px')
-        .attr('fill', d => COLORS.get(d))
+        .attr('fill', d => COLORS.get(d) || '#000000')
         .attr('stroke', 'rgba(255, 255, 255, 0.5)')
         .attr('stroke-width', 5)
         .attr('filter', textBackgroundURL);
 
       // mouse move handler
       graph.on('mousemove', (_, index, nodes) => {
+        // 'nodes' contain the mouse position data
+        // 'index' is apparently always 0
         const [xValue] = mouse(nodes[index]);
+        // Get the closest x axis index to the current mouse position
         const closestIndex =
           Math.round(x.invert(xValue) / precision / step) * precision;
         allDotGroups
           .attr('transform', `translate(${x(closestIndex * step)}, 0)`)
           .attr(
             'opacity',
+            // Dots become invisible if the closest index is not between the minimum and the maximum
             closestIndex * step >= xMin && closestIndex * step <= xMax ? 1 : 0,
           );
         allDotGroups
@@ -424,24 +460,30 @@ const Graph = ({
           )
           .attr('opacity', d => (d === 'x' || labels[d] ? 1 : 0))
           .selectAll('text')
+          // Set the dot text in the x axis
           .text(d => {
             if (d === 'x') {
               const number =
                 closestIndex * step * xScaleFactor + (startsAtOne ? step : 0);
-              if (!pdbDataRef.current.file) return +number.toFixed(2);
-              const atom = pdbDataRef.current.file.atomMap.get(
-                pdbDataRef.current.file.atomStore.atomTypeId[
-                  number - (startsAtOne ? step : 0)
-                ],
-              );
-              if (!atom) return +number.toFixed(2);
-              const residue = pdbDataRef.current.file.residueMap.get(
-                pdbDataRef.current.file.atomStore.residueIndex[
-                  number - (startsAtOne ? step : 0)
-                ],
-              );
-              if (!residue) return +number.toFixed(2);
-              return `${residue.resname} - ${atom.atomname}`;
+              if (xUnit === 'ns') return +number.toFixed(2) + ' ns';
+              if (xUnit === 'frame') return 'frame ' + +number.toFixed(2);
+              if (xUnit === 'atom') {
+                if (!pdbDataRef.current.file) return +number.toFixed(2);
+                const atom = pdbDataRef.current.file.atomMap.get(
+                  pdbDataRef.current.file.atomStore.atomTypeId[
+                    number - (startsAtOne ? step : 0)
+                  ],
+                );
+                if (!atom) return +number.toFixed(2);
+                const residue = pdbDataRef.current.file.residueMap.get(
+                  pdbDataRef.current.file.atomStore.residueIndex[
+                    number - (startsAtOne ? step : 0)
+                  ],
+                );
+                if (!residue) return +number.toFixed(2);
+                return `${residue.resname} - ${atom.atomname}`;
+              }
+              return 'Error: Not supported unit';
             } else {
               return yData[d].data[closestIndex];
             }
@@ -554,7 +596,7 @@ const Graph = ({
             control={
               <Checkbox
                 checked={lab[key]}
-                style={{ color: COLORS.get(key) }}
+                style={{ color: COLORS.get(key) || '#000000' }}
                 inputProps={{ 'data-key': key }}
               />
             }

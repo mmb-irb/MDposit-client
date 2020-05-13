@@ -28,7 +28,7 @@ describe('<ProjectMenu />', () => {
         <ProjectMenu params={{ accession: 'MCNS00001', subPage: 'overview' }} />
       </Router>,
     );
-    expect(wrapper.container.querySelectorAll('a').length).toBe(3);
+    expect(wrapper.container.querySelectorAll('a').length).toBe(4);
   });
 
   // try to figure out which is the best way to test that

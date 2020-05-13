@@ -63,6 +63,8 @@ const NGLViewer = memo(
         perspective,
         speed,
         bannedChains,
+        defaultType = 'cartoon',
+        defaultColor = 'chainid',
       },
       ref,
     ) => {
@@ -311,10 +313,12 @@ const NGLViewer = memo(
         // If not, create it
         else {
           // main structure
-          structureComponent.addRepresentation('cartoon', {
+          structureComponent.addRepresentation(defaultType, {
             sele: CHAIN_SELECTION, // This may do nothing
             name: 'structure',
             opacity: 1,
+            colorScheme: defaultColor,
+            //colorScheme: 'electrostatic',
           });
         }
 

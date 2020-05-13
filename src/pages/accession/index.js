@@ -37,6 +37,13 @@ const GenericAnalysisPage = lazy(() =>
   ),
 );
 const PCA = lazy(() => import(/* webpackChunkName: 'pca' */ './pca'));
+const Interface = lazy(() =>
+  import(/* webpackChunkName: 'trajectory' */ './interface-analysis'),
+);
+
+const Electrostatic = lazy(() =>
+  import(/* webpackChunkName: 'trajectory' */ './electrostatic'),
+);
 
 // Return an error message and print the error in the console
 const Error = ({ error }) => {
@@ -181,10 +188,29 @@ const SummarySwitch = () => {
                     <GenericAnalysisPage
                       analysis="fluctuation"
                       xLabel="Atom"
+                      xUnit="atom"
                       yLabel="Fluctuation (nm)"
                       startsAtOne
                       graphType="dash"
                     />
+                  </Suspense>
+                )}
+              />
+              <Route
+                path="/browse/:accession/rmsd-perres"
+                exact
+                render={props => (
+                  <Suspense fallback={<Loading />}>
+                    <Interface {...props} />
+                  </Suspense>
+                )}
+              />
+              <Route
+                path="/browse/:accession/electrostatic"
+                exact
+                render={props => (
+                  <Suspense fallback={<Loading />}>
+                    <Electrostatic {...props} />
                   </Suspense>
                 )}
               />

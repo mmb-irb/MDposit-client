@@ -16,7 +16,6 @@ describe('<Graph />', () => {
     expect(
       () => (wrapper = render(<Graph y={y} xLabel="x" yLabel="y" />)),
     ).not.toThrow();
-    expect(() => (wrapper = render(<Graph y={y} startsAtOne />))).not.toThrow();
     expect(
       () => (wrapper = render(<Graph y={y} selected={1} />)),
     ).not.toThrow();

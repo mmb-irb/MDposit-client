@@ -28,6 +28,7 @@ const Analysis = ({
   defaultPrecision,
   xLabel,
   xScaleFactor,
+  xUnit,
   yLabel,
   graphType,
   startsAtOne,
@@ -71,10 +72,12 @@ const Analysis = ({
           <Typography variant="h6" />
           <Graph
             y={payload.y}
+            start={payload.start || 0}
             step={payload.step}
             defaultPrecision={defaultPrecision}
             xLabel={xLabel}
             xScaleFactor={xScaleFactor}
+            xUnit={xUnit}
             yLabel={yLabel}
             type={graphType}
             startsAtOne={startsAtOne}
