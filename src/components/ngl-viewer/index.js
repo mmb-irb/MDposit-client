@@ -35,7 +35,8 @@ const CHAIN_SELECTION = 'polymer and not hydrogen ';
 const NGLViewer = memo(
   forwardRef(({ // URL to find the structure data in the API
     // If no URL is provided then use the context pdbData (the 'md.imaged.rot.dry.pdb' file)
-    structureURL, trajectoryURL, className, playing, spinning, smooth, onProgress, noTrajectory, projection, framesSelect, nFrames = DEFAULT_NUMBER_OF_FRAMES, hovered, selected, requestedFrame, darkBackground, perspective, speed, drawingMethods, coloringMethods, opacities, chains }, ref) => { // If no URL is provided then use the main trajectory (the 'md.imaged.rot.xtc' file) // URL to find the trajectory data in the API
+    structureURL, trajectoryURL, className, playing, spinning, smooth, onProgress, noTrajectory, projection, framesSelect, nFrames = DEFAULT_NUMBER_OF_FRAMES, hovered, selected, requestedFrame, darkBackground, perspective, speed, drawingMethods, coloringMethods, opacities, chains }, ref) => {
+    // If no URL is provided then use the main trajectory (the 'md.imaged.rot.xtc' file) // URL to find the trajectory data in the API
     // True when we just want to display a static structure // Requeste number of frames to display
     // data from context
     const accession = useContext(AccessionCtx);
@@ -73,6 +74,7 @@ const NGLViewer = memo(
     // Hook for the trajectory data (frames)
     useEffect(
       () => {
+        if (noTrajectory) return;
         // Set the url to ask the API
         let url = trajectoryURL
           ? trajectoryURL

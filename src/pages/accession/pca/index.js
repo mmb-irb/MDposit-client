@@ -41,7 +41,7 @@ const nglPlaceholder = (
 const PCA = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
-  // Get the current project metadata and chains
+  // Get the current project chains
   const { chains } = useContext(ProjectCtx);
   // Load the main data from the API
   const { loading, payload, error } = useAPI(

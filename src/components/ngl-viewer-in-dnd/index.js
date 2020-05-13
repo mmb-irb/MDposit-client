@@ -91,6 +91,7 @@ const NGLViewerInDND = props => {
     analysis, // Generic analysis page
     selected, // Generic analysis page
     requestedFrame, // PCA projections
+    noTrajectory,
     nail, // Both
     close, // Both
     chains, // Both
@@ -177,7 +178,9 @@ const NGLViewerInDND = props => {
               ref={nglViewRef}
               className={style['ngl-viewer-with-controls']}
               startsPlaying={false}
-              noTrajectory={!analysis || analysis !== 'fluctuation'}
+              noTrajectory={
+                noTrajectory || (!analysis || analysis !== 'fluctuation')
+              }
               requestedFrame={
                 Number.isFinite(requestedFrame)
                   ? requestedFrame

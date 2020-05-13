@@ -9,6 +9,7 @@ import Loading from '../../../components/loading';
 import useAPI from '../../../hooks/use-api';
 
 import { AccessionCtx } from '../../../contexts';
+import { ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
@@ -27,6 +28,8 @@ const Graph = lazy(() =>
 const InterfaceAnalysis = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
+  // Get the current project chains
+  const { chains } = useContext(ProjectCtx);
   // Set the graph analysis propierties
   const analysis = 'rmsd-perres';
   const defaultPrecision = 1;
@@ -87,6 +90,26 @@ const InterfaceAnalysis = () => {
     (selected && selected.size)
   );
 
+  // Set the chains to be represented in the NGL viewer
+  const chainsNGL = [];
+  for (const c in chains) {
+    // The last chain is represented as licorice
+    if (+c === +(chains.length - 1)) {
+      chainsNGL.push({
+        name: 'Chain ' + chains[c],
+        selection: ':' + chains[c],
+        defaultDrawingMethod: 'licorice',
+      });
+    } else {
+      chainsNGL.push({
+        name: 'Chain ' + chains[c],
+        selection: ':' + chains[c],
+        defaultDrawingMethod: 'surface',
+        defaultColoringMethod: 'electrostatic',
+      });
+    }
+  }
+
   // Render
   return (
     <Suspense fallback={<Loading />}>
@@ -120,6 +143,7 @@ const InterfaceAnalysis = () => {
           accession={accession}
           analysis={'rmsd'}
           selected={selected}
+          chains={chainsNGL}
         />
       )}
     </Suspense>
