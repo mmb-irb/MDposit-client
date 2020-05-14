@@ -23,6 +23,14 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
     console.error(error.toString());
   }
 
+  // Get only the analysis which are meant to have their own sheet
+  let analyses = [];
+  if (payload)
+    // Set the analysis which have their own sheet
+    analyses = payload.filter(element =>
+      ['rmsd', 'rgyr', 'fluctuation', 'pca', 'rmsd-perres'].includes(element),
+    );
+
   // Return each of the menu tabs
   return (
     <Tabs
@@ -48,8 +56,8 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
       />
 
       {!loading &&
-        payload &&
-        payload.map(analysis => (
+        analyses &&
+        analyses.map(analysis => (
           // Display a tab for each analysis
           <Tab
             key={analysis}
@@ -60,6 +68,14 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
             className={style['tab-link']}
           />
         ))}
+
+      <Tab
+        component={Link}
+        to={`/browse/${accession}/dist-perres`}
+        label="dist-perres"
+        value="dist-perres"
+        className={style['tab-link']}
+      />
 
       <Tab
         component={Link}

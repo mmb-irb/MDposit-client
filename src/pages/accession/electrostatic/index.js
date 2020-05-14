@@ -56,7 +56,7 @@ const Trajectory = () => {
         {isNglVisible ? (
           <NGLViewerWithControls
             className={style.container}
-            //structureURL={structureURL}
+            structureURL={structureURL}
             chains={chainsNGL}
             noTrajectory={true}
           />

@@ -45,6 +45,10 @@ const Electrostatic = lazy(() =>
   import(/* webpackChunkName: 'trajectory' */ './electrostatic'),
 );
 
+const DistPerres = lazy(() =>
+  import(/* webpackChunkName: 'trajectory' */ './dist-perres'),
+);
+
 // Return an error message and print the error in the console
 const Error = ({ error }) => {
   console.error(error);
@@ -211,6 +215,15 @@ const SummarySwitch = () => {
                 render={props => (
                   <Suspense fallback={<Loading />}>
                     <Electrostatic {...props} />
+                  </Suspense>
+                )}
+              />
+              <Route
+                path="/browse/:accession/dist-perres"
+                exact
+                render={props => (
+                  <Suspense fallback={<Loading />}>
+                    <DistPerres {...props} />
                   </Suspense>
                 )}
               />

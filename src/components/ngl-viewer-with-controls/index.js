@@ -76,8 +76,6 @@ const NGLViewerWithControls = forwardRef(
       noTrajectory,
       close,
       nail,
-      // The number of the PCA projection
-      projection,
       // Set if the frame number selector is allowed for trajectories (false in PCA projections)
       framesSelect = true,
       // The chains to be represented
@@ -93,6 +91,8 @@ const NGLViewerWithControls = forwardRef(
     },
     ref,
   ) => {
+    // The 'chains' parameters is mandatory
+    if (!chains || chains.length === 0) return 'ERROR: No chains were provided';
     // Fill the missing 'chains' values with some default values
     for (const chain of chains) {
       if (!chain.selection)
@@ -230,7 +230,6 @@ const NGLViewerWithControls = forwardRef(
             nFrames={nFrames}
             darkBackground={darkBackground}
             perspective={perspective}
-            projection={projection}
             speed={speed}
             drawingMethods={drawingMethods}
             coloringMethods={coloringMethods}
@@ -397,6 +396,7 @@ const NGLViewerWithControls = forwardRef(
 
             <Paints
               chains={chains}
+              title="Change representation parameters"
               drawingMethods={drawingMethods}
               setDrawingMethods={setDrawingMethods}
               coloringMethods={coloringMethods}

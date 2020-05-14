@@ -114,6 +114,7 @@ const Analysis = ({
           hovered={hovered}
           analysis={analysis}
           selected={selected}
+          noTrajectory={analysis === 'fluctuation' ? false : true}
           chains={chainsNGL}
         />
       )}

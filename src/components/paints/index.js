@@ -71,7 +71,7 @@ const Paints = memo(({ // Array with all chain letters ("A","B","C"...)
                         onChange={({ target: { value } }) => {
                           let changed = drawingMethods;
                           changed[chains.findIndex(c => c === chain)] = value;
-                          setDrawingMethods(changed);
+                          setDrawingMethods([...changed]);
                         }}
                       >
                         <option value={'cartoon'}>Cartoon</option>
@@ -90,7 +90,7 @@ const Paints = memo(({ // Array with all chain letters ("A","B","C"...)
                         onChange={({ target: { value } }) => {
                           let changed = coloringMethods;
                           changed[chains.findIndex(c => c === chain)] = value;
-                          setColoringMethods(changed);
+                          setColoringMethods([...changed]);
                         }}
                       >
                         <option value={'bfactor'}>B factor</option>
@@ -109,7 +109,7 @@ const Paints = memo(({ // Array with all chain letters ("A","B","C"...)
                           let changed = opacities;
                           changed[chains.findIndex(c => c === chain)] =
                             value / 100;
-                          setOpacities(changed);
+                          setOpacities([...changed]);
                         }}
                         className={style['popover-slider']}
                       />

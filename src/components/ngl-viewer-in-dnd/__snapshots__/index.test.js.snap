@@ -4,10 +4,10 @@ exports[`<NGLViewerSpawner /> should render 1`] = `
 <NGLViewerInDND
   accession="MCNS00001"
   analysis="fluctuation"
-  close={[Function]}
   id={0}
   key="0"
   nail={[Function]}
   requestedFrame="1"
+  setClosed={[Function]}
 />
 `;

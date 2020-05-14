@@ -105,6 +105,8 @@ const PCA = () => {
                 className={style['ngl-viewer-with-controls']}
                 projection={projections[0]}
                 framesSelect={false}
+                // Projections are backbone trajectories, same as the average.pdb topology
+                structureURL={`${BASE_PATH_PROJECTS}${accession}/files/average.pdb`}
                 trajectoryURL={projectionURL}
                 chains={chainsNGL}
               />

@@ -57,62 +57,76 @@ const payloadToNGLFile = (
   } else if (isOneFrame) {
     length = 1;
   }
-  for (let i = 0; i < length; i++) {
-    // Create a new array with the length of the number of atoms in the pdbFile * 3
-    const coordinates = new Float32Array(
-      pdbFile.atomCount * COORDINATES_NUMBER,
-    );
-    let k = 0;
-    // If it is a PCA projection
-    if (isProjection) {
-      // Create our own trajectory with coordinates only for the specified atoms
-      // The coordinates of the excluded atoms are set to 0
-      // This makes the trajectory compatible with the pdbFile
-      if (format === 'backbone') {
-        for (let j = 0; j < pdbFile.atomCount; j++) {
-          if (k >= atoms) break;
-          if (
-            pdbFile.getAtomProxy(j).atomname === 'C' ||
-            pdbFile.getAtomProxy(j).atomname === 'CA' ||
-            pdbFile.getAtomProxy(j).atomname === 'N'
-          ) {
-            coordinates[j * COORDINATES_NUMBER] =
-              view[i * atoms * COORDINATES_NUMBER + k * COORDINATES_NUMBER];
-            coordinates[j * COORDINATES_NUMBER + 1] =
-              view[i * atoms * COORDINATES_NUMBER + k * COORDINATES_NUMBER + 1];
-            coordinates[j * COORDINATES_NUMBER + 2] =
-              view[i * atoms * COORDINATES_NUMBER + k * COORDINATES_NUMBER + 2];
-            k++;
-          }
-        }
-      }
-      if (format === 'heavy') {
-        for (let j = 0; j < pdbFile.atomCount; j++) {
-          if (k >= atoms) break;
-          if (pdbFile.getAtomProxy(j).element !== 'H') {
-            coordinates[j * COORDINATES_NUMBER] =
-              view[i * atoms * COORDINATES_NUMBER + k * COORDINATES_NUMBER];
-            coordinates[j * COORDINATES_NUMBER + 1] =
-              view[i * atoms * COORDINATES_NUMBER + k * COORDINATES_NUMBER + 1];
-            coordinates[j * COORDINATES_NUMBER + 2] =
-              view[i * atoms * COORDINATES_NUMBER + k * COORDINATES_NUMBER + 2];
-            k++;
-          }
-        }
-      }
-    } else {
-      // if it is not a PCA projection
-      coordinates.set(
-        view.subarray(
-          i * atoms * COORDINATES_NUMBER,
-          (i + 1) * atoms * COORDINATES_NUMBER,
-        ),
+  try {
+    for (let i = 0; i < length; i++) {
+      // Create a new array with the length of the number of atoms in the pdbFile * 3
+      const coordinates = new Float32Array(
+        pdbFile.atomCount * COORDINATES_NUMBER,
       );
+      let k = 0;
+      // If it is a PCA projection
+      if (isProjection) {
+        // Create our own trajectory with coordinates only for the specified atoms
+        // The coordinates of the excluded atoms are set to 0
+        // This makes the trajectory compatible with the pdbFile
+        if (format === 'backbone') {
+          for (let j = 0; j < pdbFile.atomCount; j++) {
+            if (k >= atoms) break;
+            if (
+              pdbFile.getAtomProxy(j).atomname === 'C' ||
+              pdbFile.getAtomProxy(j).atomname === 'CA' ||
+              pdbFile.getAtomProxy(j).atomname === 'N'
+            ) {
+              coordinates[j * COORDINATES_NUMBER] =
+                view[i * atoms * COORDINATES_NUMBER + k * COORDINATES_NUMBER];
+              coordinates[j * COORDINATES_NUMBER + 1] =
+                view[
+                  i * atoms * COORDINATES_NUMBER + k * COORDINATES_NUMBER + 1
+                ];
+              coordinates[j * COORDINATES_NUMBER + 2] =
+                view[
+                  i * atoms * COORDINATES_NUMBER + k * COORDINATES_NUMBER + 2
+                ];
+              k++;
+            }
+          }
+        }
+        if (format === 'heavy') {
+          for (let j = 0; j < pdbFile.atomCount; j++) {
+            if (k >= atoms) break;
+            if (pdbFile.getAtomProxy(j).element !== 'H') {
+              coordinates[j * COORDINATES_NUMBER] =
+                view[i * atoms * COORDINATES_NUMBER + k * COORDINATES_NUMBER];
+              coordinates[j * COORDINATES_NUMBER + 1] =
+                view[
+                  i * atoms * COORDINATES_NUMBER + k * COORDINATES_NUMBER + 1
+                ];
+              coordinates[j * COORDINATES_NUMBER + 2] =
+                view[
+                  i * atoms * COORDINATES_NUMBER + k * COORDINATES_NUMBER + 2
+                ];
+              k++;
+            }
+          }
+        }
+      } else {
+        // if it is not a PCA projection
+        coordinates.set(
+          view.subarray(
+            i * atoms * COORDINATES_NUMBER,
+            (i + 1) * atoms * COORDINATES_NUMBER,
+          ),
+        );
+      }
+      // Push the new coordinates each frame
+      file.coordinates.push(coordinates);
     }
-    // Push the new coordinates each frame
-    file.coordinates.push(coordinates);
+    return file;
+  } catch (error) {
+    console.error(error);
+    // If this fails the topology may not match the trajectory
+    throw new Error(`Topology and trajectory data may not match`);
   }
-  return file;
 };
 
 export default payloadToNGLFile;
