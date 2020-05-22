@@ -189,7 +189,7 @@ const InterfaceAnalysis = () => {
                           />
                         ) : (
                           // Return the plain text
-                          column[1][row]
+                          Math.round(column[1][row] * 10000) / 10000
                         )}
                       </TableCell>
                     ))}
