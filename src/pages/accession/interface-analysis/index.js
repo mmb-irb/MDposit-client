@@ -68,7 +68,7 @@ const InterfaceAnalysis = () => {
 
   // Get the interface residues in a standarized fromat: an array with each resiude 1 by 1
   //const selection = '1-30,60-65,303-315,330-339,365-375,669,683,700-722,739-745,750-771'.split(
-  console.log(searchResidues);
+  //console.log(searchResidues);
   const selection = searchResidues.split(',');
   const ranged = /^([0-9]*)-([0-9]*)$/;
   const curatedSelection = [];
@@ -142,7 +142,7 @@ const InterfaceAnalysis = () => {
   // Render
   return (
     <Suspense fallback={<Loading />}>
-      <Card className={style.card}>
+      <Card className={style.margined}>
         <CardContent>
           {/* Render the table with all the statistics */}
           <Typography variant="h6">Residues selection</Typography>
@@ -151,8 +151,11 @@ const InterfaceAnalysis = () => {
             value={searchResidues}
             variant="outlined"
             onChange={event => setSearchResidues(event.target.value)}
+            className={style.widest}
           />
-          <Typography variant="h6">Data table</Typography>
+          <Typography variant="h6" className={style.margined}>
+            Data table
+          </Typography>
           <Table>
             <TableHead>
               <TableRow>
@@ -212,7 +215,7 @@ const InterfaceAnalysis = () => {
           </Table>
         </CardContent>
       </Card>
-      <Card className={style.card}>
+      <Card className={style.margined}>
         <CardContent>
           <Typography variant="h6" />
           <Graph

@@ -46,7 +46,11 @@ const Electrostatic = lazy(() =>
 );
 
 const DistPerres = lazy(() =>
-  import(/* webpackChunkName: 'trajectory' */ './dist-perres'),
+  import(/* webpackChunkName: 'dist-perres' */ './dist-perres'),
+);
+
+const RmsdPairwise = lazy(() =>
+  import(/* webpackChunkName: 'rmsd-pairwise' */ './rmsd-pairwise'),
 );
 
 // Return an error message and print the error in the console
@@ -224,6 +228,15 @@ const SummarySwitch = () => {
                 render={props => (
                   <Suspense fallback={<Loading />}>
                     <DistPerres {...props} />
+                  </Suspense>
+                )}
+              />
+              <Route
+                path="/browse/:accession/rmsd-pairwise"
+                exact
+                render={props => (
+                  <Suspense fallback={<Loading />}>
+                    <RmsdPairwise {...props} />
                   </Suspense>
                 )}
               />

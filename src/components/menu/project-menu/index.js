@@ -79,6 +79,14 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
 
       <Tab
         component={Link}
+        to={`/browse/${accession}/rmsd-pairwise`}
+        label="rmsd-pairwise"
+        value="rmsd-pairwise"
+        className={style['tab-link']}
+      />
+
+      <Tab
+        component={Link}
         to={`/browse/${accession}/electrostatic`}
         label="electrostatic"
         value="electrostatic"

@@ -24,6 +24,7 @@
     "qs": "6.9.0",
     "react": "16.10.2",
     "react-dom": "16.10.2",
+    "react-heatmap-grid": "^0.8.2",
     "react-intersection-observer": "8.24.2",
     "react-property-setter": "0.2.1",
     "react-rnd": "10.1.7",
