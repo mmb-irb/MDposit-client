@@ -75,7 +75,7 @@ const DistPerres = () => {
           url={urlMean}
           searchResidues={searchResidues}
           onClick={(x, y) => setSelected([residue2atom(x), residue2atom(y)])}
-          legendTitle={'Distance average (nm)'}
+          legendTitle={'Distance average (Å)'}
           // Invert colors here, since minimum values belong to closer residues
           maxValueColor={{ r: 0, g: 0, b: 255 }}
           minValueColor={{ r: 255, g: 0, b: 0 }}
@@ -89,7 +89,7 @@ const DistPerres = () => {
           url={urlStdv}
           searchResidues={searchResidues}
           onClick={(x, y) => setSelected([residue2atom(x), residue2atom(y)])}
-          legendTitle={'Distance standard deviation (nm)'}
+          legendTitle={'Distance standard deviation (Å)'}
           legendLength={8}
         />
       </Suspense>
