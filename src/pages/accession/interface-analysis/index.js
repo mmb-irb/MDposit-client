@@ -43,7 +43,7 @@ const InterfaceAnalysis = () => {
   const defaultPrecision = 1;
   const xLabel = 'Time (ns)';
   const xScaleFactor = 0.001;
-  const yLabel = 'RMSd (nm)';
+  const yLabel = 'RMSd (Å)';
   // Send a request to the API with the url of the specific analysis
   const { loading, payload, error } = useAPI(
     `${BASE_PATH_PROJECTS}${accession}/analyses/${analysis}/`,
@@ -101,14 +101,14 @@ const InterfaceAnalysis = () => {
   // Now give the selected payload a standarized format for the data table
   const data = {
     Name: [],
-    'Mean (nm)': [],
-    'Standard deviation (nm)': [],
+    'Mean (Å)': [],
+    'Standard deviation (Å)': [],
   };
 
   for (const key of Object.keys(selectedPayload)) {
     data['Name'].push(key);
-    data['Mean (nm)'].push(selectedPayload[key].average);
-    data['Standard deviation (nm)'].push(selectedPayload[key].stddev);
+    data['Mean (Å)'].push(selectedPayload[key].average);
+    data['Standard deviation (Å)'].push(selectedPayload[key].stddev);
   }
 
   const rowsNumber = Object.keys(selectedPayload).length;

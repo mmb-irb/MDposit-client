@@ -27,7 +27,7 @@ const Trajectory = () => {
   const { chains } = useContext(ProjectCtx);
 
   // Get the API URL of the average structure
-  const structureURL = `${BASE_PATH_PROJECTS}${accession}/files/average.pdb`;
+  const structureURL = `${BASE_PATH_PROJECTS}${accession}/files/averageTopology.pdb`;
 
   // Set the chains to be represented in the NGL viewer
   const chainsNGL = [];
