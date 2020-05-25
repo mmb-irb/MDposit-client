@@ -71,30 +71,6 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
 
       <Tab
         component={Link}
-        to={`/browse/${accession}/dist-perres`}
-        label="dist-perres"
-        value="dist-perres"
-        className={style['tab-link']}
-      />
-
-      <Tab
-        component={Link}
-        to={`/browse/${accession}/rmsd-pairwise`}
-        label="rmsd-pairwise"
-        value="rmsd-pairwise"
-        className={style['tab-link']}
-      />
-
-      <Tab
-        component={Link}
-        to={`/browse/${accession}/electrostatic`}
-        label="electrostatic"
-        value="electrostatic"
-        className={style['tab-link']}
-      />
-
-      <Tab
-        component={Link}
         to={`/browse/${accession}/files`}
         label="files"
         value="files"
