@@ -28,7 +28,7 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
   if (payload)
     // Set the analysis which have their own sheet
     analyses = payload.filter(element =>
-      ['rmsd', 'rgyr', 'fluctuation', 'pca', 'rmsd-perres'].includes(element),
+      ['rmsd', 'rgyr', 'fluctuation', 'pca'].includes(element),
     );
 
   // Return each of the menu tabs
