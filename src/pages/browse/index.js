@@ -159,6 +159,10 @@ const Row = ({
           ? analyses
               // Available analyses are sorted alphabetically
               .sort()
+              // Display only allowed analysis
+              .filter(element =>
+                ['rmsd', 'rgyr', 'fluctuation', 'pca'].includes(element),
+              )
               // For each analysis create a clickable button which links to the analysis route
               .map(analysis => (
                 <Chip
