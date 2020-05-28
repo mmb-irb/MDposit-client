@@ -69,6 +69,56 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
           />
         ))}
 
+      {!loading && payload && payload.includes('rmsd-perres') && (
+        <Tab
+          component={Link}
+          to={`/browse/${accession}/rmsd-perres`}
+          label="rmsd-perres"
+          value="rmsd-perres"
+          className={style['tab-link']}
+        />
+      )}
+
+      {!loading && payload && payload.includes('dist-perres-mean') && (
+        <Tab
+          component={Link}
+          to={`/browse/${accession}/dist-perres`}
+          label="dist-perres"
+          value="dist-perres"
+          className={style['tab-link']}
+        />
+      )}
+
+      {!loading && payload && payload.includes('rmsd-pairwise') && (
+        <Tab
+          component={Link}
+          to={`/browse/${accession}/rmsd-pairwise`}
+          label="rmsd-pairwise"
+          value="rmsd-pairwise"
+          className={style['tab-link']}
+        />
+      )}
+
+      {!loading && payload && payload.includes('electrostatic') && (
+        <Tab
+          component={Link}
+          to={`/browse/${accession}/electrostatic`}
+          label="electrostatic"
+          value="electrostatic"
+          className={style['tab-link']}
+        />
+      )}
+
+      {!loading && payload && payload.includes('hbonds') && (
+        <Tab
+          component={Link}
+          to={`/browse/${accession}/hbonds`}
+          label="hbonds"
+          value="hbonds"
+          className={style['tab-link']}
+        />
+      )}
+
       <Tab
         component={Link}
         to={`/browse/${accession}/files`}

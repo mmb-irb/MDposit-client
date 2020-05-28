@@ -53,6 +53,10 @@ const RmsdPairwise = lazy(() =>
   import(/* webpackChunkName: 'rmsd-pairwise' */ './rmsd-pairwise'),
 );
 
+const Hbonds = lazy(() =>
+  import(/* webpackChunkName: 'rmsd-pairwise' */ './hbonds'),
+);
+
 // Return an error message and print the error in the console
 const Error = ({ error }) => {
   console.error(error);
@@ -237,6 +241,15 @@ const SummarySwitch = () => {
                 render={props => (
                   <Suspense fallback={<Loading />}>
                     <RmsdPairwise {...props} />
+                  </Suspense>
+                )}
+              />
+              <Route
+                path="/browse/:accession/hbonds"
+                exact
+                render={props => (
+                  <Suspense fallback={<Loading />}>
+                    <Hbonds {...props} />
                   </Suspense>
                 )}
               />

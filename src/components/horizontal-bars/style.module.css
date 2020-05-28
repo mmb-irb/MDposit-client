@@ -1,0 +1,4 @@
+.chart > svg,
+.chart > canvas {
+  cursor: crosshair;
+}

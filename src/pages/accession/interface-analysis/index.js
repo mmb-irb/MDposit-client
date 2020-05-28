@@ -44,6 +44,7 @@ const InterfaceAnalysis = () => {
   const xLabel = 'Time (ns)';
   const xScaleFactor = 0.001;
   const yLabel = 'RMSd (Å)';
+
   // Send a request to the API with the url of the specific analysis
   const { loading, payload, error } = useAPI(
     `${BASE_PATH_PROJECTS}${accession}/analyses/${analysis}/`,

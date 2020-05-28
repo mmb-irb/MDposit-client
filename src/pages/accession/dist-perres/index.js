@@ -36,10 +36,7 @@ const DistPerres = () => {
 
   // Get first atom number from resiude number
   const residue2atom = residue => {
-    // get a list with the atom count of each resiude in order
-    const atomCounts = pdbData.file.residueStore.atomCount;
-    let atom = 1;
-    for (let r = 0; r < residue; r++) atom += atomCounts[r];
+    let atom = pdbData.file.residueStore.atomOffset[residue] + 1;
     return atom;
   };
 

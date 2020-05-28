@@ -345,6 +345,7 @@ const NGLViewer = memo(
       if (!pdbFile || !(hovered || selected)) {
         return;
       }
+
       const nameHighlight = 'highlighted';
       const previousHighlightRepresentation = stageRef.current.compList[0].reprList.find(
         representation => representation.name === nameHighlight,
@@ -380,6 +381,7 @@ const NGLViewer = memo(
       const seleHighlight = `@${atoms
         .map(atomNumber => atomNumber - 1)
         .join(',')}`;
+
       stageRef.current.compList[0].addRepresentation('spacefill', {
         sele: seleHighlight,
         opacity: 0.5,
@@ -390,10 +392,18 @@ const NGLViewer = memo(
       const seleContext = Array.from(
         new Set(
           atoms.map(
-            atomsNumber => pdbFile.atomStore.residueIndex[atomsNumber - 1] + 1,
+            // 'residueIndex' contains the ABSOLUTE residue number whom each atom belongs to
+            // 'resno' contains the TOPOLOGY number equivalent to each absolute residue number
+            // This last step is cruicial since absolute residue numbers do not respect topology gaps
+            // (e.g. There may be independent atoms between 2 chains thus offsetting residue numbers in the 2nd chain)
+            atomsNumber =>
+              pdbFile.residueStore.resno[
+                pdbFile.atomStore.residueIndex[atomsNumber - 1]
+              ],
           ),
         ),
       ).join(' or ');
+
       stageRef.current.compList[0].addRepresentation('ball+stick', {
         sele: seleContext,
         name: nameContext,
