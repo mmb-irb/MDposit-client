@@ -25,8 +25,10 @@ const HorizontalBars = ({
   width = 500,
   height = 260,
   // Hooks
-  setHovered,
-  setSelected,
+  hovered,
+  onHover,
+  selected,
+  onClick,
 }) => {
   const containerRef = useRef(null);
 
@@ -40,7 +42,8 @@ const HorizontalBars = ({
         getTextWidth.canvas ||
         (getTextWidth.canvas = document.createElement('canvas'));
       const context = canvas.getContext('2d');
-      context.font = '10px sans-serif'; // The default d3 font
+      // The default d3 font is 10px sans-serif, and the bold gives a necessary extra margin
+      context.font = 'bold 10px sans-serif';
       const metrics = context.measureText(text);
       return metrics.width;
     };
@@ -98,16 +101,30 @@ const HorizontalBars = ({
 
     chart.append('g').call(yAxis);
 
-    // On mouse click, calculat over which bar is the mouse and return the corresponding data index
-    chart.on('click', (_, index, nodes) => {
-      const [, yValue] = mouse(nodes[index]);
-      const positionIndex = Math.floor((yValue - margin.top) / barHeight);
-      //console.log(yValue + ' -> ' + positionIndex);
-      setSelected(positionIndex);
-    });
-  }, [data, height, setSelected, width, xMax, ylabels]);
+    // On mouse click, calculate over which bar is the mouse and return the corresponding data index
+    if (onClick)
+      chart.on('click', (_, index, nodes) => {
+        const [, yValue] = mouse(nodes[index]);
+        const positionIndex = Math.floor((yValue - margin.top) / barHeight);
+        //console.log(yValue + ' -> ' + positionIndex);
+        onClick(positionIndex);
+      });
+    // On mouse move, calculate over which bar is the mouse and return the corresponding data index
+    if (onHover)
+      chart.on('mousemove', (_, index, nodes) => {
+        const [, yValue] = mouse(nodes[index]);
+        const positionIndex = Math.floor((yValue - margin.top) / barHeight);
+        //console.log(yValue + ' -> ' + positionIndex);
+        onHover(positionIndex);
+      });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // For some reason, if this part is re-render the original render is not gone, so 2 elements are rendered
 
-  return <div className={style.chart} ref={containerRef} id={'container'} />;
+  return (
+    <>
+      <div className={style.chart} ref={containerRef} id={'container'} />
+    </>
+  );
 };
 
 export default HorizontalBars;

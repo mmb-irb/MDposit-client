@@ -1,3 +1,12 @@
 .tab-link {
   text-align: center;
 }
+
+.tab-drop {
+  padding-top: 1ch;
+  background-color: #a0e650;
+}
+
+.disabled {
+  color: #999999;
+}

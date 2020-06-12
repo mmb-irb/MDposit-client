@@ -1,0 +1,12 @@
+.widest {
+  margin-top: 1em;
+  width: 100%;
+}
+
+.margined {
+  margin-bottom: 0.5em;
+}
+
+.card {
+  margin: 1em 0;
+}

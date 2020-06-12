@@ -37,8 +37,8 @@ const GenericAnalysisPage = lazy(() =>
   ),
 );
 const PCA = lazy(() => import(/* webpackChunkName: 'pca' */ './pca'));
-const Interface = lazy(() =>
-  import(/* webpackChunkName: 'trajectory' */ './interface-analysis'),
+const RmsdPerres = lazy(() =>
+  import(/* webpackChunkName: 'trajectory' */ './rmsd-perres'),
 );
 
 const Electrostatic = lazy(() =>
@@ -213,7 +213,7 @@ const SummarySwitch = () => {
                 exact
                 render={props => (
                   <Suspense fallback={<Loading />}>
-                    <Interface {...props} />
+                    <RmsdPerres {...props} />
                   </Suspense>
                 )}
               />

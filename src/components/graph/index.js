@@ -74,6 +74,9 @@ const Graph = ({
   onHover,
   selected,
   onSelect,
+  selfLegend = false,
+  // Object with boolean keys defining which data is displayed (true) or hidden (false)
+  lab,
 }) => {
   const pdbData = useContext(PdbCtx);
 
@@ -92,9 +95,14 @@ const Graph = ({
     }
     return false;
   };
+  // Boolean array defining which data is displayed (true) or hidden (false)
+  if (!lab) lab = fromPairs(yKeys.map(key => [key, activateKey()]));
+  /*
   const [lab, setLabels] = useState(() =>
     fromPairs(yKeys.map(key => [key, activateKey()])),
   );
+  */
+  //console.log(lab);
   const [pr, setPrecision] = useState(defaultPrecision || 1);
 
   const prevLabels = useRef(lab);
@@ -541,14 +549,18 @@ const Graph = ({
 
   useEffect(() => drawRef.current({ precision: pr, labels: lab }), [pr, lab]);
 
+  // Handle when user clicks on legend checkboxes
   const handleChange = useCallback(({ target: { dataset: { key } } }) => {
     if (!key) return;
+    /*
     setLabels(labels => {
       const nextLabels = { ...labels, [key]: !labels[key] };
+      // Check if any value is true before returning the labels
+      // This way, the user can not uncheck the last active checkbox
       if (Object.values(nextLabels).some(Boolean)) return nextLabels;
       // If all of the values would be false, keep the previous
       return labels;
-    });
+    });*/
   }, []);
 
   const handleMouseOver = useCallback(
@@ -586,23 +598,24 @@ const Graph = ({
     <>
       <div className={style['graph-container']} ref={containerRef} />
       <div className={style['graph-legend']}>
-        {yEntries.map(([key]) => (
-          <FormControlLabel
-            data-key={key}
-            key={key}
-            onChange={handleChange}
-            onMouseOver={handleMouseOver}
-            onMouseOut={handleMouseOut}
-            control={
-              <Checkbox
-                checked={lab[key]}
-                style={{ color: COLORS.get(key) || '#000000' }}
-                inputProps={{ 'data-key': key }}
-              />
-            }
-            label={NICE_NAMES.get(key) || key}
-          />
-        ))}
+        {selfLegend &&
+          yEntries.map(([key]) => (
+            <FormControlLabel
+              data-key={key}
+              key={key}
+              onChange={handleChange}
+              onMouseOver={handleMouseOver}
+              onMouseOut={handleMouseOut}
+              control={
+                <Checkbox
+                  checked={lab[key]}
+                  style={{ color: COLORS.get(key) || '#000000' }}
+                  inputProps={{ 'data-key': key }}
+                />
+              }
+              label={NICE_NAMES.get(key) || key}
+            />
+          ))}
         {type === 'dash' && (
           <Button
             variant="contained"

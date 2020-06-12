@@ -4,21 +4,26 @@ import { Card, CardContent, Typography } from '@material-ui/core';
 
 import Loading from '../loading';
 
-import useAPI from '../../hooks/use-api';
-
 import style from './style.module.css';
 
 // Heatmap moduel: https://www.npmjs.com/package/react-heatmap-grid
 import HeatmapGrid from 'react-heatmap-grid';
 
-import { range } from 'lodash-es';
+// Takes a string array and return the array after converting some strings in ''
+// It is useful to delete some labels, so they are not all displayed
+const labelStepper = (labels, step) => {
+  // Copy the labels array into a new array
+  // IMPORTANT: Do no overwrite the labels array, because we need it further
+  const newLabels = [...labels];
+  // If this is not multiple of the label step, delete the label setting it as ''
+  for (const l in newLabels) if (l % step !== 0) newLabels[l] = '';
+  return newLabels;
+};
 
 const Heatmap = ({
   // The API url to load the main data
   // The expected data format is an array of arrays, where each array is a heatmap row
-  url,
-  // Residues to filter
-  searchResidues,
+  inputData,
   // Maximum number of x and y cells
   xMaxCells = 110,
   yMaxCells = 260,
@@ -38,72 +43,21 @@ const Heatmap = ({
   xLabelStep = 10,
   yLabelStep = 10,
 }) => {
-  // The stored previous data
-  const filteredData = useRef(null);
   const processedData = useRef({});
-
-  // Send a request to the API with the url of the specific analysis
-  const { loading, payload, error } = useAPI(url);
-
-  // DANI: Esto debería ir en el análisis, no aquí
-  // Filter data by selected residues
-  useMemo(() => {
-    // Return if the payload is not ready
-    if (loading || error || !payload) return;
-
-    // Return the intact payload if there is no selection
-    if (!searchResidues) {
-      filteredData.current = payload.y;
-      return;
-    }
-
-    // Filter data
-    const selection = searchResidues.split(',');
-    const ranged = /^([0-9]*)-([0-9]*)$/;
-    const curatedSelection = [];
-    for (const res of selection) {
-      if (res.match(ranged)) {
-        const matches = ranged.exec(res);
-        const resiudes = range(+matches[1], +matches[2] + 1);
-        curatedSelection.push(...resiudes);
-      } else curatedSelection.push(+res);
-    }
-
-    // Get data set x and y lengths
-    const yLength = payload.y.length;
-
-    const xSelection = [];
-    const ySelection = [];
-    for (const res of curatedSelection) {
-      if (res < yLength) {
-        ySelection.push(res);
-      } else {
-        xSelection.push(res);
-      }
-    }
-
-    const selectedData = [];
-    for (const row of ySelection) {
-      const newRow = [];
-      for (const value of xSelection)
-        newRow.push(payload.y[row][value - yLength]);
-      selectedData.push(newRow);
-    }
-
-    filteredData.current = selectedData;
-  }, [loading, error, payload, searchResidues]);
 
   // Data processing
   useMemo(() => {
     // Return if the payload is not ready
-    if (!filteredData.current) return;
+    if (!inputData || !inputData.data || inputData.data.length === 0) return;
 
     // Get the data reference
-    const fData = filteredData.current;
+    const rData = inputData.data;
+    let rxLabels = inputData.xLabels;
+    let ryLabels = inputData.yLabels;
 
     // Get data set x and y lengths
-    const xLength = fData[0].length;
-    const yLength = fData.length;
+    const xLength = rData[0].length;
+    const yLength = rData.length;
 
     // Set how many labels there must be
     const xMax = xMaxCells;
@@ -116,7 +70,7 @@ const Heatmap = ({
     let data;
     if (ystep <= 1) {
       if (xstep <= 1) {
-        data = fData;
+        data = rData;
       } else {
         data = new Array(yLength);
         const summarizedIndexes = new Array(xMax);
@@ -124,14 +78,14 @@ const Heatmap = ({
           summarizedIndexes[x] = Math.round(x * xstep);
         }
         for (let y = 0; y < yLength; y++) {
-          data[y] = summarizedIndexes.map(x => fData[y][x]);
+          data[y] = summarizedIndexes.map(x => rData[y][x]);
         }
       }
     } else {
       data = new Array(yMax);
       if (xstep <= 1) {
         for (let y = 0; y < yMax; y++) {
-          data[y] = fData[Math.round(y * ystep)];
+          data[y] = rData[Math.round(y * ystep)];
         }
       } else {
         const summarizedIndexes = new Array(xMax);
@@ -139,10 +93,20 @@ const Heatmap = ({
           summarizedIndexes[x] = Math.round(x * xstep);
         }
         for (let y = 0; y < yMax; y++) {
-          data[y] = summarizedIndexes.map(x => fData[y][x]);
+          data[y] = summarizedIndexes.map(x => rData[y][x]);
         }
       }
     }
+
+    // Create 1-n labels if they are not provided
+    if (!rxLabels) rxLabels = Array.from(Array(xLength).keys());
+    if (!ryLabels) ryLabels = Array.from(Array(yLength).keys());
+
+    // Check that both lengths match as they should
+    if (xLength !== rxLabels.length)
+      console.error('Heatmap error: x labels do not match data dimensions');
+    if (yLength !== ryLabels.length)
+      console.error('Heatmap error: y labels do not match data dimensions');
 
     // Set the heatmap labels
     let xLabels;
@@ -150,32 +114,20 @@ const Heatmap = ({
 
     // x labels
     if (xstep <= 1) {
-      xLabels = new Array(xLength);
-      for (let i = 0; i < xLength; i++)
-        // If this is multiple of the step
-        if (i % xLabelStep === 0) xLabels[i] = i;
-        else xLabels[i] = '';
+      xLabels = rxLabels;
     } else {
       xLabels = new Array(xMax);
       for (let i = 0; i < xMax; i++)
-        // If this is multiple of the step
-        if (i % xLabelStep === 0) xLabels[i] = Math.round(i * xstep);
-        else xLabels[i] = '';
+        xLabels[i] = rxLabels[Math.round(i * xstep)];
     }
 
     // y labels
     if (ystep <= 1) {
-      yLabels = new Array(yLength);
-      for (let i = 0; i < yLength; i++)
-        // If this is multiple of the step
-        if (i % yLabelStep === 0) yLabels[i] = i;
-        else yLabels[i] = '';
+      yLabels = ryLabels;
     } else {
       yLabels = new Array(yMax);
       for (let i = 0; i < yMax; i++)
-        // If this is multiple of the step
-        if (i % yLabelStep === 0) yLabels[i] = Math.round(i * ystep);
-        else yLabels[i] = '';
+        yLabels[i] = ryLabels[Math.round(i * ystep)];
     }
 
     // Set the cells height to reach the specified height
@@ -208,22 +160,13 @@ const Heatmap = ({
       yLength: yLength,
       cellHeight: cellHeight,
     };
-    // WARNING: Changes in 'filteredData' may be not detected
-  }, [
-    filteredData.current,
-    xMaxCells,
-    yMaxCells,
-    legendLength,
-    xLabelStep,
-    yLabelStep,
-    totalHeight,
-    searchResidues,
-  ]);
+    // WARNING: Changes in 'inputData' may be not detected
+  }, [inputData, xMaxCells, yMaxCells, legendLength, totalHeight]);
 
   // Render loading or error messages according with the API response
-  if (loading) return <Loading />;
-  else if (error) return error.toString();
-  else if (!payload) return 'Something bad happened';
+  if (!inputData) return 'Heatmap Error: No "inputData" was provided';
+  if (!inputData.data || inputData.data.length === 0)
+    return 'Heatmap Error: The data field is empty or non existent';
 
   // Retrieve all processed data
   const {
@@ -232,9 +175,6 @@ const Heatmap = ({
     yLabels,
     legendData,
     legendLabels,
-    xstep,
-    ystep,
-    yLength,
     cellHeight,
   } = processedData.current;
 
@@ -255,8 +195,8 @@ const Heatmap = ({
     <Suspense fallback={<Loading />}>
       <HeatmapGrid
         data={data}
-        xLabels={xLabels}
-        yLabels={yLabels}
+        xLabels={labelStepper(xLabels, xLabelStep)}
+        yLabels={labelStepper(yLabels, yLabelStep)}
         xLabelsLocation={'bottom'}
         // Cells width is automatically calculated from number of labels to display and available space
         // Cells height is set here and it will take as much space as needed
@@ -266,14 +206,7 @@ const Heatmap = ({
           margin: '0px',
         })}
         onClick={
-          onClick
-            ? (x, y) =>
-                onClick(
-                  // DANI: Hay que revisar si el + 1 este va bien
-                  Math.round(x * xstep) + yLength + 1,
-                  Math.round(y * ystep),
-                )
-            : undefined
+          onClick ? (x, y) => onClick(xLabels[x], yLabels[y]) : undefined
         }
       />
       {legendTitle && (

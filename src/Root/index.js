@@ -2,6 +2,7 @@ import React, { lazy, Suspense } from 'react';
 import { Switch, Route, Redirect } from 'react-router-dom';
 import { schedule } from 'timing-functions';
 import { MuiThemeProvider, createMuiTheme } from '@material-ui/core/styles';
+// Set the header colors
 import {
   blueGrey as primary,
   lightGreen as secondary,

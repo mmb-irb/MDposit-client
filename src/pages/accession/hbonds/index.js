@@ -23,7 +23,7 @@ const Hbonds = () => {
   const pdbData = useContext(PdbCtx);
 
   // The bar which the mouse is over
-  const [hovered, setHovered] = useState(null);
+  //const [hovered, setHovered] = useState(null);
   // The bar which has been clicked
   const [selected, setSelected] = useState(null);
 
@@ -73,11 +73,18 @@ const Hbonds = () => {
   };
 
   let atomSelection = [];
+  //for (const s in selected) {
   if (selected) {
     atomSelection.push(residue2atom(payload.resnum1[selected]));
     atomSelection.push(residue2atom(payload.resnum2[selected]));
   }
-
+  /*
+  let atomHoverion = [];
+  for (const h in hovered) {
+    atomHoverion.push(residue2atom(payload.resnum1[h]));
+    atomHoverion.push(residue2atom(payload.resnum2[h]));
+  }
+  */
   // Render
   return (
     <Suspense fallback={<Loading />}>
@@ -88,9 +95,24 @@ const Hbonds = () => {
             ylabels={ylabels}
             height={20 * payload.hbonds.length}
             xMax={100}
-            hovered={hovered}
-            setHovered={setHovered}
-            setSelected={setSelected}
+            //hovered={hovered}
+            //onHover={index => setHovered(index)}
+            selected={selected}
+            onClick={index => {
+              // DANI: Esto no tiene sentido
+              //console.log(selected);
+              setSelected(index);
+              /*
+              if (selected && selected.includes(index)){
+                const i = selected.indexOf(index);
+                const deselected = selected.splice(i,1);
+                setSelected(deselected);
+              }
+              else{
+                setSelected((selected && [...selected, index]) || [index]);
+              }
+              */
+            }}
           />
         </CardContent>
       </Card>
@@ -99,6 +121,7 @@ const Hbonds = () => {
           accession={accession}
           analysis={'rmsd'}
           selected={atomSelection}
+          //hovered={atomHoverion}
           chains={chainsNGL}
         />
       )}

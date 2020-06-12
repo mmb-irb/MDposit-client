@@ -11,13 +11,13 @@ import {
   TableBody,
   TableFooter,
   TablePagination,
-  TextField,
   Typography,
 } from '@material-ui/core';
 
 import Card from '../../../components/animated-card';
 import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 import Loading from '../../../components/loading';
+import Info from '../../../components/info';
 
 import useAPI from '../../../hooks/use-api';
 
@@ -27,17 +27,20 @@ import { ProjectCtx } from '../../../contexts';
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 import style from './style.module.css';
-import { range } from 'lodash-es';
+
+import residueSelectionParser from '../../../utils/residue-selection-parser';
+
+import Selector from '../../../components/selector';
 
 const Graph = lazy(() =>
   import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
 );
 
-const InterfaceAnalysis = () => {
+const RmsdPerres = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
   // Get the current project chains
-  const { chains } = useContext(ProjectCtx);
+  const { metadata, chains } = useContext(ProjectCtx);
   // Set the graph analysis propierties
   const analysis = 'rmsd-perres';
   const defaultPrecision = 1;
@@ -54,39 +57,28 @@ const InterfaceAnalysis = () => {
   const [selected, setSelected] = useState(null);
 
   // Set when which resiudes are we meant to find
-  const [searchResidues, setSearchResidues] = useState(
-    '1-30,60-65,303-315,330-339,365-375,669,683,700-722,739-745,750-771',
-  );
+  const [searchResidues, setSearchResidues] = useState(metadata.INTERFACE);
 
   // Table management
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+
+  // The graphics to be displayed
+  const [displays, setDisplays] = useState(Array(rowsPerPage).fill(true));
 
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
 
-  // Get the interface residues in a standarized fromat: an array with each resiude 1 by 1
-  //const selection = '1-30,60-65,303-315,330-339,365-375,669,683,700-722,739-745,750-771'.split(
-  //console.log(searchResidues);
-  const selection = searchResidues.split(',');
-  const ranged = /^([0-9]*)-([0-9]*)$/;
-  const curatedSelection = [];
-  for (const res of selection) {
-    if (res.match(ranged)) {
-      const matches = ranged.exec(res);
-      const resiudes = range(+matches[1], +matches[2] + 1);
-      curatedSelection.push(...resiudes);
-    } else curatedSelection.push(+res);
-  }
+  // Parse the selection string into a numeric array
+  const curatedSelection = residueSelectionParser(searchResidues);
 
   // Find the corrsponding key for each selected resiude
   // First get all available keys in order
   const keyNumber = /^[A-Z]*:([0-9]*)$/;
   const keys = [];
   for (const key of Object.keys(payload.y)) {
-    //console.log(key);
     const result = keyNumber.exec(key);
     if (!result) continue;
     keys[result[1]] = key;
@@ -114,11 +106,33 @@ const InterfaceAnalysis = () => {
 
   const rowsNumber = Object.keys(selectedPayload).length;
 
+  // Set an object with boolean keys defining which data is displayed (true) or hidden (false)
+  let displayedPayload = {};
+  const from = page * rowsPerPage;
+  const to = (page + 1) * rowsPerPage;
+  let count = 0;
+  Object.keys(selectedPayload).forEach((key, index) => {
+    // If the residue appears in the data table
+    if (index >= from && index < to) {
+      // If it is marked to be displayed
+      if (displays[count]) displayedPayload[key] = true;
+      else displayedPayload[key] = false;
+      count += 1;
+    } else displayedPayload[key] = false;
+  });
+
   // Check if there are selected
   const showDND = !!(
     (typeof selected === 'number' && Number.isFinite(selected)) ||
     (selected && selected.size)
   );
+
+  // Handle when user clicks on legend checkboxes
+  const handleChange = row => {
+    const newDisplays = [...displays];
+    newDisplays[row] = !newDisplays[row];
+    setDisplays(newDisplays);
+  };
 
   // Set the chains to be represented in the NGL viewer
   const chainsNGL = [];
@@ -143,20 +157,53 @@ const InterfaceAnalysis = () => {
   // Render
   return (
     <Suspense fallback={<Loading />}>
+      <Selector
+        label="Residues selection"
+        selection={searchResidues}
+        setter={setSearchResidues}
+        options={[
+          { label: 'All', value: '' },
+          { label: 'Interface', value: metadata.INTERFACE },
+        ]}
+        custom
+      />
       <Card className={style.margined}>
+        <Info
+          tooltip={`Nos encontramos en un
+                        periodo de guerra civil. Las
+                        naves espaciales rebeldes,
+                        atacando desde una base
+                        oculta, han logrado su 
+                        primera victoria contra
+                        el malvado Imperio
+                        Galáctico.
+
+                        Durante la batalla, los 
+                        espías rebeldes han
+                        conseguido apoderarse de 
+                        los planos secretos del
+                        arma total y definitiva del
+                        Imperio, la ESTRELLA
+                        DE LA MUERTE,
+                        una estación espacial
+                        acorazada, llevando en sí
+                        potencia suficiente para
+                        destruir a un planeta
+                        entero.
+
+                        Perseguida por los 
+                        siniestros agentes del 
+                        Imperio, la Princesa Leia 
+                        vuela hacia su patria, a
+                        bordo de su nave espacial,
+                        llevando consigo los
+                        planos robados, que
+                        pueden salvar a su pueblo
+                        y devolver la libertad a la
+                        galaxia....`}
+        />
         <CardContent>
           {/* Render the table with all the statistics */}
-          <Typography variant="h6">Residues selection</Typography>
-          <TextField
-            id="outlined-basic"
-            value={searchResidues}
-            variant="outlined"
-            onChange={event => setSearchResidues(event.target.value)}
-            className={style.widest}
-          />
-          <Typography variant="h6" className={style.margined}>
-            Data table
-          </Typography>
           <Table>
             <TableHead>
               <TableRow>
@@ -168,7 +215,7 @@ const InterfaceAnalysis = () => {
             <TableBody>
               {[...Array(rowsNumber).keys()]
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map(row => (
+                .map((row, index) => (
                   <TableRow key={row}>
                     {Object.entries(data).map(column => (
                       <TableCell key={column[0]}>
@@ -176,14 +223,15 @@ const InterfaceAnalysis = () => {
                         // If u want some specific column to behave different set it here
                         column[0] === 'Name' ? (
                           <FormControlLabel
-                            //onChange={handleChange}
+                            key={row}
+                            onChange={() => handleChange(index)}
                             //onMouseOver={handleMouseOver}
                             //onMouseOut={handleMouseOut}
                             control={
                               <Checkbox
-                              //checked={lab[key]}
-                              //style={{ color: COLORS.get(key) || '#000000' }}
-                              //inputProps={{ 'data-key': key }}
+                                checked={displays[index]}
+                                //style={{ color: COLORS.get(key) || '#000000' }}
+                                //inputProps={{ 'data-key': key }}
                               />
                             }
                             label={column[1][row]}
@@ -205,9 +253,14 @@ const InterfaceAnalysis = () => {
                   count={rowsNumber}
                   rowsPerPage={rowsPerPage}
                   page={page}
-                  onChangePage={(event, newPage) => setPage(newPage)}
+                  onChangePage={(event, newPage) => {
+                    setDisplays(Array(rowsPerPage).fill(true));
+                    setPage(newPage);
+                  }}
                   onChangeRowsPerPage={event => {
-                    setRowsPerPage(parseInt(event.target.value, 10));
+                    const newValue = event.target.value;
+                    setRowsPerPage(parseInt(newValue, 10));
+                    setDisplays(Array(newValue).fill(true));
                     setPage(0);
                   }}
                 />
@@ -231,7 +284,7 @@ const InterfaceAnalysis = () => {
             selected={selected}
             mean={false}
             standardDeviation={false}
-            startKeys={2}
+            lab={displayedPayload}
           />
         </CardContent>
       </Card>
@@ -247,4 +300,4 @@ const InterfaceAnalysis = () => {
   );
 };
 
-export default InterfaceAnalysis;
+export default RmsdPerres;
