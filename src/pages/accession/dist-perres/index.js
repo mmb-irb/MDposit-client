@@ -143,7 +143,7 @@ const DistPerres = () => {
           { label: 'All', value: '' },
           { label: 'Interface', value: metadata.INTERFACE },
         ]}
-        custom
+        //custom
       />
       <Suspense fallback={<Loading />}>
         <Card className={style.margined}>

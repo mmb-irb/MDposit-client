@@ -70,3 +70,7 @@
 .chain-analysis-list > li {
   margin: 1em 0;
 }
+
+.trajectory-metadata-title {
+  font-size: large;
+}

@@ -38,6 +38,7 @@ const Home = lazy(() => import(/* webpackChunkName: 'home' */ '../pages/home'));
 const Browse = lazy(() =>
   import(/* webpackChunkName: 'browse' */ '../pages/browse'),
 );
+const Help = lazy(() => import(/* webpackChunkName: 'help' */ '../pages/help'));
 const Accession = lazy(() =>
   import(/* webpackChunkName: 'accession' */ '../pages/accession'),
 );
@@ -93,6 +94,15 @@ const Root = () => (
               render={props => (
                 <Suspense fallback={null}>
                   <Browse {...props} />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/help"
+              exact
+              render={props => (
+                <Suspense fallback={null}>
+                  <Help {...props} />
                 </Suspense>
               )}
             />

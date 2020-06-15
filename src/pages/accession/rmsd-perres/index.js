@@ -165,42 +165,18 @@ const RmsdPerres = () => {
           { label: 'All', value: '' },
           { label: 'Interface', value: metadata.INTERFACE },
         ]}
-        custom
+        //custom
       />
       <Card className={style.margined}>
         <Info
-          tooltip={`Nos encontramos en un
-                        periodo de guerra civil. Las
-                        naves espaciales rebeldes,
-                        atacando desde una base
-                        oculta, han logrado su 
-                        primera victoria contra
-                        el malvado Imperio
-                        Galáctico.
-
-                        Durante la batalla, los 
-                        espías rebeldes han
-                        conseguido apoderarse de 
-                        los planos secretos del
-                        arma total y definitiva del
-                        Imperio, la ESTRELLA
-                        DE LA MUERTE,
-                        una estación espacial
-                        acorazada, llevando en sí
-                        potencia suficiente para
-                        destruir a un planeta
-                        entero.
-
-                        Perseguida por los 
-                        siniestros agentes del 
-                        Imperio, la Princesa Leia 
-                        vuela hacia su patria, a
-                        bordo de su nave espacial,
-                        llevando consigo los
-                        planos robados, que
-                        pueden salvar a su pueblo
-                        y devolver la libertad a la
-                        galaxia....`}
+          reference={'rmsd-perres'}
+          tooltip={`This data table shows the selected residues list. First column contains residue name, which is
+            composed by the union of the residue type abbreviation (e.g. ASN, ASP, CYS...) and the topology
+            numeration. Next two columns provide the RMSD mean and standard deviation for each residue
+            respectively. Both measures are in Angstroms.
+            Use this data table to navigate trough all selected resiudes and set which of them must be 
+            displayed in the graph below. To do so, click in the first column checkbox of the residue to be
+            shown/hidden.`}
         />
         <CardContent>
           {/* Render the table with all the statistics */}

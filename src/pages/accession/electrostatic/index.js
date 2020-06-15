@@ -7,10 +7,10 @@ import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls'
 
 import style from './style.module.css';
 
-import { AccessionCtx } from '../../../contexts';
+//import { AccessionCtx } from '../../../contexts';
 import { ProjectCtx } from '../../../contexts';
 
-import { BASE_PATH_PROJECTS } from '../../../utils/constants';
+//import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 // Define permanent options for the "useInView"
 const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
@@ -22,12 +22,12 @@ const Trajectory = () => {
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
 
   // Get the accession
-  const accession = useContext(AccessionCtx);
+  //const accession = useContext(AccessionCtx);
   // Get the current project chains
   const { chains } = useContext(ProjectCtx);
 
   // Get the API URL of the average structure
-  const structureURL = `${BASE_PATH_PROJECTS}${accession}/files/md.average.pdb`;
+  //const structureURL = `${BASE_PATH_PROJECTS}${accession}/files/md.average.pdb`;
 
   // Set the chains to be represented in the NGL viewer
   const chainsNGL = [];
@@ -56,7 +56,7 @@ const Trajectory = () => {
         {isNglVisible ? (
           <NGLViewerWithControls
             className={style.container}
-            structureURL={structureURL}
+            //structureURL={structureURL}
             chains={chainsNGL}
             noTrajectory={true}
           />

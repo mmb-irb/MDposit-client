@@ -83,7 +83,7 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
       dir: 'trajectory',
     },
     {
-      name: 'quality analyses',
+      name: 'quality control analyses',
       drops: [
         { name: 'RMSD', dir: 'rmsd', cond: payload.includes('rmsd') },
         {

@@ -32,10 +32,7 @@ export const TrajectoryMetadata = memo(() => {
   if (metadata)
     // Render the whole metadata
     return (
-      <fieldset>
-        <legend>
-          <Typography variant="h6">Statistics</Typography>
-        </legend>
+      <>
         <fieldset>
           <legend>Counts</legend>
           <TextField
@@ -268,7 +265,7 @@ export const TrajectoryMetadata = memo(() => {
             disabled={metadata.MEMBRANE === null}
           />
         </fieldset>
-      </fieldset>
+      </>
     );
   // When there is no metadata
   else return 'No available metadata';
@@ -565,8 +562,15 @@ const Trajectory = () => {
     <>
       <Card className={style.card}>
         <CardContent>
-          {/* Renders the whole metadata */}
-          <TrajectoryMetadata />
+          <details>
+            <summary className={style['trajectory-metadata-title']}>
+              Trajectory metadata
+            </summary>
+            <span>
+              {/* Renders the whole metadata */}
+              <TrajectoryMetadata />
+            </span>
+          </details>
         </CardContent>
       </Card>
       <Card className={style.card} ref={nglRef}>
