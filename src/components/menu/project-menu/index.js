@@ -12,14 +12,8 @@ import {
 } from '@material-ui/core';
 import { Link } from 'react-router-dom';
 
-import Loading from '../../loading';
-
 // Load the project contexts
-//import { ProjectCtx } from '../../../contexts';
-
-import useAPI from '../../../hooks/use-api';
-
-import { BASE_PATH_PROJECTS } from '../../../utils/constants';
+import { ProjectCtx } from '../../../contexts';
 
 import style from './style.module.css';
 
@@ -27,21 +21,20 @@ import style from './style.module.css';
 // It only appears when the user is inside a project
 const ProjectMenu = ({ params: { accession, subPage } }) => {
   // Get the current project metadata
-  //const project = useContext(ProjectCtx);
+  const project = useContext(ProjectCtx);
   //console.log(project);
   // Set which menu is opened
   const [openMenu, setOpenMenu] = useState(-1);
   // Set a standarized format state for the popover to work properly
   const [element, setElement] = useState(null);
-  // Request all the available analyses in this project to the API
-  // Then, this menu displays a tab for each analysis
-  const { loading, payload, error } = useAPI(
-    `${BASE_PATH_PROJECTS}${accession}/analyses/`,
-  );
 
-  if (loading) return <Loading />;
-  if (error) return error.toString();
-  if (!payload) return 'Chain analysis is not found';
+  // Get data from the project context if it is available
+  let analyses = [];
+  let metadata = {};
+  if (project && project.analyses) {
+    analyses = project.analyses;
+    metadata = project.metadata;
+  }
 
   // Open the specified menu
   // If the specified menu is the already open menu, then close it
@@ -85,28 +78,28 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
     {
       name: 'quality control analyses',
       drops: [
-        { name: 'RMSD', dir: 'rmsd', cond: payload.includes('rmsd') },
+        { name: 'RMSD', dir: 'rmsd', cond: analyses.includes('rmsd') },
         {
           name: 'RMSD per residue',
           dir: 'rmsd-perres',
-          cond: payload.includes('rmsd-perres'),
+          cond: analyses.includes('rmsd-perres'),
         },
         {
           name: 'RMSD pairwise',
           dir: 'rmsd-pairwise',
-          cond: payload.includes('rmsd-pairwise'),
+          cond: analyses.includes('rmsd-pairwise'),
         },
         {
           name: 'Radius of gyration',
           dir: 'rgyr',
-          cond: payload.includes('rgyr'),
+          cond: analyses.includes('rgyr'),
         },
         {
           name: 'Fluctuation',
           dir: 'fluctuation',
-          cond: payload.includes('fluctuation'),
+          cond: analyses.includes('fluctuation'),
         },
-        { name: 'PCA', dir: 'pca', cond: payload.includes('pca') },
+        { name: 'PCA', dir: 'pca', cond: analyses.includes('pca') },
       ],
     },
     {
@@ -115,17 +108,17 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
         {
           name: 'Distance per residue',
           dir: 'dist-perres',
-          cond: payload.includes('dist-perres'),
+          cond: analyses.includes('dist-perres'),
         },
         {
           name: 'Electrostatic potencial surface',
           dir: 'electrostatic',
-          cond: payload.includes('rmsd'),
+          cond: !!metadata.INTERFACE,
         }, // DANI: Este hay que cambiarlo
         {
           name: 'Hydrogen bonds',
           dir: 'hbonds',
-          cond: payload.includes('hbonds'),
+          cond: analyses.includes('hbonds'),
         },
       ],
     },
@@ -146,7 +139,7 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
   return (
     <>
       <Tabs
-        value={!loading && subPage}
+        value={subPage}
         indicatorColor="secondary"
         textColor="secondary"
         variant="scrollable"

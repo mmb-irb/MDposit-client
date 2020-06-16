@@ -29,6 +29,7 @@ const nextZ = () => {
 const NGLViewerSpawner = inputs => {
   // Redefine props since the input object is not modificable
   const props = { ...inputs };
+  console.log(props);
 
   // Multiple ngl viewers may be spawned
   // Previous 'props' are stored in this array so we can keep rendering those viewers

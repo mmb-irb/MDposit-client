@@ -65,13 +65,20 @@ const Error = ({ error }) => {
 };
 
 // Render the accession summary
-const SummarySwitch = () => {
-  // useContext is a React hook. Get the accession ID from the accession context
+const SummarySwitch = ({ setProject }) => {
+  // Get the accession ID from the accession context
   const accession = useContext(AccessionCtx);
+  // Load the project context and the function to update it
+  const project = useContext(ProjectCtx);
 
-  // Get data from the API. 'payload' contains the main data.
-  const { loading, payload, error } = useAPI(
+  // Check if the project context is empty or not the right project
+  const wrongProjectContext =
+    project === null || (project && project.accession !== accession);
+
+  // Get project data from the API if the current context data is wrong. 'payload' contains the main data.
+  let { loading, payload, error } = useAPI(
     `${BASE_PATH_PROJECTS}${accession}/`,
+    wrongProjectContext,
   );
 
   // Load the structure data form the API
@@ -80,6 +87,13 @@ const SummarySwitch = () => {
     // This attribute was included before: defaultRepresentation: false
     { defaultRepresentation: false, ext: 'pdb' },
   );
+
+  // If loading is null it means the project is already in context
+  if (loading === null) {
+    loading = false;
+    payload = project;
+    error = null;
+  }
 
   // While loading
   if (loading) {
@@ -104,159 +118,160 @@ const SummarySwitch = () => {
   }
   // Otherwise, if we still having data, redirect the user according to the URL path
   if (payload) {
+    // Set the project context
+    setProject(payload);
+    // Render the accession
     return (
       <ErrorBoundary>
         {' '}
         {/* Catch errors */}
-        <ProjectCtx.Provider value={payload}>
-          <PdbCtx.Provider value={pdbData}>
-            <Switch>
-              <Route
-                path="/browse/:accession/overview"
-                exact
-                render={() => (
-                  <Suspense fallback={<Loading />}>
-                    <Overview />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/files"
-                exact
-                render={() => (
-                  <Suspense fallback={<Loading />}>
-                    <Files />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/trajectory"
-                exact
-                render={props => (
-                  <Suspense fallback={<Loading />}>
-                    <Trajectory {...props} />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/pca"
-                exact
-                render={() => (
-                  <Suspense fallback={<Loading />}>
-                    <PCA />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/dist"
-                exact
-                render={() => (
-                  <Suspense fallback={<Loading />}>
-                    <GenericAnalysisPage
-                      analysis="dist"
-                      defaultPrecision={2 ** 6}
-                      xLabel="Time (ns)"
-                      xScaleFactor={0.001}
-                      yLabel="DIST (nm)"
-                    />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/rmsd"
-                exact
-                render={() => (
-                  <Suspense fallback={<Loading />}>
-                    <GenericAnalysisPage
-                      analysis="rmsd"
-                      defaultPrecision={2 ** 6}
-                      xLabel="Time (ns)"
-                      xScaleFactor={0.001}
-                      yLabel="RMSd (nm)"
-                    />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/rgyr"
-                exact
-                render={() => (
-                  <Suspense fallback={<Loading />}>
-                    <GenericAnalysisPage
-                      analysis="rgyr"
-                      defaultPrecision={2 ** 6}
-                      xLabel="Time (ns)"
-                      xScaleFactor={0.001}
-                      yLabel="Rgyr (nm)"
-                    />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/fluctuation"
-                exact
-                component={() => (
-                  <Suspense fallback={<Loading />}>
-                    <GenericAnalysisPage
-                      analysis="fluctuation"
-                      xLabel="Atom"
-                      xUnit="atom"
-                      yLabel="Fluctuation (nm)"
-                      startsAtOne
-                      graphType="dash"
-                    />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/rmsd-perres"
-                exact
-                render={props => (
-                  <Suspense fallback={<Loading />}>
-                    <RmsdPerres {...props} />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/electrostatic"
-                exact
-                render={props => (
-                  <Suspense fallback={<Loading />}>
-                    <Electrostatic {...props} />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/dist-perres"
-                exact
-                render={props => (
-                  <Suspense fallback={<Loading />}>
-                    <DistPerres {...props} />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/rmsd-pairwise"
-                exact
-                render={props => (
-                  <Suspense fallback={<Loading />}>
-                    <RmsdPairwise {...props} />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/hbonds"
-                exact
-                render={props => (
-                  <Suspense fallback={<Loading />}>
-                    <Hbonds {...props} />
-                  </Suspense>
-                )}
-              />
-              <Route render={() => 'This route is not defined in the client'} />
-            </Switch>
-          </PdbCtx.Provider>
-        </ProjectCtx.Provider>
+        <PdbCtx.Provider value={pdbData}>
+          <Switch>
+            <Route
+              path="/browse/:accession/overview"
+              exact
+              render={() => (
+                <Suspense fallback={<Loading />}>
+                  <Overview />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/files"
+              exact
+              render={() => (
+                <Suspense fallback={<Loading />}>
+                  <Files />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/trajectory"
+              exact
+              render={props => (
+                <Suspense fallback={<Loading />}>
+                  <Trajectory {...props} />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/pca"
+              exact
+              render={() => (
+                <Suspense fallback={<Loading />}>
+                  <PCA />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/dist"
+              exact
+              render={() => (
+                <Suspense fallback={<Loading />}>
+                  <GenericAnalysisPage
+                    analysis="dist"
+                    defaultPrecision={2 ** 6}
+                    xLabel="Time (ns)"
+                    xScaleFactor={0.001}
+                    yLabel="DIST (nm)"
+                  />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/rmsd"
+              exact
+              render={() => (
+                <Suspense fallback={<Loading />}>
+                  <GenericAnalysisPage
+                    analysis="rmsd"
+                    defaultPrecision={2 ** 6}
+                    xLabel="Time (ns)"
+                    xScaleFactor={0.001}
+                    yLabel="RMSd (nm)"
+                  />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/rgyr"
+              exact
+              render={() => (
+                <Suspense fallback={<Loading />}>
+                  <GenericAnalysisPage
+                    analysis="rgyr"
+                    defaultPrecision={2 ** 6}
+                    xLabel="Time (ns)"
+                    xScaleFactor={0.001}
+                    yLabel="Rgyr (nm)"
+                  />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/fluctuation"
+              exact
+              component={() => (
+                <Suspense fallback={<Loading />}>
+                  <GenericAnalysisPage
+                    analysis="fluctuation"
+                    xLabel="Atom"
+                    xUnit="atom"
+                    yLabel="Fluctuation (nm)"
+                    startsAtOne
+                    graphType="dash"
+                  />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/rmsd-perres"
+              exact
+              render={props => (
+                <Suspense fallback={<Loading />}>
+                  <RmsdPerres {...props} />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/electrostatic"
+              exact
+              render={props => (
+                <Suspense fallback={<Loading />}>
+                  <Electrostatic {...props} />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/dist-perres"
+              exact
+              render={props => (
+                <Suspense fallback={<Loading />}>
+                  <DistPerres {...props} />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/rmsd-pairwise"
+              exact
+              render={props => (
+                <Suspense fallback={<Loading />}>
+                  <RmsdPairwise {...props} />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/hbonds"
+              exact
+              render={props => (
+                <Suspense fallback={<Loading />}>
+                  <Hbonds {...props} />
+                </Suspense>
+              )}
+            />
+            <Route render={() => 'This route is not defined in the client'} />
+          </Switch>
+        </PdbCtx.Provider>
       </ErrorBoundary>
     );
   }
@@ -298,7 +313,8 @@ const LinkSwitch = ({ accession, subPage }) => {
   );
 };
 
-export default ({ match }) => {
+export default ({ match, setProject }) => {
+  //console.log(setProject);
   return (
     // Set the accession context, which is used by different scripts including this
     <AccessionCtx.Provider value={match.params.accession}>
@@ -314,7 +330,7 @@ export default ({ match }) => {
         />
       </span>
       {/* Load the main data summary */}
-      <SummarySwitch />
+      <SummarySwitch setProject={setProject} />
     </AccessionCtx.Provider>
   );
 };

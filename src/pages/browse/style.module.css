@@ -3,6 +3,14 @@
   transition: 0.5s opacity ease-in-out 0.25s;
 }
 
+/* If we had no valid results we make the table with the results less visible */
+/* This table may contain results from a previous search which are not valid now */
+/* z-index prevents this element to overlap overlaping elements because of the opacity */
+.invalid-results {
+  opacity: 0.3;
+  z-index: 1;
+}
+
 @media (max-width: 1100px) {
   .table-body img {
     width: 100px;
@@ -25,14 +33,6 @@
 
 .not-published {
   opacity: 0.6;
-}
-
-/* If we had no valid results we make the table with the results less visible */
-/* This table may contain results from a previous search which are not valid now */
-/* z-index prevents this element to overlap overlaping elements because of the opacity */
-.invalid-results {
-  opacity: 0.3;
-  z-index: 1;
 }
 
 /* If we had no valid results we render a 'no results' message inside a card */

@@ -35,7 +35,7 @@ const Help = ({ location }) => {
     for (const ref of docRefs.current)
       if (location.hash === '#' + ref.id)
         return window.scrollTo(0, ref.offsetTop);
-  }, []);
+  }, [location.hash]);
 
   return documentation.map((doc, index) => (
     <Card

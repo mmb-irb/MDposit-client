@@ -82,16 +82,16 @@ if (!reducedMotion()) {
   keyframes.transform = ['translateX(2.5%)', 'translateX(0)'];
 }
 
-const Row = ({
-  highlight,
-  identifier,
-  accession,
-  published,
-  pdbInfo,
-  metadata,
-  analyses,
-  index,
-}) => {
+const Row = ({ project, highlight, index, setProject }) => {
+  // Harvest data from the project object
+  const {
+    identifier,
+    accession,
+    published,
+    pdbInfo,
+    metadata,
+    analyses,
+  } = project;
   // Declare a hook from a type called "useRef"
   const ref = useRef(null);
   // This type of hook is like an "useEfect" but it is runned after the layout is calculated and before it is painted
@@ -119,7 +119,10 @@ const Row = ({
     >
       {/* accession */}
       <TableCell>
-        <Link to={`/browse/${accession || identifier}/overview`}>
+        <Link
+          to={`/browse/${accession || identifier}/overview`}
+          onClick={() => setProject(project)}
+        >
           <Highlight highlight={highlight}>
             {accession || identifier}
             {!published && ' (not published)'}
@@ -171,6 +174,7 @@ const Row = ({
                   className={style.analysis}
                   component={Link}
                   to={`/browse/${accession || identifier}/${analysis}`}
+                  onClick={() => setProject(project)}
                   label={NICE_NAMES.get(analysis) || analysis}
                   variant="outlined"
                 />
@@ -181,7 +185,7 @@ const Row = ({
   );
 };
 
-const Browse = ({ location, history }) => {
+const Browse = ({ location, history, setProject }) => {
   // The 'unit' tab selection
   const [unitFilter, setUnitFilter] = useState('');
   const currentUnit = unitFilter.replace('&filter=metadata.UNIT+*', '');
@@ -215,7 +219,6 @@ const Browse = ({ location, history }) => {
 
   // Download all necessary data from the API
   // 'payload' contains the main data
-  //console.log(searchString + unitFilter);
   const ApiUrl = `${BASE_PATH_PROJECTS}?${searchString}`;
   const { loading, payload, error } = useAPI(ApiUrl);
 
@@ -245,17 +248,8 @@ const Browse = ({ location, history }) => {
   return (
     <Card>
       <CardContent>
-        {/* Render a 'no results' card when there are no results for the last search */}
-        {!loading && !payload ? (
-          <Card className={style['no-results-card']}>
-            <Typography variant="h5" className={style['no-results-text']}>
-              No results were found
-            </Typography>
-          </Card>
-        ) : (
-          []
-        )}
-        <Table className={cn({ [style['invalid-results']]: !payload })}>
+        <Table>
+          {/*className={cn({ [style['invalid-results']]: !payload })} */}
           {/* Table head with the names of each colum */}
           <TableHead className={style['table-head']}>
             <TableRow>
@@ -288,17 +282,34 @@ const Browse = ({ location, history }) => {
               <TableCell>analyses</TableCell>
             </TableRow>
           </TableHead>
+          {/* Render a 'no results' card when there are no results for the last search */}
+          {!loading && !payload ? (
+            <Card className={style['no-results-card']}>
+              <Typography variant="h5" className={style['no-results-text']}>
+                No results were found
+              </Typography>
+            </Card>
+          ) : (
+            []
+          )}
           {/* Table body with the content, which is defined above in the Row constant */}
           {/* When the search has no results the table gets an opacity of 0.25 */}
-          <TableBody className={cn(style['table-body'])}>
+          <TableBody
+            className={
+              payload
+                ? cn(style['table-body'])
+                : cn(style['table-body'], style['invalid-results'])
+            }
+          >
             {/* Create a row for each project in the payload*/}
             {results.map((project, index) => (
               <Row
                 // Load the propierties (inputs) that the class "Row" is expecting
-                {...project} // Load identifier, accession, published, pdbInfo and analyses
+                project={project} // Load identifier, accession, published, pdbInfo and analyses
                 highlight={search.search} // Load the highlight
                 index={index} // Load the index
                 key={project.identifier} // PARA QUE SE USA ESTO?
+                setProject={setProject}
               />
             ))}
           </TableBody>

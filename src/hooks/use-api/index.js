@@ -2,13 +2,25 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 // Get data from the API
-const useAPI = url => {
+// The API will be queried only if the 'condition' is true
+// This is a wrokaround to call the API conditionally, since hooks can not be called conditionally
+const useAPI = (url, condition = true) => {
   // Set the 'data' state object, which is returned at the end of this function
   const [data, setData] = useState({});
 
   // This react hook is responisble for sending the request to the API
   // This react hook has 'url' dependencies, so it is only runned once per request
   useEffect(() => {
+    // If the condition is false
+    if (condition === false) {
+      setData({
+        url: url,
+        loading: null,
+        payload: null,
+        error: null,
+      });
+      return;
+    }
     // This is axios (https://www.npmjs.com/package/axios)
     // Set a cancel option (token). If a request includes this cancel token in its options, the request can be cancelled
     // In order to cancel the request, the same token must be used through axios
@@ -46,7 +58,7 @@ const useAPI = url => {
     };
 
     // 'useEffect' will only be called when the url change
-  }, [url]);
+  }, [url, condition]);
   // Data is returned this way
   // Data is returned only if the data.url matches the url from this request
   // These urls do not macth each first time 'useAPI' is called

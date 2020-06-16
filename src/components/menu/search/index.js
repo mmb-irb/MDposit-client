@@ -22,6 +22,10 @@ export const updateLocation = (history, value) => {
   const shouldReplace = Boolean(search) === Boolean(value);
   if (value) nextSearchObject.search = value;
   if (search === value) return;
+  // If this search is different to the previous search
+  // Reset page to the first page
+  nextSearchObject.page = 1;
+  // Update history
   history[shouldReplace ? 'replace' : 'push']({
     ...history.location,
     search: stringify(nextSearchObject),
