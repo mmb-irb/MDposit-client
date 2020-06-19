@@ -34,7 +34,7 @@ const DistPerres = () => {
   // The residues selection string managed by the selector
   const [searchResidues, setSearchResidues] = useState(metadata.INTERFACE);
 
-  // The selected heatmap cell [x,y]
+  // The selected atoms
   const [selected, setSelected] = useState(null);
 
   // The graphic to be displayed ('mean' or 'stdv')
@@ -212,13 +212,31 @@ const DistPerres = () => {
           </CardContent>
         </Card>
       </Suspense>
-      {selected && (
-        <NGLViewerSpawner
-          accession={accession}
-          selected={selected}
-          chains={chainsNGL}
-        />
-      )}
+      <NGLViewerSpawner
+        // Set the new viewer or null if there is not a proper "selected" value
+        newViewer={
+          selected
+            ? {
+                accession: accession,
+                selected: selected,
+                representations: chainsNGL,
+              }
+            : null
+        }
+        // If the nailed/closed viewer is the current viewer then reset the 'selected'
+        onNail={viewer =>
+          setSelected(previous => {
+            if (viewer.selected === previous) return null;
+            else return previous;
+          })
+        }
+        onClose={viewer =>
+          setSelected(previous => {
+            if (viewer.selected === previous) return null;
+            else return previous;
+          })
+        }
+      />
     </Suspense>
   );
 };

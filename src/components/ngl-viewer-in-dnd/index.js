@@ -24,6 +24,7 @@ const nextZ = () => {
   return maxZ;
 };
 
+/*
 // This function spawns all the NGL viewers needed
 // i.e. one viewer with the requested 'props' and all previous viewers which have been nailed
 const NGLViewerSpawner = inputs => {
@@ -79,24 +80,67 @@ const NGLViewerSpawner = inputs => {
   const allProps = [...nailed.current, props];
   // Render a viewer for each prop. Use the 'selected' parameter as unique id
   return allProps.map(ps => <NGLViewerInDND key={ps.id} {...ps} />);
+};*/
+
+// This function spawns all the NGL viewers needed
+// i.e. one viewer with the requested 'props' and all previous viewers which have been nailed
+const NGLViewerSpawner = ({ newViewer, nailing = true, onNail, onClose }) => {
+  // Store here all nailed NGL viewers
+  const [nailedViewers, setNailedViewers] = useState([]);
+
+  // Set the viewers as the nailed viewers and the new viewer
+  const viewers = [...nailedViewers];
+
+  // Keep listed all arrays which have been used (i.e. ngl viewers which have been nailed or closed)
+  const usedIds = useRef([]);
+
+  if (newViewer) {
+    // Find a new suitable Id that meet 2 conditions:
+    // - There is never 2 viewers with the same id, so we avoid errors
+    // - If we pick diferent frames in the graph without nailing anything, the current viewer has always the same id
+    // (This way the current viewer does not appear in the origin position every time)
+    const getNewId = () => {
+      let id = 0;
+      while (id < 999) {
+        if (usedIds.current.indexOf(id) === -1) return id;
+        id += 1;
+      }
+      console.error('Maximum number of viewers reached');
+    };
+
+    // Set a unique id for this props based in the last nailed viewer
+    newViewer.id = getNewId();
+    newViewer.close = () => {
+      if (nailing) {
+        setNailedViewers(nailed => {
+          const newNailed = [...nailed];
+          const index = nailed.indexOf(newViewer);
+          if (index !== -1) newNailed.splice(index, 1);
+          return newNailed;
+        });
+      }
+      if (onClose) onClose(newViewer);
+      usedIds.current.push(newViewer.id);
+    };
+    // If the nailer function is passed, add the logic for the viewer to be nailed further
+    if (nailing)
+      newViewer.nail = () => {
+        setNailedViewers(nailed => [...nailed, newViewer]);
+        if (onNail) onNail(newViewer);
+        usedIds.current.push(newViewer.id);
+      };
+    viewers.push(newViewer);
+  }
+
+  // Render a viewer for each prop. Use the 'selected' parameter as unique id
+  return viewers.map(viewer => <NGLViewerInDND key={viewer.id} {...viewer} />);
 };
 
 // This component render a small NGL viewer
 // It is called when user clicks in a point in the projections component
 // Also it is called by the generic analysis page
 const NGLViewerInDND = props => {
-  const {
-    // The following arguments are only available when the component is called from...
-    analysis, // Generic analysis page
-    selected, // Generic analysis page
-    requestedFrame, // PCA projections
-    setClosed, // Both
-  } = props;
-
   const nglViewRef = useRef(null);
-
-  // Set if the window is rendered or not. It is false when the user clicks on the cross icon
-  const [active, setActive] = useState(true);
 
   // Set the default position and size
   const [place, setPlace] = useState(() => {
@@ -119,76 +163,62 @@ const NGLViewerInDND = props => {
       y: innerHeight - offsetHeight - 1.5 * dimension - MARGIN + scrollY, // Bottom border
     };
   });
-  // Render the component if it is enabled
-  if (!active) return null;
-  else
-    return (
-      // Rnd is the draggable and resizable system where the ngl viewer is placed
-      <Rnd
-        position={{ x: place.x, y: place.y }}
-        size={{ width: place.width, height: place.height }}
-        // Update the zIndex to make this window the first visible
-        style={{ zIndex: nextZ() }}
-        className={style.rnd}
-        data-rnd
-        // Limits where the window can be dragged/resized to
-        bounds="main"
-        cancel="canvas, [data-popover]"
-        // On drag/resize starts we do not change anything, but use the hook to re-render this component
-        // This way, the zIndex is updated and the selected window becomes the first in the z axis
-        // WARNING: Drag functions are also called when you just click (e.g. clicking buttons)
-        onDragStart={() => {
-          setPlace({ ...place });
-        }}
-        onResizeStart={() => {
-          setPlace({ ...place });
-        }}
-        onDragStop={(e, d) => {
-          // We re-render only if the new position does not equal the old position
-          if (place.x !== d.x || place.y !== d.y)
-            setPlace({
-              ...place,
-              x: d.x,
-              y: d.y,
-            });
-        }}
-        // Re-adapt the viewer and update the position/size when the window is resized
-        onResize={() => nglViewRef.current && nglViewRef.current.autoResize()}
-        onResizeStop={(e, direction, ref, delta, position) => {
+
+  return (
+    // Rnd is the draggable and resizable system where the ngl viewer is placed
+    <Rnd
+      position={{ x: place.x, y: place.y }}
+      size={{ width: place.width, height: place.height }}
+      // Update the zIndex to make this window the first visible
+      style={{ zIndex: nextZ() }}
+      className={style.rnd}
+      data-rnd
+      // Limits where the window can be dragged/resized to
+      bounds="main"
+      cancel="canvas, [data-popover]"
+      // On drag/resize starts we do not change anything, but use the hook to re-render this component
+      // This way, the zIndex is updated and the selected window becomes the first in the z axis
+      // WARNING: Drag functions are also called when you just click (e.g. clicking buttons)
+      onDragStart={() => {
+        setPlace({ ...place });
+      }}
+      onResizeStart={() => {
+        setPlace({ ...place });
+      }}
+      onDragStop={(e, d) => {
+        // We re-render only if the new position does not equal the old position
+        if (place.x !== d.x || place.y !== d.y)
           setPlace({
-            width: ref.style.width,
-            height: ref.style.height,
-            ...position,
+            ...place,
+            x: d.x,
+            y: d.y,
           });
-          if (!nglViewRef.current) return;
-          nglViewRef.current.autoResize();
-          nglViewRef.current.autoResize.flush();
-        }}
-      >
-        <Card className={style['floating-card']} elevation={4}>
-          <Suspense fallback={null}>
-            <NGLViewerWithControls
-              selected={selected}
-              ref={nglViewRef}
-              className={style['ngl-viewer-with-controls']}
-              startsPlaying={false}
-              requestedFrame={
-                Number.isFinite(requestedFrame)
-                  ? requestedFrame
-                  : !analysis || (analysis !== 'fluctuation' && selected)
-              }
-              close={() => {
-                // Remove it from the nailed list if its nailed and add its id to the used ids list
-                setClosed();
-                // Disable the render of this component
-                setActive(false);
-              }}
-              {...props}
-            />
-          </Suspense>
-        </Card>
-      </Rnd>
-    );
+      }}
+      // Re-adapt the viewer and update the position/size when the window is resized
+      onResize={() => nglViewRef.current && nglViewRef.current.autoResize()}
+      onResizeStop={(e, direction, ref, delta, position) => {
+        setPlace({
+          width: ref.style.width,
+          height: ref.style.height,
+          ...position,
+        });
+        if (!nglViewRef.current) return;
+        nglViewRef.current.autoResize();
+        nglViewRef.current.autoResize.flush();
+      }}
+    >
+      <Card className={style['floating-card']} elevation={4}>
+        <Suspense fallback={null}>
+          <NGLViewerWithControls
+            ref={nglViewRef}
+            className={style['ngl-viewer-with-controls']}
+            startsPlaying={false}
+            {...props}
+          />
+        </Suspense>
+      </Card>
+    </Rnd>
+  );
 };
 
 export default NGLViewerSpawner;

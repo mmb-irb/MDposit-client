@@ -12,6 +12,8 @@ const payloadToNGLFile = (
 ) => {
   if (!(pdbFile && dcdPayload)) return;
 
+  const singleFrame = isOneFrame || nFrames === 1;
+
   const view = new Float32Array(dcdPayload);
 
   const file = new Frames('Dynamically generated trajectory', '');
@@ -54,7 +56,7 @@ const payloadToNGLFile = (
         Expected backbone atoms: ${backboneAtoms}
         Expected heavy atoms: ${heavyAtoms}`,
       );
-  } else if (isOneFrame) {
+  } else if (singleFrame) {
     length = 1;
   }
   try {

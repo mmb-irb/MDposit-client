@@ -29,10 +29,7 @@ const Analysis = ({
   defaultPrecision,
   xLabel,
   xScaleFactor,
-  xUnit,
   yLabel,
-  graphType,
-  startsAtOne,
 }) => {
   // Get the accession
   const accession = useContext(AccessionCtx);
@@ -45,22 +42,13 @@ const Analysis = ({
   );
 
   // React hooks
-  // Set when the mouse is over the graph
-  const [hovered, setHovered] = useState(null);
   // Set when one point in the graph is selected
-  const [selected, setSelected] = useState(
-    analysis === 'fluctuation' ? new Set() : null,
-  );
+  const [selected, setSelected] = useState(null);
+
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
-
-  // Check if there are selected
-  const showDND = !!(
-    (typeof selected === 'number' && Number.isFinite(selected)) ||
-    (selected && selected.size)
-  );
 
   // Set the chains to be represented in the NGL viewer
   const chainsNGL = [];
@@ -97,27 +85,37 @@ const Analysis = ({
             defaultPrecision={defaultPrecision}
             xLabel={xLabel}
             xScaleFactor={xScaleFactor}
-            xUnit={xUnit}
             yLabel={yLabel}
-            type={graphType}
-            startsAtOne={startsAtOne}
-            onHover={analysis === 'fluctuation' ? setHovered : undefined}
-            hovered={hovered}
             onSelect={setSelected}
             selected={selected}
           />
         </CardContent>
       </Card>
-      {showDND && (
-        <NGLViewerSpawner
-          accession={accession}
-          hovered={hovered}
-          analysis={analysis}
-          selected={selected}
-          noTrajectory={analysis === 'fluctuation' ? false : true}
-          chains={chainsNGL}
-        />
-      )}
+      <NGLViewerSpawner
+        // Set the new viewer or null if there is not a proper "selected" value
+        newViewer={
+          typeof selected === 'number'
+            ? {
+                accession: accession,
+                requestedFrame: selected,
+                representations: chainsNGL,
+              }
+            : null
+        }
+        // If the nailed/closed viewer is the current viewer then reset the 'selected'
+        onNail={viewer =>
+          setSelected(previous => {
+            if (viewer.requestedFrame === previous) return null;
+            else return previous;
+          })
+        }
+        onClose={viewer =>
+          setSelected(previous => {
+            if (viewer.requestedFrame === previous) return null;
+            else return previous;
+          })
+        }
+      />
     </Suspense>
   );
 };

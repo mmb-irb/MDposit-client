@@ -23,7 +23,7 @@ const RmsdPairwise = () => {
   // Get the current project chains and metadata
   const { metadata, chains } = useContext(ProjectCtx);
 
-  // The selected heatmap cell [x,y]
+  // The selected frames
   const [selected, setSelected] = useState(null);
 
   // The graphic to be displayed ('all' or 'interface')
@@ -39,14 +39,16 @@ const RmsdPairwise = () => {
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
 
-  // Set the chains to be represented in the NGL viewer
-  const chainsNGL = [];
-  for (const chain of chains) {
-    chainsNGL.push({
-      name: 'Chain ' + chain,
-      selection: ':' + chain,
-    });
-  }
+  // Set the frames to be represented in the NGL viewer
+  const framesNGL = [];
+  if (selected)
+    for (const frame of selected) {
+      framesNGL.push({
+        name: 'Frame ' + frame,
+        selection: 'all',
+        frame: frame,
+      });
+    }
 
   // handles when the tabs are switched
   const handleTabs = (event, newValue) => {
@@ -81,19 +83,36 @@ const RmsdPairwise = () => {
                 xLabels: payload.xLabels,
                 yLabels: payload.yLabels,
               }}
-              //onClick={(x, y) => setSelected([x, y])}
+              onClick={(x, y) => setSelected([x, y])}
               legendTitle={'RMSD (Å)'}
             />
           </CardContent>
         </Card>
       </Suspense>
-      {selected && (
-        <NGLViewerSpawner
-          accession={accession}
-          selected={selected}
-          chains={chainsNGL}
-        />
-      )}
+      <NGLViewerSpawner
+        // Set the new viewer or null if there is not a proper "selected" value
+        newViewer={
+          selected
+            ? {
+                accession: accession,
+                representations: framesNGL,
+              }
+            : null
+        }
+        // If the nailed/closed viewer is the current viewer then reset the 'selected'
+        onNail={viewer =>
+          setSelected(previous => {
+            if (viewer.selected === previous) return null;
+            else return previous;
+          })
+        }
+        onClose={viewer =>
+          setSelected(previous => {
+            if (viewer.selected === previous) return null;
+            else return previous;
+          })
+        }
+      />
     </Suspense>
   );
 };

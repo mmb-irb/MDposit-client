@@ -57,8 +57,8 @@ const Trajectory = () => {
           <NGLViewerWithControls
             className={style.container}
             //structureURL={structureURL}
-            chains={chainsNGL}
-            noTrajectory={true}
+            representations={chainsNGL}
+            requestedFrame={0}
           />
         ) : (
           <div style={{ height: '50vh' }} />

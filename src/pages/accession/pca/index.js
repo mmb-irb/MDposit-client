@@ -42,7 +42,7 @@ const PCA = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
   // Get the current project chains
-  const { chains } = useContext(ProjectCtx);
+  const { metadata, chains } = useContext(ProjectCtx);
   // Load the main data from the API
   const { loading, payload, error } = useAPI(
     `${BASE_PATH_PROJECTS}${accession}/analyses/pca/`,
@@ -108,7 +108,7 @@ const PCA = () => {
                 // Projections are backbone trajectories, same as the average.pdb topology
                 structureURL={`${BASE_PATH_PROJECTS}${accession}/files/average.pdb`}
                 trajectoryURL={projectionURL}
-                chains={chainsNGL}
+                representations={chainsNGL}
               />
             </Suspense>
           )}
@@ -116,7 +116,7 @@ const PCA = () => {
           {projections.length === 2 && (
             <Suspense fallback={projectionPlaceholder}>
               <Projections
-                step={payload.step}
+                step={payload.step / metadata.FREQUENCY} // The payload.step is meant to be in picoseconds
                 data={payload.y}
                 projections={projections}
                 setRequestedFrame={setRequestedFrame}
@@ -126,14 +126,31 @@ const PCA = () => {
           {/* When more than 2 frames are selected display nothing but the plain text explanation*/}
         </CardContent>
       </Card>
-      {Number.isFinite(requestedFrame) && (
-        // This small viewer is displayed when the user clicks in some point of the Projections graph
-        <NGLViewerSpawner
-          accession={accession}
-          requestedFrame={requestedFrame}
-          chains={chainsNGL}
-        />
-      )}
+      <NGLViewerSpawner
+        // Set the new viewer or null if there is not a proper "selected" value
+        newViewer={
+          Number.isFinite(requestedFrame)
+            ? {
+                accession: accession,
+                requestedFrame: requestedFrame,
+                representations: chainsNGL,
+              }
+            : null
+        }
+        // If the nailed/closed viewer is the current viewer then reset the 'selected'
+        onNail={viewer =>
+          setRequestedFrame(previous => {
+            if (viewer.requestedFrame === previous) return null;
+            else return previous;
+          })
+        }
+        onClose={viewer =>
+          setRequestedFrame(previous => {
+            if (viewer.requestedFrame === previous) return null;
+            else return previous;
+          })
+        }
+      />
     </>
   );
 };

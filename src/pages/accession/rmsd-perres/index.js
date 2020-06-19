@@ -121,12 +121,6 @@ const RmsdPerres = () => {
     } else displayedPayload[key] = false;
   });
 
-  // Check if there are selected
-  const showDND = !!(
-    (typeof selected === 'number' && Number.isFinite(selected)) ||
-    (selected && selected.size)
-  );
-
   // Handle when user clicks on legend checkboxes
   const handleChange = row => {
     const newDisplays = [...displays];
@@ -136,22 +130,11 @@ const RmsdPerres = () => {
 
   // Set the chains to be represented in the NGL viewer
   const chainsNGL = [];
-  for (const c in chains) {
-    // The last chain is represented as licorice
-    if (+c === +(chains.length - 1)) {
-      chainsNGL.push({
-        name: 'Chain ' + chains[c],
-        selection: ':' + chains[c],
-        defaultDrawingMethod: 'licorice',
-      });
-    } else {
-      chainsNGL.push({
-        name: 'Chain ' + chains[c],
-        selection: ':' + chains[c],
-        defaultDrawingMethod: 'surface',
-        defaultColoringMethod: 'electrostatic',
-      });
-    }
+  for (const chain of chains) {
+    chainsNGL.push({
+      name: 'Chain ' + chain,
+      selection: ':' + chain,
+    });
   }
 
   // Render
@@ -264,14 +247,31 @@ const RmsdPerres = () => {
           />
         </CardContent>
       </Card>
-      {showDND && (
-        <NGLViewerSpawner
-          accession={accession}
-          analysis={'rmsd'}
-          selected={selected}
-          chains={chainsNGL}
-        />
-      )}
+      <NGLViewerSpawner
+        // Set the new viewer or null if there is not a proper "selected" value
+        newViewer={
+          typeof selected === 'number'
+            ? {
+                accession: accession,
+                requestedFrame: selected,
+                representations: chainsNGL,
+              }
+            : null
+        }
+        // If the nailed/closed viewer is the current viewer then reset the 'selected'
+        onNail={viewer =>
+          setSelected(previous => {
+            if (viewer.requestedFrame === previous) return null;
+            else return previous;
+          })
+        }
+        onClose={viewer =>
+          setSelected(previous => {
+            if (viewer.requestedFrame === previous) return null;
+            else return previous;
+          })
+        }
+      />
     </Suspense>
   );
 };

@@ -72,12 +72,6 @@ const Hbonds = () => {
     return atom;
   };
 
-  let atomSelection = [];
-  //for (const s in selected) {
-  if (selected) {
-    atomSelection.push(residue2atom(payload.resnum1[selected]));
-    atomSelection.push(residue2atom(payload.resnum2[selected]));
-  }
   /*
   let atomHoverion = [];
   for (const h in hovered) {
@@ -99,9 +93,13 @@ const Hbonds = () => {
             //onHover={index => setHovered(index)}
             selected={selected}
             onClick={index => {
+              const atomSelection = [
+                residue2atom(payload.resnum1[index]),
+                residue2atom(payload.resnum2[index]),
+              ];
               // DANI: Esto no tiene sentido
               //console.log(selected);
-              setSelected(index);
+              setSelected(atomSelection);
               /*
               if (selected && selected.includes(index)){
                 const i = selected.indexOf(index);
@@ -116,15 +114,32 @@ const Hbonds = () => {
           />
         </CardContent>
       </Card>
-      {atomSelection.length > 0 && (
-        <NGLViewerSpawner
-          accession={accession}
-          analysis={'rmsd'}
-          selected={atomSelection}
-          //hovered={atomHoverion}
-          chains={chainsNGL}
-        />
-      )}
+      <NGLViewerSpawner
+        // Set the new viewer or null if there is not a proper "selected" value
+        newViewer={
+          selected && selected.length > 0
+            ? {
+                accession: accession,
+                selected: selected,
+                //hovered: atomHoverion,
+                representations: chainsNGL,
+              }
+            : null
+        }
+        // If the nailed/closed viewer is the current viewer then reset the 'selected'
+        onNail={viewer =>
+          setSelected(previous => {
+            if (viewer.selected === previous) return null;
+            else return previous;
+          })
+        }
+        onClose={viewer =>
+          setSelected(previous => {
+            if (viewer.selected === previous) return null;
+            else return previous;
+          })
+        }
+      />
     </Suspense>
   );
 };

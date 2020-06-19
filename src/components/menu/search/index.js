@@ -24,7 +24,7 @@ export const updateLocation = (history, value) => {
   if (search === value) return;
   // If this search is different to the previous search
   // Reset page to the first page
-  nextSearchObject.page = 1;
+  nextSearchObject.page = undefined;
   // Update history
   history[shouldReplace ? 'replace' : 'push']({
     ...history.location,

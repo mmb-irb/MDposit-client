@@ -138,15 +138,27 @@ const Heatmap = ({
     // Set the legend, which is another heatmap
     const minValue = Math.min(...data.map(values => Math.min(...values)));
     const maxValue = Math.max(...data.map(values => Math.max(...values)));
-    const legendLabels = [];
+    const values = [];
     for (
       let i = minValue;
       i <= maxValue;
       i += (maxValue - minValue) / legendLength
     )
-      legendLabels.push(Math.round(i));
+      values.push(i);
+
+    let legendLabels;
+    // Round all values
+    legendLabels = values.map(val => Math.round(val));
+    // If are there repeated labels we round to decimals
+    if (new Set(legendLabels).size < legendLabels.length)
+      legendLabels = values.map(val => Math.round(val * 10) / 10);
+    // If are there repeated labels we round to centesimals
+    if (new Set(legendLabels).size < legendLabels.length)
+      legendLabels = values.map(val => Math.round(val * 100) / 100);
+    // If are there repeated labels you may consider what you are loading :)
+
     // Data must be an array inside an array
-    const legendData = [legendLabels];
+    const legendData = [values];
 
     // Save all processed data
     processedData.current = {

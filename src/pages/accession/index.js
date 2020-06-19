@@ -36,6 +36,9 @@ const GenericAnalysisPage = lazy(() =>
     /* webpackChunkName: 'generic-analysis-page' */ './generic-analysis-page'
   ),
 );
+const Fluctuation = lazy(() =>
+  import(/* webpackChunkName: 'fluctuation' */ './fluctuation'),
+);
 const PCA = lazy(() => import(/* webpackChunkName: 'pca' */ './pca'));
 const RmsdPerres = lazy(() =>
   import(/* webpackChunkName: 'trajectory' */ './rmsd-perres'),
@@ -213,14 +216,7 @@ const SummarySwitch = ({ setProject }) => {
               exact
               component={() => (
                 <Suspense fallback={<Loading />}>
-                  <GenericAnalysisPage
-                    analysis="fluctuation"
-                    xLabel="Atom"
-                    xUnit="atom"
-                    yLabel="Fluctuation (nm)"
-                    startsAtOne
-                    graphType="dash"
-                  />
+                  <Fluctuation />
                 </Suspense>
               )}
             />

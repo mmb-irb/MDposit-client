@@ -578,7 +578,7 @@ const Trajectory = () => {
         {isNglVisible ? (
           <NGLViewerWithControls
             className={style.container}
-            chains={chainsNGL}
+            representations={chainsNGL}
           />
         ) : (
           <div style={{ height: '50vh' }} />

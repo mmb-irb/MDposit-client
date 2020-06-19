@@ -102,6 +102,8 @@ const Projections = ({ data, projections, step, setRequestedFrame }) => {
       // This function is a setter from a useState hook in the parent script (pca/index.js)
       setRequestedFrame(requestedFrame => {
         const target = datumIndex * step;
+        console.log(datumIndex + ' * ' + step + ' = ' + target);
+        // If the user clicks in the already selected point it is unselected
         return target === requestedFrame ? null : target;
       });
 
