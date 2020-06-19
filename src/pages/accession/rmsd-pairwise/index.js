@@ -83,7 +83,7 @@ const RmsdPairwise = () => {
                 xLabels: payload.xLabels,
                 yLabels: payload.yLabels,
               }}
-              onClick={(x, y) => setSelected([x, y])}
+              //onClick={(x, y) => setSelected([x, y])}
               legendTitle={'RMSD (Å)'}
             />
           </CardContent>
