@@ -1,13 +1,13 @@
-import React, { Suspense, useRef, useMemo } from 'react';
+import React, { lazy, Suspense, useRef, useMemo } from 'react';
 
 import { Card, CardContent, Typography } from '@material-ui/core';
-
-import Loading from '../loading';
 
 import style from './style.module.css';
 
 // Heatmap moduel: https://www.npmjs.com/package/react-heatmap-grid
-import HeatmapGrid from 'react-heatmap-grid';
+const HeatmapGrid = lazy(() =>
+  import(/* webpackChunkName: 'react-heatmap-grid' */ 'react-heatmap-grid'),
+);
 
 // Takes a string array and return the array after converting some strings in ''
 // It is useful to delete some labels, so they are not all displayed
@@ -204,7 +204,7 @@ const Heatmap = ({
 
   // Render
   return (
-    <Suspense fallback={<Loading />}>
+    <Suspense fallback={<div className={style.loading}>Loading...</div>}>
       <HeatmapGrid
         data={data}
         xLabels={labelStepper(xLabels, xLabelStep)}

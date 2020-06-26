@@ -76,7 +76,7 @@ const Graph = ({
   onSelect,
   selfLegend = false,
   // Object with boolean keys defining which data is displayed (true) or hidden (false)
-  lab,
+  show,
 }) => {
   const pdbData = useContext(PdbCtx);
 
@@ -96,12 +96,12 @@ const Graph = ({
     return false;
   };
   // Boolean array defining which data is displayed (true) or hidden (false)
-  if (!lab) lab = fromPairs(yKeys.map(key => [key, activateKey()]));
-  /*
-  const [lab, setLabels] = useState(() =>
-    fromPairs(yKeys.map(key => [key, activateKey()])),
+  const [lab, setLab] = useState(
+    show ? show : () => fromPairs(yKeys.map(key => [key, activateKey()])),
   );
-  */
+
+  if (show && show !== lab) setLab(show);
+
   //console.log(lab);
   const [pr, setPrecision] = useState(defaultPrecision || 1);
 
@@ -552,15 +552,15 @@ const Graph = ({
   // Handle when user clicks on legend checkboxes
   const handleChange = useCallback(({ target: { dataset: { key } } }) => {
     if (!key) return;
-    /*
-    setLabels(labels => {
-      const nextLabels = { ...labels, [key]: !labels[key] };
+
+    setLab(previous => {
+      const nextLabels = { ...previous, [key]: !previous[key] };
       // Check if any value is true before returning the labels
       // This way, the user can not uncheck the last active checkbox
       if (Object.values(nextLabels).some(Boolean)) return nextLabels;
       // If all of the values would be false, keep the previous
-      return labels;
-    });*/
+      return previous;
+    });
   }, []);
 
   const handleMouseOver = useCallback(
@@ -643,14 +643,6 @@ const Graph = ({
           />
         </div>
       )}
-      <details className={style['graph-legend']}>
-        <summary>Graph information</summary>
-        <span>
-          Displaying observed data (more opaque lines), alongside corresponding
-          mean value (light horizontal lines), and mean ± 1σ (lighter horizontal
-          bands)
-        </span>
-      </details>
     </>
   );
 };

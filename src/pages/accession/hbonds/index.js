@@ -1,10 +1,12 @@
 import React, { Suspense, useContext, useState } from 'react';
 
-import { Card, CardContent } from '@material-ui/core';
+import { CardContent } from '@material-ui/core';
 
+import Card from '../../../components/animated-card';
 import Loading from '../../../components/loading';
 import HorizontalBars from '../../../components/horizontal-bars';
 import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
+import Info from '../../../components/info';
 
 import useAPI from '../../../hooks/use-api';
 
@@ -83,6 +85,23 @@ const Hbonds = () => {
   return (
     <Suspense fallback={<Loading />}>
       <Card className={style.margined}>
+        <Info
+          tooltip={
+            <>
+              This is the hydrogen bonds analysis representation.
+              <br />
+              <br />
+              The horizontal bars stand for the percent of frames along the
+              trajectory in which the distance between each pair of atoms is
+              inferior to 3 angstroms.
+              <br />
+              <br />
+              <span style={{ color: 'lightGreen' }}> Click any bar </span>
+              in the graph to open an interactive window displaying the
+              trajectory with the corresponding highlighted atoms.
+            </>
+          }
+        />
         <CardContent>
           <HorizontalBars
             data={payload.hbonds}

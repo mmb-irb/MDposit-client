@@ -1,6 +1,6 @@
 import React, { useLayoutEffect } from 'react';
 import cn from 'classnames';
-import { sleep, frame } from 'timing-functions';
+//import { sleep, frame } from 'timing-functions';
 
 import { CircularProgress } from '@material-ui/core';
 
@@ -14,12 +14,18 @@ const WAIT_DELAY = 750; // 750ms
 // the next content is quick enough, because we don't want a flash with the
 // indicator), then slowly display it.
 // In the best of cases this component will *never* even have to be displayed
-const Loading = () => {
+const Loading = ({ wait = WAIT_DELAY }) => {
   const [flag, toggleFlag] = useToggleState(false);
   // This is a hook
   useLayoutEffect(() => {
+    const timer = setTimeout(() => {
+      toggleFlag();
+    }, wait);
+    return () => clearTimeout(timer);
+
+    /*
     let mounted = true;
-    sleep(WAIT_DELAY) // wait for a bit
+    sleep(wait) // wait for a bit
       // this might be useful if the page is not even visible
       .then(() => frame()) // Wait for the next animation frame
       // After waiting, check if mounted is still true
@@ -29,8 +35,9 @@ const Loading = () => {
       });
     // In a useEffect or similar hooks, "return" stands for an ending function
     // The ending function is called when the components is no longer rendered
-    return () => (mounted = false); // When useLayoutEffect is over, set mounted to false
-  }, [toggleFlag]); // useLayoutEffect is only called when the toggleFlag is called (only once)
+    return () => (mounted = false); // When useLayoutEffect is over or cancelled, set mounted to false
+    */
+  }, [toggleFlag, wait]); // useLayoutEffect is only called when the toggleFlag is called (only once)
   // Return an animated circle
   return (
     <div
@@ -38,7 +45,12 @@ const Loading = () => {
       className={cn(style.loading, { [style.show]: flag })}
     >
       {flag && (
-        <CircularProgress variant="indeterminate" color="secondary" size={40} /> // Renders the circle
+        <CircularProgress
+          variant="indeterminate"
+          color="secondary"
+          size={50}
+          thickness={5}
+        /> // Renders the circle
       )}
     </div>
   );

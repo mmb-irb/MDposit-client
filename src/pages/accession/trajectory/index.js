@@ -19,6 +19,8 @@ import Card from '../../../components/animated-card';
 import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
 import ChainAnalyses from '../../../components/chain-analyses';
 
+import Info from '../../../components/info';
+
 import reducedMotion from '../../../utils/reduced-motion';
 
 import style from './style.module.css';
@@ -86,7 +88,7 @@ export const TrajectoryMetadata = memo(() => {
           />
         </fieldset>
         <fieldset>
-          <legend>Simulation box</legend>
+          <legend>System box</legend>
           <TextField
             className={style['text-field']}
             label="Type"
@@ -165,7 +167,7 @@ export const TrajectoryMetadata = memo(() => {
           />
         </fieldset>
         <fieldset>
-          <legend>Other</legend>
+          <legend>Simulation</legend>
           <TextField
             className={style['text-field']}
             label="Length"
@@ -441,47 +443,6 @@ const Analyses = memo(() => {
         <Typography variant="subtitle2">
           <strong>{chains.length}</strong> chains were analysed.
         </Typography>
-        <Typography variant="body1">
-          Below you can see the families, domains, and sites, that an{' '}
-          <a
-            href="https://www.ebi.ac.uk/interpro/about/interproscan/"
-            target="_blank"
-            rel="noreferrer noopener"
-          >
-            InterProScan
-          </a>{' '}
-          analysis revealed for each of the chain sequences. This is a
-          prediction that might be helpful to discover functions, or to find
-          similar structures for example.
-        </Typography>
-        <br />
-        <Typography variant="body1">
-          You can interact with this visualisation as such:
-          <br />
-          <strong>Hover over their representation</strong> to see that some of
-          them will have a corresponding page on the{' '}
-          <a
-            href="https://www.ebi.ac.uk/interpro/"
-            target="_blank"
-            rel="noreferrer noopener"
-          >
-            InterPro website
-          </a>{' '}
-          where you will be able to learn more about it.
-          <br />
-          <strong>Click on them</strong> to see the corresponding sequence
-          highlighted in the interactive trajectory viewer above. Clicking on an
-          other entity within the same chain will change the highlight to that
-          other entity.
-          <br />
-          <strong>Click on an empty space</strong> in this visualisation to
-          remove the highlight for that chain.
-          <br />
-          <strong>Scroll over the visualisation</strong> to zoom in or out of
-          the chain sequence. Alternatively, you can also interact with the top
-          navigation part (at the top of each visualisation) to zoom in and out
-          or to move within the sequence.
-        </Typography>
         <ul className={style['chain-analysis-list']}>
           {/* Here, main data is displayed */}
           {chains.map(chain => (
@@ -560,20 +521,40 @@ const Trajectory = () => {
 
   return (
     <>
-      <Card className={style.card}>
-        <CardContent>
-          <details>
-            <summary className={style['trajectory-metadata-title']}>
-              Trajectory metadata
-            </summary>
-            <span>
-              {/* Renders the whole metadata */}
-              <TrajectoryMetadata />
-            </span>
-          </details>
-        </CardContent>
-      </Card>
       <Card className={style.card} ref={nglRef}>
+        <Info
+          tooltip={
+            <>
+              This is the main structure and trajectory representation.
+              <br />
+              <br />
+              This component is an{' '}
+              <a
+                href="/help#/help#ngl-viewer"
+                target="_blank"
+                rel="noreferrer noopener"
+              >
+                NGL viewer
+              </a>{' '}
+              . It allows to represent a trajectory dinamically and
+              interactively.
+              <br />
+              Use the mouse inside the NGL window to move, rotate or zoom the
+              camera. You can get topology data of any atom by placing the mouse
+              over it. Also some controls ara available under the NGL viewer in
+              order to change the camera view, trajectory speed, protein
+              representation colors, etc. Place the mouse over any button to
+              show a summary title. In addition, this window is connected with
+              the protein functional analysis below. You can select protein
+              chains or domains and they will be highlighted.
+              <br />
+              <br />
+              Note that this is not the whole trajectory, but a small subset of
+              frames picked along the trajectory. Loading all frames is not
+              allowed for performance reasons.
+            </>
+          }
+        />
         {/* Render the NGL viewer when it is on screen*/}
         {isNglVisible ? (
           <NGLViewerWithControls
@@ -584,7 +565,77 @@ const Trajectory = () => {
           <div style={{ height: '50vh' }} />
         )}
       </Card>
+      <Card className={style.card}>
+        <Info
+          tooltip={
+            <>
+              This metadata is automatically mined from the original topology
+              and trajectory files.
+              <br />
+              <br />
+              Click in the 'trajectory metadata' title to display it. Hover any
+              data field with the mouse to show a brief title.
+            </>
+          }
+        />
+        <CardContent>
+          <details>
+            <summary className={style['trajectory-metadata-title']}>
+              Trajectory metadata
+            </summary>
+            <br />
+            <span>
+              {/* Renders the whole metadata */}
+              <TrajectoryMetadata />
+            </span>
+          </details>
+        </CardContent>
+      </Card>
       <Card className={style.card} ref={nightingaleRef}>
+        <Info
+          tooltip={
+            <>
+              Below you can see the families, domains, and sites, that an{' '}
+              <a
+                href="https://www.ebi.ac.uk/interpro/about/interproscan/"
+                target="_blank"
+                rel="noreferrer noopener"
+              >
+                InterProScan
+              </a>{' '}
+              analysis revealed for each of the chain sequences. This is a
+              prediction that might be helpful to discover functions, or to find
+              similar structures for example.
+              <br />
+              <br />
+              You can interact with this visualisation as such:
+              <br />
+              <strong>Hover over their representation</strong> to see that some
+              of them will have a corresponding page on the{' '}
+              <a
+                href="https://www.ebi.ac.uk/interpro/"
+                target="_blank"
+                rel="noreferrer noopener"
+              >
+                InterPro website
+              </a>{' '}
+              where you will be able to learn more about it.
+              <br />
+              <strong>Click on them</strong> to see the corresponding sequence
+              highlighted in the interactive trajectory viewer above. Clicking
+              on an other entity within the same chain will change the highlight
+              to that other entity.
+              <br />
+              <strong>Click on an empty space</strong> in this visualisation to
+              remove the highlight for that chain.
+              <br />
+              <strong>Scroll over the visualisation</strong> to zoom in or out
+              of the chain sequence. Alternatively, you can also interact with
+              the top navigation part (at the top of each visualisation) to zoom
+              in and out or to move within the sequence.
+            </>
+          }
+        />
         {isNightingaleVisible ? (
           <CardContent>
             {/* Render all the previously defined analyses part when it is on screen*/}

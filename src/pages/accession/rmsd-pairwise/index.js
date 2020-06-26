@@ -1,27 +1,25 @@
-import React, { Suspense, useContext, useState } from 'react';
+import React, { useContext, useState } from 'react';
 
-import { Card, CardContent, Tabs, Tab } from '@material-ui/core';
+import { CardContent, Tabs, Tab } from '@material-ui/core';
 
 import useAPI from '../../../hooks/use-api';
 
+import Card from '../../../components/animated-card';
 import Loading from '../../../components/loading';
 import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 
-import { AccessionCtx, ProjectCtx } from '../../../contexts';
+import { AccessionCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
-import Heatmap from '../../../components/heatmap';
-
 import style from './style.module.css';
 
-//import HorizontalBars from '../../../components/horizontal-bars';
+import Info from '../../../components/info';
+import Heatmap from '../../../components/heatmap';
 
 const RmsdPairwise = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
-  // Get the current project chains and metadata
-  const { metadata, chains } = useContext(ProjectCtx);
 
   // The selected frames
   const [selected, setSelected] = useState(null);
@@ -40,12 +38,10 @@ const RmsdPairwise = () => {
   else if (!payload) return 'Something bad happened';
 
   // Set the frames to be represented in the NGL viewer
-  const framesNGL = [];
+  const components = [];
   if (selected)
     for (const frame of selected) {
-      framesNGL.push({
-        name: 'Frame ' + frame,
-        selection: 'all',
+      components.push({
         frame: frame,
       });
     }
@@ -57,45 +53,67 @@ const RmsdPairwise = () => {
 
   // Render
   return (
-    <Suspense fallback={<Loading />}>
-      <Suspense fallback={<Loading />}>
-        <Card className={style.margined}>
-          <CardContent>
-            <Tabs
-              value={display}
-              variant="fullWidth"
-              indicatorColor="secondary"
-              textColor="secondary"
-              onChange={handleTabs}
-              className={style['margined-bottom']}
-            >
-              <Tab
-                value={'all'}
-                label="RMSD pairwise"
-                //className={style['disabled-tab']}
-              />
-              <Tab value={'interface'} label="Interface RMSD pairwise" />
-            </Tabs>
-            {/* For more than one resiude in the 'y' */}
-            <Heatmap
-              inputData={{
-                data: payload[display],
-                xLabels: payload.xLabels,
-                yLabels: payload.yLabels,
-              }}
-              //onClick={(x, y) => setSelected([x, y])}
-              legendTitle={'RMSD (Å)'}
+    <>
+      <Card className={style.margined}>
+        <Info
+          tooltip={
+            <>
+              This is the RMSd pairwise representation.
+              <br />
+              <br />
+              This heatmap represents the RMSd in the average atom positions
+              between each frame along the trajectory. Both horizontal and
+              vertical edges stand for frame numbers. The color stands for the
+              RMSd value and it ranges from blue (low) to red (high). The legend
+              below shows the corresponding values in angstroms.
+              <br />
+              <br />
+              Use tabs over the heatmap to switch between different RMSd
+              pairwise analyses. Each analysis is calculated with a different
+              selection of atoms/residues which have been suggested to be
+              relevant by the authors.
+              <br />
+              <br />
+              <span style={{ color: 'lightGreen' }}> Click any cell </span>
+              on the heatmap to open an interactive window displaying both
+              corresponding frames overlapped.
+            </>
+          }
+        />
+        <CardContent>
+          <Tabs
+            value={display}
+            variant="fullWidth"
+            indicatorColor="secondary"
+            textColor="secondary"
+            onChange={handleTabs}
+            className={style['margined-bottom']}
+          >
+            <Tab
+              value={'all'}
+              label="RMSD pairwise"
+              //className={style['disabled-tab']}
             />
-          </CardContent>
-        </Card>
-      </Suspense>
+            <Tab value={'interface'} label="Interface RMSD pairwise" />
+          </Tabs>
+          <Heatmap
+            inputData={{
+              data: payload[display],
+              xLabels: payload.xLabels,
+              yLabels: payload.yLabels,
+            }}
+            onClick={(x, y) => setSelected([x, y])}
+            legendTitle={'RMSD (Å)'}
+          />
+        </CardContent>
+      </Card>
       <NGLViewerSpawner
         // Set the new viewer or null if there is not a proper "selected" value
         newViewer={
           selected
             ? {
                 accession: accession,
-                representations: framesNGL,
+                components: components,
               }
             : null
         }
@@ -113,7 +131,7 @@ const RmsdPairwise = () => {
           })
         }
       />
-    </Suspense>
+    </>
   );
 };
 

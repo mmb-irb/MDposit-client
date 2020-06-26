@@ -75,7 +75,7 @@ const NGLViewerWithControls = forwardRef(
       close,
       nail,
       // Set which frame must be loaded. It may be undefined, if the whole trajectory is desired.
-      requestedFrame,
+      //requestedFrame,
       // Set if the frame number selector is allowed for trajectories (false in PCA projections)
       framesSelect = true,
       // The NGL representations
@@ -86,54 +86,54 @@ const NGLViewerWithControls = forwardRef(
       //   defaultDrawingMethod: (by default, 'cartoon') The initial representation 'type',
       //   defaultColoringMethod: (by default, 'chainid') The initial representation 'colorScheme',
       //   defaultOpacity: (by default, 1) The initial representation opacity }
+      components,
       representations,
       ...props
     },
     ref,
   ) => {
-    // The 'representations' parameters is mandatory
-    if (!representations || representations.length === 0)
-      return 'ERROR: No representations were provided';
-    // Fill the missing 'representations' values with some default values
-    // In addition, save all representation 'frame' values
-    const frames = [];
-    for (const rep of representations) {
-      if (!rep.selection)
-        return console.error(
-          'Representations must have at least the "selection" parameter',
-        );
-      if (!rep.name) rep.name = rep.selection;
-      if (!rep.show) rep.show = true;
-      if (!rep.defaultDrawingMethod) rep.defaultDrawingMethod = 'cartoon';
-      if (!rep.defaultColoringMethod) rep.defaultColoringMethod = 'chainid';
-      if (!rep.defaultOpacity) rep.defaultOpacity = 1;
-      if (rep.frame) frames.push(rep.frame);
+    if (!components || components.length === 0)
+      if (representations) components = [{ representations: representations }];
+      else components = [{}];
+
+    for (const comp of components) {
+      // The 'representations' parameters is mandatory
+      if (!comp.representations || comp.representations.length === 0)
+        comp.representations = [{ name: 'Structure', selection: 'all' }];
+      // Fill the missing 'representations' values with some default values
+      // In addition, save all representation 'frame' values
+      for (const rep of comp.representations) {
+        if (!rep.name) rep.name = 'Representation';
+        if (!rep.selection) rep.selection = 'all';
+        if (!rep.show) rep.show = true;
+        if (!rep.defaultDrawingMethod) rep.defaultDrawingMethod = 'cartoon';
+        if (!rep.defaultColoringMethod) rep.defaultColoringMethod = 'chainid';
+        if (!rep.defaultOpacity) rep.defaultOpacity = 1;
+      }
     }
 
+    const mainRepresentations = components[0].representations;
+
     // When there is only 1 frame to load or all representations have their specific frame
-    const noTrajectory =
-      Number.isFinite(requestedFrame) ||
-      representations.length === frames.length;
-    // Remove duplicates
-    const repFrames = frames.length > 0 ? [...new Set(frames)] : undefined;
+    const noTrajectory = Number.isFinite(components[0].frame);
 
     const [drawingMethods, setDrawingMethods] = useState(() => {
       const init = [];
-      for (const rep of representations) {
+      for (const rep of mainRepresentations) {
         init.push(rep.defaultDrawingMethod);
       }
       return init;
     });
     const [coloringMethods, setColoringMethods] = useState(() => {
       const init = [];
-      for (const rep of representations) {
+      for (const rep of mainRepresentations) {
         init.push(rep.defaultColoringMethod);
       }
       return init;
     });
     const [opacities, setOpacities] = useState(() => {
       const init = [];
-      for (const rep of representations) {
+      for (const rep of mainRepresentations) {
         init.push(rep.defaultOpacity);
       }
       return init;
@@ -237,7 +237,7 @@ const NGLViewerWithControls = forwardRef(
             onProgress={setProgress}
             ref={viewerRef}
             noTrajectory={noTrajectory}
-            requestedFrame={requestedFrame}
+            //requestedFrame={requestedFrame}
             framesSelect={framesSelect}
             nFrames={nFrames}
             darkBackground={darkBackground}
@@ -246,8 +246,7 @@ const NGLViewerWithControls = forwardRef(
             drawingMethods={drawingMethods}
             coloringMethods={coloringMethods}
             opacities={opacities}
-            representations={representations}
-            repFrames={repFrames}
+            components={components}
             {...props}
           />
           {noTrajectory || (
@@ -368,17 +367,19 @@ const NGLViewerWithControls = forwardRef(
               <FontAwesomeIcon icon={faDotCircle} />
             </IconButton>
 
-            <IconButton
-              title={`Toggle smooth interpolation ${
-                smooth
-                  ? 'off'
-                  : 'on (may display artifacts for simulation box border atoms)'
-              }`}
-              onClick={toggleSmooth}
-              disabled={!playing}
-            >
-              <FontAwesomeIcon icon={smooth ? faImages : faVideo} />
-            </IconButton>
+            {noTrajectory || (
+              <IconButton
+                title={`Toggle smooth interpolation ${
+                  smooth
+                    ? 'off'
+                    : 'on (may display artifacts for simulation box border atoms)'
+                }`}
+                onClick={toggleSmooth}
+                disabled={!playing}
+              >
+                <FontAwesomeIcon icon={smooth ? faImages : faVideo} />
+              </IconButton>
+            )}
 
             <IconButton
               title="Invert background color"
@@ -409,7 +410,7 @@ const NGLViewerWithControls = forwardRef(
             </IconButton>
 
             <Paints
-              representations={representations}
+              representations={mainRepresentations}
               title="Change representation parameters"
               drawingMethods={drawingMethods}
               setDrawingMethods={setDrawingMethods}
@@ -421,18 +422,20 @@ const NGLViewerWithControls = forwardRef(
               <FontAwesomeIcon icon={faPaintBrush} />
             </Paints>
 
-            <Slider
-              className={style.slider}
-              label="Player speed:"
-              title="Change player speed"
-              value={speed}
-              handleChange={(_, value) => {
-                setSpeed(value);
-                setAsync('speed', value);
-              }}
-            >
-              <FontAwesomeIcon icon={speedIcon} />
-            </Slider>
+            {!noTrajectory && (
+              <Slider
+                className={style.slider}
+                label="Player speed:"
+                title="Change player speed"
+                value={speed}
+                handleChange={(_, value) => {
+                  setSpeed(value);
+                  setAsync('speed', value);
+                }}
+              >
+                <FontAwesomeIcon icon={speedIcon} />
+              </Slider>
+            )}
 
             {framesSelect && !noTrajectory && (
               <FormControl>

@@ -1,9 +1,10 @@
-import React, { Suspense, useContext, useState, useRef, useMemo } from 'react';
+import React, { useContext, useState, useRef, useMemo } from 'react';
 
-import { Card, CardContent, Tabs, Tab } from '@material-ui/core';
+import { CardContent, Tabs, Tab } from '@material-ui/core';
 
 import useAPI from '../../../hooks/use-api';
 
+import Card from '../../../components/animated-card';
 import Loading from '../../../components/loading';
 import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 
@@ -13,6 +14,7 @@ import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 import residueSelectionParser from '../../../utils/residue-selection-parser';
 
+import Info from '../../../components/info';
 import Selector from '../../../components/selector';
 import Heatmap from '../../../components/heatmap';
 
@@ -134,84 +136,116 @@ const DistPerres = () => {
 
   // Render
   return (
-    <Suspense fallback={<Loading />}>
-      <Selector
-        label="Residues selection"
-        selection={searchResidues}
-        setter={setSearchResidues}
-        options={[
-          { label: 'All', value: '' },
-          { label: 'Interface', value: metadata.INTERFACE },
-        ]}
-        //custom
-      />
-      <Suspense fallback={<Loading />}>
-        <Card className={style.margined}>
-          <CardContent>
-            <Tabs
-              value={display}
-              variant="fullWidth"
-              indicatorColor="secondary"
-              textColor="secondary"
-              onChange={handleTabs}
-              className={style['margined-bottom']}
-            >
-              <Tab
-                value={'mean'}
-                label="Residues distance averages"
-                //className={style['disabled-tab']}
-              />
-              <Tab
-                value={'stdv'}
-                label="Residues distance standard deviations"
-              />
-            </Tabs>
-            {/* For more than one resiude in the 'y' */}
-            <Heatmap
-              inputData={{
-                data: filteredData.current[display],
-                xLabels: filteredData.current.xLabels,
-                yLabels: filteredData.current.yLabels,
-              }}
-              onClick={(x, y) =>
-                setSelected([residue2atom(x), residue2atom(y)])
-              }
-              legendTitle={
-                display === 'mean'
-                  ? 'Distance average (Å)'
-                  : 'Distance standard deviation (Å)'
-              }
-              // Invert colors here, since minimum values belong to closer residues
-              maxValueColor={{ r: 0, g: 0, b: 255 }}
-              minValueColor={{ r: 255, g: 0, b: 0 }}
+    <>
+      <Card className={style.card}>
+        <Info
+          tooltip={
+            <>
+              This is the residues selector.
+              <br />
+              <br />
+              Use this panel to select which residues are displayed in the
+              heatmap below. Some default residue groups are provided by the
+              authors (e.g. interface residues between two proteins).
+            </>
+          }
+        />
+        <CardContent>
+          <Selector
+            label="Residues selection"
+            selection={searchResidues}
+            setter={setSearchResidues}
+            options={[
+              { label: 'All', value: '' },
+              { label: 'Interface', value: metadata.INTERFACE },
+            ]}
+            //custom
+          />
+        </CardContent>
+      </Card>
+      <Card className={style.margined}>
+        <Info
+          tooltip={
+            <>
+              This is the distance per residue representation.
+              <br />
+              <br />
+              This heatmap represents the distance between selected residues
+              from different proteins. Both horizontal and vertical edges stand
+              for residue numbers. The color stands for the distance and it
+              ranges from blue (far) to red (close). The legend below shows the
+              corresponding values in angstroms.
+              <br />
+              <br />
+              Use tabs over the heatmap to switch between mean and standard
+              deviation.
+              <br />
+              <br />
+              <span style={{ color: 'lightGreen' }}> Click any cell </span>
+              on the heatmap to open an interactive window displaying the
+              trajectory with the corresponding highlighted residues.
+            </>
+          }
+        />
+        <CardContent>
+          <Tabs
+            value={display}
+            variant="fullWidth"
+            indicatorColor="secondary"
+            textColor="secondary"
+            onChange={handleTabs}
+            className={style['margined-bottom']}
+          >
+            <Tab
+              value={'mean'}
+              label="Residues distance averages"
+              //className={style['disabled-tab']}
             />
-            {/*filteredData.current.yLabels.length !== 1 ?
-          // For more than one resiude in the 'y'
+            <Tab value={'stdv'} label="Residues distance standard deviations" />
+          </Tabs>
+          {/* For more than one resiude in the 'y' */}
           <Heatmap
             inputData={{
-              data: filteredData.current.mean,
+              data: filteredData.current[display],
               xLabels: filteredData.current.xLabels,
               yLabels: filteredData.current.yLabels,
             }}
             onClick={(x, y) => setSelected([residue2atom(x), residue2atom(y)])}
-            legendTitle={'Distance average (Å)'}
+            legendTitle={
+              display === 'mean'
+                ? 'Distance average (Å)'
+                : 'Distance standard deviation (Å)'
+            }
             // Invert colors here, since minimum values belong to closer residues
             maxValueColor={{ r: 0, g: 0, b: 255 }}
             minValueColor={{ r: 255, g: 0, b: 0 }}
-          />:
-          // For only one resiude in the 'y'
-          <HorizontalBars
-            data={filteredData.current.mean[0]}
-            ylabels={filteredData.current.xLabels}
-            height={20 * filteredData.current.mean[0].length}
-            selected={selected}
-            onClick={index => { 
-              setSelected(index);
-            }}
-          />*/}
-          </CardContent>
-        </Card>
-      </Suspense>
+          />
+          {/*filteredData.current.yLabels.length !== 1 ?
+        // For more than one resiude in the 'y'
+        <Heatmap
+          inputData={{
+            data: filteredData.current.mean,
+            xLabels: filteredData.current.xLabels,
+            yLabels: filteredData.current.yLabels,
+          }}
+          onClick={(x, y) => setSelected([residue2atom(x), residue2atom(y)])}
+          legendTitle={'Distance average (Å)'}
+          // Invert colors here, since minimum values belong to closer residues
+          maxValueColor={{ r: 0, g: 0, b: 255 }}
+          minValueColor={{ r: 255, g: 0, b: 0 }}
+        />:
+        // For only one resiude in the 'y'
+        <HorizontalBars
+          data={filteredData.current.mean[0]}
+          ylabels={filteredData.current.xLabels}
+          height={20 * filteredData.current.mean[0].length}
+          selected={selected}
+          onClick={index => { 
+            setSelected(index);
+          }}
+        />*/}
+        </CardContent>
+      </Card>
       <NGLViewerSpawner
         // Set the new viewer or null if there is not a proper "selected" value
         newViewer={
@@ -237,7 +271,7 @@ const DistPerres = () => {
           })
         }
       />
-    </Suspense>
+    </>
   );
 };
 

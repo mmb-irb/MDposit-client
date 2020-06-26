@@ -13,6 +13,8 @@ import { ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
+import Info from '../../../components/info';
+
 import style from './style.module.css';
 
 const StatisticsTable = lazy(() =>
@@ -30,6 +32,9 @@ const Analysis = ({
   xLabel,
   xScaleFactor,
   yLabel,
+  tableInfo,
+  graphInfo,
+  selfLegend = false,
 }) => {
   // Get the accession
   const accession = useContext(AccessionCtx);
@@ -70,12 +75,13 @@ const Analysis = ({
   return (
     <Suspense fallback={<Loading />}>
       <Card className={style.card}>
+        {tableInfo && <Info tooltip={tableInfo} />}
         <CardContent>
-          <Typography variant="h6">Statistics</Typography>
           <StatisticsTable y={payload.y} />
         </CardContent>
       </Card>
       <Card className={style.card}>
+        {graphInfo && <Info tooltip={graphInfo} />}
         <CardContent>
           <Typography variant="h6" />
           <Graph
@@ -88,6 +94,7 @@ const Analysis = ({
             yLabel={yLabel}
             onSelect={setSelected}
             selected={selected}
+            selfLegend={selfLegend}
           />
         </CardContent>
       </Card>

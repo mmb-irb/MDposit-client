@@ -140,26 +140,52 @@ const RmsdPerres = () => {
   // Render
   return (
     <Suspense fallback={<Loading />}>
-      <Selector
-        label="Residues selection"
-        selection={searchResidues}
-        setter={setSearchResidues}
-        options={[
-          { label: 'All', value: '' },
-          { label: 'Interface', value: metadata.INTERFACE },
-        ]}
-        //custom
-      />
+      <Card className={style.card}>
+        <Info
+          tooltip={
+            <>
+              This is the residues selector.
+              <br />
+              <br />
+              Use this panel to select which residues are taken in count in the
+              data table below and thus in the graph. Some default residue
+              groups are provided by the authors (e.g. interface residues
+              between two proteins).
+            </>
+          }
+        />
+        <CardContent>
+          <Selector
+            label="Residues selection"
+            selection={searchResidues}
+            setter={setSearchResidues}
+            options={[
+              { label: 'All', value: '' },
+              { label: 'Interface', value: metadata.INTERFACE },
+            ]}
+            //custom
+          />
+        </CardContent>
+      </Card>
       <Card className={style.margined}>
         <Info
           reference={'rmsd-perres'}
-          tooltip={`This data table shows the selected residues list. First column contains residue name, which is
-            composed by the union of the residue type abbreviation (e.g. ASN, ASP, CYS...) and the topology
-            numeration. Next two columns provide the RMSD mean and standard deviation for each residue
-            respectively. Both measures are in Angstroms.
-            Use this data table to navigate trough all selected resiudes and set which of them must be 
-            displayed in the graph below. To do so, click in the first column checkbox of the residue to be
-            shown/hidden.`}
+          tooltip={
+            <>
+              This data table shows the selected residues list. First column
+              contains residue name, which is composed by the union of the
+              residue type abbreviation (e.g. ASN, ASP, CYS...) and the topology
+              numeration. Next two columns provide the RMSD mean and standard
+              deviation for each residue respectively. Both measures are in
+              angstroms.
+              <br />
+              <br />
+              Use this data table to navigate through all selected resiudes and
+              set which of them must be displayed in the graph below. To do so,
+              click in the first column checkbox of the residue to be
+              shown/hidden.
+            </>
+          }
         />
         <CardContent>
           {/* Render the table with all the statistics */}
@@ -229,6 +255,32 @@ const RmsdPerres = () => {
         </CardContent>
       </Card>
       <Card className={style.margined}>
+        <Info
+          tooltip={
+            <>
+              This graph represents the RMSd in the for each residue position
+              along the trajectory compared to the original position (frame 0).
+              Data is displayed (more opaque lines) alongside corresponding mean
+              value (light horizontal line) and mean ± 1 standard deviation
+              (lighter horizontal bands)
+              <br />
+              <br />
+              The horizontal edge stands for the trajectory time in nanoseconds.
+              <br />
+              The vertical edge stands for the RMSd in nanometers.
+              <br />
+              <br />
+              The graph is{' '}
+              <span style={{ color: 'lightGreen' }}>interactive</span>. Use the
+              mouse to move along data by holding the click button and dragging
+              left or right. Use the mouse wheel to zoom in a specific region.
+              <span style={{ color: 'lightGreen' }}> Click any point </span>
+              on the graph to open an interactive window to display the
+              strucutre at the corresponding frame with the specified
+              highlighted residues.
+            </>
+          }
+        />
         <CardContent>
           <Typography variant="h6" />
           <Graph
@@ -243,7 +295,7 @@ const RmsdPerres = () => {
             selected={selected}
             mean={false}
             standardDeviation={false}
-            lab={displayedPayload}
+            show={displayedPayload}
           />
         </CardContent>
       </Card>

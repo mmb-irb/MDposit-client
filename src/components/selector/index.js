@@ -1,8 +1,6 @@
 import React, { Suspense, useState } from 'react';
 
 import {
-  Card,
-  CardContent,
   FormControlLabel,
   Radio,
   RadioGroup,
@@ -28,46 +26,42 @@ const Selector = ({ label, selection, setter, options, custom = false }) => {
   // Render
   return (
     <Suspense fallback={<Loading />}>
-      <Card className={style.card}>
-        <CardContent>
-          {label && (
-            <Typography variant="h5" className={style.margined}>
-              {label}
-            </Typography>
-          )}
-          {options && (
-            <RadioGroup value={internal} onChange={handleChange}>
-              {options.map((opt, i) => (
-                <FormControlLabel
-                  key={i}
-                  value={opt.value}
-                  control={<Radio />}
-                  label={opt.label}
-                />
-              ))}
-              {custom && (
-                //<FormControlLabel value={'custom'} control={<Radio />} label={'Custom selection'} />
-                <FormControlLabel
-                  value={'custom'}
-                  disabled
-                  control={<Radio />}
-                  label={'Custom selection (Not available)'}
-                />
-              )}
-            </RadioGroup>
-          )}
+      {label && (
+        <Typography variant="h5" className={style.margined}>
+          {label}
+        </Typography>
+      )}
+      {options && (
+        <RadioGroup value={internal} onChange={handleChange}>
+          {options.map((opt, i) => (
+            <FormControlLabel
+              key={i}
+              value={opt.value}
+              control={<Radio />}
+              label={opt.label}
+            />
+          ))}
           {custom && (
-            <TextField
-              id="outlined-basic"
-              value={selection}
-              variant="outlined"
-              onChange={event => setter(event.target.value)}
-              className={style.widest}
-              disabled={internal !== 'custom'}
+            //<FormControlLabel value={'custom'} control={<Radio />} label={'Custom selection'} />
+            <FormControlLabel
+              value={'custom'}
+              disabled
+              control={<Radio />}
+              label={'Custom selection (Not available)'}
             />
           )}
-        </CardContent>
-      </Card>
+        </RadioGroup>
+      )}
+      {custom && (
+        <TextField
+          id="outlined-basic"
+          value={selection}
+          variant="outlined"
+          onChange={event => setter(event.target.value)}
+          className={style.widest}
+          disabled={internal !== 'custom'}
+        />
+      )}
     </Suspense>
   );
 };

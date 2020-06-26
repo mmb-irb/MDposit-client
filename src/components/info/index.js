@@ -30,6 +30,7 @@ const Info = ({
       margin: theme.spacing(1),
       position: 'absolute',
       right: 0,
+      'z-index': 10000,
     },
   }));
   const classes = useStyles();
@@ -47,8 +48,8 @@ const Info = ({
       leaveDelay={200}
     >
       <IconButton
-        component={Link}
-        to={`/help#${reference}`}
+        component={reference ? Link : undefined}
+        to={reference ? `/help#${reference}` : undefined}
         className={classes.button}
         color={open ? 'secondary' : 'primary'}
       >

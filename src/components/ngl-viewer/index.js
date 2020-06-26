@@ -48,15 +48,16 @@ const NGLViewer = memo(
         hovered,
         selected, // Atom index of the atom/residue to be represented
         noTrajectory, // True when only specific frames must be loaded
-        requestedFrame,
+        //requestedFrame,
         darkBackground,
         perspective,
         speed,
         drawingMethods,
         coloringMethods,
         opacities,
-        representations, // The representations to be displayed
-        repFrames, // Representation frames
+        //representations, // The representations to be displayed
+        //repFrames, // Representation frames
+        components,
       },
       ref,
     ) => {
@@ -92,7 +93,7 @@ const NGLViewer = memo(
       // Set variable to store trajectory data and loading status
       const trajectoryRef = useRef({
         payload: [],
-        askedFrames: [],
+        frameCount: [],
         loading: new Array(),
       });
 
@@ -108,19 +109,27 @@ const NGLViewer = memo(
             : `${BASE_PATH_PROJECTS}${accession}/files/trajectory`;
 
           // List all API queries
-          const queries = repFrames ? [...repFrames] : [requestedFrame];
+          //const queries = repFrames ? [...repFrames] : [requestedFrame];
 
-          queries.forEach((frame, index) => {
+          components.forEach((comp, index) => {
+            // DANI: Por si acaso algun otro componente no tiene 'frame'
+            // DANI: Esto ahora no tendría sentido porque no se podría controlar la trayectoria
+            if (index > 0 && !comp.frame) {
+              console.error(
+                'Only the first component is allowed to load the trajectory',
+              );
+              comp.frame = 0;
+            }
             // Save the number of frames asked when the load starts
-            const askedFrames = frame ? 1 : nFrames;
+            const frameCount = comp.frame ? 1 : nFrames;
             //console.log(repFrames);
             // Get the frames to be loaded in a standarized string format for the API
             const frames = getFrames(
               isProjection,
               metadata,
-              askedFrames,
+              frameCount,
               noTrajectory,
-              frame,
+              comp.frame,
             );
 
             // Add the frame selection
@@ -155,9 +164,7 @@ const NGLViewer = memo(
                 // 'counts' include the number of atoms and the real number of frames
                 trajectoryRef.current.counts = extractCounts(response);
                 // Save inside the ref
-                trajectoryRef.current.askedFrames[index] = parseInt(
-                  askedFrames,
-                );
+                trajectoryRef.current.frameCount[index] = parseInt(frameCount);
                 trajectoryRef.current.payload[index] = response.data;
                 trajectoryRef.current.loading[index] = false;
               })
@@ -181,8 +188,8 @@ const NGLViewer = memo(
           metadata,
           noTrajectory,
           nFrames,
-          requestedFrame,
-          repFrames,
+          //requestedFrame,
+          //repFrames,
           accession,
         ],
       );
@@ -191,7 +198,7 @@ const NGLViewer = memo(
       );
       const trajectoryPayload = trajectoryRef.current.payload;
       const trajectoryProgress = trajectoryRef.current.progress;
-      const trajectoryFrames = trajectoryRef.current.askedFrames;
+      const trajectoryFrames = trajectoryRef.current.frameCount;
       const trajectoryAtoms = trajectoryRef.current.counts
         ? trajectoryRef.current.counts.atoms
         : undefined;
@@ -300,56 +307,62 @@ const NGLViewer = memo(
       // PDB file, base structure
       // Set the representations
       useEffect(() => {
-        if (!pdbFile) return;
-        const structureComponent = stageRef.current.addComponentFromObject(
-          pdbFile,
-        );
-
-        // set the view somehow, in any case no transition duration is set
-        // because it's the first time we do that
-
-        // if an original orientation was aleady defined
-        // (manually created, and stored in the API)
-        structureComponent.autoView(CHAIN_SELECTION, 0);
-        if (originalOritentationRef.current) {
-          // use it to set the initial orientation
-          stageRef.current.animationControls.orient(
-            originalOritentationRef.current,
-            0,
+        components.forEach((comp, c) => {
+          if (!pdbFile) return;
+          const structureComponent = stageRef.current.addComponentFromObject(
+            pdbFile,
           );
-        } else {
-          originalOritentationRef.current = stageRef.current.viewerControls.getOrientation();
-        }
 
-        for (const rep of representations) {
-          // Get the current rep array index
-          const repIndex = representations.findIndex(r => r === rep);
-          // Get the previous representation
-          const previousRepresentation = stageRef.current.compList[0].reprList.find(
-            previous => previous.name === rep.name,
-          );
-          // Delete previous representation if exists
-          if (previousRepresentation)
-            stageRef.current.compList[0].removeRepresentation(
-              previousRepresentation,
+          // set the view somehow, in any case no transition duration is set
+          // because it's the first time we do that
+
+          // if an original orientation was aleady defined
+          // (manually created, and stored in the API)
+          structureComponent.autoView(CHAIN_SELECTION, 0);
+          if (originalOritentationRef.current) {
+            // use it to set the initial orientation
+            stageRef.current.animationControls.orient(
+              originalOritentationRef.current,
+              0,
             );
-          // Set a new representation
-          if (opacities[repIndex] !== 0)
-            // DANI: Antes esto se hacía con 'structureComponent.addRepresentation'
-            stageRef.current.compList[0].addRepresentation(
-              drawingMethods[repIndex],
-              {
-                sele: rep.selection,
-                name: rep.name,
-                opacity: opacities[repIndex],
-                colorScheme: coloringMethods[repIndex],
-              },
-            );
-        }
+          } else {
+            originalOritentationRef.current = stageRef.current.viewerControls.getOrientation();
+          }
+
+          comp.representations.forEach((rep, index) => {
+            // Get the previous representation
+            const previousRepresentation = stageRef.current.compList[
+              c
+            ].reprList.find(previous => previous.name === rep.name);
+            // Delete previous representation if exists
+            if (previousRepresentation)
+              stageRef.current.compList[c].removeRepresentation(
+                previousRepresentation,
+              );
+            // Set a new representation
+            if (opacities[index] !== 0)
+              // DANI: Antes esto se hacía con 'structureComponent.addRepresentation'
+              stageRef.current.compList[c].addRepresentation(
+                drawingMethods[index],
+                {
+                  sele: rep.selection,
+                  name: rep.name,
+                  opacity: opacities[index],
+                  colorScheme: coloringMethods[index],
+                  colorDomain:
+                    drawingMethods[index] === 'surface'
+                      ? [-100, 100]
+                      : undefined,
+                  surfaceType:
+                    drawingMethods[index] === 'av' ? [-100, 100] : undefined,
+                },
+              );
+          });
+        });
       }, [
         pdbFile,
         isProjection,
-        representations,
+        components,
         drawingMethods,
         // We make eslint keep quiet or it complains about using spread syntax in the dependencies
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -444,52 +457,51 @@ const NGLViewer = memo(
       // DCD file, trajectory
       // Once the trajectory is loaded, introduce it into the representation
       useEffect(() => {
-        if (stageRef.current.compList[0]) {
-          stageRef.current.compList[0].autoView(CHAIN_SELECTION, 0);
-        }
-
-        const component = stageRef.current.compList[0];
-        if (!component) return;
-        //console.log(component);
-
-        // remove all possibly already existing trajectories
-        // This return an error in console (may be a bug) but it is actually working
-        // See https://github.com/arose/ngl/issues/680
-        component.trajList.forEach(component.removeTrajectory.bind(component));
-
         let frames = [];
 
-        for (const index in trajectoryPayload) {
+        trajectoryPayload.forEach((payload, index) => {
+          if (stageRef.current.compList[index]) {
+            stageRef.current.compList[index].autoView(CHAIN_SELECTION, 0);
+          }
+
+          const component = stageRef.current.compList[index];
+          if (!component) return;
+          //console.log(component);
+
+          // remove all possibly already existing trajectories
+          // This return an error in console (may be a bug) but it is actually working
+          // See https://github.com/arose/ngl/issues/680
+          component.trajList.forEach(
+            component.removeTrajectory.bind(component),
+          );
+
           const file = payloadToNGLFile(
             pdbFile,
-            trajectoryPayload[index],
+            payload,
             trajectoryAtoms,
             trajectoryFrames[index],
             isProjection,
-            //Number.isFinite(requestedFrame),
           );
 
-          if (!file) continue;
+          if (file) {
+            frames[index] = component.addTrajectory(file);
+            //console.log(frames[index]);
+            frames[index].signals.frameChanged.add(handleFrameChange);
+            frames[index].trajectory.setFrame(0);
 
-          frames[index] = component.addTrajectory(file);
-          //console.log(frames[index]);
-          frames[index].signals.frameChanged.add(handleFrameChange);
-          frames[index].trajectory.setFrame(0);
+            component.autoView(CHAIN_SELECTION, 0);
+            originalOritentationRef.current = stageRef.current.viewerControls.getOrientation();
+            //component.reprList[index].repr.updateData(file);
+          }
+        });
 
-          component.autoView(CHAIN_SELECTION, 0);
-          originalOritentationRef.current = stageRef.current.viewerControls.getOrientation();
-
-          //component.reprList[index].repr.updateData(file);
-        }
-
-        //console.log(component.reprList[0].repr.getBufferParams());
+        console.log(stageRef.current.compList);
 
         return () =>
           frames.forEach(frame =>
             frame.signals.frameChanged.remove(handleFrameChange),
           );
       }, [
-        requestedFrame,
         pdbFile,
         trajectoryPayload,
         trajectoryAtoms,

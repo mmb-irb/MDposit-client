@@ -10,6 +10,8 @@ import style from './style.module.css';
 //import { AccessionCtx } from '../../../contexts';
 import { ProjectCtx } from '../../../contexts';
 
+import Info from '../../../components/info';
+
 //import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 // Define permanent options for the "useInView"
@@ -52,6 +54,30 @@ const Trajectory = () => {
   return (
     <>
       <Card className={style.card} ref={nglRef}>
+        <Info
+          tooltip={
+            <>
+              This is the electrostatic potencial surface representation.
+              <br />
+              <br />
+              The{' '}
+              <a
+                href="http://nglviewer.org/"
+                target="_blank"
+                rel="noreferrer noopener"
+              >
+                NGL viewer
+              </a>{' '}
+              represents the main structures and the interface surfaces between
+              two interacting proteins. Surfaces are painted according the
+              electrostatic potencial.
+              <br />
+              <br />
+              Trajectory is not loaded in this context because the surface
+              representation is too heavy to be updated dinamically.
+            </>
+          }
+        />
         {/* Render the NGL viewer when it is on screen*/}
         {isNglVisible ? (
           <NGLViewerWithControls

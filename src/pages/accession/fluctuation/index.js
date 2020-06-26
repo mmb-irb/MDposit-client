@@ -13,6 +13,8 @@ import { ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
+import Info from '../../../components/info';
+
 import style from './style.module.css';
 
 const StatisticsTable = lazy(() =>
@@ -66,12 +68,43 @@ const FluctuationAnalysis = () => {
   return (
     <Suspense fallback={<Loading />}>
       <Card className={style.card}>
+        <Info
+          tooltip={
+            <>
+              Statistics table including fluctuation data label, mean and
+              standard deviation. Values are in namometers.
+            </>
+          }
+        />
         <CardContent>
-          <Typography variant="h6">Statistics</Typography>
           <StatisticsTable y={payload.y} />
         </CardContent>
       </Card>
       <Card className={style.card}>
+        <Info
+          tooltip={
+            <>
+              This graph represents the fluctuation of each atom. Data is
+              displayed (more opaque lines) alongside corresponding mean value
+              (light horizontal line) and mean ± 1 standard deviation (lighter
+              horizontal bands)
+              <br />
+              <br />
+              The horizontal edge stands for the atoms numeration.
+              <br />
+              The vertical edge stands for the flucutation in nanometers.
+              <br />
+              <br />
+              The graph is{' '}
+              <span style={{ color: 'lightGreen' }}>interactive</span>. Use the
+              mouse to move along data by holding the click button and dragging
+              left or right. Use the mouse wheel to zoom in a specific region.
+              <span style={{ color: 'lightGreen' }}> Click any point </span>
+              on the graph to open an interactive window displaying the
+              trajectory with the corresponding atom highlighted.
+            </>
+          }
+        />
         <CardContent>
           <Typography variant="h6" />
           <Graph

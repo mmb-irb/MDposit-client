@@ -36,6 +36,7 @@ const GenericAnalysisPage = lazy(() =>
     /* webpackChunkName: 'generic-analysis-page' */ './generic-analysis-page'
   ),
 );
+const Rgyr = lazy(() => import(/* webpackChunkName: 'rgyr' */ './rgyr'));
 const Fluctuation = lazy(() =>
   import(/* webpackChunkName: 'fluctuation' */ './fluctuation'),
 );
@@ -192,6 +193,41 @@ const SummarySwitch = ({ setProject }) => {
                     xLabel="Time (ns)"
                     xScaleFactor={0.001}
                     yLabel="RMSd (nm)"
+                    tableInfo={
+                      <>
+                        Statistics table including RMSd data label, mean and
+                        standard deviation. Values are in namometers.
+                      </>
+                    }
+                    graphInfo={
+                      <>
+                        This graph represents the RMSd in the average atom
+                        positions along the trajectory compared to the original
+                        position (frame 0). Data is displayed (more opaque
+                        lines) alongside corresponding mean value (light
+                        horizontal line) and mean ± 1 standard deviation
+                        (lighter horizontal bands).
+                        <br />
+                        <br />
+                        The horizontal edge stands for the trajectory time in
+                        nanoseconds.
+                        <br />
+                        The vertical edge stands for the RMSd in nanometers.
+                        <br />
+                        <br />
+                        The graph is{' '}
+                        <span style={{ color: 'lightGreen' }}>interactive</span>
+                        . Use the mouse to move along data by holding the click
+                        button and dragging left or right. Use the mouse wheel
+                        to zoom in a specific region.
+                        <span style={{ color: 'lightGreen' }}>
+                          {' '}
+                          Click any point{' '}
+                        </span>
+                        on the graph to open an interactive window to display
+                        the strucutre at the corresponding frame.
+                      </>
+                    }
                   />
                 </Suspense>
               )}
@@ -201,13 +237,7 @@ const SummarySwitch = ({ setProject }) => {
               exact
               render={() => (
                 <Suspense fallback={<Loading />}>
-                  <GenericAnalysisPage
-                    analysis="rgyr"
-                    defaultPrecision={2 ** 6}
-                    xLabel="Time (ns)"
-                    xScaleFactor={0.001}
-                    yLabel="Rgyr (nm)"
-                  />
+                  <Rgyr />
                 </Suspense>
               )}
             />
