@@ -7,6 +7,7 @@ import React, {
   useEffect,
   useContext,
 } from 'react';
+import useToggleState from '../../hooks/use-toggle-state';
 import { useInView } from 'react-intersection-observer';
 import { debounce, clamp } from 'lodash-es';
 import cn from 'classnames';
@@ -32,6 +33,8 @@ const DEFAULT_ORIENTATION_TRANSITION_DURATION = 500; // 500 ms
 
 const CHAIN_SELECTION = 'polymer and not hydrogen ';
 
+const NGL_COLORS = ['red', 'blue'];
+
 const NGLViewer = memo(
   forwardRef(
     (
@@ -47,16 +50,14 @@ const NGLViewer = memo(
         nFrames = DEFAULT_NUMBER_OF_FRAMES,
         hovered,
         selected, // Atom index of the atom/residue to be represented
+        selectedResidues, // residue indexes from residues to be represented
         noTrajectory, // True when only specific frames must be loaded
-        //requestedFrame,
         darkBackground,
         perspective,
         speed,
         drawingMethods,
         coloringMethods,
         opacities,
-        //representations, // The representations to be displayed
-        //repFrames, // Representation frames
         components,
       },
       ref,
@@ -94,8 +95,12 @@ const NGLViewer = memo(
       const trajectoryRef = useRef({
         payload: [],
         frameCount: [],
-        loading: new Array(),
+        loading: [],
       });
+
+      // This is a workaround to include the 'components' object in useEffect hooks
+      // The 'components' object is not a suitable dependency. It would re-render the hook all the time
+      const componentsRef = JSON.stringify(components);
 
       // Hook for the trajectory data (frames)
       useEffect(
@@ -108,10 +113,16 @@ const NGLViewer = memo(
             ? trajectoryURL
             : `${BASE_PATH_PROJECTS}${accession}/files/trajectory`;
 
-          // List all API queries
-          //const queries = repFrames ? [...repFrames] : [requestedFrame];
+          // Ask the API through axios (https://www.npmjs.com/package/axios)
+          // Some extra load features are passed through axios
+          // Set a cancel 'token'
+          const source = axios.CancelToken.source();
+          let didCancel = false;
 
-          components.forEach((comp, index) => {
+          // Convert the JSON reference back into the 'components' object
+          const comps = JSON.parse(componentsRef);
+
+          comps.forEach((comp, index) => {
             // DANI: Por si acaso algun otro componente no tiene 'frame'
             // DANI: Esto ahora no tendría sentido porque no se podría controlar la trayectoria
             if (index > 0 && !comp.frame) {
@@ -122,7 +133,6 @@ const NGLViewer = memo(
             }
             // Save the number of frames asked when the load starts
             const frameCount = comp.frame ? 1 : nFrames;
-            //console.log(repFrames);
             // Get the frames to be loaded in a standarized string format for the API
             const frames = getFrames(
               isProjection,
@@ -138,11 +148,6 @@ const NGLViewer = memo(
             // Set the loading status as true
             trajectoryRef.current.loading[index] = true;
 
-            // Ask the API through axios (https://www.npmjs.com/package/axios)
-            // Some extra load features are passed through axios
-            // Set a cancel 'token'
-            const source = axios.CancelToken.source();
-            let didCancel = false;
             trajectoryRef.current.progress = 0;
             // Set a function to track the download progress
             const onDownloadProgress = progressEvent => {
@@ -176,8 +181,8 @@ const NGLViewer = memo(
           });
           return () => {
             // Cancel the request
-            //source.cancel();
-            //didCancel = true;
+            source.cancel();
+            didCancel = true;
           };
         },
         // Dependencies
@@ -188,9 +193,8 @@ const NGLViewer = memo(
           metadata,
           noTrajectory,
           nFrames,
-          //requestedFrame,
-          //repFrames,
           accession,
+          componentsRef,
         ],
       );
       const trajectoryLoadingStatus = [...trajectoryRef.current.loading].some(
@@ -271,6 +275,7 @@ const NGLViewer = memo(
       // frames
       const handleFrameChange = useCallback(
         frame => {
+          if (noTrajectory) return; // En pruebas
           if (!onProgress) return;
           const progress = clamp(
             frame /
@@ -281,7 +286,7 @@ const NGLViewer = memo(
           );
           onProgress(progress);
         },
-        [onProgress],
+        [noTrajectory, onProgress],
       );
 
       // Resize logic
@@ -305,9 +310,19 @@ const NGLViewer = memo(
       }, [handleResize]);
 
       // PDB file, base structure
-      // Set the representations
+      // Set the representations in each component
+      // Track when these representations are updated
+      const [updater, toggler] = useToggleState(false);
       useEffect(() => {
-        components.forEach((comp, c) => {
+        // If there is already a component then toggle
+        if (stageRef.current.compList.length > 0) toggler();
+        // Keep track of the representation count
+        let repCounter = 0;
+
+        // Convert the JSON reference back into the 'components' object
+        const comps = JSON.parse(componentsRef);
+
+        comps.forEach((comp, c) => {
           if (!pdbFile) return;
           const structureComponent = stageRef.current.addComponentFromObject(
             pdbFile,
@@ -329,7 +344,7 @@ const NGLViewer = memo(
             originalOritentationRef.current = stageRef.current.viewerControls.getOrientation();
           }
 
-          comp.representations.forEach((rep, index) => {
+          comp.representations.forEach(rep => {
             // Get the previous representation
             const previousRepresentation = stageRef.current.compList[
               c
@@ -339,30 +354,44 @@ const NGLViewer = memo(
               stageRef.current.compList[c].removeRepresentation(
                 previousRepresentation,
               );
+
+            // If the colorScheme is a defined color, create a custom colorScheme for this color
+            const colorScheme = NGL_COLORS.includes(coloringMethods[repCounter])
+              ? ColormakerRegistry.addSelectionScheme(
+                  [[coloringMethods[repCounter], 'all']],
+                  'custom label',
+                )
+              : coloringMethods[repCounter];
+
             // Set a new representation
-            if (opacities[index] !== 0)
+            if (opacities[repCounter] !== 0)
               // DANI: Antes esto se hacía con 'structureComponent.addRepresentation'
               stageRef.current.compList[c].addRepresentation(
-                drawingMethods[index],
+                drawingMethods[repCounter],
                 {
                   sele: rep.selection,
                   name: rep.name,
-                  opacity: opacities[index],
-                  colorScheme: coloringMethods[index],
+                  opacity: opacities[repCounter],
+                  colorScheme: colorScheme,
                   colorDomain:
-                    drawingMethods[index] === 'surface'
+                    drawingMethods[repCounter] === 'surface'
                       ? [-100, 100]
                       : undefined,
                   surfaceType:
-                    drawingMethods[index] === 'av' ? [-100, 100] : undefined,
+                    drawingMethods[repCounter] === 'av'
+                      ? [-100, 100]
+                      : undefined,
                 },
               );
+
+            repCounter += 1;
           });
         });
       }, [
         pdbFile,
         isProjection,
-        components,
+        //components,
+        componentsRef,
         drawingMethods,
         // We make eslint keep quiet or it complains about using spread syntax in the dependencies
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -373,6 +402,7 @@ const NGLViewer = memo(
         opacities,
         // eslint-disable-next-line react-hooks/exhaustive-deps
         ...opacities,
+        toggler,
       ]);
 
       // highlight hovered atoms from other components
@@ -383,6 +413,7 @@ const NGLViewer = memo(
           return;
         }
 
+        // Set a representation name. This is useful to find this representation further
         const nameHighlight = 'highlighted';
         const previousHighlightRepresentation = stageRef.current.compList[0].reprList.find(
           representation => representation.name === nameHighlight,
@@ -393,6 +424,7 @@ const NGLViewer = memo(
           );
         }
 
+        // Name for residues representation
         const nameContext = 'context';
         const previousContextRepresentation = stageRef.current.compList[0].reprList.find(
           representation => representation.name === nameContext,
@@ -447,6 +479,36 @@ const NGLViewer = memo(
         });
       }, [pdbFile, hovered, selected]);
 
+      // Highlight hovered residues
+      useEffect(() => {
+        if (!pdbFile || !selectedResidues) {
+          return;
+        }
+
+        // Set a representation name. This is useful to find this representation further
+        const nameHighlight = 'highlightedResidues';
+        const previousHighlightRepresentation = stageRef.current.compList[0].reprList.find(
+          representation => representation.name === nameHighlight,
+        );
+        if (previousHighlightRepresentation)
+          stageRef.current.compList[0].removeRepresentation(
+            previousHighlightRepresentation,
+          );
+
+        // Get the residues input
+        const residues = Array.from(selectedResidues);
+        if (!residues.length) return;
+
+        // Transform the residues list into an NGL selection
+        const nglSelection = Array.from(new Set(residues)).join(' or ');
+
+        // Represent the previous selection in ball+sticks drawing method
+        stageRef.current.compList[0].addRepresentation('ball+stick', {
+          sele: nglSelection,
+          name: nameHighlight,
+        });
+      }, [pdbFile, selectedResidues]);
+
       // pause on loading
       // Make the NGL static while loading after user changes the frame number
       useEffect(() => {
@@ -469,7 +531,8 @@ const NGLViewer = memo(
           //console.log(component);
 
           // remove all possibly already existing trajectories
-          // This return an error in console (may be a bug) but it is actually working
+          // This return an error in console: "updateStructure: traj disposed"
+          // This may be a bug but it is actually working
           // See https://github.com/arose/ngl/issues/680
           component.trajList.forEach(
             component.removeTrajectory.bind(component),
@@ -495,8 +558,6 @@ const NGLViewer = memo(
           }
         });
 
-        console.log(stageRef.current.compList);
-
         return () =>
           frames.forEach(frame =>
             frame.signals.frameChanged.remove(handleFrameChange),
@@ -508,6 +569,7 @@ const NGLViewer = memo(
         trajectoryFrames,
         handleFrameChange,
         isProjection,
+        updater, // For when representations are reseted
       ]);
 
       // play/pause

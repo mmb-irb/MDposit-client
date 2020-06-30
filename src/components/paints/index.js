@@ -16,6 +16,43 @@ import {
 
 import style from './style.module.css';
 
+const valueExist = (value, source) => {
+  for (const opt of source) {
+    if (opt.value === value) return true;
+  }
+  return false;
+};
+
+const availableDrawingMethods = [
+  {
+    label: 'Cartoon',
+    value: 'cartoon',
+  },
+  {
+    label: 'Licorice',
+    value: 'licorice',
+  },
+  {
+    label: 'Surface',
+    value: 'surface',
+  },
+];
+
+const availableColoringMethods = [
+  {
+    label: 'By chain id',
+    value: 'chainid',
+  },
+  {
+    label: 'B factor',
+    value: 'bfactor',
+  },
+  {
+    label: 'Electrostatic',
+    value: 'electrostatic',
+  },
+];
+
 // Display a small panel to select which representations to show or hide
 const Paints = memo(
   ({
@@ -26,6 +63,7 @@ const Paints = memo(
     setColoringMethods,
     opacities,
     setOpacities,
+    defaults, // Original values
     children,
     ...buttonProps
   }) => {
@@ -81,9 +119,19 @@ const Paints = memo(
                             setDrawingMethods([...changed]);
                           }}
                         >
-                          <option value={'cartoon'}>Cartoon</option>
-                          <option value={'licorice'}>Licorice</option>
-                          <option value={'surface'}>Surface</option>
+                          {!valueExist(
+                            defaults.drawingMethods[index],
+                            availableDrawingMethods,
+                          ) && (
+                            <option value={defaults.drawingMethods[index]}>
+                              {defaults.drawingMethods[index]}
+                            </option>
+                          )}
+                          {availableDrawingMethods.map((cm, i) => (
+                            <option key={i} value={cm.value}>
+                              {cm.label}
+                            </option>
+                          ))}
                         </Select>
                       }
                     </TableCell>
@@ -98,9 +146,19 @@ const Paints = memo(
                             setColoringMethods([...changed]);
                           }}
                         >
-                          <option value={'bfactor'}>B factor</option>
-                          <option value={'chainid'}>By chain id</option>
-                          <option value={'electrostatic'}>Electrostatic</option>
+                          {!valueExist(
+                            defaults.coloringMethods[index],
+                            availableColoringMethods,
+                          ) && (
+                            <option value={defaults.coloringMethods[index]}>
+                              {defaults.coloringMethods[index]}
+                            </option>
+                          )}
+                          {availableColoringMethods.map((cm, i) => (
+                            <option key={i} value={cm.value}>
+                              {cm.label}
+                            </option>
+                          ))}
                         </Select>
                       }
                     </TableCell>

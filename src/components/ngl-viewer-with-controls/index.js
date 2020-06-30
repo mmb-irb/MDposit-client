@@ -75,7 +75,7 @@ const NGLViewerWithControls = forwardRef(
       close,
       nail,
       // Set which frame must be loaded. It may be undefined, if the whole trajectory is desired.
-      //requestedFrame,
+      requestedFrame,
       // Set if the frame number selector is allowed for trajectories (false in PCA projections)
       framesSelect = true,
       // The NGL representations
@@ -86,22 +86,29 @@ const NGLViewerWithControls = forwardRef(
       //   defaultDrawingMethod: (by default, 'cartoon') The initial representation 'type',
       //   defaultColoringMethod: (by default, 'chainid') The initial representation 'colorScheme',
       //   defaultOpacity: (by default, 1) The initial representation opacity }
-      components,
       representations,
+      // New method to call the NGL
+      // Components are objects which include a 'frame' value and the 'representations' array
+      components,
       ...props
     },
     ref,
   ) => {
+    // Alternative (and original) method to call the NGL
+    // Here we convert old inputs to the new format
     if (!components || components.length === 0)
-      if (representations) components = [{ representations: representations }];
-      else components = [{}];
+      components = [
+        { representations: representations, frame: requestedFrame },
+      ];
+
+    // Save all representations mined from each component
+    const allRepresentations = [];
 
     for (const comp of components) {
-      // The 'representations' parameters is mandatory
+      // Create a generic 'representations' value when missing
       if (!comp.representations || comp.representations.length === 0)
         comp.representations = [{ name: 'Structure', selection: 'all' }];
       // Fill the missing 'representations' values with some default values
-      // In addition, save all representation 'frame' values
       for (const rep of comp.representations) {
         if (!rep.name) rep.name = 'Representation';
         if (!rep.selection) rep.selection = 'all';
@@ -109,34 +116,39 @@ const NGLViewerWithControls = forwardRef(
         if (!rep.defaultDrawingMethod) rep.defaultDrawingMethod = 'cartoon';
         if (!rep.defaultColoringMethod) rep.defaultColoringMethod = 'chainid';
         if (!rep.defaultOpacity) rep.defaultOpacity = 1;
+        allRepresentations.push(rep);
       }
     }
-
-    const mainRepresentations = components[0].representations;
 
     // When there is only 1 frame to load or all representations have their specific frame
     const noTrajectory = Number.isFinite(components[0].frame);
 
     const [drawingMethods, setDrawingMethods] = useState(() => {
       const init = [];
-      for (const rep of mainRepresentations) {
+      for (const rep of allRepresentations) {
         init.push(rep.defaultDrawingMethod);
       }
       return init;
     });
     const [coloringMethods, setColoringMethods] = useState(() => {
       const init = [];
-      for (const rep of mainRepresentations) {
+      for (const rep of allRepresentations) {
         init.push(rep.defaultColoringMethod);
       }
       return init;
     });
     const [opacities, setOpacities] = useState(() => {
       const init = [];
-      for (const rep of mainRepresentations) {
+      for (const rep of allRepresentations) {
         init.push(rep.defaultOpacity);
       }
       return init;
+    });
+    // Remember the default drawing methods, coloring methods and opacity values
+    const defaults = useRef({
+      drawingMethods: [...drawingMethods],
+      coloringMethods: [...coloringMethods],
+      opacities: [...opacities],
     });
 
     // references
@@ -410,7 +422,7 @@ const NGLViewerWithControls = forwardRef(
             </IconButton>
 
             <Paints
-              representations={mainRepresentations}
+              representations={allRepresentations}
               title="Change representation parameters"
               drawingMethods={drawingMethods}
               setDrawingMethods={setDrawingMethods}
@@ -418,6 +430,7 @@ const NGLViewerWithControls = forwardRef(
               setColoringMethods={setColoringMethods}
               opacities={opacities}
               setOpacities={setOpacities}
+              defaults={defaults.current}
             >
               <FontAwesomeIcon icon={faPaintBrush} />
             </Paints>

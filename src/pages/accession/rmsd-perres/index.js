@@ -57,7 +57,7 @@ const RmsdPerres = () => {
   const [selected, setSelected] = useState(null);
 
   // Set when which resiudes are we meant to find
-  const [searchResidues, setSearchResidues] = useState(metadata.INTERFACE);
+  const [searchResidues, setSearchResidues] = useState('');
 
   // Table management
   const [page, setPage] = useState(0);
@@ -72,7 +72,9 @@ const RmsdPerres = () => {
   else if (!payload) return 'Something bad happened';
 
   // Parse the selection string into a numeric array
-  const curatedSelection = residueSelectionParser(searchResidues);
+  const curatedSelection = searchResidues
+    ? residueSelectionParser(searchResidues)
+    : null;
 
   // Find the corrsponding key for each selected resiude
   // First get all available keys in order
@@ -86,9 +88,15 @@ const RmsdPerres = () => {
 
   // Now get only the selected keys from the payload
   let selectedPayload = {};
-  for (const res of curatedSelection) {
-    const key = keys[res];
-    selectedPayload[key] = payload.y[key];
+  if (curatedSelection)
+    for (const res of curatedSelection) {
+      const key = keys[res];
+      selectedPayload[key] = payload.y[key];
+    }
+  else {
+    // If there is no selection, get the whole payload and remove the first property: 'RMSD_00001'
+    selectedPayload = payload.y;
+    delete payload.y['RMSD_00001'];
   }
 
   // Now give the selected payload a standarized format for the data table
@@ -106,6 +114,9 @@ const RmsdPerres = () => {
 
   const rowsNumber = Object.keys(selectedPayload).length;
 
+  // Harvest the finally selected residues
+  const selectedResidues = [];
+
   // Set an object with boolean keys defining which data is displayed (true) or hidden (false)
   let displayedPayload = {};
   const from = page * rowsPerPage;
@@ -115,8 +126,11 @@ const RmsdPerres = () => {
     // If the residue appears in the data table
     if (index >= from && index < to) {
       // If it is marked to be displayed
-      if (displays[count]) displayedPayload[key] = true;
-      else displayedPayload[key] = false;
+      if (displays[count]) {
+        displayedPayload[key] = true;
+        const result = keyNumber.exec(key);
+        selectedResidues.push(result[1]);
+      } else displayedPayload[key] = false;
       count += 1;
     } else displayedPayload[key] = false;
   });
@@ -127,6 +141,11 @@ const RmsdPerres = () => {
     newDisplays[row] = !newDisplays[row];
     setDisplays(newDisplays);
   };
+
+  // Set which options will be available in the resiude selector
+  const selectorOptions = [{ label: 'All', value: '' }];
+  if (metadata.INTERFACE)
+    selectorOptions.push({ label: 'Interface', value: metadata.INTERFACE });
 
   // Set the chains to be represented in the NGL viewer
   const chainsNGL = [];
@@ -159,10 +178,7 @@ const RmsdPerres = () => {
             label="Residues selection"
             selection={searchResidues}
             setter={setSearchResidues}
-            options={[
-              { label: 'All', value: '' },
-              { label: 'Interface', value: metadata.INTERFACE },
-            ]}
+            options={selectorOptions}
             //custom
           />
         </CardContent>
@@ -307,6 +323,7 @@ const RmsdPerres = () => {
                 accession: accession,
                 requestedFrame: selected,
                 representations: chainsNGL,
+                selectedResidues: selectedResidues,
               }
             : null
         }

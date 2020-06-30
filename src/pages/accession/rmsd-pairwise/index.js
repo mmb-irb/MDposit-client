@@ -40,11 +40,17 @@ const RmsdPairwise = () => {
   // Set the frames to be represented in the NGL viewer
   const components = [];
   if (selected)
-    for (const frame of selected) {
+    selected.forEach((frame, index) => {
       components.push({
         frame: frame,
+        representations: [
+          {
+            name: 'Frame ' + frame,
+            defaultColoringMethod: index === 0 ? 'red' : 'blue',
+          },
+        ],
       });
-    }
+    });
 
   // handles when the tabs are switched
   const handleTabs = (event, newValue) => {
@@ -114,6 +120,7 @@ const RmsdPairwise = () => {
             ? {
                 accession: accession,
                 components: components,
+                selRef: selected,
               }
             : null
         }
@@ -126,7 +133,7 @@ const RmsdPairwise = () => {
         }
         onClose={viewer =>
           setSelected(previous => {
-            if (viewer.selected === previous) return null;
+            if (viewer.selRef === previous) return null;
             else return previous;
           })
         }

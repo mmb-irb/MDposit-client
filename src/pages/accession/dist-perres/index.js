@@ -34,7 +34,9 @@ const DistPerres = () => {
   const filteredData = useRef(null);
 
   // The residues selection string managed by the selector
-  const [searchResidues, setSearchResidues] = useState(metadata.INTERFACE);
+  const [searchResidues, setSearchResidues] = useState(
+    metadata.INTERFACE || '',
+  );
 
   // The selected atoms
   const [selected, setSelected] = useState(null);
@@ -129,6 +131,11 @@ const DistPerres = () => {
     });
   }
 
+  // Set which options will be available in the resiude selector
+  const selectorOptions = [{ label: 'All', value: '' }];
+  if (metadata.INTERFACE)
+    selectorOptions.push({ label: 'Interface', value: metadata.INTERFACE });
+
   // handles when the tabs are switched
   const handleTabs = (event, newValue) => {
     setDisplay(newValue);
@@ -155,10 +162,7 @@ const DistPerres = () => {
             label="Residues selection"
             selection={searchResidues}
             setter={setSearchResidues}
-            options={[
-              { label: 'All', value: '' },
-              { label: 'Interface', value: metadata.INTERFACE },
-            ]}
+            options={selectorOptions}
             //custom
           />
         </CardContent>
