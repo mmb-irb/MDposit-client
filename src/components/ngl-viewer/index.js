@@ -29,7 +29,7 @@ import useNGLFile from '../../hooks/use-ngl-file';
 import axios from 'axios';
 
 const DEFAULT_NUMBER_OF_FRAMES = 25;
-const DEFAULT_ORIENTATION_TRANSITION_DURATION = 500; // 500 ms
+const DEFAULT_ORIENTATION_TRANSITION_DURATION = 750; // 750 ms
 
 const CHAIN_SELECTION = 'polymer and not hydrogen ';
 
@@ -448,7 +448,7 @@ const NGLViewer = memo(
 
         // ngl starts counting at 0
         const seleHighlight = `@${atoms
-          .map(atomNumber => atomNumber - 1)
+          .map(atomNumber => atomNumber)
           .join(',')}`;
 
         stageRef.current.compList[0].addRepresentation('spacefill', {
@@ -456,6 +456,13 @@ const NGLViewer = memo(
           opacity: 0.5,
           scale: 1.5,
           name: nameHighlight,
+        });
+
+        const seleDistance = [...selected].map(a => a);
+        stageRef.current.compList[0].addRepresentation('distance', {
+          atomPair: [seleDistance],
+          color: 'skyblue',
+          labelUnit: 'nm',
         });
 
         const seleContext = Array.from(
@@ -477,6 +484,12 @@ const NGLViewer = memo(
           sele: seleContext,
           name: nameContext,
         });
+
+        // Focus the highlighted zone with the camera
+        stageRef.current.compList[0].autoView(
+          seleContext,
+          DEFAULT_ORIENTATION_TRANSITION_DURATION,
+        );
       }, [pdbFile, hovered, selected]);
 
       // Highlight hovered residues
@@ -484,7 +497,6 @@ const NGLViewer = memo(
         if (!pdbFile || !selectedResidues) {
           return;
         }
-
         // Set a representation name. This is useful to find this representation further
         const nameHighlight = 'highlightedResidues';
         const previousHighlightRepresentation = stageRef.current.compList[0].reprList.find(
@@ -498,7 +510,6 @@ const NGLViewer = memo(
         // Get the residues input
         const residues = Array.from(selectedResidues);
         if (!residues.length) return;
-
         // Transform the residues list into an NGL selection
         const nglSelection = Array.from(new Set(residues)).join(' or ');
 
@@ -507,6 +518,11 @@ const NGLViewer = memo(
           sele: nglSelection,
           name: nameHighlight,
         });
+        // Focus the highlighted zone with the camera
+        stageRef.current.compList[0].autoView(
+          nglSelection,
+          DEFAULT_ORIENTATION_TRANSITION_DURATION,
+        );
       }, [pdbFile, selectedResidues]);
 
       // pause on loading
@@ -522,10 +538,6 @@ const NGLViewer = memo(
         let frames = [];
 
         trajectoryPayload.forEach((payload, index) => {
-          if (stageRef.current.compList[index]) {
-            stageRef.current.compList[index].autoView(CHAIN_SELECTION, 0);
-          }
-
           const component = stageRef.current.compList[index];
           if (!component) return;
           //console.log(component);
@@ -552,9 +564,12 @@ const NGLViewer = memo(
             frames[index].signals.frameChanged.add(handleFrameChange);
             frames[index].trajectory.setFrame(0);
 
+            // Focus de representation with the camera
+            /*
             component.autoView(CHAIN_SELECTION, 0);
             originalOritentationRef.current = stageRef.current.viewerControls.getOrientation();
-            //component.reprList[index].repr.updateData(file);
+            component.reprList[index].repr.updateData(file);
+            */
           }
         });
 
@@ -573,12 +588,13 @@ const NGLViewer = memo(
       ]);
 
       // play/pause
+      const mainPayload = trajectoryPayload[0];
       useEffect(() => {
-        if (!(pdbFile && trajectoryPayload.length)) return;
+        if (!(pdbFile && mainPayload)) return;
         const { player } = stageRef.current.compList[0].trajList[0].trajectory;
         player[playing && isInView ? 'play' : 'pause']();
         return () => player.pause();
-      }, [pdbFile, trajectoryPayload, playing, isInView]);
+      }, [pdbFile, mainPayload, playing, isInView]);
 
       // speed
       useEffect(() => {

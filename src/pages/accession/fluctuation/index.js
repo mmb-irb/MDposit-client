@@ -69,6 +69,7 @@ const FluctuationAnalysis = () => {
     <Suspense fallback={<Loading />}>
       <Card className={style.card}>
         <Info
+          reference={'fluctuation-statistics'}
           tooltip={
             <>
               Statistics table including fluctuation data label, mean and
@@ -82,6 +83,7 @@ const FluctuationAnalysis = () => {
       </Card>
       <Card className={style.card}>
         <Info
+          reference={'fluctuation-graph'}
           tooltip={
             <>
               This graph represents the fluctuation of each atom. Data is

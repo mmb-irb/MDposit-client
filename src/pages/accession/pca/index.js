@@ -83,6 +83,7 @@ const PCA = () => {
     <>
       <Card className={style.card}>
         <Info
+          reference={'pca-eigen-graph'}
           tooltip={
             <>
               This is the eigenvalues graph.
@@ -126,6 +127,7 @@ const PCA = () => {
       <Card className={style.card}>
         {projections.length === 1 && (
           <Info
+            reference={'pca-projection'}
             tooltip={
               <>
                 This is the projection {projections[0] + 1} representation.
@@ -159,6 +161,7 @@ const PCA = () => {
         )}
         {projections.length === 2 && (
           <Info
+            reference={'pca-projections-graph'}
             tooltip={
               <>
                 This is the PCA analysis comparing projections{' '}

@@ -523,6 +523,7 @@ const Trajectory = () => {
     <>
       <Card className={style.card} ref={nglRef}>
         <Info
+          reference={'trajectory-ngl'}
           tooltip={
             <>
               This is the main structure and trajectory representation.
@@ -567,6 +568,7 @@ const Trajectory = () => {
       </Card>
       <Card className={style.card}>
         <Info
+          reference={'trajectory-metadata'}
           tooltip={
             <>
               This metadata is automatically mined from the original topology
@@ -593,6 +595,7 @@ const Trajectory = () => {
       </Card>
       <Card className={style.card} ref={nightingaleRef}>
         <Info
+          reference={'trajectory-chains'}
           tooltip={
             <>
               Below you can see the families, domains, and sites, that an{' '}

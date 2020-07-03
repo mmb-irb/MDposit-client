@@ -72,6 +72,7 @@ const Rgyr = () => {
     <Suspense fallback={<Loading />}>
       <Card className={style.card}>
         <Info
+          reference={'rgyr-statistics'}
           tooltip={
             <>
               Statistics table including data label, mean and standard deviation
@@ -119,6 +120,7 @@ const Rgyr = () => {
       </Card>
       <Card className={style.card}>
         <Info
+          reference={'rgyr-graph'}
           tooltip={
             <>
               This graph represents the radius of gyration (Rgyr). There are

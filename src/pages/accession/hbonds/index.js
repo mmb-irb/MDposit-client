@@ -69,9 +69,21 @@ const Hbonds = () => {
   }
 
   // Get first atom number from resiude number
-  const residue2atom = residue => {
-    let atom = pdbData.file.residueStore.atomOffset[residue] + 1;
-    return atom;
+  const residue2atom = (residue, atomType) => {
+    const topology = pdbData.file;
+    const nResidue = topology.residueStore.resno.indexOf(residue);
+    const firstResidueAtom = topology.residueStore.atomOffset[nResidue];
+    const residueSize = topology.residueStore.atomCount[nResidue];
+    const residueAtomIndexes = [...Array(residueSize).keys()].map(
+      i => i + firstResidueAtom,
+    );
+    const atomTypeIds = topology.atomStore.atomTypeId;
+    const residueAtomTypes = residueAtomIndexes.map(
+      i => topology.atomMap.get(atomTypeIds[i]).atomname,
+    );
+    const residueAtomNumber = residueAtomTypes.indexOf(atomType);
+    const atomNumber = firstResidueAtom + residueAtomNumber;
+    return atomNumber;
   };
 
   /*
@@ -86,6 +98,7 @@ const Hbonds = () => {
     <Suspense fallback={<Loading />}>
       <Card className={style.margined}>
         <Info
+          reference={'hbonds-graph'}
           tooltip={
             <>
               This is the hydrogen bonds analysis representation.
@@ -113,8 +126,8 @@ const Hbonds = () => {
             selected={selected}
             onClick={index => {
               const atomSelection = [
-                residue2atom(payload.resnum1[index]),
-                residue2atom(payload.resnum2[index]),
+                residue2atom(payload.resnum1[index], payload.atom1[index]),
+                residue2atom(payload.resnum2[index], payload.atom2[index]),
               ];
               // DANI: Esto no tiene sentido
               //console.log(selected);

@@ -52,6 +52,7 @@ import standardPreview3 from '../../images/ace2_preview.png';
 import standardPreview5 from '../../images/spike_preview.png';
 import standardPreview6 from '../../images/3clpro_preview.png';
 
+// Define the image to be shown depending on the unit name
 const unitPreview = unit => {
   if (unit === 'RBD-ACE2') return standardPreview1;
   if (unit === 'RBD') return standardPreview2;
@@ -110,6 +111,9 @@ const Row = ({ project, highlight, index, setProject }) => {
     return () => animation.cancel();
   }, [index]);
 
+  // Push the electrostatic surface analysis if we have metadata interface
+  analyses.push(metadata.INTERFACE ? 'electrostatic' : undefined);
+
   // Returns a table with multiple rows
   // The 3 first rows: accession, PDB accession and name are searchable. Search text is highlighted when found
   return (
@@ -164,7 +168,17 @@ const Row = ({ project, highlight, index, setProject }) => {
               .sort()
               // Display only allowed analysis
               .filter(element =>
-                ['rmsd', 'rgyr', 'fluctuation', 'pca'].includes(element),
+                [
+                  'rmsd',
+                  'rgyr',
+                  'fluctuation',
+                  'pca',
+                  'rmsd-perres',
+                  'rmsd-pairwise',
+                  'dist-perres',
+                  'hbonds',
+                  'electrostatic',
+                ].includes(element),
               )
               // For each analysis create a clickable button which links to the analysis route
               .map(analysis => (

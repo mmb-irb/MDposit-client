@@ -55,6 +55,7 @@ const Trajectory = () => {
     <>
       <Card className={style.card} ref={nglRef}>
         <Info
+          reference={'electrostatic'}
           tooltip={
             <>
               This is the electrostatic potencial surface representation.

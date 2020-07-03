@@ -161,6 +161,7 @@ const RmsdPerres = () => {
     <Suspense fallback={<Loading />}>
       <Card className={style.card}>
         <Info
+          reference={'rmsd-perres-selector'}
           tooltip={
             <>
               This is the residues selector.
@@ -185,7 +186,7 @@ const RmsdPerres = () => {
       </Card>
       <Card className={style.margined}>
         <Info
-          reference={'rmsd-perres'}
+          reference={'rmsd-perres-table'}
           tooltip={
             <>
               This data table shows the selected residues list. First column
@@ -272,6 +273,7 @@ const RmsdPerres = () => {
       </Card>
       <Card className={style.margined}>
         <Info
+          reference={'rmsd-perres-graph'}
           tooltip={
             <>
               This graph represents the RMSd in the for each residue position

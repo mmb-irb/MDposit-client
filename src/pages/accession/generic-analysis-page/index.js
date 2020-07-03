@@ -33,7 +33,9 @@ const Analysis = ({
   xScaleFactor,
   yLabel,
   tableInfo,
+  tableInfoRef,
   graphInfo,
+  graphInfoRef,
   selfLegend = false,
 }) => {
   // Get the accession
@@ -75,13 +77,13 @@ const Analysis = ({
   return (
     <Suspense fallback={<Loading />}>
       <Card className={style.card}>
-        {tableInfo && <Info tooltip={tableInfo} />}
+        {tableInfo && <Info reference={tableInfoRef} tooltip={tableInfo} />}
         <CardContent>
           <StatisticsTable y={payload.y} />
         </CardContent>
       </Card>
       <Card className={style.card}>
-        {graphInfo && <Info tooltip={graphInfo} />}
+        {graphInfo && <Info reference={graphInfoRef} tooltip={graphInfo} />}
         <CardContent>
           <Typography variant="h6" />
           <Graph

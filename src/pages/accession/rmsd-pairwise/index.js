@@ -62,6 +62,7 @@ const RmsdPairwise = () => {
     <>
       <Card className={style.margined}>
         <Info
+          reference={'rmsd-pairwise-heatmap'}
           tooltip={
             <>
               This is the RMSd pairwise representation.

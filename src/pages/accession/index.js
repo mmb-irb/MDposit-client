@@ -199,6 +199,7 @@ const SummarySwitch = ({ setProject }) => {
                         standard deviation. Values are in namometers.
                       </>
                     }
+                    tableInfoRef={'rmsd-statistics'}
                     graphInfo={
                       <>
                         This graph represents the RMSd in the average atom
@@ -228,6 +229,7 @@ const SummarySwitch = ({ setProject }) => {
                         the strucutre at the corresponding frame.
                       </>
                     }
+                    graphInfoRef={'rmsd-graph'}
                   />
                 </Suspense>
               )}

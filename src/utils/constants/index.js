@@ -14,6 +14,11 @@ export const NICE_NAMES = new Map([
   ['rmsf', 'Fluctuation'],
   ['fluctuation', 'Fluctuation'],
   ['pca', 'PCA'],
+  ['rmsd-perres', 'RMSd per residue'],
+  ['rmsd-pairwise', 'RMSd pairwise'],
+  ['dist-perres', 'Distance per residue'],
+  ['hbonds', 'Hydrogen bonds'],
+  ['electrostatic', 'Electrostatic p. surface'],
 ]);
 
 // The color of the graphics for this analysis

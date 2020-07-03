@@ -8,7 +8,7 @@ import Card from '../../../components/animated-card';
 import Loading from '../../../components/loading';
 import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 
-import { AccessionCtx, ProjectCtx, PdbCtx } from '../../../contexts';
+import { AccessionCtx, ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
@@ -27,8 +27,6 @@ const DistPerres = () => {
   const accession = useContext(AccessionCtx);
   // Get the current project chains and metadata
   const { metadata, chains } = useContext(ProjectCtx);
-  // Get the current topology, including the residue names
-  const pdbData = useContext(PdbCtx);
 
   // The stored previous data after filtering
   const filteredData = useRef(null);
@@ -49,7 +47,6 @@ const DistPerres = () => {
 
   const { loading, payload, error } = useAPI(url);
 
-  // DANI: Esto debería ir en el análisis, no aquí
   // Filter data by selected residues
   useMemo(() => {
     // Return if the payload is not ready
@@ -115,13 +112,6 @@ const DistPerres = () => {
   //if (filteredData.current.xLabels.length === 0 || filteredData.current.yLabels.length === 0)
   //return 'Analysis error: At least one of the dimensions is empty'
 
-  // Get first atom number from resiude number
-  const residue2atom = residue => {
-    let atom = pdbData.file.residueStore.atomOffset[residue - 1] + 1;
-    //console.log(residue + ' => ' + atom);
-    return atom;
-  };
-
   // Set the chains to be represented in the NGL viewer
   const chainsNGL = [];
   for (const chain of chains) {
@@ -146,6 +136,7 @@ const DistPerres = () => {
     <>
       <Card className={style.card}>
         <Info
+          reference={'dist-perres-selector'}
           tooltip={
             <>
               This is the residues selector.
@@ -169,6 +160,7 @@ const DistPerres = () => {
       </Card>
       <Card className={style.margined}>
         <Info
+          reference={'dist-perres-heatmap'}
           tooltip={
             <>
               This is the distance per residue representation.
@@ -214,7 +206,7 @@ const DistPerres = () => {
               xLabels: filteredData.current.xLabels,
               yLabels: filteredData.current.yLabels,
             }}
-            onClick={(x, y) => setSelected([residue2atom(x), residue2atom(y)])}
+            onClick={(x, y) => setSelected([x, y])}
             legendTitle={
               display === 'mean'
                 ? 'Distance average (Å)'
@@ -256,7 +248,7 @@ const DistPerres = () => {
           selected
             ? {
                 accession: accession,
-                selected: selected,
+                selectedResidues: selected,
                 representations: chainsNGL,
               }
             : null
@@ -264,13 +256,13 @@ const DistPerres = () => {
         // If the nailed/closed viewer is the current viewer then reset the 'selected'
         onNail={viewer =>
           setSelected(previous => {
-            if (viewer.selected === previous) return null;
+            if (viewer.selectedResidues === previous) return null;
             else return previous;
           })
         }
         onClose={viewer =>
           setSelected(previous => {
-            if (viewer.selected === previous) return null;
+            if (viewer.selectedResidues === previous) return null;
             else return previous;
           })
         }
