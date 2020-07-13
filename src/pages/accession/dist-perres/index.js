@@ -13,6 +13,7 @@ import { AccessionCtx, ProjectCtx } from '../../../contexts';
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 import residueSelectionParser from '../../../utils/residue-selection-parser';
+import { OLDsource2modelResidue } from '../../../utils/topology-manager';
 
 import Info from '../../../components/info';
 import Selector from '../../../components/selector';
@@ -72,11 +73,11 @@ const DistPerres = () => {
       } else if (payload.yLabels.includes(res)) {
         yLabels.push(res);
       } else {
-        console.error('Residue not found');
+        console.error(`Residue ${res} not found`);
       }
     }
 
-    // Harvest the right meand and stdv values according to selected indexes
+    // Harvest the right mean and stdv values according to selected indexes
     const mean = [];
     const stdv = [];
     for (const y of yLabels) {
@@ -111,6 +112,34 @@ const DistPerres = () => {
   // If any of the labels is empty we can't render the heatmap
   //if (filteredData.current.xLabels.length === 0 || filteredData.current.yLabels.length === 0)
   //return 'Analysis error: At least one of the dimensions is empty'
+
+  // Convert the yLabels from topology numeration to model numeration
+  const mxLabels = filteredData.current.xLabels.map(lab => {
+    const mod = OLDsource2modelResidue(lab);
+    return (
+      mod.chain +
+      '(' +
+      mod.chainName +
+      '):' +
+      mod.chainResidue +
+      '(' +
+      mod.residueType +
+      ')'
+    );
+  });
+  const myLabels = filteredData.current.yLabels.map(lab => {
+    const mod = OLDsource2modelResidue(lab);
+    return (
+      mod.chain +
+      '(' +
+      mod.chainName +
+      '):' +
+      mod.chainResidue +
+      '(' +
+      mod.residueType +
+      ')'
+    );
+  });
 
   // Set the chains to be represented in the NGL viewer
   const chainsNGL = [];
@@ -203,8 +232,8 @@ const DistPerres = () => {
           <Heatmap
             inputData={{
               data: filteredData.current[display],
-              xLabels: filteredData.current.xLabels,
-              yLabels: filteredData.current.yLabels,
+              xLabels: mxLabels,
+              yLabels: myLabels,
             }}
             onClick={(x, y) => setSelected([x, y])}
             legendTitle={
@@ -224,7 +253,7 @@ const DistPerres = () => {
             xLabels: filteredData.current.xLabels,
             yLabels: filteredData.current.yLabels,
           }}
-          onClick={(x, y) => setSelected([residue2atom(x), residue2atom(y)])}
+          onClick={(x, y) => setSelected([x, y])}
           legendTitle={'Distance average (Å)'}
           // Invert colors here, since minimum values belong to closer residues
           maxValueColor={{ r: 0, g: 0, b: 255 }}

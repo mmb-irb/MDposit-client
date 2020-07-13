@@ -14,6 +14,8 @@ import { AccessionCtx, ProjectCtx, PdbCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
+import { OLDsource2modelResidue } from '../../../utils/topology-manager';
+
 import style from './style.module.css';
 
 const Hbonds = () => {
@@ -40,24 +42,56 @@ const Hbonds = () => {
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
 
+  if (!pdbData.file) return 'Waiting for context...';
+
+  // Get the orderer index of 'payload.hbonds' values greater than 1%
+  const orderedIndexes = Array.from(Array(payload.hbonds.length).keys());
+  orderedIndexes.sort((a, b) => {
+    return payload.hbonds[b] - payload.hbonds[a];
+  });
+  const indexes = orderedIndexes.filter(i => payload.hbonds[i] > 1);
+
+  // Use the indexes array to get a new filtered and ordered data set
+  const data = {
+    hbonds: [],
+    atom1: [],
+    resnum1: [],
+    atom2: [],
+    resnum2: [],
+  };
   const ylabels = [];
 
-  for (const hb in payload.hbonds)
+  for (const hb of indexes) {
+    data.hbonds.push(payload.hbonds[hb]);
+    data.atom1.push(payload.atom1[hb]);
+    data.resnum1.push(payload.resnum1[hb]);
+    data.atom2.push(payload.atom2[hb]);
+    data.resnum2.push(payload.resnum2[hb]);
+    const res1 = OLDsource2modelResidue(payload.resnum1[hb], pdbData.file);
+    const res2 = OLDsource2modelResidue(payload.resnum2[hb], pdbData.file);
     ylabels.push(
-      payload.restype1[hb] +
-        ':' +
-        payload.resnum1[hb] +
+      res1.chain +
         '(' +
+        res1.chainName +
+        '):' +
+        res1.chainResidue +
+        '(' +
+        payload.restype1[hb] +
+        ') [' +
         payload.atom1[hb] +
-        ')' +
-        ' - ' +
-        payload.restype2[hb] +
-        ':' +
-        payload.resnum2[hb] +
+        '] - ' +
+        res2.chain +
         '(' +
+        res2.chainName +
+        '):' +
+        res2.chainResidue +
+        '(' +
+        payload.restype2[hb] +
+        ') [' +
         payload.atom2[hb] +
-        ')',
+        ']',
     );
+  }
 
   // Set the chains to be represented in the NGL viewer
   const chainsNGL = [];
@@ -68,8 +102,9 @@ const Hbonds = () => {
     });
   }
 
-  // Get first atom number from resiude number
-  const residue2atom = (residue, atomType) => {
+  // Get atom number from resiude number and atom type
+  const getAtom = (residue, atomType) => {
+    //console.log(pdbData);
     const topology = pdbData.file;
     const nResidue = topology.residueStore.resno.indexOf(residue);
     const firstResidueAtom = topology.residueStore.atomOffset[nResidue];
@@ -83,14 +118,15 @@ const Hbonds = () => {
     );
     const residueAtomNumber = residueAtomTypes.indexOf(atomType);
     const atomNumber = firstResidueAtom + residueAtomNumber;
+    //console.log(residue + ' -> ' + atomNumber);
     return atomNumber;
   };
 
   /*
   let atomHoverion = [];
   for (const h in hovered) {
-    atomHoverion.push(residue2atom(payload.resnum1[h]));
-    atomHoverion.push(residue2atom(payload.resnum2[h]));
+    atomHoverion.push(getAtom(payload.resnum1[h]));
+    atomHoverion.push(getAtom(payload.resnum2[h]));
   }
   */
   // Render
@@ -117,17 +153,17 @@ const Hbonds = () => {
         />
         <CardContent>
           <HorizontalBars
-            data={payload.hbonds}
+            data={data.hbonds}
             ylabels={ylabels}
-            height={20 * payload.hbonds.length}
+            height={20 * data.hbonds.length}
             xMax={100}
             //hovered={hovered}
             //onHover={index => setHovered(index)}
             selected={selected}
             onClick={index => {
               const atomSelection = [
-                residue2atom(payload.resnum1[index], payload.atom1[index]),
-                residue2atom(payload.resnum2[index], payload.atom2[index]),
+                getAtom(data.resnum1[index], data.atom1[index]),
+                getAtom(data.resnum2[index], data.atom2[index]),
               ];
               // DANI: Esto no tiene sentido
               //console.log(selected);

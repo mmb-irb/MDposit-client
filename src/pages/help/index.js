@@ -312,7 +312,7 @@ const documentation = [
     ),
   },
   {
-    id: 'rsmd-graph',
+    id: 'rmsd-graph',
     header: 'RMSd graph',
     body: (
       <>

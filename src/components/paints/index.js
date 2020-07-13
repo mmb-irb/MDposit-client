@@ -33,6 +33,10 @@ const availableDrawingMethods = [
     value: 'licorice',
   },
   {
+    label: 'Ball and stick',
+    value: 'ball+stick',
+  },
+  {
     label: 'Surface',
     value: 'surface',
   },
@@ -42,6 +46,14 @@ const availableColoringMethods = [
   {
     label: 'By chain id',
     value: 'chainid',
+  },
+  {
+    label: 'By residue',
+    value: 'resname',
+  },
+  {
+    label: 'By element',
+    value: 'element',
   },
   {
     label: 'B factor',

@@ -21,14 +21,14 @@ import Info from '../../../components/info';
 
 import useAPI from '../../../hooks/use-api';
 
-import { AccessionCtx } from '../../../contexts';
-import { ProjectCtx } from '../../../contexts';
+import { AccessionCtx, ProjectCtx, PdbCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 import style from './style.module.css';
 
 import residueSelectionParser from '../../../utils/residue-selection-parser';
+import { OLDsource2modelResidue } from '../../../utils/topology-manager';
 
 import Selector from '../../../components/selector';
 
@@ -41,6 +41,8 @@ const RmsdPerres = () => {
   const accession = useContext(AccessionCtx);
   // Get the current project chains
   const { metadata, chains } = useContext(ProjectCtx);
+  // Get the current topology, including the residue names
+  const pdbData = useContext(PdbCtx);
   // Set the graph analysis propierties
   const analysis = 'rmsd-perres';
   const defaultPrecision = 1;
@@ -71,6 +73,8 @@ const RmsdPerres = () => {
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
 
+  if (!pdbData.file) return 'Waiting for context...';
+
   // Parse the selection string into a numeric array
   const curatedSelection = searchResidues
     ? residueSelectionParser(searchResidues)
@@ -78,12 +82,12 @@ const RmsdPerres = () => {
 
   // Find the corrsponding key for each selected resiude
   // First get all available keys in order
-  const keyNumber = /^[A-Z]*:([0-9]*)$/;
+  const keyNumber = /^([A-Z]*):([0-9]*)$/;
   const keys = [];
   for (const key of Object.keys(payload.y)) {
     const result = keyNumber.exec(key);
     if (!result) continue;
-    keys[result[1]] = key;
+    keys[result[2]] = key;
   }
 
   // Now get only the selected keys from the payload
@@ -107,7 +111,18 @@ const RmsdPerres = () => {
   };
 
   for (const key of Object.keys(selectedPayload)) {
-    data['Name'].push(key);
+    const result = keyNumber.exec(key);
+    const model = OLDsource2modelResidue(+result[2], pdbData.file);
+    data['Name'].push(
+      model.chain +
+        '(' +
+        model.chainName +
+        '):' +
+        model.chainResidue +
+        '(' +
+        model.residueType +
+        ')',
+    );
     data['Mean (Å)'].push(selectedPayload[key].average);
     data['Standard deviation (Å)'].push(selectedPayload[key].stddev);
   }
@@ -129,7 +144,7 @@ const RmsdPerres = () => {
       if (displays[count]) {
         displayedPayload[key] = true;
         const result = keyNumber.exec(key);
-        selectedResidues.push(result[1]);
+        selectedResidues.push(result[2]);
       } else displayedPayload[key] = false;
       count += 1;
     } else displayedPayload[key] = false;

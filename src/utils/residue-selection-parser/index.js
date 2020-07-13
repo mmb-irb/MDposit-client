@@ -7,7 +7,7 @@ const rangedSyntax = /^([0-9]*)-([0-9]*)$/;
 // e.g. "1, 3, 5-8" => [1, 3, 5, 6, 7, 8]
 const residueSelectionParser = selection => {
   // Filter data
-  const residues = selection.split(',');
+  const residues = selection.split(', ');
   const curatedSelection = [];
   for (const res of residues) {
     // If the ranged syntax is found, get all numbers in between

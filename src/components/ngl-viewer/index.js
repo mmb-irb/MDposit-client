@@ -20,6 +20,12 @@ import getFrames from './get-frames';
 
 import { AccessionCtx, ProjectCtx, PdbCtx } from '../../contexts';
 
+import {
+  source2modelResidue,
+  getAtomResidue,
+  absolute2sourceResidue,
+} from '../../utils/topology-manager';
+
 import style from './style.module.css';
 
 // To get frames
@@ -375,12 +381,10 @@ const NGLViewer = memo(
                   colorScheme: colorScheme,
                   colorDomain:
                     drawingMethods[repCounter] === 'surface'
-                      ? [-100, 100]
+                      ? [-200, 200]
                       : undefined,
                   surfaceType:
-                    drawingMethods[repCounter] === 'av'
-                      ? [-100, 100]
-                      : undefined,
+                    drawingMethods[repCounter] === 'surface' ? 'av' : undefined,
                 },
               );
 
@@ -413,7 +417,8 @@ const NGLViewer = memo(
           return;
         }
 
-        // Set a representation name. This is useful to find this representation further
+        // Set a representation name
+        // This is useful to find previous representations in further renders
         const nameHighlight = 'highlighted';
         const previousHighlightRepresentation = stageRef.current.compList[0].reprList.find(
           representation => representation.name === nameHighlight,
@@ -432,6 +437,17 @@ const NGLViewer = memo(
         if (previousContextRepresentation) {
           stageRef.current.compList[0].removeRepresentation(
             previousContextRepresentation,
+          );
+        }
+
+        // Name for distance representation
+        const nameDistance = 'distance';
+        const previousDistanceRepresentation = stageRef.current.compList[0].reprList.find(
+          representation => representation.name === nameDistance,
+        );
+        if (previousDistanceRepresentation) {
+          stageRef.current.compList[0].removeRepresentation(
+            previousDistanceRepresentation,
           );
         }
 
@@ -463,22 +479,23 @@ const NGLViewer = memo(
           atomPair: [seleDistance],
           color: 'skyblue',
           labelUnit: 'nm',
+          name: nameDistance,
         });
 
         const seleContext = Array.from(
           new Set(
             atoms.map(
-              // 'residueIndex' contains the ABSOLUTE residue number whom each atom belongs to
-              // 'resno' contains the TOPOLOGY number equivalent to each absolute residue number
-              // This last step is cruicial since absolute residue numbers do not respect topology gaps
-              // (e.g. There may be independent atoms between 2 chains thus offsetting residue numbers in the 2nd chain)
+              // 'atoms' are in abolsute numeration
               atomsNumber =>
-                pdbFile.residueStore.resno[
-                  pdbFile.atomStore.residueIndex[atomsNumber - 1]
-                ],
+                absolute2sourceResidue(
+                  getAtomResidue(atomsNumber, pdbFile),
+                  pdbFile,
+                ).residueNumber,
             ),
           ),
         ).join(' or ');
+
+        console.log(seleContext);
 
         stageRef.current.compList[0].addRepresentation('ball+stick', {
           sele: seleContext,
@@ -588,13 +605,16 @@ const NGLViewer = memo(
       ]);
 
       // play/pause
-      const mainPayload = trajectoryPayload[0];
+      const mainTraj =
+        stageRef.current &&
+        stageRef.current.compList[0] &&
+        stageRef.current.compList[0].trajList[0];
       useEffect(() => {
-        if (!(pdbFile && mainPayload)) return;
+        if (!(pdbFile && mainTraj)) return;
         const { player } = stageRef.current.compList[0].trajList[0].trajectory;
         player[playing && isInView ? 'play' : 'pause']();
         return () => player.pause();
-      }, [pdbFile, mainPayload, playing, isInView]);
+      }, [pdbFile, mainTraj, playing, isInView, noTrajectory]);
 
       // speed
       useEffect(() => {
@@ -619,11 +639,11 @@ const NGLViewer = memo(
 
       // smoothing, player interpolation
       useEffect(() => {
-        if (!(pdbFile && trajectoryPayload.length)) return;
+        if (!(pdbFile && mainTraj)) return;
         stageRef.current.compList[0].trajList[0].trajectory.player.parameters.interpolateType = smooth
           ? 'linear'
           : '';
-      }, [pdbFile, trajectoryPayload, smooth]);
+      }, [pdbFile, mainTraj, smooth]);
 
       // to avoid sometimes when it's not rendering after loading
       useEffect(() => {
@@ -710,6 +730,79 @@ const NGLViewer = memo(
         return () => window.removeEventListener('change', handler);
       }, []);
 
+      // Custom the NGL tooltip
+      useEffect(() => {
+        // Set a new tooltip
+        const tooltip = document.createElement('div');
+        Object.assign(tooltip.style, {
+          display: 'none',
+          position: 'fixed',
+          zIndex: 10,
+          pointerEvents: 'none',
+          backgroundColor: 'rgba( 0, 0, 0, 0.6 )',
+          color: 'lightgrey',
+          padding: '8px',
+          fontFamily: 'sans-serif',
+        });
+        document.body.appendChild(tooltip);
+
+        // Remove the original tooltip
+        stageRef.current.mouseControls.remove('hoverPick');
+
+        // Show our tooltip with the corresponding values when the mouse hovers an atom/bond
+        stageRef.current.signals.hovered.add(function(pickingProxy) {
+          // When we hover a bond
+          if (pickingProxy) {
+            // handle tooltip text
+            let description;
+            const bond = pickingProxy.bond;
+            const atom = pickingProxy.atom;
+            if (bond) {
+              const atom1 = bond.atom1;
+              const atom2 = bond.atom2;
+              const bondLabel = `Bond ${atom1.index} - ${atom2.index}\n-----\n`;
+              description =
+                bondLabel +
+                [atom1, atom2]
+                  .map(a => {
+                    const model = source2modelResidue(
+                      a.chainname,
+                      a.residueIndex,
+                      pdbFile,
+                      metadata,
+                    );
+                    return `Atom ${a.index} (${a.atomname})
+                Residue ${model.chainResidue} (${a.resname})
+                Chain ${a.chainid} ${model ? '(' + model.chainName + ')' : ''}`;
+                  })
+                  .join('\n-----\n');
+            } else if (atom) {
+              const model = source2modelResidue(
+                atom.chainname,
+                atom.residueIndex,
+                pdbFile,
+                metadata,
+              );
+              description = `Atom ${atom.index} (${atom.atomname})
+              Residue ${model.chainResidue} (${atom.resname})
+              Chain ${atom.chainid} ${
+                model ? '(' + model.chainName + ')' : ''
+              }`;
+            }
+            tooltip.innerText = description;
+            // Handle tooltip position
+            const mp = pickingProxy.mouse.position;
+            tooltip.style.bottom = window.innerHeight - mp.y + 3 + 'px';
+            tooltip.style.left = mp.x + 3 + 'px';
+            tooltip.style.display = 'block';
+          } else {
+            tooltip.style.display = 'none';
+          }
+        });
+        // Cleaning function
+        return () => tooltip.remove();
+      }, [pdbFile, metadata, metadata.CHAINNAMES]);
+
       // Expose public methods and getters/setters
       useImperativeHandle(
         ref,
@@ -766,32 +859,36 @@ const NGLViewer = memo(
 
       // Finally, render the ngl window
       return (
-        <div
-          ref={handleRef}
-          className={cn(className, style.container, {
-            [style['loading-pdb']]: loadingPDB,
-            [style['loading-trajectory']]:
-              !noTrajectory && trajectoryLoadingStatus,
-            [style['light-theme']]: !darkBackground,
-          })}
-          // Display loading status data in the upper left corner of the NGL window
-          data-loading={
-            loadingPDB
-              ? `Loading structure`
-              : !pdbFile
-              ? `No structure available`
-              : trajectoryLoadingStatus
-              ? `Loading ${
-                  loadingPDB
-                    ? 'structure'
-                    : `trajectory (${Math.round(trajectoryProgress * 100)}%)`
-                }…`
-              : !trajectoryPayload.length && !noTrajectory
-              ? `No trajectory available`
-              : // Show nothing when everything was finished and fine
-                undefined
-          }
-        />
+        <>
+          <div
+            ref={handleRef}
+            className={cn(className, style.container, {
+              [style['loading-pdb']]: loadingPDB,
+              [style['loading-trajectory']]:
+                !noTrajectory && trajectoryLoadingStatus,
+              [style['light-theme']]: !darkBackground,
+            })}
+            // Display loading status data in the upper left corner of the NGL window
+            data-loading={
+              loadingPDB
+                ? `Loading structure`
+                : !pdbFile
+                ? `No structure available`
+                : trajectoryLoadingStatus
+                ? `Loading ${
+                    loadingPDB
+                      ? 'structure'
+                      : `trajectory (${Math.round(trajectoryProgress * 100)}%)`
+                  }…`
+                : !trajectoryPayload.length && !noTrajectory
+                ? `No trajectory available`
+                : // Show nothing when everything was finished and fine
+                stageRef.current && stageRef.current.tasks.count > 0
+                ? `Rendering...`
+                : undefined
+            }
+          />
+        </>
       );
     },
   ),

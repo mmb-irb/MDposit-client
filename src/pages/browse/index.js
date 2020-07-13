@@ -112,7 +112,8 @@ const Row = ({ project, highlight, index, setProject }) => {
   }, [index]);
 
   // Push the electrostatic surface analysis if we have metadata interface
-  analyses.push(metadata.INTERFACE ? 'electrostatic' : undefined);
+  if (metadata.INTERFACE && !analyses.includes('electrostatic'))
+    analyses.push('electrostatic');
 
   // Returns a table with multiple rows
   // The 3 first rows: accession, PDB accession and name are searchable. Search text is highlighted when found
@@ -322,7 +323,7 @@ const Browse = ({ location, history, setProject }) => {
                 project={project} // Load identifier, accession, published, pdbInfo and analyses
                 highlight={search.search} // Load the highlight
                 index={index} // Load the index
-                key={project.identifier} // PARA QUE SE USA ESTO?
+                key={project.identifier} // Add a key for react to do not complain
                 setProject={setProject}
               />
             ))}

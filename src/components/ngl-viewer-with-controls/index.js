@@ -159,7 +159,7 @@ const NGLViewerWithControls = forwardRef(
     const [nailed, toggleNailed] = useToggleState(false);
     const [playing, togglePlaying] = useToggleState(startsPlaying);
     const [spinning, toggleSpinning] = useToggleState(false);
-    const [smooth, toggleSmooth] = useToggleState(false);
+    const [smooth, toggleSmooth] = useToggleState(true);
     const [darkBackground, toggleDarkBackground] = useToggleState(
       useMemo(() => get('dark-background', true), []),
     );
@@ -249,7 +249,6 @@ const NGLViewerWithControls = forwardRef(
             onProgress={setProgress}
             ref={viewerRef}
             noTrajectory={noTrajectory}
-            //requestedFrame={requestedFrame}
             framesSelect={framesSelect}
             nFrames={nFrames}
             darkBackground={darkBackground}

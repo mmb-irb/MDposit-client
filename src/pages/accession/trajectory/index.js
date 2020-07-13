@@ -23,6 +23,8 @@ import Info from '../../../components/info';
 
 import reducedMotion from '../../../utils/reduced-motion';
 
+import { getChainName } from '../../../utils/topology-manager';
+
 import style from './style.module.css';
 
 const na = 'Not available';
@@ -295,7 +297,7 @@ const dbMap = new Map([
 const Analyses = memo(() => {
   // Load chains, accession and identifier from the project context
   // 'chains' is undefined if no chains were loaded in this project
-  const { chains, accession, identifier } = useContext(ProjectCtx);
+  const { chains, accession, identifier, metadata } = useContext(ProjectCtx);
   // Portals create a window where a web page is pre rendered without navigating to
   // You can navigate to this web page by clicking on the portal
   // NOTE: see https://web.dev/hands-on-portals for tutorial on Portals
@@ -445,18 +447,22 @@ const Analyses = memo(() => {
         </Typography>
         <ul className={style['chain-analysis-list']}>
           {/* Here, main data is displayed */}
-          {chains.map(chain => (
-            <li key={chain}>
-              <Typography variant="h6">
-                <FontAwesomeIcon icon={faAngleRight} /> Chain {chain}
-              </Typography>
-              {/* ChainAnalyses is the main visual asset */}
-              <ChainAnalyses
-                chain={chain}
-                accession={accession || identifier}
-              />
-            </li>
-          ))}
+          {chains.map(chain => {
+            const name = getChainName(chain, metadata);
+            return (
+              <li key={chain}>
+                <Typography variant="h6">
+                  <FontAwesomeIcon icon={faAngleRight} />
+                  {` Chain ${chain} ${name ? '(' + name + ')' : ''}`}
+                </Typography>
+                {/* ChainAnalyses is the main visual asset */}
+                <ChainAnalyses
+                  chain={chain}
+                  accession={accession || identifier}
+                />
+              </li>
+            );
+          })}
         </ul>
         <Typography variant="body2">
           Data generated using{' '}
@@ -505,12 +511,12 @@ const Trajectory = () => {
 
   // Set the chains to be represented in the NGL viewer
   const chainsNGL = [];
-  for (const chain of chains) {
+  chains.forEach((chain, index) => {
     chainsNGL.push({
-      name: 'Chain ' + chain,
+      name: metadata.CHAINNAMES ? metadata.CHAINNAMES[index] : 'Chain ' + chain,
       selection: ':' + chain,
     });
-  }
+  });
   if (metadata.MEMBRANE !== 'No')
     chainsNGL.push({
       selection: '(not polymer or hetero) and not (water or ion)',

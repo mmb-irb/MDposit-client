@@ -26,7 +26,7 @@ const Trajectory = () => {
   // Get the accession
   //const accession = useContext(AccessionCtx);
   // Get the current project chains
-  const { chains } = useContext(ProjectCtx);
+  const { metadata, chains } = useContext(ProjectCtx);
 
   // Get the API URL of the average structure
   //const structureURL = `${BASE_PATH_PROJECTS}${accession}/files/md.average.pdb`;
@@ -35,6 +35,21 @@ const Trajectory = () => {
   const chainsNGL = [];
   for (const c in chains) {
     // The last chain is represented as licorice
+
+    chainsNGL.push({
+      name: 'Chain ' + chains[c],
+      selection: ':' + chains[c],
+      defaultDrawingMethod: 'licorice',
+    });
+
+    chainsNGL.push({
+      name: 'Chain ' + chains[c] + ' surface',
+      selection: ':' + chains[c] + ' and (' + metadata.INTERFACE + ')',
+      defaultDrawingMethod: 'surface',
+      defaultColoringMethod: 'electrostatic',
+    });
+
+    /*
     if (+c === +(chains.length - 1)) {
       chainsNGL.push({
         name: 'Chain ' + chains[c],
@@ -49,6 +64,7 @@ const Trajectory = () => {
         defaultColoringMethod: 'electrostatic',
       });
     }
+    */
   }
 
   return (
@@ -85,7 +101,7 @@ const Trajectory = () => {
             className={style.container}
             //structureURL={structureURL}
             representations={chainsNGL}
-            requestedFrame={0}
+            requestedFrame={1}
           />
         ) : (
           <div style={{ height: '50vh' }} />
