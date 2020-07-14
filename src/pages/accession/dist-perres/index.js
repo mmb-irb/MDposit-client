@@ -12,8 +12,10 @@ import { AccessionCtx, ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
-import residueSelectionParser from '../../../utils/residue-selection-parser';
-import { OLDsource2modelResidue } from '../../../utils/topology-manager';
+import {
+  complexNumerationParser,
+  source2modelResidue,
+} from '../../../utils/topology-manager';
 
 import Info from '../../../components/info';
 import Selector from '../../../components/selector';
@@ -61,7 +63,7 @@ const DistPerres = () => {
     // Otherwise, filter the payload to get only specified residues
 
     // Parse the selection string into a numeric array
-    const curatedSelection = residueSelectionParser(searchResidues);
+    const curatedSelection = searchResidues.split(', ');
 
     // Set new data
     const xLabels = [];
@@ -113,9 +115,12 @@ const DistPerres = () => {
   //if (filteredData.current.xLabels.length === 0 || filteredData.current.yLabels.length === 0)
   //return 'Analysis error: At least one of the dimensions is empty'
 
+  console.log(filteredData.current);
+
   // Convert the yLabels from topology numeration to model numeration
   const mxLabels = filteredData.current.xLabels.map(lab => {
-    const mod = OLDsource2modelResidue(lab);
+    const numeration = complexNumerationParser(lab);
+    const mod = source2modelResidue(numeration.chain, numeration.residueNumber);
     return (
       mod.chain +
       '(' +
@@ -128,7 +133,8 @@ const DistPerres = () => {
     );
   });
   const myLabels = filteredData.current.yLabels.map(lab => {
-    const mod = OLDsource2modelResidue(lab);
+    const numeration = complexNumerationParser(lab);
+    const mod = source2modelResidue(numeration.chain, numeration.residueNumber);
     return (
       mod.chain +
       '(' +

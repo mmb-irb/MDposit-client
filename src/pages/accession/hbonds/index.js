@@ -14,7 +14,10 @@ import { AccessionCtx, ProjectCtx, PdbCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
-import { OLDsource2modelResidue } from '../../../utils/topology-manager';
+import {
+  source2modelResidue,
+  complexNumerationParser,
+} from '../../../utils/topology-manager';
 
 import style from './style.module.css';
 
@@ -67,8 +70,18 @@ const Hbonds = () => {
     data.resnum1.push(payload.resnum1[hb]);
     data.atom2.push(payload.atom2[hb]);
     data.resnum2.push(payload.resnum2[hb]);
-    const res1 = OLDsource2modelResidue(payload.resnum1[hb], pdbData.file);
-    const res2 = OLDsource2modelResidue(payload.resnum2[hb], pdbData.file);
+    const resnum1 = complexNumerationParser(payload.resnum1[hb]);
+    const resnum2 = complexNumerationParser(payload.resnum2[hb]);
+    const res1 = source2modelResidue(
+      resnum1.chain,
+      resnum1.residueNumber,
+      pdbData.file,
+    );
+    const res2 = source2modelResidue(
+      resnum2.chain,
+      resnum2.residueNumber,
+      pdbData.file,
+    );
     ylabels.push(
       res1.chain +
         '(' +
@@ -76,7 +89,7 @@ const Hbonds = () => {
         '):' +
         res1.chainResidue +
         '(' +
-        payload.restype1[hb] +
+        res1.residueType +
         ') [' +
         payload.atom1[hb] +
         '] - ' +
@@ -86,7 +99,7 @@ const Hbonds = () => {
         '):' +
         res2.chainResidue +
         '(' +
-        payload.restype2[hb] +
+        res2.residueType +
         ') [' +
         payload.atom2[hb] +
         ']',
@@ -103,8 +116,9 @@ const Hbonds = () => {
   }
 
   // Get atom number from resiude number and atom type
-  const getAtom = (residue, atomType) => {
+  const getAtom = (numeration, atomType) => {
     //console.log(pdbData);
+    const residue = complexNumerationParser(numeration).residueNumber;
     const topology = pdbData.file;
     const nResidue = topology.residueStore.resno.indexOf(residue);
     const firstResidueAtom = topology.residueStore.atomOffset[nResidue];
@@ -118,7 +132,7 @@ const Hbonds = () => {
     );
     const residueAtomNumber = residueAtomTypes.indexOf(atomType);
     const atomNumber = firstResidueAtom + residueAtomNumber;
-    //console.log(residue + ' -> ' + atomNumber);
+    //console.log(residue + '(' + atomType + ') -> ' + atomNumber);
     return atomNumber;
   };
 

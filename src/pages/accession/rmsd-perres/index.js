@@ -27,8 +27,10 @@ import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 import style from './style.module.css';
 
-import residueSelectionParser from '../../../utils/residue-selection-parser';
-import { OLDsource2modelResidue } from '../../../utils/topology-manager';
+import {
+  complexNumerationParser,
+  source2modelResidue,
+} from '../../../utils/topology-manager';
 
 import Selector from '../../../components/selector';
 
@@ -75,19 +77,19 @@ const RmsdPerres = () => {
 
   if (!pdbData.file) return 'Waiting for context...';
 
+  // Remove the first property: 'RMSD_00001'
+  if (payload.y['RMSD_00001']) delete payload.y['RMSD_00001'];
+
   // Parse the selection string into a numeric array
-  const curatedSelection = searchResidues
-    ? residueSelectionParser(searchResidues)
-    : null;
+  const curatedSelection = searchResidues ? searchResidues.split(', ') : null;
 
   // Find the corrsponding key for each selected resiude
   // First get all available keys in order
-  const keyNumber = /^([A-Z]*):([0-9]*)$/;
   const keys = [];
   for (const key of Object.keys(payload.y)) {
-    const result = keyNumber.exec(key);
-    if (!result) continue;
-    keys[result[2]] = key;
+    const numeration = complexNumerationParser(key);
+    if (!numeration) continue;
+    keys[numeration.residueNumber] = key;
   }
 
   // Now get only the selected keys from the payload
@@ -98,9 +100,8 @@ const RmsdPerres = () => {
       selectedPayload[key] = payload.y[key];
     }
   else {
-    // If there is no selection, get the whole payload and remove the first property: 'RMSD_00001'
+    // If there is no selection, get the whole payload
     selectedPayload = payload.y;
-    delete payload.y['RMSD_00001'];
   }
 
   // Now give the selected payload a standarized format for the data table
@@ -111,8 +112,12 @@ const RmsdPerres = () => {
   };
 
   for (const key of Object.keys(selectedPayload)) {
-    const result = keyNumber.exec(key);
-    const model = OLDsource2modelResidue(+result[2], pdbData.file);
+    const numeration = complexNumerationParser(key);
+    const model = source2modelResidue(
+      numeration.chain,
+      numeration.residueNumber,
+      pdbData.file,
+    );
     data['Name'].push(
       model.chain +
         '(' +
@@ -143,8 +148,8 @@ const RmsdPerres = () => {
       // If it is marked to be displayed
       if (displays[count]) {
         displayedPayload[key] = true;
-        const result = keyNumber.exec(key);
-        selectedResidues.push(result[2]);
+        const numeration = complexNumerationParser(key);
+        selectedResidues.push(numeration.residueNumber);
       } else displayedPayload[key] = false;
       count += 1;
     } else displayedPayload[key] = false;

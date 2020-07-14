@@ -1,4 +1,5 @@
 import { ProjectCtx, PdbCtx } from '../../contexts';
+import { range } from 'lodash-es';
 
 // Functions to handle atom/residue/chain numeration conversions
 // All these functions are able to read the context topology
@@ -17,13 +18,61 @@ import { ProjectCtx, PdbCtx } from '../../contexts';
 const check = (chain, residue) => {
   if (typeof chain !== 'string' || chain.length !== 1)
     throw new Error(
-      'The "chain" argument must be a single letter (e.g. "A", "B", ...)',
+      'The "chain" argument must be a single letter (e.g. "A", "B", ...), not ' +
+        chain,
     );
 
   if (typeof residue !== 'number' || residue < 0)
     throw new Error(
-      'The "residue" argument must be a real number (e.g. 0, 1, 17, ...)',
+      'The "residue" argument must be a real number (e.g. 0, 1, 17, ...), not ' +
+        residue,
     );
+};
+
+// Transform a ranged selection of residues in complex numeration format to an array
+// e.g. "A:1, 3, 5-8 & B:2, 4" => ["A:1", "A:3", "A:5", "A:6", "A:7", "A:8", "B:2", "B:4"]
+// DANI: Hay que pensarlo mejor. En principio esto solo hace falta para el custom selection
+const numerationSelection = /^([A-Z]):([-0-9, ]*)$/;
+export const cnrsParser = selection => {
+  const residues = [];
+  const numerationSelections = selection.split(' & ');
+  numerationSelections.forEach(nSelection => {
+    const results = numerationSelection.exec(nSelection);
+    const chain = results[1];
+    const residuesSelection = results[2];
+    const residuesList = rangedSelectionParser(residuesSelection);
+    residuesList.forEach(residue => residues.push(chain + ':' + residue));
+  });
+};
+
+// This function transforms a range selection string into a numeric array
+// It handles abbreviated selection syntax to literal selection syntax
+// e.g. "1, 3, 5-8" => [1, 3, 5, 6, 7, 8]
+const rangedSyntax = /^([0-9]*)-([0-9]*)$/;
+export const rangedSelectionParser = selection => {
+  // Filter data
+  const units = selection.split(', ');
+  const curatedSelection = [];
+  for (const u of units) {
+    // If the ranged syntax is found, get all numbers in between
+    if (u.match(rangedSyntax)) {
+      const matches = rangedSyntax.exec(u);
+      const rangedUnits = range(+matches[1], +matches[2] + 1);
+      curatedSelection.push(...rangedUnits);
+    } else curatedSelection.push(+u);
+  }
+  return curatedSelection;
+};
+
+// Transform a 'chain:residue' string into the chain letter string and the residue number values
+const numerationFormat = /^([A-Z]):([0-9]*)$/;
+export const complexNumerationParser = numeration => {
+  const result = numerationFormat.exec(numeration);
+  if (!result)
+    return console.error('No matched numeration value: ' + numeration);
+  const chain = result[1];
+  const residueNumber = result[2];
+  return { chain, residueNumber: +residueNumber };
 };
 
 // Return the absolute residue number to whom the specified absolute atom number belongs to
