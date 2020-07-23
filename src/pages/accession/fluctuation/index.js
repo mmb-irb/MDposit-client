@@ -9,7 +9,6 @@ import Loading from '../../../components/loading';
 import useAPI from '../../../hooks/use-api';
 
 import { AccessionCtx } from '../../../contexts';
-import { ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
@@ -29,8 +28,6 @@ const Graph = lazy(() =>
 const FluctuationAnalysis = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
-  // Get the current project metadata and chains
-  const { metadata, chains } = useContext(ProjectCtx);
 
   // Send a request to the API with the url of the specific analysis
   const { loading, payload, error } = useAPI(
@@ -47,22 +44,6 @@ const FluctuationAnalysis = () => {
   if (loading) return <Loading />;
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
-
-  // Set the chains to be represented in the NGL viewer
-  const chainsNGL = [];
-  for (const chain of chains) {
-    chainsNGL.push({
-      name: 'Chain ' + chain,
-      selection: ':' + chain,
-    });
-  }
-  if (metadata.MEMBRANE !== 'No')
-    chainsNGL.push({
-      selection: '(not polymer or hetero) and not (water or ion)',
-      name: metadata.MEMBRANE,
-      defaultDrawingMethod: 'licorice',
-      defaultOpacity: 0.5,
-    });
 
   // Render
   return (
@@ -133,7 +114,6 @@ const FluctuationAnalysis = () => {
                 accession: accession,
                 hovered: hovered,
                 selected: selected,
-                representations: chainsNGL,
               }
             : null
         }

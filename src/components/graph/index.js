@@ -49,7 +49,7 @@ const Graph = ({
   // Set if the x origin is not 0, but 1. This is for the fluctuation analysis
   startsAtOne = false,
   //
-  defaultPrecision,
+  defaultPrecision = 1,
   // The y axis label text
   yLabel,
   //
@@ -103,7 +103,7 @@ const Graph = ({
   if (show && show !== lab) setLab(show);
 
   //console.log(lab);
-  const [pr, setPrecision] = useState(defaultPrecision || 1);
+  const [pr, setPrecision] = useState(defaultPrecision);
 
   const prevLabels = useRef(lab);
   const prevPrecision = useRef(pr);

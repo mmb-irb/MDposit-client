@@ -8,16 +8,22 @@ import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls'
 import style from './style.module.css';
 
 //import { AccessionCtx } from '../../../contexts';
-import { ProjectCtx } from '../../../contexts';
+import { ProjectCtx, PdbCtx } from '../../../contexts';
 
 import Info from '../../../components/info';
+import Loading from '../../../components/loading';
+
+import {
+  complexNumerationParser,
+  getMetadataChainname,
+} from '../../../utils/topology-manager';
 
 //import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 // Define permanent options for the "useInView"
 const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
 
-const Trajectory = () => {
+const Electrostatic = () => {
   // useInView acts as a React hook
   // Track if the NGL viewer (nglRef) and the analyses (nightingaleRef) are on screen
   // The status (e.g. isNglVisible) is returned true/false when the element is in/out the screen respectively
@@ -27,45 +33,65 @@ const Trajectory = () => {
   //const accession = useContext(AccessionCtx);
   // Get the current project chains
   const { metadata, chains } = useContext(ProjectCtx);
+  // Get the current topology
+  const pdbData = useContext(PdbCtx);
 
-  // Get the API URL of the average structure
-  //const structureURL = `${BASE_PATH_PROJECTS}${accession}/files/md.average.pdb`;
+  if (!metadata || !pdbData.file) return <Loading />;
+
+  // Get the interface selection string
+  const interfaceSelection = metadata.INTERFACES[0];
+
+  // Set the NGL selection for each chain interface
+  const nglInterfaceSelections = [];
+  interfaceSelection.split(', ').forEach(res => {
+    const { chain, nglSelection } = complexNumerationParser(res);
+    for (const sel of nglInterfaceSelections)
+      if (sel.chain === chain) {
+        sel.selection += ' or ' + nglSelection;
+        return;
+      }
+    nglInterfaceSelections.push({ chain: chain, selection: nglSelection });
+  });
 
   // Set the chains to be represented in the NGL viewer
   const chainsNGL = [];
-  for (const c in chains) {
-    // The last chain is represented as licorice
-
+  for (const c of chains) {
+    // Represent all protein chains in licroice
     chainsNGL.push({
-      name: 'Chain ' + chains[c],
-      selection: ':' + chains[c],
+      name:
+        'Chain ' +
+        c +
+        ' (' +
+        getMetadataChainname(c, metadata, pdbData.file) +
+        ')',
+      selection: ':' + c,
       defaultDrawingMethod: 'licorice',
     });
-
+  }
+  // Show also all ligands with both licorice representations
+  if (metadata.LIGANDS) {
+    for (const ligand of metadata.LIGANDS) {
+      chainsNGL.push({
+        name: ligand.name,
+        selection: ligand.selection,
+        defaultDrawingMethod: 'licorice',
+      });
+    }
+  }
+  // Those chains with residues in the interface show their mentioned residues
+  // This representation is in electrostatic surface
+  for (const selection of nglInterfaceSelections)
     chainsNGL.push({
-      name: 'Chain ' + chains[c] + ' surface',
-      selection: ':' + chains[c] + ' and (' + metadata.INTERFACE + ')',
+      name:
+        'Chain ' +
+        selection.chain +
+        ' (' +
+        getMetadataChainname(selection.chain, metadata, pdbData.file) +
+        ') surface',
+      selection: selection.selection,
       defaultDrawingMethod: 'surface',
       defaultColoringMethod: 'electrostatic',
     });
-
-    /*
-    if (+c === +(chains.length - 1)) {
-      chainsNGL.push({
-        name: 'Chain ' + chains[c],
-        selection: ':' + chains[c],
-        defaultDrawingMethod: 'licorice',
-      });
-    } else {
-      chainsNGL.push({
-        name: 'Chain ' + chains[c],
-        selection: ':' + chains[c],
-        defaultDrawingMethod: 'surface',
-        defaultColoringMethod: 'electrostatic',
-      });
-    }
-    */
-  }
 
   return (
     <>
@@ -111,4 +137,4 @@ const Trajectory = () => {
   );
 };
 
-export default Trajectory;
+export default Electrostatic;

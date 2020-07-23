@@ -112,7 +112,7 @@ const Row = ({ project, highlight, index, setProject }) => {
   }, [index]);
 
   // Push the electrostatic surface analysis if we have metadata interface
-  if (metadata.INTERFACE && !analyses.includes('electrostatic'))
+  if (metadata.INTERFACES && !analyses.includes('electrostatic'))
     analyses.push('electrostatic');
 
   // Returns a table with multiple rows

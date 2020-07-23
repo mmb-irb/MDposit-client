@@ -21,9 +21,10 @@ import getFrames from './get-frames';
 import { AccessionCtx, ProjectCtx, PdbCtx } from '../../contexts';
 
 import {
-  source2modelResidue,
+  absolute2modelResidue,
   getAtomResidue,
   absolute2sourceResidue,
+  complexNumerationParser,
 } from '../../utils/topology-manager';
 
 import style from './style.module.css';
@@ -490,12 +491,10 @@ const NGLViewer = memo(
                 absolute2sourceResidue(
                   getAtomResidue(atomsNumber, pdbFile),
                   pdbFile,
-                ).residueNumber,
+                ).nglSelection,
             ),
           ),
         ).join(' or ');
-
-        console.log(seleContext);
 
         stageRef.current.compList[0].addRepresentation('ball+stick', {
           sele: seleContext,
@@ -525,7 +524,9 @@ const NGLViewer = memo(
           );
 
         // Get the residues input
-        const residues = Array.from(selectedResidues);
+        const residues = selectedResidues.map(
+          residue => complexNumerationParser(residue).nglSelection,
+        );
         if (!residues.length) return;
         // Transform the residues list into an NGL selection
         const nglSelection = Array.from(new Set(residues)).join(' or ');
@@ -732,6 +733,7 @@ const NGLViewer = memo(
 
       // Custom the NGL tooltip
       useEffect(() => {
+        if (!pdbFile) return;
         // Set a new tooltip
         const tooltip = document.createElement('div');
         Object.assign(tooltip.style, {
@@ -765,29 +767,28 @@ const NGLViewer = memo(
                 bondLabel +
                 [atom1, atom2]
                   .map(a => {
-                    const model = source2modelResidue(
-                      a.chainname,
+                    const model = absolute2modelResidue(
                       a.residueIndex,
                       pdbFile,
                       metadata,
                     );
                     return `Atom ${a.index} (${a.atomname})
-                Residue ${model.chainResidue} (${a.resname})
-                Chain ${a.chainid} ${model ? '(' + model.chainName + ')' : ''}`;
+                      Chain ${model.chain} ${
+                      model ? '(' + model.chainName + ')' : ''
+                    }
+                      Residue ${model.chainResidue} (${a.resname})`;
                   })
                   .join('\n-----\n');
             } else if (atom) {
-              const model = source2modelResidue(
-                atom.chainname,
+              // DANI: Aparentmenete la numeración de este residuo no es 'source'
+              const model = absolute2modelResidue(
                 atom.residueIndex,
                 pdbFile,
                 metadata,
               );
               description = `Atom ${atom.index} (${atom.atomname})
-              Residue ${model.chainResidue} (${atom.resname})
-              Chain ${atom.chainid} ${
-                model ? '(' + model.chainName + ')' : ''
-              }`;
+              Chain ${model.chain} ${model ? '(' + model.chainName + ')' : ''}
+              Residue ${model.chainResidue} (${atom.resname})`;
             }
             tooltip.innerText = description;
             // Handle tooltip position

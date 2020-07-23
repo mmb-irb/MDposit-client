@@ -33,7 +33,9 @@ const payloadToNGLFile = (
     let backboneAtoms = 0;
     let heavyAtoms = 0;
     for (let a = 0; a < pdbFile.atomCount; a++) {
-      if (!pdbFile.getAtomProxy(a).isProtein()) break;
+      // DANI: He probado a quitar esta condición. hay que probar que funcione bien en la vieja model
+      // DANI: En las trayectorias del Shaw el 'isProtein' no funcionaba y devolvía siempre 'false'
+      //if (!pdbFile.getAtomProxy(a).isProtein()) break;
       if (k >= atoms) break;
       if (
         pdbFile.getAtomProxy(a).atomname === 'C' ||

@@ -8,13 +8,14 @@ import Card from '../../../components/animated-card';
 import Loading from '../../../components/loading';
 import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 
-import { AccessionCtx, ProjectCtx } from '../../../contexts';
+import { AccessionCtx, ProjectCtx, PdbCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 import {
   complexNumerationParser,
   source2modelResidue,
+  model2sourceResidue,
 } from '../../../utils/topology-manager';
 
 import Info from '../../../components/info';
@@ -29,14 +30,16 @@ const DistPerres = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
   // Get the current project chains and metadata
-  const { metadata, chains } = useContext(ProjectCtx);
+  const { metadata } = useContext(ProjectCtx);
+  // Get the current topology, including the residue names
+  const pdbData = useContext(PdbCtx);
 
   // The stored previous data after filtering
   const filteredData = useRef(null);
 
   // The residues selection string managed by the selector
   const [searchResidues, setSearchResidues] = useState(
-    metadata.INTERFACE || '',
+    metadata.INTERFACES[0] || '',
   );
 
   // The selected atoms
@@ -111,59 +114,39 @@ const DistPerres = () => {
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
 
+  if (!pdbData.file) return <Loading />;
+
   // If any of the labels is empty we can't render the heatmap
   //if (filteredData.current.xLabels.length === 0 || filteredData.current.yLabels.length === 0)
   //return 'Analysis error: At least one of the dimensions is empty'
 
-  console.log(filteredData.current);
-
   // Convert the yLabels from topology numeration to model numeration
   const mxLabels = filteredData.current.xLabels.map(lab => {
     const numeration = complexNumerationParser(lab);
-    const mod = source2modelResidue(numeration.chain, numeration.residueNumber);
-    return (
-      mod.chain +
-      '(' +
-      mod.chainName +
-      '):' +
-      mod.chainResidue +
-      '(' +
-      mod.residueType +
-      ')'
-    );
+    const mod = source2modelResidue(numeration, pdbData.file);
+    return mod.numeration;
   });
   const myLabels = filteredData.current.yLabels.map(lab => {
     const numeration = complexNumerationParser(lab);
-    const mod = source2modelResidue(numeration.chain, numeration.residueNumber);
-    return (
-      mod.chain +
-      '(' +
-      mod.chainName +
-      '):' +
-      mod.chainResidue +
-      '(' +
-      mod.residueType +
-      ')'
-    );
+    const mod = source2modelResidue(numeration, pdbData.file);
+    return mod.numeration;
   });
-
-  // Set the chains to be represented in the NGL viewer
-  const chainsNGL = [];
-  for (const chain of chains) {
-    chainsNGL.push({
-      name: 'Chain ' + chain,
-      selection: ':' + chain,
-    });
-  }
 
   // Set which options will be available in the resiude selector
   const selectorOptions = [{ label: 'All', value: '' }];
-  if (metadata.INTERFACE)
-    selectorOptions.push({ label: 'Interface', value: metadata.INTERFACE });
+  if (metadata.INTERFACES && metadata.INTERFACES[0])
+    selectorOptions.push({ label: 'Interface', value: metadata.INTERFACES[0] });
 
   // handles when the tabs are switched
   const handleTabs = (event, newValue) => {
     setDisplay(newValue);
+  };
+
+  // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
+  const modelLabel2source = label => {
+    const num = complexNumerationParser(label);
+    const source = model2sourceResidue(num, pdbData.file);
+    return source.numeration;
   };
 
   // Render
@@ -241,7 +224,9 @@ const DistPerres = () => {
               xLabels: mxLabels,
               yLabels: myLabels,
             }}
-            onClick={(x, y) => setSelected([x, y])}
+            onClick={(x, y) =>
+              setSelected([modelLabel2source(x), modelLabel2source(y)])
+            }
             legendTitle={
               display === 'mean'
                 ? 'Distance average (Å)'
@@ -284,7 +269,6 @@ const DistPerres = () => {
             ? {
                 accession: accession,
                 selectedResidues: selected,
-                representations: chainsNGL,
               }
             : null
         }

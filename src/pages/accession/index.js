@@ -174,7 +174,7 @@ const SummarySwitch = ({ setProject }) => {
                 <Suspense fallback={<Loading />}>
                   <GenericAnalysisPage
                     analysis="dist"
-                    defaultPrecision={2 ** 6}
+                    //defaultPrecision={2 ** 6}
                     xLabel="Time (ns)"
                     xScaleFactor={0.001}
                     yLabel="DIST (nm)"
@@ -189,7 +189,7 @@ const SummarySwitch = ({ setProject }) => {
                 <Suspense fallback={<Loading />}>
                   <GenericAnalysisPage
                     analysis="rmsd"
-                    defaultPrecision={2 ** 6}
+                    //defaultPrecision={2 ** 6}
                     xLabel="Time (ns)"
                     xScaleFactor={0.001}
                     yLabel="RMSd (nm)"

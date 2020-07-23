@@ -41,8 +41,8 @@ const Graph = lazy(() =>
 const RmsdPerres = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
-  // Get the current project chains
-  const { metadata, chains } = useContext(ProjectCtx);
+  // Get the current project metadata
+  const { metadata } = useContext(ProjectCtx);
   // Get the current topology, including the residue names
   const pdbData = useContext(PdbCtx);
   // Set the graph analysis propierties
@@ -58,7 +58,7 @@ const RmsdPerres = () => {
   );
 
   // Set when one point in the graph is selected
-  const [selected, setSelected] = useState(null);
+  const [selectedFrame, setSelectedFrame] = useState(null);
 
   // Set when which resiudes are we meant to find
   const [searchResidues, setSearchResidues] = useState('');
@@ -75,7 +75,7 @@ const RmsdPerres = () => {
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
 
-  if (!pdbData.file) return 'Waiting for context...';
+  if (!pdbData.file || !metadata) return <Loading />;
 
   // Remove the first property: 'RMSD_00001'
   if (payload.y['RMSD_00001']) delete payload.y['RMSD_00001'];
@@ -83,21 +83,11 @@ const RmsdPerres = () => {
   // Parse the selection string into a numeric array
   const curatedSelection = searchResidues ? searchResidues.split(', ') : null;
 
-  // Find the corrsponding key for each selected resiude
-  // First get all available keys in order
-  const keys = [];
-  for (const key of Object.keys(payload.y)) {
-    const numeration = complexNumerationParser(key);
-    if (!numeration) continue;
-    keys[numeration.residueNumber] = key;
-  }
-
   // Now get only the selected keys from the payload
   let selectedPayload = {};
   if (curatedSelection)
     for (const res of curatedSelection) {
-      const key = keys[res];
-      selectedPayload[key] = payload.y[key];
+      selectedPayload[res] = payload.y[res];
     }
   else {
     // If there is no selection, get the whole payload
@@ -113,21 +103,8 @@ const RmsdPerres = () => {
 
   for (const key of Object.keys(selectedPayload)) {
     const numeration = complexNumerationParser(key);
-    const model = source2modelResidue(
-      numeration.chain,
-      numeration.residueNumber,
-      pdbData.file,
-    );
-    data['Name'].push(
-      model.chain +
-        '(' +
-        model.chainName +
-        '):' +
-        model.chainResidue +
-        '(' +
-        model.residueType +
-        ')',
-    );
+    const model = source2modelResidue(numeration, pdbData.file, metadata);
+    data['Name'].push(model.tag);
     data['Mean (Å)'].push(selectedPayload[key].average);
     data['Standard deviation (Å)'].push(selectedPayload[key].stddev);
   }
@@ -148,8 +125,9 @@ const RmsdPerres = () => {
       // If it is marked to be displayed
       if (displays[count]) {
         displayedPayload[key] = true;
-        const numeration = complexNumerationParser(key);
-        selectedResidues.push(numeration.residueNumber);
+        //const numeration = complexNumerationParser(key);
+        //selectedResidues.push(numeration.residueNumber);
+        selectedResidues.push(key);
       } else displayedPayload[key] = false;
       count += 1;
     } else displayedPayload[key] = false;
@@ -164,17 +142,8 @@ const RmsdPerres = () => {
 
   // Set which options will be available in the resiude selector
   const selectorOptions = [{ label: 'All', value: '' }];
-  if (metadata.INTERFACE)
-    selectorOptions.push({ label: 'Interface', value: metadata.INTERFACE });
-
-  // Set the chains to be represented in the NGL viewer
-  const chainsNGL = [];
-  for (const chain of chains) {
-    chainsNGL.push({
-      name: 'Chain ' + chain,
-      selection: ':' + chain,
-    });
-  }
+  if (metadata.INTERFACES[0])
+    selectorOptions.push({ label: 'Interface', value: metadata.INTERFACES[0] });
 
   // Render
   return (
@@ -329,8 +298,8 @@ const RmsdPerres = () => {
             xLabel={xLabel}
             xScaleFactor={xScaleFactor}
             yLabel={yLabel}
-            onSelect={setSelected}
-            selected={selected}
+            onSelect={setSelectedFrame}
+            selected={selectedFrame}
             mean={false}
             standardDeviation={false}
             show={displayedPayload}
@@ -340,24 +309,23 @@ const RmsdPerres = () => {
       <NGLViewerSpawner
         // Set the new viewer or null if there is not a proper "selected" value
         newViewer={
-          typeof selected === 'number'
+          typeof selectedFrame === 'number'
             ? {
                 accession: accession,
-                requestedFrame: selected,
-                representations: chainsNGL,
+                requestedFrame: selectedFrame,
                 selectedResidues: selectedResidues,
               }
             : null
         }
         // If the nailed/closed viewer is the current viewer then reset the 'selected'
         onNail={viewer =>
-          setSelected(previous => {
+          setSelectedFrame(previous => {
             if (viewer.requestedFrame === previous) return null;
             else return previous;
           })
         }
         onClose={viewer =>
-          setSelected(previous => {
+          setSelectedFrame(previous => {
             if (viewer.requestedFrame === previous) return null;
             else return previous;
           })

@@ -185,6 +185,26 @@ export default React.memo(() => {
           </div>
         </CardContent>
       </Card>
+      {metadata && metadata.LIGANDS && (
+        <Card className={style.card}>
+          <CardContent className={style['card-content']}>
+            <Typography variant="h6">Ligands information</Typography>
+            {metadata.LIGANDS.map(ligand => (
+              <div key={ligand.name} className={style['summary-list']}>
+                <div>- {ligand.name || 'Not available'}</div>
+                <span>DrugBank: </span>
+                <a
+                  href={'https://www.drugbank.ca/drugs/' + ligand.accession}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {ligand.accession}
+                </a>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
       <Card className={style.card}>
         <CardContent className={style['card-content']}>
           <Typography variant="h6">License</Typography>

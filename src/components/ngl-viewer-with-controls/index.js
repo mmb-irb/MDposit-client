@@ -1,6 +1,7 @@
 // React logic
 import React, {
   useCallback,
+  useContext,
   useState,
   useEffect,
   useRef,
@@ -54,6 +55,10 @@ import NGLViewer from '../ngl-viewer';
 // Hooks
 import useToggleState from '../../hooks/use-toggle-state';
 
+import { ProjectCtx } from '../../contexts';
+
+import Loading from '../../components/loading';
+
 import connectionLevel, {
   LOW,
   MEDIUM,
@@ -86,17 +91,62 @@ const NGLViewerWithControls = forwardRef(
       //   defaultDrawingMethod: (by default, 'cartoon') The initial representation 'type',
       //   defaultColoringMethod: (by default, 'chainid') The initial representation 'colorScheme',
       //   defaultOpacity: (by default, 1) The initial representation opacity }
-      representations,
+      representations = [],
       // New method to call the NGL
       // Components are objects which include a 'frame' value and the 'representations' array
-      components,
+      components = [],
+      // Set the NGL to show the default representations
+      defaultRepresentations = false,
       ...props
     },
     ref,
   ) => {
-    // Alternative (and original) method to call the NGL
-    // Here we convert old inputs to the new format
-    if (!components || components.length === 0)
+    // Get context data only for the default setup of components and representations
+    const { metadata, chains } = useContext(ProjectCtx);
+    if (!metadata || !chains) return <Loading />;
+    // If there are no components or representations we set a default value
+    if (
+      (!components || components.length === 0) &&
+      (!representations || representations.length === 0)
+    )
+      defaultRepresentations = true;
+
+    // Set the chains to be represented in the NGL viewer by default
+    // WARNING: This is experimental and may have some bugs
+    if (defaultRepresentations) {
+      // Represent each protein chain
+      for (const chain of chains) {
+        representations.push({
+          name: 'Chain ' + chain,
+          selection: ':' + chain,
+        });
+      }
+      // Represent the mebrane if exist
+      if (metadata.MEMBRANE !== 'No')
+        representations.push({
+          selection: '(not polymer or hetero) and not (water or ion)',
+          name: metadata.MEMBRANE,
+          defaultDrawingMethod: 'licorice',
+          defaultOpacity: 0.5,
+        });
+      // Show also all ligands with licorice representations
+      if (metadata.LIGANDS) {
+        for (const ligand of metadata.LIGANDS) {
+          representations.push({
+            name: ligand.name,
+            selection: ligand.selection,
+            defaultDrawingMethod: 'licorice',
+          });
+        }
+      }
+    }
+
+    // 'representations' is an alternative (and the original) method to call the NGL
+    // Here we convert old inputs to the new format: 'components'
+    if (
+      (!components || components.length === 0) &&
+      (representations && representations.length > 0)
+    )
       components = [
         { representations: representations, frame: requestedFrame },
       ];

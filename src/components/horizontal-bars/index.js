@@ -80,7 +80,7 @@ const HorizontalBars = ({
 
     const y = scaleBand()
       .domain(range(data.length))
-      .range([margin.top, height - margin.bottom])
+      .range([margin.top, margin.top + height])
       .padding(0.1); // Set padding between each bar
     // Get the bar hegiht, which is used further
     const barHeight = y.step();
@@ -103,7 +103,7 @@ const HorizontalBars = ({
 
     const chart = select(containerRef.current)
       .append('svg')
-      .attr('viewBox', [0, 0, width, height]);
+      .attr('viewBox', [0, 0, width, margin.top + height]);
 
     chart
       .append('g')

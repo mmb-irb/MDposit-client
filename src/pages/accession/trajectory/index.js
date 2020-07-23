@@ -13,7 +13,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faAngleRight } from '@fortawesome/free-solid-svg-icons';
 
 // Recover the metadata saved in this context by the accession script
-import { ProjectCtx } from '../../../contexts';
+import { ProjectCtx, PdbCtx } from '../../../contexts';
 
 import Card from '../../../components/animated-card';
 import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
@@ -23,7 +23,7 @@ import Info from '../../../components/info';
 
 import reducedMotion from '../../../utils/reduced-motion';
 
-import { getChainName } from '../../../utils/topology-manager';
+import { getMetadataChainname } from '../../../utils/topology-manager';
 
 import style from './style.module.css';
 
@@ -298,6 +298,8 @@ const Analyses = memo(() => {
   // Load chains, accession and identifier from the project context
   // 'chains' is undefined if no chains were loaded in this project
   const { chains, accession, identifier, metadata } = useContext(ProjectCtx);
+  // Get the current topology data
+  const pdbData = useContext(PdbCtx);
   // Portals create a window where a web page is pre rendered without navigating to
   // You can navigate to this web page by clicking on the portal
   // NOTE: see https://web.dev/hands-on-portals for tutorial on Portals
@@ -448,7 +450,10 @@ const Analyses = memo(() => {
         <ul className={style['chain-analysis-list']}>
           {/* Here, main data is displayed */}
           {chains.map(chain => {
-            const name = getChainName(chain, metadata);
+            const name =
+              metadata && pdbData && pdbData.file
+                ? getMetadataChainname(chain, metadata, pdbData.file)
+                : '';
             return (
               <li key={chain}>
                 <Typography variant="h6">
@@ -506,25 +511,6 @@ const Trajectory = () => {
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
   const [nightingaleRef, isNightingaleVisible] = useInView(useInViewOptions);
 
-  // Get the current project metadata and chains
-  const { metadata, chains } = useContext(ProjectCtx);
-
-  // Set the chains to be represented in the NGL viewer
-  const chainsNGL = [];
-  chains.forEach((chain, index) => {
-    chainsNGL.push({
-      name: metadata.CHAINNAMES ? metadata.CHAINNAMES[index] : 'Chain ' + chain,
-      selection: ':' + chain,
-    });
-  });
-  if (metadata.MEMBRANE !== 'No')
-    chainsNGL.push({
-      selection: '(not polymer or hetero) and not (water or ion)',
-      name: metadata.MEMBRANE,
-      defaultDrawingMethod: 'licorice',
-      defaultOpacity: 0.5,
-    });
-
   return (
     <>
       <Card className={style.card} ref={nglRef}>
@@ -564,10 +550,7 @@ const Trajectory = () => {
         />
         {/* Render the NGL viewer when it is on screen*/}
         {isNglVisible ? (
-          <NGLViewerWithControls
-            className={style.container}
-            representations={chainsNGL}
-          />
+          <NGLViewerWithControls className={style.container} />
         ) : (
           <div style={{ height: '50vh' }} />
         )}

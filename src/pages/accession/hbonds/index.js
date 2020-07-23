@@ -10,12 +10,13 @@ import Info from '../../../components/info';
 
 import useAPI from '../../../hooks/use-api';
 
-import { AccessionCtx, ProjectCtx, PdbCtx } from '../../../contexts';
+import { AccessionCtx, PdbCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 import {
   source2modelResidue,
+  source2absoluteResidue,
   complexNumerationParser,
 } from '../../../utils/topology-manager';
 
@@ -24,8 +25,6 @@ import style from './style.module.css';
 const Hbonds = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
-  // Get the chains
-  const { chains } = useContext(ProjectCtx);
   // Get the current topology, including the residue names
   const pdbData = useContext(PdbCtx);
 
@@ -45,7 +44,7 @@ const Hbonds = () => {
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
 
-  if (!pdbData.file) return 'Waiting for context...';
+  if (!pdbData.file) return <Loading />;
 
   // Get the orderer index of 'payload.hbonds' values greater than 1%
   const orderedIndexes = Array.from(Array(payload.hbonds.length).keys());
@@ -70,57 +69,27 @@ const Hbonds = () => {
     data.resnum1.push(payload.resnum1[hb]);
     data.atom2.push(payload.atom2[hb]);
     data.resnum2.push(payload.resnum2[hb]);
-    const resnum1 = complexNumerationParser(payload.resnum1[hb]);
-    const resnum2 = complexNumerationParser(payload.resnum2[hb]);
-    const res1 = source2modelResidue(
-      resnum1.chain,
-      resnum1.residueNumber,
-      pdbData.file,
-    );
-    const res2 = source2modelResidue(
-      resnum2.chain,
-      resnum2.residueNumber,
-      pdbData.file,
-    );
+    const numeration1 = complexNumerationParser(payload.resnum1[hb]);
+    const numeration2 = complexNumerationParser(payload.resnum2[hb]);
+    const res1 = source2modelResidue(numeration1, pdbData.file);
+    const res2 = source2modelResidue(numeration2, pdbData.file);
     ylabels.push(
-      res1.chain +
-        '(' +
-        res1.chainName +
-        '):' +
-        res1.chainResidue +
-        '(' +
-        res1.residueType +
-        ') [' +
+      res1.tag +
+        '[' +
         payload.atom1[hb] +
         '] - ' +
-        res2.chain +
-        '(' +
-        res2.chainName +
-        '):' +
-        res2.chainResidue +
-        '(' +
-        res2.residueType +
-        ') [' +
+        res2.tag +
+        '[' +
         payload.atom2[hb] +
         ']',
     );
   }
 
-  // Set the chains to be represented in the NGL viewer
-  const chainsNGL = [];
-  for (const c in chains) {
-    chainsNGL.push({
-      name: 'Chain ' + chains[c],
-      selection: ':' + chains[c],
-    });
-  }
-
   // Get atom number from resiude number and atom type
   const getAtom = (numeration, atomType) => {
-    //console.log(pdbData);
-    const residue = complexNumerationParser(numeration).residueNumber;
     const topology = pdbData.file;
-    const nResidue = topology.residueStore.resno.indexOf(residue);
+    const pnum = complexNumerationParser(numeration);
+    const nResidue = source2absoluteResidue(pnum, topology);
     const firstResidueAtom = topology.residueStore.atomOffset[nResidue];
     const residueSize = topology.residueStore.atomCount[nResidue];
     const residueAtomIndexes = [...Array(residueSize).keys()].map(
@@ -204,7 +173,6 @@ const Hbonds = () => {
                 accession: accession,
                 selected: selected,
                 //hovered: atomHoverion,
-                representations: chainsNGL,
               }
             : null
         }

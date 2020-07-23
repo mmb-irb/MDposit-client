@@ -113,7 +113,7 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
         {
           name: 'Electrostatic potencial surface',
           dir: 'electrostatic',
-          cond: !!metadata.INTERFACE,
+          cond: !!metadata.INTERFACES && !!metadata.INTERFACES[0],
         }, // DANI: Este hay que cambiarlo
         {
           name: 'Hydrogen bonds',

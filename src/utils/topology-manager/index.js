@@ -9,7 +9,7 @@ import { range } from 'lodash-es';
 // - Absolute: From 0 to 'n'
 //   Used in some internal managments
 // - Source: The numbers in the original topology file
-//   Source numbers may be repeated, have gaps or do not start at 0 or 1.
+//   Source numbers may be repeated, have gaps or do not start at 0 or 1. May include icodes.
 //   They are the usual numeration in analyses from the database
 // - Model: From 1 to 'n' for each chain
 //   Usual numeration in data representation for this web
@@ -65,14 +65,17 @@ export const rangedSelectionParser = selection => {
 };
 
 // Transform a 'chain:residue' string into the chain letter string and the residue number values
-const numerationFormat = /^([A-Z]):([0-9]*)$/;
+const numerationFormat = /^([A-Z]):([0-9]*)([A-Z]?)$/;
 export const complexNumerationParser = numeration => {
   const result = numerationFormat.exec(numeration);
   if (!result)
     return console.error('No matched numeration value: ' + numeration);
   const chain = result[1];
-  const residueNumber = result[2];
-  return { chain, residueNumber: +residueNumber };
+  const residue = result[2];
+  const icode = result[3] || '';
+  // Formated selection to select this specific residue in NGL
+  const nglSelection = ':' + chain + ' and ' + residue;
+  return { chain, residue: +residue, icode, nglSelection };
 };
 
 // Return the absolute residue number to whom the specified absolute atom number belongs to
@@ -105,17 +108,23 @@ export const getResidueType = (
 };
 
 // This function returns the chain name from a chain letter (e.g 'A')
-export const getChainName = (
+export const getMetadataChainname = (
   chain,
   metadata = ProjectCtx._currentValue.metadata,
+  topology = PdbCtx._currentValue.file,
 ) => {
-  if (!metadata) return console.error('There is no metadata');
-  const chainnames = metadata.CHAINNAMES;
-  if (!chainnames) return '';
+  if (!metadata) throw new Error('There is no metadata');
+  if (!topology) throw new Error('There is no topology');
+  const metadataChainnames = metadata.CHAINNAMES;
+  if (!metadataChainnames) return '';
+  for (let c = 0; c < metadata.CHAINNAMES.length; c++) {
+    const topologyChainname = topology.chainStore.getChainname(c);
+    if (topologyChainname === chain) return metadataChainnames[c];
+  }
   // "charCodeAt" transforms a string character to int code
   // The 'A' string returns 65, the 'B' returns 66 and so on
-  const name = chainnames[chain.charCodeAt(0) - 65];
-  return name;
+  //const name = metadataChainnames[chain.charCodeAt(0) - 65];
+  return '';
 };
 
 // This function returns the chain index from a chain letter (e.g 'A')
@@ -129,31 +138,13 @@ export const getChainIndex = (chain, topology = PdbCtx._currentValue.file) => {
 
 // This function converts topology residue numbers to the model chain name and chain residue numeration
 export const source2modelResidue = (
-  chain,
-  residue,
+  { chain, residue, icode },
   topology = PdbCtx._currentValue.file,
   metadata = ProjectCtx._currentValue.metadata,
 ) => {
   // Check arguments to be valid
   check(chain, residue);
-  const absolute = source2absoluteResidue(chain, residue, topology);
-  const model = absolute2modelResidue(absolute, topology, metadata);
-  //console.log(residue + ' => ' + modelResidue.chainResidue);
-  // This object contains the chain, chain name, chain resiude number and residue type
-  return model;
-};
-
-// This is the old method, which does not require chain
-// However, it only works asuming there are no repeated residue numbers in the source
-// This function converts topology residue numbers to the model chain name and chain residue numeration
-export const OLDsource2modelResidue = (
-  residue,
-  topology = PdbCtx._currentValue.file,
-  metadata = ProjectCtx._currentValue.metadata,
-) => {
-  // Check that arguments are valid
-  check('0', residue);
-  const absolute = OLDsource2absoluteResidue(residue, topology);
+  const absolute = source2absoluteResidue({ chain, residue, icode }, topology);
   const model = absolute2modelResidue(absolute, topology, metadata);
   //console.log(residue + ' => ' + modelResidue.chainResidue);
   // This object contains the chain, chain name, chain resiude number and residue type
@@ -162,32 +153,27 @@ export const OLDsource2modelResidue = (
 
 // This function converts topology residue numbers to absolute residue numbers
 export const source2absoluteResidue = (
-  chain,
-  residue,
+  { chain, residue, icode },
   topology = PdbCtx._currentValue.file,
 ) => {
   const chainIndex = getChainIndex(chain, topology);
   const resnos = topology.residueStore.resno;
-  for (const [index, res] of resnos.entries())
+  const code = icode.charCodeAt(0);
+  //console.log('we need chain: ' + chainIndex + ' res: ' + residue);
+  for (const [index, res] of resnos.entries()) {
+    //console.log(index + ' -> ' + topology.residueStore.chainIndex[index] + ':' + res);
     if (
       res === residue &&
-      topology.residueStore.chainIndex[index] === chainIndex
+      topology.residueStore.chainIndex[index] === chainIndex &&
+      (topology.residueStore.inscode[index] === code || !icode)
     ) {
       //console.log(chain + ':' + residue + ' => ' + index);
       return index;
     }
-};
-
-// This is the old method, which does not require chain
-// However, it only works asuming there are no repeated residue numbers in the source
-// This function converts topology residue numbers to absolute residue numbers
-export const OLDsource2absoluteResidue = (
-  residue,
-  topology = PdbCtx._currentValue.file,
-) => {
-  const absoluteResidue = topology.residueStore.resno.indexOf(residue);
-  //console.log(residue + ' => ' + absoluteResidue);
-  return absoluteResidue;
+  }
+  throw new Error(
+    'The requested chain, residue number and icode did not match any residue',
+  );
 };
 
 // Transform an absolute residue number to the model corresponding chain and chain residue
@@ -196,14 +182,19 @@ export const absolute2modelResidue = (
   topology = PdbCtx._currentValue.file,
   metadata = ProjectCtx._currentValue.metadata,
 ) => {
+  //if (residue === 45) console.log(topology);
   const chainIndex = topology.residueStore.chainIndex[residue];
-  const offset = topology.chainStore.residueOffset[chainIndex];
   const chain = topology.chainStore.getChainname(chainIndex); // e.g. 'A'
-  const chainName = getChainName(chain, metadata); // e.g. 'ACE2'
+  const chainName = metadata.CHAINNAMES[chainIndex]; // e.g. 'ACE2'
+  const offset = topology.chainStore.residueOffset[chainIndex];
   const chainResidue = residue - offset + 1;
   const residueType = getResidueType(residue, topology);
+  // Formated string representations used in model labels
+  const numeration = chain + ':' + chainResidue;
+  const tag =
+    chain + '(' + chainName + '):' + chainResidue + '(' + residueType + ')';
   //console.log(residue + ' -> ' + chainResidue);
-  return { chain, chainName, chainResidue, residueType };
+  return { chain, chainName, chainResidue, residueType, numeration, tag };
 };
 
 // This function converts absolute residue numbers to topology residue numbers
@@ -214,16 +205,35 @@ export const absolute2sourceResidue = (
   //console.log(topology);
   const residueNumber = topology.residueStore.resno[residue];
   const chainIndex = topology.residueStore.chainIndex[residue];
-  const chain = topology.chainStore.getChainname(chainIndex);
+  const chain = topology.chainStore.getChainname(chainIndex); // e.g. 'A'
+  const charIcode = topology.residueStore.inscode[residue];
+  const icode = charIcode ? String.fromCharCode(charIcode) : '';
+  // Formated selection to select this specific residue in NGL
+  const numeration = chain + ':' + residueNumber + icode;
+  const nglSelection = ':' + chain + ' and ' + residueNumber;
   //console.log(residue + ' => ' + relativeresidue);
-  return { chain, residueNumber };
+  return { chain, residueNumber, icode, numeration, nglSelection };
 };
 
-// This function converts topology residue numbers to absolute residue numbers
-/*
-export const model2absoluteResidue = (residue, topology = PdbCtx._currentValue.file) => {
-  const absoluteResidue = topology.residueStore.resno.indexOf(residue);
-  //console.log(residue + ' => ' + absoluteResidue);
-  return absoluteResidue;
+// This function converts model residue numbers to absolute residue numbers
+export const model2absoluteResidue = (
+  { chain, residue },
+  topology = PdbCtx._currentValue.file,
+) => {
+  //console.log(topology);
+  const chainIndex = getChainIndex(chain, topology);
+  const residueOffest = topology.chainStore.residueOffset[chainIndex];
+  const residueNumber = residueOffest + residue - 1;
+  //console.log(chain + ':' + residue + ' -> ' + residueNumber);
+  return residueNumber;
 };
-*/
+
+// This function converts model residue numbers to source residue numbers
+export const model2sourceResidue = (
+  { chain, residue },
+  topology = PdbCtx._currentValue.file,
+) => {
+  const absolute = model2absoluteResidue({ chain, residue }, topology);
+  const source = absolute2sourceResidue(absolute, topology);
+  return source;
+};
