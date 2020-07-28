@@ -43,7 +43,9 @@ const PCA = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
   // Get the current project chains
-  const { metadata, chains } = useContext(ProjectCtx);
+  const { metadata, chains, files } = useContext(ProjectCtx);
+  const hasBackbone = files.some(f => f.filename === 'md.backbone.pdb');
+
   // Load the main data from the API
   const { loading, payload, error } = useAPI(
     `${BASE_PATH_PROJECTS}${accession}/analyses/pca/`,
@@ -189,7 +191,11 @@ const PCA = () => {
                 projection={projections[0]}
                 framesSelect={false}
                 // Projections are backbone trajectories, same as the average.pdb topology
-                structureURL={`${BASE_PATH_PROJECTS}${accession}/files/average.pdb`}
+                structureURL={
+                  hasBackbone
+                    ? `${BASE_PATH_PROJECTS}${accession}/files/md.backbone.pdb`
+                    : `${BASE_PATH_PROJECTS}${accession}/files/average.pdb`
+                }
                 trajectoryURL={projectionURL}
                 representations={chainsNGL}
               />
