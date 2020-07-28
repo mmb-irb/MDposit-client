@@ -276,13 +276,21 @@ const Browse = ({ location, history, setProject }) => {
                   <Select
                     id="select"
                     value={currentUnit}
-                    onChange={event =>
+                    onChange={event => {
+                      // Update the history to reset the page
+                      history.push({
+                        ...location,
+                        search: stringify({
+                          search: search.search,
+                        }),
+                      });
+                      // Update the unit state
                       setUnitFilter(
                         event.target.value
                           ? '&filter=metadata.UNIT+*' + event.target.value
                           : '',
-                      )
-                    }
+                      );
+                    }}
                   >
                     <MenuItem value="">All</MenuItem>
                     <MenuItem value="RBD">RBD</MenuItem>
@@ -332,6 +340,7 @@ const Browse = ({ location, history, setProject }) => {
             <TableRow>
               {/* Table footer used to change the page to see more results */}
               <TablePagination
+                // IMPORTANT: Pagination is controled through the 'history', which may be updated from 'search'
                 // Many of the following variables are methods from TablePagination (They are tagged as MTP). https://material-ui.com/api/table-pagination/
                 rowsPerPageOptions={rowsPerPageOptions} // (MTP) Optional numbers of rows displayed in each page. It can be modified by the user.
                 colSpan={6} // Set the anchor of columns which is taken as a reference for the horizontal position of the footer
