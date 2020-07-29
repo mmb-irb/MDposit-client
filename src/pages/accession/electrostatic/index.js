@@ -80,18 +80,19 @@ const Electrostatic = () => {
   }
   // Those chains with residues in the interface show their mentioned residues
   // This representation is in electrostatic surface
-  for (const selection of nglInterfaceSelections)
+  for (const selection of nglInterfaceSelections) {
     chainsNGL.push({
       name:
         'Chain ' +
         selection.chain +
         ' (' +
         getMetadataChainname(selection.chain, metadata, pdbData.file) +
-        ') surface',
+        ') interface',
       selection: selection.selection,
       defaultDrawingMethod: 'surface',
       defaultColoringMethod: 'electrostatic',
     });
+  }
 
   return (
     <>

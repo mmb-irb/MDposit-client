@@ -329,8 +329,15 @@ const NGLViewer = memo(
         // Convert the JSON reference back into the 'components' object
         const comps = JSON.parse(componentsRef);
 
+        if (!pdbFile) return;
+        // Atom occupancy is a field which is not used anywhere but in the electrostatic representation
+        // The electrostatic surface scheme color does not work if the occupancy is 0 (ngl code, not ours)
+        // We set all occupancies to 1, since some topologies may have all occupancies as 0 by default
+        pdbFile.atomStore.occupancy = new Array(
+          pdbFile.atomStore.occupancy.length,
+        ).fill(1);
+
         comps.forEach((comp, c) => {
-          if (!pdbFile) return;
           const structureComponent = stageRef.current.addComponentFromObject(
             pdbFile,
           );
