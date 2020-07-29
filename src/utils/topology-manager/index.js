@@ -237,3 +237,19 @@ export const model2sourceResidue = (
   const source = absolute2sourceResidue(absolute, topology);
   return source;
 };
+
+// Get atom data from atom index
+export const getAtom = (index, topology = PdbCtx._currentValue.file) => {
+  // Get the atom number according to the topology. It usually ranges from 1 to n
+  const serial = topology.atomStore.serial[index];
+  // Absolute index (0-n)
+  const residue = topology.atomStore.residueIndex[index];
+  // Atom properties
+  const typeId = topology.atomStore.atomTypeId[index];
+  const {
+    number: residueAtomNumber,
+    atomname: name,
+    element,
+  } = topology.atomMap.get(typeId);
+  return { serial, residue, residueAtomNumber, name, element };
+};

@@ -18,6 +18,8 @@ import {
   source2modelResidue,
   source2absoluteResidue,
   complexNumerationParser,
+  getAtom,
+  absolute2sourceResidue,
 } from '../../../utils/topology-manager';
 
 import style from './style.module.css';
@@ -46,6 +48,10 @@ const Hbonds = () => {
 
   if (!pdbData.file) return <Loading />;
 
+  // The new format has 4 fields: acceptorAtomIndex, donorAtomIndex, hydrogenAtomIndex and hbonds
+  // The old format has 6 fields: atom1, resnum1, atom2, resnum2, link and hbonds
+  const newFormat = !!payload.acceptorAtomIndex;
+
   // Get the orderer index of 'payload.hbonds' values greater than 1%
   const orderedIndexes = Array.from(Array(payload.hbonds.length).keys());
   orderedIndexes.sort((a, b) => {
@@ -62,6 +68,23 @@ const Hbonds = () => {
     resnum2: [],
   };
   const ylabels = [];
+
+  if (newFormat) {
+    payload.atom1 = [];
+    payload.resnum1 = [];
+    payload.atom2 = [];
+    payload.resnum2 = [];
+    for (const hb in payload.hbonds) {
+      const atom1 = getAtom(payload.acceptorAtomIndex[hb]);
+      const residue1 = absolute2sourceResidue(atom1.residue);
+      payload.atom1.push(atom1.name);
+      payload.resnum1.push(residue1.numeration);
+      const atom2 = getAtom(payload.donorAtomIndex[hb]);
+      const residue2 = absolute2sourceResidue(atom2.residue);
+      payload.atom2.push(atom2.name);
+      payload.resnum2.push(residue2.numeration);
+    }
+  }
 
   for (const hb of indexes) {
     data.hbonds.push(payload.hbonds[hb]);
@@ -86,7 +109,7 @@ const Hbonds = () => {
   }
 
   // Get atom number from resiude number and atom type
-  const getAtom = (numeration, atomType) => {
+  const getAtomIndex = (numeration, atomType) => {
     const topology = pdbData.file;
     const pnum = complexNumerationParser(numeration);
     const nResidue = source2absoluteResidue(pnum, topology);
@@ -108,8 +131,8 @@ const Hbonds = () => {
   /*
   let atomHoverion = [];
   for (const h in hovered) {
-    atomHoverion.push(getAtom(payload.resnum1[h]));
-    atomHoverion.push(getAtom(payload.resnum2[h]));
+    atomHoverion.push(getAtomIndex(payload.resnum1[h]));
+    atomHoverion.push(getAtomIndex(payload.resnum2[h]));
   }
   */
   // Render
@@ -144,10 +167,15 @@ const Hbonds = () => {
             //onHover={index => setHovered(index)}
             selected={selected}
             onClick={index => {
-              const atomSelection = [
-                getAtom(data.resnum1[index], data.atom1[index]),
-                getAtom(data.resnum2[index], data.atom2[index]),
-              ];
+              const atomSelection = newFormat
+                ? [
+                    payload.acceptorAtomIndex[index],
+                    payload.donorAtomIndex[index],
+                  ]
+                : [
+                    getAtomIndex(data.resnum1[index], data.atom1[index]),
+                    getAtomIndex(data.resnum2[index], data.atom2[index]),
+                  ];
               // DANI: Esto no tiene sentido
               //console.log(selected);
               setSelected(atomSelection);
