@@ -482,12 +482,15 @@ const NGLViewer = memo(
           name: nameHighlight,
         });
 
+        // Represente a labeled line between two selected atoms
         const seleDistance = [...selected].map(a => a);
         stageRef.current.compList[0].addRepresentation('distance', {
           atomPair: [seleDistance],
           color: 'skyblue',
           labelUnit: 'nm',
           name: nameDistance,
+          // Label color is the opposite of the background color
+          labelColor: darkBackground ? 16777215 : 1, // 16777215 is white, 1 is black
         });
 
         const seleContext = Array.from(
@@ -513,7 +516,7 @@ const NGLViewer = memo(
           seleContext,
           DEFAULT_ORIENTATION_TRANSITION_DURATION,
         );
-      }, [pdbFile, hovered, selected]);
+      }, [pdbFile, hovered, selected, darkBackground]);
 
       // Highlight hovered residues
       useEffect(() => {
