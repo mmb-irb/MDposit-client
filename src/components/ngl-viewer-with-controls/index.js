@@ -95,35 +95,28 @@ const NGLViewerWithControls = forwardRef(
       // New method to call the NGL
       // Components are objects which include a 'frame' value and the 'representations' array
       components = [],
-      // Set the NGL to show the default representations
-      defaultRepresentations = false,
       ...props
     },
     ref,
   ) => {
     // Get context data only for the default setup of components and representations
     const { metadata, chains } = useContext(ProjectCtx);
-    if (!metadata || !chains) return <Loading />;
-    // If there are no components or representations we set a default value
-    if (
-      (!components || components.length === 0) &&
-      (!representations || representations.length === 0)
-    )
-      defaultRepresentations = true;
 
     // Set the chains to be represented in the NGL viewer by default
     // WARNING: This is experimental and may have some bugs
-    if (defaultRepresentations) {
+    const defaultRepresentations = useMemo(() => {
+      if (!metadata || !chains) return;
       // Represent each protein chain
+      const reps = [];
       for (const chain of chains) {
-        representations.push({
+        reps.push({
           name: 'Chain ' + chain,
           selection: ':' + chain,
         });
       }
       // Represent the mebrane if exist
       if (metadata.MEMBRANE !== 'No')
-        representations.push({
+        reps.push({
           selection: '(not polymer or hetero) and not (water or ion)',
           name: metadata.MEMBRANE,
           defaultDrawingMethod: 'licorice',
@@ -132,24 +125,36 @@ const NGLViewerWithControls = forwardRef(
       // Show also all ligands with licorice representations
       if (metadata.LIGANDS) {
         for (const ligand of metadata.LIGANDS) {
-          representations.push({
+          reps.push({
             name: ligand.name,
             selection: ligand.selection,
             defaultDrawingMethod: 'licorice',
           });
         }
       }
-    }
+
+      return reps;
+    }, [chains, metadata]);
+
+    // If there are no components or representations we set a default value
+    if (
+      (!components || components.length === 0) &&
+      (!representations || representations.length === 0)
+    )
+      representations = defaultRepresentations;
+
+    if (!metadata || !chains) return <Loading />;
 
     // 'representations' is an alternative (and the original) method to call the NGL
     // Here we convert old inputs to the new format: 'components'
     if (
       (!components || components.length === 0) &&
       (representations && representations.length > 0)
-    )
+    ) {
       components = [
         { representations: representations, frame: requestedFrame },
       ];
+    }
 
     // Save all representations mined from each component
     const allRepresentations = [];
@@ -283,6 +288,10 @@ const NGLViewerWithControls = forwardRef(
       }),
       [],
     );
+
+    // Return loading if the context is not loaded yet
+    // DANI: Esto podría no tener mucho sentido aquí, hay que darle una vuelta
+    //if (!metadata || !chains) return <Loading />;
 
     return (
       <div

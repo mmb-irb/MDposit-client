@@ -1,5 +1,5 @@
 // React logic
-import React, { Suspense, lazy, useContext } from 'react';
+import React, { Suspense, lazy, useContext, useMemo } from 'react';
 import { Switch, Route, Redirect } from 'react-router-dom';
 
 // Visual assets
@@ -84,6 +84,11 @@ const SummarySwitch = ({ setProject }) => {
     `${BASE_PATH_PROJECTS}${accession}/`,
     wrongProjectContext,
   );
+
+  // Order the chains inexes by alphabetic number
+  useMemo(() => {
+    if (payload) payload.chains.sort();
+  }, [payload]);
 
   // Load the structure data form the API
   const pdbData = useNGLFile(

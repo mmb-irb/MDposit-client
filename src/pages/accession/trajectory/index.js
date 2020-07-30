@@ -437,8 +437,6 @@ const Analyses = memo(() => {
   // Render the functional analysis with a brief introduction
   // Here 'chains' is just the chain letters. The main data is downloaded further at the ChainAnalyses component
   if (chains && chains.length > 0) {
-    // Order the chains inexes by alphabetic number
-    chains.sort();
     return (
       <>
         {/* Brief introduction */}
