@@ -184,11 +184,11 @@ const DistPerres = () => {
               This is the distance per residue representation.
               <br />
               <br />
-              This heatmap represents the distance between selected residues
-              from different proteins. Both horizontal and vertical edges stand
-              for residue numbers. The color stands for the distance and it
-              ranges from blue (far) to red (close). The legend below shows the
-              corresponding values in angstroms.
+              This heatmap represents the distance between the geometric center
+              of selected residues from different proteins. Both horizontal and
+              vertical edges stand for residue numbers. The color stands for the
+              distance and it ranges from blue (far) to red (close). The legend
+              below shows the corresponding values in Ångstroms.
               <br />
               <br />
               Use tabs over the heatmap to switch between mean and standard

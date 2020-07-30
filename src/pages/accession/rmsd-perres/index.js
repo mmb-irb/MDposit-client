@@ -183,7 +183,7 @@ const RmsdPerres = () => {
               residue type abbreviation (e.g. ASN, ASP, CYS...) and the topology
               numeration. Next two columns provide the RMSD mean and standard
               deviation for each residue respectively. Both measures are in
-              angstroms.
+              Ångstroms.
               <br />
               <br />
               Use this data table to navigate through all selected resiudes and

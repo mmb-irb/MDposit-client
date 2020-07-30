@@ -146,14 +146,20 @@ const Hbonds = () => {
               This is the hydrogen bonds analysis representation.
               <br />
               <br />
-              The horizontal bars stand for the percent of frames along the
-              trajectory in which the distance between each pair of atoms is
-              inferior to 3 angstroms.
+              All pairs of hydrogen bridging atoms are listed in order of
+              probability. Left edge labels describe the acceptor and donor
+              atoms respectively. The horizontal bars stand for the percent of
+              frames along the trajectory in which the specified pair of atoms
+              may form an hydrogen bond. Two atoms are considered to form an
+              hydrogen bond when the distance between them is inferior to 3
+              Ångstroms and the 'acceptor atom - hydrogen - donor atom' angle is
+              superior to 15 degrees.
               <br />
               <br />
               <span style={{ color: 'lightGreen' }}> Click any bar </span>
               in the graph to open an interactive window displaying the
-              trajectory with the corresponding highlighted atoms.
+              trajectory with the corresponding highlighted atoms and the
+              distance between them.
             </>
           }
         />

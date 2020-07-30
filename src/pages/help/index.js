@@ -227,11 +227,11 @@ const documentation = [
         This is the distance per residue representation.
         <br />
         <br />
-        This heatmap represents the distance between selected residues from
-        different proteins. Both horizontal and vertical edges stand for residue
-        numbers. The color stands for the distance and it ranges from blue (far)
-        to red (close). The legend below shows the corresponding values in
-        angstroms.
+        This heatmap represents the distance between the geometric center of
+        selected residues from different proteins. Both horizontal and vertical
+        edges stand for residue numbers. The color stands for the distance and
+        it ranges from blue (far) to red (close). The legend below shows the
+        corresponding values in Ångstroms.
         <br />
         <br />
         Use tabs over the heatmap to switch between mean and standard deviation.
@@ -343,13 +343,18 @@ const documentation = [
         This is the hydrogen bonds analysis representation.
         <br />
         <br />
-        The horizontal bars stand for the percent of frames along the trajectory
-        in which the distance between each pair of atoms is inferior to 3
-        angstroms.
+        All pairs of hydrogen bridging atoms are listed in order of probability.
+        Left edge labels describe the acceptor and donor atoms respectively. The
+        horizontal bars stand for the percent of frames along the trajectory in
+        which the specified pair of atoms may form an hydrogen bond. Two atoms
+        are considered to form an hydrogen bond when the distance between them
+        is inferior to 3 Ångstroms and the 'acceptor atom - hydrogen - donor
+        atom' angle is superior to 15 degrees.
         <br />
         <br />
-        Click any bar in the graph to open an interactive window displaying the
-        trajectory with the corresponding highlighted atoms.
+        <span style={{ color: 'lightGreen' }}> Click any bar </span>
+        in the graph to open an interactive window displaying the trajectory
+        with the corresponding highlighted atoms and the distance between them.
       </>
     ),
   },
@@ -472,7 +477,7 @@ const documentation = [
         each frame along the trajectory. Both horizontal and vertical edges
         stand for frame numbers. The color stands for the RMSd value and it
         ranges from blue (low) to red (high). The legend below shows the
-        corresponding values in angstroms.
+        corresponding values in Ångstroms.
         <br />
         <br />
         Use tabs over the heatmap to switch between different RMSd pairwise
@@ -508,7 +513,7 @@ const documentation = [
         residue name, which is composed by the union of the residue type
         abbreviation (e.g. ASN, ASP, CYS...) and the topology numeration. Next
         two columns provide the RMSD mean and standard deviation for each
-        residue respectively. Both measures are in angstroms.
+        residue respectively. Both measures are in Ångstroms.
         <br />
         <br />
         Use this data table to navigate through all selected resiudes and set

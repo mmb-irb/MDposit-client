@@ -72,7 +72,7 @@ const RmsdPairwise = () => {
               between each frame along the trajectory. Both horizontal and
               vertical edges stand for frame numbers. The color stands for the
               RMSd value and it ranges from blue (low) to red (high). The legend
-              below shows the corresponding values in angstroms.
+              below shows the corresponding values in Ångstroms.
               <br />
               <br />
               Use tabs over the heatmap to switch between different RMSd
