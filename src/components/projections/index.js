@@ -43,7 +43,13 @@ const colorScale = scaleSequential(interpolateViridis);
 
 // This component renders a graph
 // This graph is displayed when user selects 2 pca projections
-const Projections = ({ data, projections, step, setRequestedFrame }) => {
+const Projections = ({
+  data,
+  projections,
+  step,
+  totalFrames,
+  setRequestedFrame,
+}) => {
   const containerRef = useRef(null);
   const legendRef = useRef(null);
   const drawRef = useRef(noop);
@@ -53,6 +59,8 @@ const Projections = ({ data, projections, step, setRequestedFrame }) => {
   const delaunayDiagramRef = useRef({ find() {} });
 
   const [switched, toggleSwitched] = useToggleState(false);
+
+  const datumRange = data.length;
 
   useEffect(() => {
     const canvas = select(containerRef.current).append('canvas');
@@ -101,8 +109,7 @@ const Projections = ({ data, projections, step, setRequestedFrame }) => {
     const handleClick = ({ datumIndex } = {}) =>
       // This function is a setter from a useState hook in the parent script (pca/index.js)
       setRequestedFrame(requestedFrame => {
-        const target = datumIndex * step;
-        console.log(datumIndex + ' * ' + step + ' = ' + target);
+        const target = Math.floor(datumIndex * (totalFrames / datumRange));
         // If the user clicks in the already selected point it is unselected
         return target === requestedFrame ? null : target;
       });
@@ -379,7 +386,7 @@ const Projections = ({ data, projections, step, setRequestedFrame }) => {
       refs.drawLegend && refs.drawLegend.cancel();
       window.removeEventListener('resize', drawRef.current);
     };
-  }, [projections, setRequestedFrame, step]);
+  }, [projections, setRequestedFrame, datumRange, totalFrames]);
 
   useEffect(() => {
     const [xProj, yProj] = switched ? [0, 1] : [1, 0];

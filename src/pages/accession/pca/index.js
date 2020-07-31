@@ -205,9 +205,11 @@ const PCA = () => {
           {projections.length === 2 && (
             <Suspense fallback={projectionPlaceholder}>
               <Projections
-                step={payload.step / metadata.FREQUENCY} // The payload.step is meant to be in picoseconds
+                //step={payload.step / metadata.FREQUENCY} // The payload.step is meant to be in picoseconds
+                step={payload.step}
                 data={payload.y}
                 projections={projections}
+                totalFrames={metadata.frameCount}
                 setRequestedFrame={setRequestedFrame}
               />
             </Suspense>
