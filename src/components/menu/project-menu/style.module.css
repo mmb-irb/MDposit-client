@@ -7,6 +7,11 @@
   background-color: #a0e650;
 }
 
+.current {
+  color: #76ff03;
+  background-color: #607d8b;
+}
+
 .disabled {
   color: #999999;
 }

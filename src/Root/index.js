@@ -8,8 +8,8 @@ import { ProjectCtx } from '../contexts';
 
 // Set the header colors
 import {
-  blueGrey as primary,
-  lightGreen as secondary,
+  blueGrey as primary, // #607D8B
+  lightGreen as secondary, // #76FF03
 } from '@material-ui/core/colors';
 
 // Layout

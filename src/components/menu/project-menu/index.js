@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useCallback } from 'react';
 
 import {
   Popper,
@@ -27,6 +27,12 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
   const [openMenu, setOpenMenu] = useState(-1);
   // Set a standarized format state for the popover to work properly
   const [element, setElement] = useState(null);
+
+  // Set a function used to check if we are in a specific local url
+  const currentLocation = window.location.hash;
+  const isCurrent = useCallback(url => '#' + url === currentLocation, [
+    currentLocation,
+  ]);
 
   // Get data from the project context if it is available
   let analyses = [];
@@ -201,6 +207,11 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
                               onClick={() => handleClose(index)}
                               component={Link}
                               to={`/browse/${accession}/${drop.dir}`}
+                              className={
+                                isCurrent(`/browse/${accession}/${drop.dir}`)
+                                  ? style.current
+                                  : undefined
+                              }
                             >
                               {drop.name}
                             </MenuItem>
