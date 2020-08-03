@@ -66,6 +66,8 @@ const Hbonds = () => {
     resnum1: [],
     atom2: [],
     resnum2: [],
+    acceptorAtomIndex: [],
+    donorAtomIndex: [],
   };
   const ylabels = [];
 
@@ -75,11 +77,11 @@ const Hbonds = () => {
     payload.atom2 = [];
     payload.resnum2 = [];
     for (const hb in payload.hbonds) {
-      const atom1 = getAtom(payload.acceptorAtomIndex[hb]);
+      const atom1 = getAtom(payload.acceptorAtomIndex[hb], pdbData.file);
       const residue1 = absolute2sourceResidue(atom1.residue);
       payload.atom1.push(atom1.name);
       payload.resnum1.push(residue1.numeration);
-      const atom2 = getAtom(payload.donorAtomIndex[hb]);
+      const atom2 = getAtom(payload.donorAtomIndex[hb], pdbData.file);
       const residue2 = absolute2sourceResidue(atom2.residue);
       payload.atom2.push(atom2.name);
       payload.resnum2.push(residue2.numeration);
@@ -106,6 +108,10 @@ const Hbonds = () => {
         payload.atom2[hb] +
         ']',
     );
+    if (newFormat) {
+      data.acceptorAtomIndex.push(payload.acceptorAtomIndex[hb]);
+      data.donorAtomIndex.push(payload.donorAtomIndex[hb]);
+    }
   }
 
   // Get atom number from resiude number and atom type
@@ -174,10 +180,7 @@ const Hbonds = () => {
             selected={selected}
             onClick={index => {
               const atomSelection = newFormat
-                ? [
-                    payload.acceptorAtomIndex[index],
-                    payload.donorAtomIndex[index],
-                  ]
+                ? [data.acceptorAtomIndex[index], data.donorAtomIndex[index]]
                 : [
                     getAtomIndex(data.resnum1[index], data.atom1[index]),
                     getAtomIndex(data.resnum2[index], data.atom2[index]),
