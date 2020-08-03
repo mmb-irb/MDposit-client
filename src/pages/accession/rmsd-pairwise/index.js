@@ -128,7 +128,7 @@ const RmsdPairwise = () => {
         // If the nailed/closed viewer is the current viewer then reset the 'selected'
         onNail={viewer =>
           setSelected(previous => {
-            if (viewer.selected === previous) return null;
+            if (viewer.selRef === previous) return null;
             else return previous;
           })
         }
