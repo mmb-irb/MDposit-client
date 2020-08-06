@@ -77,6 +77,8 @@ const Graph = ({
   selfLegend = false,
   // Object with boolean keys defining which data is displayed (true) or hidden (false)
   show,
+  // Set if the precision slider must be shown
+  showPrecisionSlider = true,
 }) => {
   const pdbData = useContext(PdbCtx);
 
@@ -628,7 +630,7 @@ const Graph = ({
           </Button>
         )}
       </div>
-      {defaultPrecision && (
+      {showPrecisionSlider && defaultPrecision && (
         <div
           className={cn(style['graph-legend'], style['precision'])}
           title={`Showing ${pr === 1 ? 'all' : `1 out of ${pr}`} data points`}

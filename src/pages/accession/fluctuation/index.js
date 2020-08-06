@@ -103,6 +103,7 @@ const FluctuationAnalysis = () => {
             hovered={hovered}
             onSelect={setSelected}
             selected={selected}
+            showPrecisionSlider={false}
           />
         </CardContent>
       </Card>
