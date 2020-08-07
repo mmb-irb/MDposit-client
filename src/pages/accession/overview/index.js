@@ -191,15 +191,48 @@ export default React.memo(() => {
             <Typography variant="h6">Ligands information</Typography>
             {metadata.LIGANDS.map(ligand => (
               <div key={ligand.name} className={style['summary-list']}>
+                <LazyImg
+                  src={
+                    ligand.chembl
+                      ? `https://www.ebi.ac.uk/chembl/api/data/image/${ligand.chembl}.svg`
+                      : ligand.accession
+                      ? `https://www.drugbank.ca/structures/${ligand.accession}/image.svg`
+                      : null
+                  }
+                  width="200"
+                  height="200"
+                  loading="lazy"
+                  alt={`3D view of the ${ligand.name} structure`}
+                />
                 <div>- {ligand.name || 'Not available'}</div>
-                <span>DrugBank: </span>
-                <a
-                  href={'https://www.drugbank.ca/drugs/' + ligand.accession}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {ligand.accession}
-                </a>
+                {ligand.accession && (
+                  <>
+                    <span>DrugBank: </span>
+                    <a
+                      href={'https://www.drugbank.ca/drugs/' + ligand.accession}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {ligand.accession}
+                    </a>
+                  </>
+                )}
+                {ligand.chembl && (
+                  <>
+                    <span>ChEMBL: </span>
+                    <a
+                      href={
+                        'https://www.ebi.ac.uk/chembl/compound_report_card/' +
+                        ligand.chembl
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {ligand.chembl}
+                    </a>
+                    <span>ChEMBL: </span>
+                  </>
+                )}
               </div>
             ))}
           </CardContent>
