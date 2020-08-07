@@ -206,7 +206,7 @@ export default React.memo(() => {
                 />
                 <div>- {ligand.name || 'Not available'}</div>
                 {ligand.accession && (
-                  <>
+                  <div>
                     <span>DrugBank: </span>
                     <a
                       href={'https://www.drugbank.ca/drugs/' + ligand.accession}
@@ -215,10 +215,10 @@ export default React.memo(() => {
                     >
                       {ligand.accession}
                     </a>
-                  </>
+                  </div>
                 )}
                 {ligand.chembl && (
-                  <>
+                  <div>
                     <span>ChEMBL: </span>
                     <a
                       href={
@@ -230,8 +230,7 @@ export default React.memo(() => {
                     >
                       {ligand.chembl}
                     </a>
-                    <span>ChEMBL: </span>
-                  </>
+                  </div>
                 )}
               </div>
             ))}
