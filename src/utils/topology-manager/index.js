@@ -203,6 +203,11 @@ export const absolute2sourceResidue = (
   topology = PdbCtx._currentValue.file,
 ) => {
   //console.log(topology);
+  const count = topology.residueStore.count;
+  if (residue >= count)
+    throw new Error(
+      `The residue index ${residue} is out of range. There are ${count} residues in the topology`,
+    );
   const residueNumber = topology.residueStore.resno[residue];
   const chainIndex = topology.residueStore.chainIndex[residue];
   const chain = topology.chainStore.getChainname(chainIndex); // e.g. 'A'

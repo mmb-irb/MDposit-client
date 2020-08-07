@@ -151,6 +151,8 @@ const NGLViewer = memo(
 
             // Add the frame selection
             const url = frames ? baseUrl + `?frames=${frames}` : baseUrl;
+            //const url = frames ? baseUrl + `?frames=1:1668:3` : baseUrl;
+            //console.log(url);
 
             // Set the loading status as true
             trajectoryRef.current.loading[index] = true;
@@ -176,7 +178,7 @@ const NGLViewer = memo(
                 // 'counts' include the number of atoms and the real number of frames
                 trajectoryRef.current.counts = extractCounts(response);
                 // Save inside the ref
-                trajectoryRef.current.frameCount[index] = parseInt(frameCount);
+                trajectoryRef.current.frameCount = parseInt(frameCount);
                 trajectoryRef.current.payload[index] = response.data;
                 trajectoryRef.current.loading[index] = false;
               })
@@ -582,7 +584,7 @@ const NGLViewer = memo(
             pdbFile,
             payload,
             trajectoryAtoms,
-            trajectoryFrames[index],
+            trajectoryFrames,
             isProjection,
           );
 
@@ -663,6 +665,9 @@ const NGLViewer = memo(
         return handleResize.cancel;
       }, [pdbFile, trajectoryPayload, handleResize]);
 
+      // Highlight the selected chain region
+      // This useEffect seems to be special:
+      // It is run just once but some parts inside keep running on change events
       // listen to change event from nightingale component
       useEffect(() => {
         const handler = ({ detail }) => {
@@ -687,10 +692,18 @@ const NGLViewer = memo(
               offset = nextOffset;
               continue;
             }
+            // Start and end values are in absolute numeration + 1
+            // DANI: No se en que parte del código se establecen estos valores
+            // DANI: Habría que mirar si se pueden estandarizar como numeración asboluta
+            // DANI: De esa manera no habría que hacer el -1 más abajo, que queda muy feo.
             const [start, end] = thisHiglight
               .split(':')
               .map(addOffsetMappingFn);
-            highlight += ` or ${start}-${end}`;
+            const sourceStart = absolute2sourceResidue(start - 1, pdbFile);
+            const sourceEnd = absolute2sourceResidue(end - 1, pdbFile);
+            if (sourceStart.chain !== sourceEnd.chain)
+              throw new Error(`Range from multiple chains is not supported`);
+            highlight += ` or :${sourceStart.chain} and ${sourceStart.residueNumber}-${sourceEnd.residueNumber}`;
             offset = nextOffset;
           }
           highlight = highlight.substr(4); // remove initial ' or '
@@ -739,9 +752,9 @@ const NGLViewer = memo(
         };
         window.addEventListener('change', handler);
         return () => window.removeEventListener('change', handler);
-      }, []);
+      }, [pdbFile]);
 
-      // Custom the NGL tooltip
+      // Customize the NGL tooltip
       useEffect(() => {
         if (!pdbFile) return;
         // Set a new tooltip
