@@ -11,7 +11,12 @@ const HeatmapGrid = lazy(() =>
 
 // Takes a string array and return the array after converting some strings in ''
 // It is useful to delete some labels, so they are not all displayed
-const labelStepper = (labels, step) => {
+const labelStepper = labels => {
+  // DANI: Este '18' lo he obtenido experimentalmente (queda bien)
+  // DANI: Lo suyo sería usar el ancho de pantalla para calcular este número
+  // DANI: Ahora mismo esto no es sensible al ancho de pantalla. Si esta es muy estrecha quedará mal.
+  let step = Math.floor(labels.length / 18);
+  if (step === 0) step = 1;
   // Copy the labels array into a new array
   // IMPORTANT: Do no overwrite the labels array, because we need it further
   const newLabels = [...labels];
@@ -39,9 +44,6 @@ const Heatmap = ({
   // Color to represent the maximum and minimum values in rgb format {r:r,g:g,b:b}
   maxValueColor = { r: 255, g: 0, b: 0 },
   minValueColor = { r: 0, g: 0, b: 255 },
-  // How many rows/columns are for every displayed label
-  xLabelStep = 10,
-  yLabelStep = 10,
 }) => {
   const processedData = useRef({});
 
@@ -207,8 +209,8 @@ const Heatmap = ({
     <Suspense fallback={<div className={style.loading}>Loading...</div>}>
       <HeatmapGrid
         data={data}
-        xLabels={labelStepper(xLabels, xLabelStep)}
-        yLabels={labelStepper(yLabels, yLabelStep)}
+        xLabels={labelStepper(xLabels)}
+        yLabels={labelStepper(yLabels)}
         xLabelsLocation={'bottom'}
         // Cells width is automatically calculated from number of labels to display and available space
         // Cells height is set here and it will take as much space as needed
