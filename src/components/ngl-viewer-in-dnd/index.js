@@ -24,64 +24,6 @@ const nextZ = () => {
   return maxZ;
 };
 
-/*
-// This function spawns all the NGL viewers needed
-// i.e. one viewer with the requested 'props' and all previous viewers which have been nailed
-const NGLViewerSpawner = inputs => {
-  // Redefine props since the input object is not modificable
-  const props = { ...inputs };
-  console.log(props);
-
-  // Multiple ngl viewers may be spawned
-  // Previous 'props' are stored in this array so we can keep rendering those viewers
-  // Props include all inputs and 'key' id
-  const nailed = useRef([]);
-
-  // Keep listed all arrays which have been used (i.e. ngl viewers which have been nailed or closed)
-  const usedIds = useRef([]);
-  // Find a new suitable Id that meet 2 conditions:
-  // - There is never 2 viewers with the same id, so we avoid errors
-  // - If we pick diferent frames in the graph without nailing anything, the current viewer has always the same id
-  // (This way the current viewer does not appear in the origin position every time)
-  const getNewId = () => {
-    let id = 0;
-    while (id < 999) {
-      if (usedIds.current.indexOf(id) === -1) return id;
-      id += 1;
-    }
-    console.error('Maximum number of viewers reached');
-  };
-
-  // Set a unique id for this props based in the last nailed viewer
-  props.id = getNewId();
-
-  // This function adds the current props to the nailed list when value = true. Add 1 to the nailed count
-  // This function removes the current props from the nailed list when value = false
-  props.nail = value => {
-    if (value) {
-      nailed.current.push(props);
-      usedIds.current.push(props.id);
-    } else {
-      nailed.current.splice(nailed.current.indexOf(props.id), 1);
-    }
-  };
-
-  // This function removes props from this viewer from the nailed list if it is nailed
-  // This function adds the current id to the used ids list
-  // (this way, if the current last window is closed we open a new one instead of reusing it)
-  props.setClosed = () => {
-    nailed.current.splice(nailed.current.indexOf(props.id), 0);
-    usedIds.current.push(props.id);
-  };
-
-  // Join the current props with all the nailed props
-  // It is important that the current props are the last in the array
-  // This way, the current props will be displayed in the new created ngl view, not in the nailed ngl view
-  const allProps = [...nailed.current, props];
-  // Render a viewer for each prop. Use the 'selected' parameter as unique id
-  return allProps.map(ps => <NGLViewerInDND key={ps.id} {...ps} />);
-};*/
-
 // This function spawns all the NGL viewers needed
 // i.e. one viewer with the requested 'props' and all previous viewers which have been nailed
 const NGLViewerSpawner = ({ newViewer, nailing = true, onNail, onClose }) => {
