@@ -14,3 +14,9 @@
 .card {
   margin: 1em 0;
 }
+
+.flipped {
+  transform: rotate(-90deg) translate(-100%);
+  position: absolute;
+  transform-origin: top left;
+}

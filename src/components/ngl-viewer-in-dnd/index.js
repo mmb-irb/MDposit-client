@@ -128,6 +128,8 @@ const NGLViewerInDND = props => {
         setPlace({ ...place });
       }}
       onDragStop={(e, d) => {
+        // Use this to reject some bugged event calls: e.g. the frames number selector
+        if (e.layerX === 0 && e.layerY === 0) return;
         // We re-render only if the new position does not equal the old position
         if (place.x !== d.x || place.y !== d.y)
           setPlace({

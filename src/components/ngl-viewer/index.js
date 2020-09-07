@@ -1,6 +1,7 @@
 import React, {
   forwardRef,
   memo,
+  useState,
   useRef,
   useImperativeHandle,
   useCallback,
@@ -55,10 +56,12 @@ const NGLViewer = memo(
         onProgress,
         projection,
         nFrames = DEFAULT_NUMBER_OF_FRAMES,
-        hovered,
-        selected, // Atom index of the atom/residue to be represented
-        selectedResidues, // residue indexes from residues to be represented
+        selectedAtoms, // Atom index of the atom and residue to be represented
+        selectedResidues, // Residue indexes from residues to be represented
+        selectedDistances, // Groups of 2 atoms or residues to be represented as a distance
+        selectedAngles, // Groups of 3 atoms to be represented as an angle
         noTrajectory, // True when only specific frames must be loaded
+        initialFocus = CHAIN_SELECTION, // The ngl selection to be focused by the camera initially
         darkBackground,
         perspective,
         speed,
@@ -74,6 +77,11 @@ const NGLViewer = memo(
       // data from context
       const accession = useContext(AccessionCtx);
       const { metadata, curatedOrientation } = useContext(ProjectCtx);
+
+      // The last automatic camera focus
+      const [focus, setFocus] = useState(initialFocus);
+      // Track when the first focus has been performed
+      const firstFocus = useRef(true);
 
       // references
       const containerRef = useRef(null);
@@ -340,6 +348,8 @@ const NGLViewer = memo(
         ).fill(1);
 
         comps.forEach((comp, c) => {
+          // WARNING: This seems useless since the focus is done anyway
+          // WARNING: However, he code fails when this is deleted
           const structureComponent = stageRef.current.addComponentFromObject(
             pdbFile,
           );
@@ -419,11 +429,11 @@ const NGLViewer = memo(
         toggler,
       ]);
 
-      // highlight hovered atoms from other components
+      // Highlight specific atoms
       useEffect(() => {
         // DANI: He tenido que quitar la condicion de 'instanceof Set' porque sino no me entraba en el heatmap
-        //if (!pdbFile || !(selected instanceof Set) || !(hovered || selected)) {
-        if (!pdbFile || !(hovered || selected)) {
+        //if (!pdbFile || !(selectedAtoms instanceof Set) || !(selectedAtoms)) {
+        if (!pdbFile || !selectedAtoms) {
           return;
         }
 
@@ -450,26 +460,7 @@ const NGLViewer = memo(
           );
         }
 
-        // Name for distance representation
-        const nameDistance = 'distance';
-        const previousDistanceRepresentation = stageRef.current.compList[0].reprList.find(
-          representation => representation.name === nameDistance,
-        );
-        if (previousDistanceRepresentation) {
-          stageRef.current.compList[0].removeRepresentation(
-            previousDistanceRepresentation,
-          );
-        }
-
-        let selectedPlusMaybeHovered;
-        if (hovered) {
-          selectedPlusMaybeHovered = new Set(selected);
-          selectedPlusMaybeHovered.add(hovered);
-        } else {
-          selectedPlusMaybeHovered = selected;
-        }
-
-        const atoms = Array.from(selectedPlusMaybeHovered);
+        const atoms = Array.from(selectedAtoms);
         if (!atoms.length) return;
 
         // ngl starts counting at 0
@@ -482,17 +473,6 @@ const NGLViewer = memo(
           opacity: 0.5,
           scale: 1.5,
           name: nameHighlight,
-        });
-
-        // Represente a labeled line between two selected atoms
-        const seleDistance = [...selected].map(a => a);
-        stageRef.current.compList[0].addRepresentation('distance', {
-          atomPair: [seleDistance],
-          color: 'skyblue',
-          labelUnit: 'nm',
-          name: nameDistance,
-          // Label color is the opposite of the background color
-          labelColor: darkBackground ? 16777215 : 1, // 16777215 is white, 1 is black
         });
 
         const seleContext = Array.from(
@@ -514,13 +494,10 @@ const NGLViewer = memo(
         });
 
         // Focus the highlighted zone with the camera
-        stageRef.current.compList[0].autoView(
-          seleContext,
-          DEFAULT_ORIENTATION_TRANSITION_DURATION,
-        );
-      }, [pdbFile, hovered, selected, darkBackground]);
+        setFocus(seleContext);
+      }, [pdbFile, selectedAtoms, darkBackground]);
 
-      // Highlight hovered residues
+      // Highlight specific residues
       useEffect(() => {
         if (!pdbFile || !selectedResidues) {
           return;
@@ -549,11 +526,61 @@ const NGLViewer = memo(
           name: nameHighlight,
         });
         // Focus the highlighted zone with the camera
-        stageRef.current.compList[0].autoView(
-          nglSelection,
-          DEFAULT_ORIENTATION_TRANSITION_DURATION,
-        );
+        setFocus(nglSelection);
       }, [pdbFile, selectedResidues]);
+
+      // Highlight specific distances
+      // When 'selectedDistances' is numeric it is taken as atoms
+      // When 'selectedDistances' is string it is taken as residues
+      // In both cases it works with absolute numeration
+      useEffect(() => {
+        if (!pdbFile || !selectedDistances) {
+          return;
+        }
+        //console.log(selectedDistances);
+        // Set a representation name. This is useful to find this representation further
+        const name = 'distance';
+        const previousRepresentation = stageRef.current.compList[0].reprList.find(
+          representation => representation.name === name,
+        );
+        // Remove the previous representation
+        if (previousRepresentation)
+          stageRef.current.compList[0].removeRepresentation(
+            previousRepresentation,
+          );
+
+        // Display the new distance representation
+        stageRef.current.compList[0].addRepresentation('distance', {
+          atomPair: selectedDistances,
+          color: 'skyblue',
+          labelUnit: 'angstrom',
+          name: name,
+          // Label color is the opposite of the background color
+          labelColor: darkBackground ? 16777215 : 1, // 16777215 is white, 1 is black
+        });
+      }, [pdbFile, selectedDistances, darkBackground]);
+
+      // Highlight specific angles
+      useEffect(() => {
+        if (!pdbFile || !selectedAngles) {
+          return;
+        }
+        // Set a representation name. This is useful to find this representation further
+        const name = 'angles';
+        const previousRepresentation = stageRef.current.compList[0].reprList.find(
+          representation => representation.name === name,
+        );
+        if (previousRepresentation)
+          stageRef.current.compList[0].removeRepresentation(
+            previousRepresentation,
+          );
+
+        stageRef.current.compList[0].addRepresentation('angle', {
+          atomTriple: selectedAngles,
+          name: name,
+          labelColor: darkBackground ? 16777215 : 1, // 16777215 is white, 1 is black
+        });
+      }, [pdbFile, selectedAngles, darkBackground]);
 
       // pause on loading
       // Make the NGL static while loading after user changes the frame number
@@ -593,13 +620,6 @@ const NGLViewer = memo(
             //console.log(frames[index]);
             frames[index].signals.frameChanged.add(handleFrameChange);
             frames[index].trajectory.setFrame(0);
-
-            // Focus de representation with the camera
-            /*
-            component.autoView(CHAIN_SELECTION, 0);
-            originalOritentationRef.current = stageRef.current.viewerControls.getOrientation();
-            component.reprList[index].repr.updateData(file);
-            */
           }
         });
 
@@ -826,6 +846,19 @@ const NGLViewer = memo(
         // Cleaning function
         return () => tooltip.remove();
       }, [pdbFile, metadata, metadata.CHAINNAMES]);
+
+      // Focus the specified ngl selection with the camera automatically
+      useEffect(() => {
+        const comp = stageRef.current.compList[0];
+        if (!comp) return;
+        let transition = DEFAULT_ORIENTATION_TRANSITION_DURATION;
+        // First transition is instantaneous
+        if (firstFocus.current) {
+          transition = 0;
+          firstFocus.current = false;
+        }
+        comp.autoView(focus, transition);
+      }, [focus]);
 
       // Expose public methods and getters/setters
       useImperativeHandle(

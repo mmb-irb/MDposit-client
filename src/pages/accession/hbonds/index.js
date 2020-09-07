@@ -7,6 +7,7 @@ import Loading from '../../../components/loading';
 import HorizontalBars from '../../../components/horizontal-bars';
 import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 import Info from '../../../components/info';
+import ChainsLegend from '../../../components/chains-legend';
 
 import useAPI from '../../../hooks/use-api';
 
@@ -31,9 +32,9 @@ const Hbonds = () => {
   const pdbData = useContext(PdbCtx);
 
   // The bar which the mouse is over
-  //const [hovered, setHovered] = useState(null);
-  // The bar which has been clicked
-  const [selected, setSelected] = useState(null);
+  const [hoveredHB, setHoveredHB] = useState(null);
+  // The hydrogen bond bar which the mouse has clicked
+  const [selectedHB, setSelectedHB] = useState(null);
 
   // Set the API url for the heatmap data
   const url = `${BASE_PATH_PROJECTS}${accession}/analyses/hbonds/`;
@@ -66,8 +67,10 @@ const Hbonds = () => {
     resnum1: [],
     atom2: [],
     resnum2: [],
+    link: [],
     acceptorAtomIndex: [],
     donorAtomIndex: [],
+    hydrogenAtomIndex: [],
   };
   const ylabels = [];
 
@@ -76,6 +79,7 @@ const Hbonds = () => {
     payload.resnum1 = [];
     payload.atom2 = [];
     payload.resnum2 = [];
+    payload.link = [];
     for (const hb in payload.hbonds) {
       const atom1 = getAtom(payload.acceptorAtomIndex[hb], pdbData.file);
       const residue1 = absolute2sourceResidue(atom1.residue);
@@ -85,6 +89,8 @@ const Hbonds = () => {
       const residue2 = absolute2sourceResidue(atom2.residue);
       payload.atom2.push(atom2.name);
       payload.resnum2.push(residue2.numeration);
+      const link = getAtom(payload.hydrogenAtomIndex[hb], pdbData.file);
+      payload.link.push(link.name);
     }
   }
 
@@ -94,23 +100,24 @@ const Hbonds = () => {
     data.resnum1.push(payload.resnum1[hb]);
     data.atom2.push(payload.atom2[hb]);
     data.resnum2.push(payload.resnum2[hb]);
+    data.link.push(payload.link[hb]);
     const numeration1 = complexNumerationParser(payload.resnum1[hb]);
     const numeration2 = complexNumerationParser(payload.resnum2[hb]);
     const res1 = source2modelResidue(numeration1, pdbData.file);
     const res2 = source2modelResidue(numeration2, pdbData.file);
     ylabels.push(
-      res1.tag +
-        '[' +
+      res1.ngl +
+        '.' +
         payload.atom1[hb] +
-        '] - ' +
-        res2.tag +
-        '[' +
-        payload.atom2[hb] +
-        ']',
+        ' - ' +
+        res2.ngl +
+        '.' +
+        payload.atom2[hb],
     );
     if (newFormat) {
       data.acceptorAtomIndex.push(payload.acceptorAtomIndex[hb]);
       data.donorAtomIndex.push(payload.donorAtomIndex[hb]);
+      data.hydrogenAtomIndex.push(payload.hydrogenAtomIndex[hb]);
     }
   }
 
@@ -134,13 +141,6 @@ const Hbonds = () => {
     return atomNumber;
   };
 
-  /*
-  let atomHoverion = [];
-  for (const h in hovered) {
-    atomHoverion.push(getAtomIndex(payload.resnum1[h]));
-    atomHoverion.push(getAtomIndex(payload.resnum2[h]));
-  }
-  */
   // Render
   return (
     <Suspense fallback={<Loading />}>
@@ -154,12 +154,13 @@ const Hbonds = () => {
               <br />
               All pairs of hydrogen bridging atoms are listed in order of
               probability. Left edge labels describe the acceptor and donor
-              atoms respectively. The horizontal bars stand for the percent of
-              frames along the trajectory in which the specified pair of atoms
-              may form an hydrogen bond. Two atoms are considered to form an
-              hydrogen bond when the distance between them is inferior to 3
-              Ångstroms and the 'acceptor atom - hydrogen - donor atom' angle is
-              superior to 15 degrees.
+              atoms respectively. Chain names are listed in the legend above.
+              The horizontal bars stand for the percent of frames along the
+              trajectory in which the specified pair of atoms may form an
+              hydrogen bond. Two atoms are considered to form an hydrogen bond
+              when the distance between them is inferior to 3 Ångstroms and the
+              'acceptor atom - hydrogen - donor atom' angle is superior to 15
+              degrees.
               <br />
               <br />
               <span style={{ color: 'lightGreen' }}> Click any bar </span>
@@ -170,34 +171,33 @@ const Hbonds = () => {
           }
         />
         <CardContent>
+          <ChainsLegend />
           <HorizontalBars
             data={data.hbonds}
             ylabels={ylabels}
             height={20 * data.hbonds.length}
             xMax={100}
-            //hovered={hovered}
-            //onHover={index => setHovered(index)}
-            selected={selected}
+            hoveredBar={hoveredHB}
+            onHover={index => setHoveredHB(index)}
+            selectedBar={selectedHB ? selectedHB.index : null}
             onClick={index => {
-              const atomSelection = newFormat
-                ? [data.acceptorAtomIndex[index], data.donorAtomIndex[index]]
-                : [
-                    getAtomIndex(data.resnum1[index], data.atom1[index]),
-                    getAtomIndex(data.resnum2[index], data.atom2[index]),
-                  ];
-              // DANI: Esto no tiene sentido
-              //console.log(selected);
-              setSelected(atomSelection);
-              /*
-              if (selected && selected.includes(index)){
-                const i = selected.indexOf(index);
-                const deselected = selected.splice(i,1);
-                setSelected(deselected);
-              }
-              else{
-                setSelected((selected && [...selected, index]) || [index]);
-              }
-              */
+              // Convert the clicked bar index to the corresponding atom indexes
+              if (index < 0) return;
+              const acceptor = newFormat
+                ? data.acceptorAtomIndex[index]
+                : getAtomIndex(data.resnum1[index], data.atom1[index]);
+              const donor = newFormat
+                ? data.donorAtomIndex[index]
+                : getAtomIndex(data.resnum2[index], data.atom2[index]);
+              const hydrogen = newFormat
+                ? data.hydrogenAtomIndex[index]
+                : getAtomIndex(data.resnum2[index], data.link[index]);
+              setSelectedHB({
+                index,
+                selectedAtoms: [acceptor, donor],
+                selectedDistances: [[acceptor, donor]],
+                selectedAngles: [[acceptor, hydrogen, donor]],
+              });
             }}
           />
         </CardContent>
@@ -205,27 +205,28 @@ const Hbonds = () => {
       <NGLViewerSpawner
         // Set the new viewer or null if there is not a proper "selected" value
         newViewer={
-          selected && selected.length > 0
+          selectedHB
             ? {
                 accession: accession,
-                selected: selected,
-                //hovered: atomHoverion,
+                selectedAtoms: selectedHB.selectedAtoms,
+                selectedDistances: selectedHB.selectedDistances,
+                selectedAngles: selectedHB.selectedAngles,
               }
             : null
         }
         // If the nailed/closed viewer is the current viewer then reset the 'selected'
         onNail={viewer =>
-          setSelected(previous => {
-            if (viewer.selected === previous) return null;
+          setSelectedHB(previous => {
+            if (viewer.selectedAtoms === previous.selectedAtoms) return null;
             else return previous;
           })
         }
-        onClose={viewer =>
-          setSelected(previous => {
-            if (viewer.selected === previous) return null;
+        onClose={viewer => {
+          setSelectedHB(previous => {
+            if (viewer.selectedAtoms === previous.selectedAtoms) return null;
             else return previous;
-          })
-        }
+          });
+        }}
       />
     </Suspense>
   );

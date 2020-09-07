@@ -4,26 +4,12 @@ import { Card, CardContent, Typography } from '@material-ui/core';
 
 import style from './style.module.css';
 
+import D3HeatmapGrid from '../d3-heatmap-grid';
+
 // Heatmap moduel: https://www.npmjs.com/package/react-heatmap-grid
 const HeatmapGrid = lazy(() =>
   import(/* webpackChunkName: 'react-heatmap-grid' */ 'react-heatmap-grid'),
 );
-
-// Takes a string array and return the array after converting some strings in ''
-// It is useful to delete some labels, so they are not all displayed
-const labelStepper = labels => {
-  // DANI: Este '18' lo he obtenido experimentalmente (queda bien)
-  // DANI: Lo suyo sería usar el ancho de pantalla para calcular este número
-  // DANI: Ahora mismo esto no es sensible al ancho de pantalla. Si esta es muy estrecha quedará mal.
-  let step = Math.floor(labels.length / 18);
-  if (step === 0) step = 1;
-  // Copy the labels array into a new array
-  // IMPORTANT: Do no overwrite the labels array, because we need it further
-  const newLabels = [...labels];
-  // If this is not multiple of the label step, delete the label setting it as ''
-  for (const l in newLabels) if (l % step !== 0) newLabels[l] = '';
-  return newLabels;
-};
 
 const Heatmap = ({
   // The API url to load the main data
@@ -32,9 +18,6 @@ const Heatmap = ({
   // Maximum number of x and y cells
   xMaxCells = 110,
   yMaxCells = 260,
-  // Total heatmap height (no cell height)
-  // In case the cell number does not reach the maximum, cells are enlarged
-  totalHeight = 520,
   // Function to be called when the user clicks in a heatmap cell
   onClick,
   // Title to be rendered over the legend
@@ -44,6 +27,8 @@ const Heatmap = ({
   // Color to represent the maximum and minimum values in rgb format {r:r,g:g,b:b}
   maxValueColor = { r: 255, g: 0, b: 0 },
   minValueColor = { r: 0, g: 0, b: 255 },
+  xTitle,
+  yTitle,
 }) => {
   const processedData = useRef({});
 
@@ -61,12 +46,8 @@ const Heatmap = ({
     const xLength = rData[0].length;
     const yLength = rData.length;
 
-    // Set how many labels there must be
-    const xMax = xMaxCells;
-    const yMax = yMaxCells;
-
-    const xstep = xLength / xMax;
-    const ystep = yLength / yMax;
+    const xstep = xLength / xMaxCells;
+    const ystep = yLength / yMaxCells;
 
     // Get a reduced subset of data which respects the maximum x and y lengths
     let data;
@@ -75,8 +56,8 @@ const Heatmap = ({
         data = rData;
       } else {
         data = new Array(yLength);
-        const summarizedIndexes = new Array(xMax);
-        for (let x = 0; x < xMax; x++) {
+        const summarizedIndexes = new Array(xMaxCells);
+        for (let x = 0; x < xMaxCells; x++) {
           summarizedIndexes[x] = Math.round(x * xstep);
         }
         for (let y = 0; y < yLength; y++) {
@@ -84,17 +65,17 @@ const Heatmap = ({
         }
       }
     } else {
-      data = new Array(yMax);
+      data = new Array(yMaxCells);
       if (xstep <= 1) {
-        for (let y = 0; y < yMax; y++) {
+        for (let y = 0; y < yMaxCells; y++) {
           data[y] = rData[Math.round(y * ystep)];
         }
       } else {
-        const summarizedIndexes = new Array(xMax);
-        for (let x = 0; x < xMax; x++) {
+        const summarizedIndexes = new Array(xMaxCells);
+        for (let x = 0; x < xMaxCells; x++) {
           summarizedIndexes[x] = Math.round(x * xstep);
         }
-        for (let y = 0; y < yMax; y++) {
+        for (let y = 0; y < yMaxCells; y++) {
           data[y] = summarizedIndexes.map(x => rData[y][x]);
         }
       }
@@ -118,8 +99,8 @@ const Heatmap = ({
     if (xstep <= 1) {
       xLabels = rxLabels;
     } else {
-      xLabels = new Array(xMax);
-      for (let i = 0; i < xMax; i++)
+      xLabels = new Array(xMaxCells);
+      for (let i = 0; i < xMaxCells; i++)
         xLabels[i] = rxLabels[Math.round(i * xstep)];
     }
 
@@ -127,15 +108,10 @@ const Heatmap = ({
     if (ystep <= 1) {
       yLabels = ryLabels;
     } else {
-      yLabels = new Array(yMax);
-      for (let i = 0; i < yMax; i++)
+      yLabels = new Array(yMaxCells);
+      for (let i = 0; i < yMaxCells; i++)
         yLabels[i] = ryLabels[Math.round(i * ystep)];
     }
-
-    // Set the cells height to reach the specified height
-    let cellHeight;
-    if (ystep <= 1) cellHeight = totalHeight / yLength;
-    else cellHeight = totalHeight / yMax;
 
     // Set the legend, which is another heatmap
     const minValue = Math.min(...data.map(values => Math.min(...values)));
@@ -172,10 +148,9 @@ const Heatmap = ({
       xstep: xstep,
       ystep: ystep,
       yLength: yLength,
-      cellHeight: cellHeight,
     };
     // WARNING: Changes in 'inputData' may be not detected
-  }, [inputData, xMaxCells, yMaxCells, legendLength, totalHeight]);
+  }, [inputData, xMaxCells, yMaxCells, legendLength]);
 
   // Render loading or error messages according with the API response
   if (!inputData) return 'Heatmap Error: No "inputData" was provided';
@@ -189,7 +164,6 @@ const Heatmap = ({
     yLabels,
     legendData,
     legendLabels,
-    cellHeight,
   } = processedData.current;
 
   // Color interpolation from red (closest) to blue (farest)
@@ -207,14 +181,25 @@ const Heatmap = ({
   // Render
   return (
     <Suspense fallback={<div className={style.loading}>Loading...</div>}>
+      <D3HeatmapGrid
+        data={data}
+        xLabels={xLabels}
+        yLabels={yLabels}
+        xTitle={xTitle}
+        yTitle={yTitle}
+        height={yLabels.length === 1 ? 150 : undefined}
+        onClick={onClick ? d => onClick(d.x, d.y) : undefined}
+      />
+      {/**
       <HeatmapGrid
         data={data}
-        xLabels={labelStepper(xLabels)}
-        yLabels={labelStepper(yLabels)}
+        xLabels={xLabelStepper(xLabels)}
+        yLabels={yLabelStepper(yLabels)}
         xLabelsLocation={'bottom'}
         // Cells width is automatically calculated from number of labels to display and available space
         // Cells height is set here and it will take as much space as needed
         height={cellHeight}
+        yLabelWidth={longestY}
         cellStyle={(background, value, min, max, data, x, y) => ({
           background: colorinter(value, min, max),
           margin: '0px',
@@ -222,7 +207,8 @@ const Heatmap = ({
         onClick={
           onClick ? (x, y) => onClick(xLabels[x], yLabels[y]) : undefined
         }
-      />
+      /> */}
+
       {legendTitle && (
         <Card className={style.card}>
           <CardContent>

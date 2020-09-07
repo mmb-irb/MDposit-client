@@ -216,7 +216,7 @@ const NGLViewerWithControls = forwardRef(
     const [spinning, toggleSpinning] = useToggleState(false);
     const [smooth, toggleSmooth] = useToggleState(true);
     const [darkBackground, toggleDarkBackground] = useToggleState(
-      useMemo(() => get('dark-background', true), []),
+      useMemo(() => get('dark-background', false), []),
     );
     const [perspective, togglePerspective] = useToggleState(
       useMemo(() => get('perspective', false), []),
@@ -308,7 +308,6 @@ const NGLViewerWithControls = forwardRef(
             onProgress={setProgress}
             ref={viewerRef}
             noTrajectory={noTrajectory}
-            framesSelect={framesSelect}
             nFrames={nFrames}
             darkBackground={darkBackground}
             perspective={perspective}
@@ -512,7 +511,10 @@ const NGLViewerWithControls = forwardRef(
               <FormControl>
                 <InputLabel>frames</InputLabel>
                 <Select
-                  native
+                  // DANI: Esto de 'native' hace que quede mucho mejor
+                  // DANI: El problema es un bug inexplicable en mozilla que hace que el 'Rnd' salte mucho
+                  // DANI: Cuando no es 'native' aparece un log de error en consola. De momento lo ignoro
+                  //native
                   value={nFrames}
                   onChange={({ target: { value } }) => setNFrames(value)}
                 >

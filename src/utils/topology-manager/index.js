@@ -69,10 +69,24 @@ const numerationFormat = /^([A-Z]):([0-9]*)([A-Z]?)$/;
 export const complexNumerationParser = numeration => {
   const result = numerationFormat.exec(numeration);
   if (!result)
-    return console.error('No matched numeration value: ' + numeration);
+    throw new Error('No matched complex numeration value: ' + numeration);
   const chain = result[1];
   const residue = result[2];
   const icode = result[3] || '';
+  // Formated selection to select this specific residue in NGL
+  const nglSelection = ':' + chain + ' and ' + residue;
+  return { chain, residue: +residue, icode, nglSelection };
+};
+
+// Harvest from a '[residue_type]residue:chain' string the chain letter and the residue number values
+const nglFormat = /^\[[A-Z_]*\]([0-9]*)([A-Z]?):([A-Z])$/;
+export const nglNumerationParser = numeration => {
+  const result = nglFormat.exec(numeration);
+  if (!result)
+    throw new Error('No matched NGL numeration value: ' + numeration);
+  const chain = result[3];
+  const residue = result[1];
+  const icode = result[2] || ''; // DANI: El icode es de mi huerto. Falta chequear
   // Formated selection to select this specific residue in NGL
   const nglSelection = ':' + chain + ' and ' + residue;
   return { chain, residue: +residue, icode, nglSelection };
@@ -87,6 +101,7 @@ export const getAtomResidue = (atom, topology = PdbCtx._currentValue.file) => {
 
 // Get first atom absolute number from resiude absolute number
 // DANI: Hay que revisar esos -1 y +1
+// DANI: Creo que esto ya no se usa. Borralo si te apura
 export const getResidueFirstAtom = (
   residue,
   topology = PdbCtx._currentValue.file,
@@ -125,6 +140,48 @@ export const getMetadataChainname = (
   // The 'A' string returns 65, the 'B' returns 66 and so on
   //const name = metadataChainnames[chain.charCodeAt(0) - 65];
   return '';
+};
+
+// This function returns the chain names from an array with chain letters (e.g ['A','B'])
+// Results are collapsed according to unique chainnames
+export const getMetadataChainnames = (
+  chains,
+  metadata = ProjectCtx._currentValue.metadata,
+  topology = PdbCtx._currentValue.file,
+) => {
+  // Get unique chains
+  chains = Array.from(new Set(chains));
+  // Get the name of each chain individually
+  // Also, compile all chainnames in a single array
+  const results = [];
+  const chainnames = [];
+  for (const c of chains) {
+    const chainname = getMetadataChainname(c, metadata, topology);
+    results.push({ chain: c, name: chainname });
+    chainnames.push(chainname);
+  }
+  // Collapse the results
+  const uniqueChainnames = Array.from(new Set(chainnames));
+  const collapsedChains = [];
+  const collapsedResults = [];
+  for (let u = 0; u < uniqueChainnames.length; u++) {
+    const unique = uniqueChainnames[u];
+    let collapsed = '';
+    for (let c = 0; c < chainnames.length; c++) {
+      const name = chainnames[c];
+      if (unique === name) if (collapsed) collapsed += ', ';
+      collapsed += chains[c];
+    }
+    collapsedChains[u] = collapsed;
+    collapsedResults.push({ name: unique, chains: collapsed });
+  }
+  // Put it all as a sentence
+  let sentence = '';
+  for (const cr of collapsedResults) {
+    if (sentence) sentence += ', ';
+    sentence += cr.name + ' (' + cr.chains + ')';
+  }
+  return { results, collapsedResults, sentence };
 };
 
 // This function returns the chain index from a chain letter (e.g 'A')
@@ -193,8 +250,9 @@ export const absolute2modelResidue = (
   const numeration = chain + ':' + chainResidue;
   const tag =
     chain + '(' + chainName + '):' + chainResidue + '(' + residueType + ')';
+  const ngl = '[' + residueType + ']' + chainResidue + ':' + chain;
   //console.log(residue + ' -> ' + chainResidue);
-  return { chain, chainName, chainResidue, residueType, numeration, tag };
+  return { chain, chainName, chainResidue, residueType, numeration, tag, ngl };
 };
 
 // This function converts absolute residue numbers to topology residue numbers
@@ -203,6 +261,10 @@ export const absolute2sourceResidue = (
   topology = PdbCtx._currentValue.file,
 ) => {
   //console.log(topology);
+  if (!Number.isInteger(residue))
+    throw new Error(
+      `The residue value must be an integer. ${residue} is not valid`,
+    );
   const count = topology.residueStore.count;
   if (residue >= count)
     throw new Error(

@@ -19,7 +19,11 @@ import Loading from '../../components/loading'; // Displays an animated "loading
 import { AccessionCtx, ProjectCtx, PdbCtx } from '../../contexts';
 
 // Constants
-import { BASE_PATH, BASE_PATH_PROJECTS } from '../../utils/constants';
+import {
+  BASE_PATH,
+  BASE_PATH_PROJECTS,
+  NICE_NAMES,
+} from '../../utils/constants';
 
 // CSS styles
 import style from './style.module.css';
@@ -347,14 +351,15 @@ const LinkSwitch = ({ accession, subPage }) => {
 };
 
 export default ({ match, setProject }) => {
-  //console.log(setProject);
+  //console.log(match);
   return (
     // Set the accession context, which is used by different scripts including this
     <AccessionCtx.Provider value={match.params.accession}>
       <span className={style.container}>
         {/* Render the accession */}
-        <Typography variant="h4" className={style.title}>
-          Accession: {match.params.accession}
+        <Typography variant="h6" className={style.title}>
+          {match.params.accession} -{' '}
+          {NICE_NAMES.get(match.params.subPage) || match.params.subPage}
         </Typography>
         {/* Render a button which links to the API */}
         <LinkSwitch

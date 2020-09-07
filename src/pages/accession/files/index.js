@@ -1,3 +1,5 @@
+// This script handles the 'Downloads' page, which was called 'Files' before
+
 import React, { useContext } from 'react';
 import prettyBytes from 'pretty-bytes';
 
@@ -94,7 +96,7 @@ export default React.memo(() => {
               const href =
                 url || `${BASE_PATH_PROJECTS}${identifier}/files/${filename}`;
               return (
-                <ExpansionPanel key={md5 || filename}>
+                <ExpansionPanel key={filename}>
                   <ExpansionPanelSummary
                     expandIcon={<FontAwesomeIcon icon={faChevronDown} />}
                     className={style.summary}

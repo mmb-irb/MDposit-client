@@ -36,9 +36,9 @@ const FluctuationAnalysis = () => {
 
   // React hooks
   // Set when the mouse is over the graph
-  const [hovered, setHovered] = useState(null);
-  // Set when one point in the graph is selected
-  const [selected, setSelected] = useState(new Set());
+  const [hoveredAtom, setHoveredAtom] = useState(null);
+  // Set when one point in the graph (which stands for an atom) is selected
+  const [selectedAtoms, setSelectedAtoms] = useState(new Set());
 
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
@@ -99,10 +99,10 @@ const FluctuationAnalysis = () => {
             yLabel={'Fluctuation (nm)'}
             type={'dash'}
             startsAtOne={true}
-            onHover={setHovered}
-            hovered={hovered}
-            onSelect={setSelected}
-            selected={selected}
+            onHover={setHoveredAtom}
+            hovered={hoveredAtom}
+            onSelect={setSelectedAtoms}
+            selected={selectedAtoms}
             showPrecisionSlider={false}
           />
         </CardContent>
@@ -110,19 +110,20 @@ const FluctuationAnalysis = () => {
       <NGLViewerSpawner
         // Set the new viewer or null if there is not a proper "selected" value
         newViewer={
-          selected && selected.size
+          selectedAtoms && selectedAtoms.size
             ? {
                 accession: accession,
-                hovered: hovered,
-                selected: selected,
+                selectedAtoms: hoveredAtom
+                  ? new Set([...selectedAtoms, hoveredAtom])
+                  : selectedAtoms,
               }
             : null
         }
         nailing={false}
         // If the closed viewer is the current viewer then reset the 'selected'
         onClose={viewer =>
-          setSelected(previous => {
-            if (viewer.selected === previous) return new Set();
+          setSelectedAtoms(previous => {
+            if (viewer.selectedAtoms === previous) return new Set();
             else return previous;
           })
         }

@@ -1,7 +1,6 @@
 import React, { memo, useContext, useEffect } from 'react';
 // A hook to track whenever some element is on screen
 import { useInView } from 'react-intersection-observer';
-import { round } from 'lodash-es';
 
 import {
   CardContent,
@@ -33,6 +32,7 @@ const na = 'Not available';
 export const TrajectoryMetadata = memo(() => {
   // Load metadata from the project context
   const { metadata } = useContext(ProjectCtx);
+  const round2decimals = number => Math.round(number * 100) / 100;
   if (metadata)
     // Render the whole metadata
     return (
@@ -102,7 +102,11 @@ export const TrajectoryMetadata = memo(() => {
             className={style['text-field']}
             label="Size X"
             title="Simulated system box X dimension"
-            value={metadata.BOXSIZEX === null ? na : metadata.BOXSIZEX}
+            value={
+              metadata.BOXSIZEX === null
+                ? na
+                : round2decimals(metadata.BOXSIZEX)
+            }
             disabled={metadata.BOXSIZEX === null}
             InputProps={{
               endAdornment: (
@@ -116,7 +120,11 @@ export const TrajectoryMetadata = memo(() => {
             className={style['text-field']}
             label="Size Y"
             title="Simulated system box Y dimension"
-            value={metadata.BOXSIZEY === null ? na : metadata.BOXSIZEY}
+            value={
+              metadata.BOXSIZEY === null
+                ? na
+                : round2decimals(metadata.BOXSIZEY)
+            }
             disabled={metadata.BOXSIZEY === null}
             InputProps={{
               endAdornment: (
@@ -130,7 +138,11 @@ export const TrajectoryMetadata = memo(() => {
             className={style['text-field']}
             label="Size Z"
             title="Simulated system box Z dimension"
-            value={metadata.BOXSIZEZ === null ? na : metadata.BOXSIZEZ}
+            value={
+              metadata.BOXSIZEZ === null
+                ? na
+                : round2decimals(metadata.BOXSIZEZ)
+            }
             disabled={metadata.BOXSIZEZ === null}
             InputProps={{
               endAdornment: (
@@ -149,11 +161,8 @@ export const TrajectoryMetadata = memo(() => {
               metadata.BOXSIZEY === null ||
               metadata.BOXSIZEZ === null
                 ? na
-                : round(
-                    +metadata.BOXSIZEX *
-                      +metadata.BOXSIZEY *
-                      +metadata.BOXSIZEZ,
-                    5,
+                : round2decimals(
+                    metadata.BOXSIZEX * metadata.BOXSIZEY * metadata.BOXSIZEZ,
                   )
             }
             disabled={

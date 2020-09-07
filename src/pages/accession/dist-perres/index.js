@@ -14,8 +14,10 @@ import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 import {
   complexNumerationParser,
+  nglNumerationParser,
   source2modelResidue,
   model2sourceResidue,
+  getMetadataChainnames,
 } from '../../../utils/topology-manager';
 
 import Info from '../../../components/info';
@@ -23,8 +25,6 @@ import Selector from '../../../components/selector';
 import Heatmap from '../../../components/heatmap';
 
 import style from './style.module.css';
-
-//import HorizontalBars from '../../../components/horizontal-bars';
 
 const DistPerres = () => {
   // Get the accession
@@ -42,7 +42,7 @@ const DistPerres = () => {
     metadata.INTERFACES[0] || '',
   );
 
-  // The selected atoms
+  // The selected heatmap residues
   const [selected, setSelected] = useState(null);
 
   // The graphic to be displayed ('mean' or 'stdv')
@@ -117,20 +117,29 @@ const DistPerres = () => {
   if (!pdbData.file) return <Loading />;
 
   // If any of the labels is empty we can't render the heatmap
-  //if (filteredData.current.xLabels.length === 0 || filteredData.current.yLabels.length === 0)
-  //return 'Analysis error: At least one of the dimensions is empty'
+  // if (filteredData.current.xLabels.length === 0 || filteredData.current.yLabels.length === 0)
+  // return 'Analysis error: At least one of the dimensions is empty'
 
   // Convert the yLabels from topology numeration to model numeration
+  // Also, harvest x and y chains to elaborate their axes titles
+  const xChains = [];
   const mxLabels = filteredData.current.xLabels.map(lab => {
     const numeration = complexNumerationParser(lab);
     const mod = source2modelResidue(numeration, pdbData.file);
-    return mod.numeration;
+    xChains.push(mod.chain);
+    return mod.ngl;
   });
+  const yChains = [];
   const myLabels = filteredData.current.yLabels.map(lab => {
     const numeration = complexNumerationParser(lab);
     const mod = source2modelResidue(numeration, pdbData.file);
-    return mod.numeration;
+    yChains.push(mod.chain);
+    return mod.ngl;
   });
+  const xTitle = getMetadataChainnames(xChains, metadata, pdbData.file)
+    .sentence;
+  const yTitle = getMetadataChainnames(yChains, metadata, pdbData.file)
+    .sentence;
 
   // Set which options will be available in the resiude selector
   const selectorOptions = [{ label: 'All', value: '' }];
@@ -143,10 +152,14 @@ const DistPerres = () => {
   };
 
   // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
-  const modelLabel2source = label => {
-    const num = complexNumerationParser(label);
+  // ALso retireve the absolute residue number, since it is used to ask for the distance representation
+  const parseLabel = label => {
+    const num = nglNumerationParser(label);
     const source = model2sourceResidue(num, pdbData.file);
-    return source.numeration;
+    return {
+      forResidue: source.numeration,
+      forDistance: source.residueNumber.toString() + '.CA',
+    };
   };
 
   // Render
@@ -176,7 +189,7 @@ const DistPerres = () => {
           />
         </CardContent>
       </Card>
-      <Card className={style.margined}>
+      <Card className={style.margined} id="heatmap">
         <Info
           reference={'dist-perres-heatmap'}
           tooltip={
@@ -185,7 +198,7 @@ const DistPerres = () => {
               <br />
               <br />
               This heatmap represents the distance between the geometric center
-              of selected residues from different proteins. Both horizontal and
+              of selected residues from different molecules. Both horizontal and
               vertical edges stand for residue numbers. The color stands for the
               distance and it ranges from blue (far) to red (close). The legend
               below shows the corresponding values in Ångstroms.
@@ -217,16 +230,20 @@ const DistPerres = () => {
             />
             <Tab value={'stdv'} label="Residues distance standard deviations" />
           </Tabs>
-          {/* For more than one resiude in the 'y' */}
           <Heatmap
             inputData={{
               data: filteredData.current[display],
               xLabels: mxLabels,
               yLabels: myLabels,
             }}
-            onClick={(x, y) =>
-              setSelected([modelLabel2source(x), modelLabel2source(y)])
-            }
+            onClick={(x, y) => {
+              const px = parseLabel(x);
+              const py = parseLabel(y);
+              setSelected({
+                residues: [px.forResidue, py.forResidue],
+                distance: [[px.forDistance, py.forDistance]],
+              });
+            }}
             legendTitle={
               display === 'mean'
                 ? 'Distance average (Å)'
@@ -235,31 +252,10 @@ const DistPerres = () => {
             // Invert colors here, since minimum values belong to closer residues
             maxValueColor={{ r: 0, g: 0, b: 255 }}
             minValueColor={{ r: 255, g: 0, b: 0 }}
+            totalHeight={myLabels.length === 1 ? 30 : undefined}
+            xTitle={xTitle}
+            yTitle={yTitle}
           />
-          {/*filteredData.current.yLabels.length !== 1 ?
-        // For more than one resiude in the 'y'
-        <Heatmap
-          inputData={{
-            data: filteredData.current.mean,
-            xLabels: filteredData.current.xLabels,
-            yLabels: filteredData.current.yLabels,
-          }}
-          onClick={(x, y) => setSelected([x, y])}
-          legendTitle={'Distance average (Å)'}
-          // Invert colors here, since minimum values belong to closer residues
-          maxValueColor={{ r: 0, g: 0, b: 255 }}
-          minValueColor={{ r: 255, g: 0, b: 0 }}
-        />:
-        // For only one resiude in the 'y'
-        <HorizontalBars
-          data={filteredData.current.mean[0]}
-          ylabels={filteredData.current.xLabels}
-          height={20 * filteredData.current.mean[0].length}
-          selected={selected}
-          onClick={index => { 
-            setSelected(index);
-          }}
-        />*/}
         </CardContent>
       </Card>
       <NGLViewerSpawner
@@ -268,20 +264,21 @@ const DistPerres = () => {
           selected
             ? {
                 accession: accession,
-                selectedResidues: selected,
+                selectedResidues: selected.residues,
+                selectedDistances: selected.distance,
               }
             : null
         }
         // If the nailed/closed viewer is the current viewer then reset the 'selected'
         onNail={viewer =>
           setSelected(previous => {
-            if (viewer.selectedResidues === previous) return null;
+            if (viewer.selectedResidues === previous.residues) return null;
             else return previous;
           })
         }
         onClose={viewer =>
           setSelected(previous => {
-            if (viewer.selectedResidues === previous) return null;
+            if (viewer.selectedResidues === previous.residues) return null;
             else return previous;
           })
         }

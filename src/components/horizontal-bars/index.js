@@ -11,6 +11,8 @@ import {
   mouse,
 } from 'd3';
 
+import { getTextWidth } from '../../utils/document-measurer';
+
 import style from './style.module.css';
 
 const HorizontalBars = ({
@@ -25,53 +27,31 @@ const HorizontalBars = ({
   width = 500,
   height = 260,
   // Hooks
-  hovered,
+  hoveredBar,
   onHover,
-  selected,
+  selectedBar,
   onClick,
 }) => {
   const containerRef = useRef(null);
+  const previousChart = useRef(null);
 
   useEffect(() => {
     if (!data) return 'Data is requiered';
 
-    /*
-    // This function allows to calculate the width of a given string text
-    // The font for the calculation in the d3 default font
-    const getTextWidth = (text, font = 'bold 10px sans-serif') => {
-      const canvas =
-        getTextWidth.canvas ||
-        (getTextWidth.canvas = document.createElement('canvas'));
-      const context = canvas.getContext('2d');
-      context.font = font;
-      const metrics = context.measureText(text);
-      return metrics.width;
-    };
-    */
-    // Alternative way to obtain width
-    const getTextWidthDOM = (text, font = 'bold 10px sans-serif') => {
-      const element = document.createElement('div');
-      const content = document.createTextNode(text);
-      element.appendChild(content);
-      Object.assign(element.style, {
-        font: font,
-        position: 'absolute',
-        visibility: 'hidden',
-        height: 'auto',
-        width: 'auto',
-        'white-space': 'nowrap',
-      });
-      document.body.appendChild(element);
-      return element.clientWidth;
-    };
-
     // Get the calculated widths of all y labels and select the maximum
+    // WARNING: This 'max' is not the usual 'Math.max'
     const maxYLabelWidth = max(
-      ylabels.map(label => getTextWidthDOM(label, 'bold 8px sans-serif')),
+      ylabels.map(label => getTextWidth(label, 'normal 8px sans-serif')),
     );
 
     // Set the chart margins, using the maximum y label width as left margin
-    const margin = { top: 30, right: 15, bottom: 10, left: maxYLabelWidth };
+    //const margin = { top: 30, right: 15, bottom: 10, left: maxYLabelWidth };
+    const margin = {
+      top: 30,
+      right: 15,
+      bottom: 10,
+      left: maxYLabelWidth + 15,
+    };
 
     const xMaximum = xMax || max(data, d => d);
     const x = scaleLinear()
@@ -99,7 +79,12 @@ const HorizontalBars = ({
             .tickFormat(i => (ylabels && ylabels[i]) || null)
             .tickSizeOuter(0),
         )
-        .style('font', '8px sans-serif');
+        .style('font', 'normal 8px sans-serif');
+
+    // Reset the chart
+    // WARNING: For some reason, if this part is re-render the original render is not gone
+    // WARNING: We must reset the element manually or infinite elements are rendered and stacked
+    if (previousChart.current) previousChart.current.remove();
 
     const chart = select(containerRef.current)
       .append('svg')
@@ -107,12 +92,17 @@ const HorizontalBars = ({
 
     chart
       .append('g')
-      .attr('fill', 'steelblue')
       .selectAll('rect')
       .data(data)
       .join('rect')
       .attr('x', x(0))
       .attr('y', (d, i) => y(i))
+      // Color the bars according to if their al selected, hovered or idle
+      .attr('fill', (d, i) => {
+        if (selectedBar !== null && i === selectedBar) return 'yellow';
+        if (hoveredBar !== null && i === hoveredBar) return 'green';
+        else return 'steelblue';
+      })
       .attr(
         'width',
         d => (d / xMaximum) * (width - (margin.left + margin.right)),
@@ -139,8 +129,9 @@ const HorizontalBars = ({
         //console.log(yValue + ' -> ' + positionIndex);
         onHover(positionIndex);
       });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  // For some reason, if this part is re-render the original render is not gone, so 2 elements are rendered
+
+    previousChart.current = chart;
+  }, [hoveredBar, selectedBar]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>
