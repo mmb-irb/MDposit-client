@@ -5,6 +5,7 @@ import { CardContent } from '@material-ui/core';
 import Card from '../../../components/animated-card';
 import Loading from '../../../components/loading';
 import HorizontalBars from '../../../components/horizontal-bars';
+import D3HeatmapGrid from '../../../components/d3-heatmap-grid';
 import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 import Info from '../../../components/info';
 import ChainsLegend from '../../../components/chains-legend';
@@ -52,13 +53,24 @@ const Hbonds = () => {
   // The new format has 4 fields: acceptorAtomIndex, donorAtomIndex, hydrogenAtomIndex and hbonds
   // The old format has 6 fields: atom1, resnum1, atom2, resnum2, link and hbonds
   const newFormat = !!payload.acceptorAtomIndex;
+  // The framed format is the new format with arrays of 1s and 0s instead of a percent in 'hbonds'
+  const framedFormat = !!payload.hbonds[0].length;
+
+  const percents = framedFormat
+    ? payload.hbonds.map(hb => {
+        const totalFrames = hb.length;
+        const hbFrames = hb.filter(value => value === 1).length;
+        return (hbFrames / totalFrames) * 100;
+      })
+    : payload.hbonds;
 
   // Get the orderer index of 'payload.hbonds' values greater than 1%
-  const orderedIndexes = Array.from(Array(payload.hbonds.length).keys());
+  const orderedIndexes = Array.from(Array(percents.length).keys());
   orderedIndexes.sort((a, b) => {
-    return payload.hbonds[b] - payload.hbonds[a];
+    return percents[b] - percents[a];
   });
-  const indexes = orderedIndexes.filter(i => payload.hbonds[i] > 1);
+
+  const indexes = orderedIndexes.filter(i => percents[i] > 1);
 
   // Use the indexes array to get a new filtered and ordered data set
   const data = {
@@ -141,6 +153,8 @@ const Hbonds = () => {
     return atomNumber;
   };
 
+  //console.log(ylabels);
+
   // Render
   return (
     <Suspense fallback={<Loading />}>
@@ -172,34 +186,66 @@ const Hbonds = () => {
         />
         <CardContent>
           <ChainsLegend />
-          <HorizontalBars
-            data={data.hbonds}
-            ylabels={ylabels}
-            height={20 * data.hbonds.length}
-            xMax={100}
-            hoveredBar={hoveredHB}
-            onHover={index => setHoveredHB(index)}
-            selectedBar={selectedHB ? selectedHB.index : null}
-            onClick={index => {
-              // Convert the clicked bar index to the corresponding atom indexes
-              if (index < 0) return;
-              const acceptor = newFormat
-                ? data.acceptorAtomIndex[index]
-                : getAtomIndex(data.resnum1[index], data.atom1[index]);
-              const donor = newFormat
-                ? data.donorAtomIndex[index]
-                : getAtomIndex(data.resnum2[index], data.atom2[index]);
-              const hydrogen = newFormat
-                ? data.hydrogenAtomIndex[index]
-                : getAtomIndex(data.resnum2[index], data.link[index]);
-              setSelectedHB({
-                index,
-                selectedAtoms: [acceptor, donor],
-                selectedDistances: [[acceptor, donor]],
-                selectedAngles: [[acceptor, hydrogen, donor]],
-              });
-            }}
-          />
+          {framedFormat ? (
+            <D3HeatmapGrid
+              data={data.hbonds}
+              yLabels={ylabels}
+              xTitle={'Frames'}
+              yTitle={'Hydrogen bonds'}
+              onTooltip={d => d.y}
+              onClick={d => {
+                const index = ylabels.indexOf(d.y);
+                // Convert the clicked bar index to the corresponding atom indexes
+                if (index < 0) return;
+                const acceptor = newFormat
+                  ? data.acceptorAtomIndex[index]
+                  : getAtomIndex(data.resnum1[index], data.atom1[index]);
+                const donor = newFormat
+                  ? data.donorAtomIndex[index]
+                  : getAtomIndex(data.resnum2[index], data.atom2[index]);
+                const hydrogen = newFormat
+                  ? data.hydrogenAtomIndex[index]
+                  : getAtomIndex(data.resnum2[index], data.link[index]);
+                setSelectedHB({
+                  index,
+                  selectedAtoms: [acceptor, donor],
+                  selectedDistances: [[acceptor, donor]],
+                  selectedAngles: [[acceptor, hydrogen, donor]],
+                });
+              }}
+              verticalPadding={0.2}
+              minColor={'#f0f0f0'}
+            />
+          ) : (
+            <HorizontalBars
+              data={data.hbonds}
+              ylabels={ylabels}
+              height={20 * data.hbonds.length}
+              xMax={100}
+              hoveredBar={hoveredHB}
+              onHover={index => setHoveredHB(index)}
+              selectedBar={selectedHB ? selectedHB.index : null}
+              onClick={index => {
+                // Convert the clicked bar index to the corresponding atom indexes
+                if (index < 0) return;
+                const acceptor = newFormat
+                  ? data.acceptorAtomIndex[index]
+                  : getAtomIndex(data.resnum1[index], data.atom1[index]);
+                const donor = newFormat
+                  ? data.donorAtomIndex[index]
+                  : getAtomIndex(data.resnum2[index], data.atom2[index]);
+                const hydrogen = newFormat
+                  ? data.hydrogenAtomIndex[index]
+                  : getAtomIndex(data.resnum2[index], data.link[index]);
+                setSelectedHB({
+                  index,
+                  selectedAtoms: [acceptor, donor],
+                  selectedDistances: [[acceptor, donor]],
+                  selectedAngles: [[acceptor, hydrogen, donor]],
+                });
+              }}
+            />
+          )}
         </CardContent>
       </Card>
       <NGLViewerSpawner

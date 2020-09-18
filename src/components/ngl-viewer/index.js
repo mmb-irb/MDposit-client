@@ -22,10 +22,10 @@ import getFrames from './get-frames';
 import { AccessionCtx, ProjectCtx, PdbCtx } from '../../contexts';
 
 import {
-  absolute2modelResidue,
   getAtomResidue,
   absolute2sourceResidue,
   complexNumerationParser,
+  source2modelResidue,
 } from '../../utils/topology-manager';
 
 import style from './style.module.css';
@@ -57,7 +57,9 @@ const NGLViewer = memo(
         projection,
         nFrames = DEFAULT_NUMBER_OF_FRAMES,
         selectedAtoms, // Atom index of the atom and residue to be represented
-        selectedResidues, // Residue indexes from residues to be represented
+        selectedResidues, // Residue complex numerations from residues to be represented
+        selectedChains, // Chain letters from chains to be represented
+        selectedCustom, // Free NGL selections to be directly represented
         selectedDistances, // Groups of 2 atoms or residues to be represented as a distance
         selectedAngles, // Groups of 3 atoms to be represented as an angle
         noTrajectory, // True when only specific frames must be loaded
@@ -529,6 +531,65 @@ const NGLViewer = memo(
         setFocus(nglSelection);
       }, [pdbFile, selectedResidues]);
 
+      // Highlight specific chains
+      // DANI: NO Probado
+      useEffect(() => {
+        if (!pdbFile || !selectedChains) {
+          return;
+        }
+        // Set a representation name. This is useful to find this representation further
+        const nameHighlight = 'highlightedChains';
+        const previousHighlightRepresentation = stageRef.current.compList[0].reprList.find(
+          representation => representation.name === nameHighlight,
+        );
+        if (previousHighlightRepresentation)
+          stageRef.current.compList[0].removeRepresentation(
+            previousHighlightRepresentation,
+          );
+
+        // Get the residues input
+        const chains = selectedChains.map(c => ':' + c);
+        if (!chains.length) return;
+        // Transform the residues list into an NGL selection
+        const nglSelection = Array.from(new Set(chains)).join(' or ');
+
+        // Represent the previous selection in ball+sticks drawing method
+        stageRef.current.compList[0].addRepresentation('ball+stick', {
+          sele: nglSelection,
+          name: nameHighlight,
+        });
+        // Focus the highlighted zone with the camera
+        setFocus(nglSelection);
+      }, [pdbFile, selectedChains]);
+
+      // Highlight specific free NGL selections
+      useEffect(() => {
+        if (!pdbFile || !selectedCustom) {
+          return;
+        }
+        // Set a representation name. This is useful to find this representation further
+        const nameHighlight = 'highlightedCustom';
+        const previousHighlightRepresentation = stageRef.current.compList[0].reprList.find(
+          representation => representation.name === nameHighlight,
+        );
+        if (previousHighlightRepresentation)
+          stageRef.current.compList[0].removeRepresentation(
+            previousHighlightRepresentation,
+          );
+
+        if (!selectedCustom.length) return;
+        // Transform the residues list into an NGL selection
+        const nglSelection = Array.from(new Set(selectedCustom)).join(' or ');
+
+        // Represent the previous selection in ball+sticks drawing method
+        stageRef.current.compList[0].addRepresentation('ball+stick', {
+          sele: nglSelection,
+          name: nameHighlight,
+        });
+        // Focus the highlighted zone with the camera
+        setFocus(nglSelection);
+      }, [pdbFile, selectedCustom]);
+
       // Highlight specific distances
       // When 'selectedDistances' is numeric it is taken as atoms
       // When 'selectedDistances' is string it is taken as residues
@@ -794,6 +855,29 @@ const NGLViewer = memo(
         // Remove the original tooltip
         stageRef.current.mouseControls.remove('hoverPick');
 
+        // Set a function which is used further to write a formatted output message to refer an atom
+        const formatOutput = atom => {
+          // WARNING: a.residueIndex is correct but we must convert it to source first
+          // In some cases 1 residue can have multiple absolute residue indexes
+          // (e.g. hydrogens at the end)
+          const sourceResidue = absolute2sourceResidue(
+            atom.residueIndex,
+            pdbFile,
+          );
+          const model = source2modelResidue(
+            {
+              chain: sourceResidue.chain,
+              residue: sourceResidue.residueNumber,
+              icode: sourceResidue.icode,
+            },
+            pdbFile,
+            metadata,
+          );
+          return `Atom ${atom.index} (${atom.atomname})
+            Chain ${model.chain} ${model ? '(' + model.chainName + ')' : ''}
+            Residue ${model.chainResidue} (${atom.resname})`;
+        };
+
         // Show our tooltip with the corresponding values when the mouse hovers an atom/bond
         stageRef.current.signals.hovered.add(function(pickingProxy) {
           // When we hover a bond
@@ -807,31 +891,9 @@ const NGLViewer = memo(
               const atom2 = bond.atom2;
               const bondLabel = `Bond ${atom1.index} - ${atom2.index}\n-----\n`;
               description =
-                bondLabel +
-                [atom1, atom2]
-                  .map(a => {
-                    const model = absolute2modelResidue(
-                      a.residueIndex,
-                      pdbFile,
-                      metadata,
-                    );
-                    return `Atom ${a.index} (${a.atomname})
-                      Chain ${model.chain} ${
-                      model ? '(' + model.chainName + ')' : ''
-                    }
-                      Residue ${model.chainResidue} (${a.resname})`;
-                  })
-                  .join('\n-----\n');
+                bondLabel + [atom1, atom2].map(formatOutput).join('\n-----\n');
             } else if (atom) {
-              // DANI: Aparentmenete la numeración de este residuo no es 'source'
-              const model = absolute2modelResidue(
-                atom.residueIndex,
-                pdbFile,
-                metadata,
-              );
-              description = `Atom ${atom.index} (${atom.atomname})
-              Chain ${model.chain} ${model ? '(' + model.chainName + ')' : ''}
-              Residue ${model.chainResidue} (${atom.resname})`;
+              description = formatOutput(atom);
             }
             tooltip.innerText = description;
             // Handle tooltip position

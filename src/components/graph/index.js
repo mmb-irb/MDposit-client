@@ -79,6 +79,8 @@ const Graph = ({
   show,
   // Set if the precision slider must be shown
   showPrecisionSlider = true,
+  // Temporal variable to add colors
+  colors,
 }) => {
   const pdbData = useContext(PdbCtx);
 
@@ -343,7 +345,9 @@ const Graph = ({
           .append('path')
           .attr('class', 'line')
           .attr('fill', 'none')
-          .attr('stroke', d => COLORS.get(d) || '#000000')
+          .attr('stroke', (d, i) => {
+            return COLORS.get(d) || (colors && colors[i % 5]) || '#000000';
+          })
           .attr('stroke-linejoin', 'round')
           .attr('stroke-linecap', 'round')
           .merge(lines)
@@ -565,6 +569,7 @@ const Graph = ({
     });
   }, []);
 
+  // Handle when user hovers on legend checkboxes
   const handleMouseOver = useCallback(
     ({
       target: {
@@ -577,6 +582,7 @@ const Graph = ({
     [pr, lab, type],
   );
 
+  // Handle when user does not hover on legend checkboxes anymore
   const handleMouseOut = useCallback(
     ({
       target: {

@@ -38,6 +38,8 @@ const Graph = lazy(() =>
   import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
 );
 
+const colors = ['red', 'yellow', 'green', 'blue', 'orange'];
+
 const RmsdPerres = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
@@ -221,7 +223,7 @@ const RmsdPerres = () => {
                             control={
                               <Checkbox
                                 checked={displays[index]}
-                                //style={{ color: COLORS.get(key) || '#000000' }}
+                                style={{ color: colors[index] || '#000000' }}
                                 //inputProps={{ 'data-key': key }}
                               />
                             }
@@ -303,6 +305,7 @@ const RmsdPerres = () => {
             mean={false}
             standardDeviation={false}
             show={displayedPayload}
+            colors={colors}
           />
         </CardContent>
       </Card>

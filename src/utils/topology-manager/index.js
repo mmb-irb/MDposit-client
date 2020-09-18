@@ -1,16 +1,16 @@
 import { ProjectCtx, PdbCtx } from '../../contexts';
 import { range } from 'lodash-es';
 
-// Functions to handle atom/residue/chain numeration conversions
-// All these functions are able to read the context topology
-// However, it may be better to pass them the topology since the context may be null
+// Many functions to handle atom/residue/chain numeration conversions
+// All these functions whcih need the topology are able to read the context topology
+// However, it may be better to pass them the topology as an argument since the context may be null
 
 // There are 3 different residue numeration types in the client:
 // - Absolute: From 0 to 'n'
 //   Used in some internal managments
 // - Source: The numbers in the original topology file
 //   Source numbers may be repeated, have gaps or do not start at 0 or 1. May include icodes.
-//   They are the usual numeration in analyses from the database
+//   They are also the usual numeration in analyses from the database
 // - Model: From 1 to 'n' for each chain
 //   Usual numeration in data representation for this web
 
@@ -75,7 +75,8 @@ export const complexNumerationParser = numeration => {
   const icode = result[3] || '';
   // Formated selection to select this specific residue in NGL
   const nglSelection = ':' + chain + ' and ' + residue;
-  return { chain, residue: +residue, icode, nglSelection };
+  const nglChainSelection = ':' + chain;
+  return { chain, residue: +residue, icode, nglSelection, nglChainSelection };
 };
 
 // Harvest from a '[residue_type]residue:chain' string the chain letter and the residue number values
@@ -89,7 +90,9 @@ export const nglNumerationParser = numeration => {
   const icode = result[2] || ''; // DANI: El icode es de mi huerto. Falta chequear
   // Formated selection to select this specific residue in NGL
   const nglSelection = ':' + chain + ' and ' + residue;
-  return { chain, residue: +residue, icode, nglSelection };
+  // Complex numeration
+  const complex = chain + ':' + residue + icode;
+  return { chain, residue: +residue, icode, nglSelection, complex };
 };
 
 // Return the absolute residue number to whom the specified absolute atom number belongs to
@@ -239,7 +242,6 @@ export const absolute2modelResidue = (
   topology = PdbCtx._currentValue.file,
   metadata = ProjectCtx._currentValue.metadata,
 ) => {
-  //if (residue === 45) console.log(topology);
   const chainIndex = topology.residueStore.chainIndex[residue];
   const chain = topology.chainStore.getChainname(chainIndex); // e.g. 'A'
   const chainName = metadata.CHAINNAMES[chainIndex]; // e.g. 'ACE2'
@@ -250,6 +252,8 @@ export const absolute2modelResidue = (
   const numeration = chain + ':' + chainResidue;
   const tag =
     chain + '(' + chainName + '):' + chainResidue + '(' + residueType + ')';
+  // WARNING: This is the ngl standard syntax for residue display (e.g. in the tooltip): [AAA]NN:C
+  // However, ngl does not show or read resiudes in 'model' format, but in 'source' format
   const ngl = '[' + residueType + ']' + chainResidue + ':' + chain;
   //console.log(residue + ' -> ' + chainResidue);
   return { chain, chainName, chainResidue, residueType, numeration, tag, ngl };

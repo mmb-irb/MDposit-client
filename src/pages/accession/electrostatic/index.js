@@ -44,19 +44,27 @@ const Electrostatic = () => {
   // Set the NGL selection for each chain interface
   const nglInterfaceSelections = [];
   interfaceSelection.split(', ').forEach(res => {
-    const { chain, nglSelection } = complexNumerationParser(res);
+    const { chain, nglSelection, nglChainSelection } = complexNumerationParser(
+      res,
+    );
+    // Exclude ligands. We don't want their surfaces to be represented
+    if (metadata.LIGANDS)
+      for (const lig of metadata.LIGANDS)
+        if (lig.selection === nglChainSelection) return;
+    // If the chain is already in the interfaces selection list we expand the selection
     for (const sel of nglInterfaceSelections)
       if (sel.chain === chain) {
         sel.selection += ' or ' + nglSelection;
         return;
       }
+    // If not, we add a new interface selection
     nglInterfaceSelections.push({ chain: chain, selection: nglSelection });
   });
 
   // Set the chains to be represented in the NGL viewer
   const chainsNGL = [];
   for (const c of chains) {
-    // Represent all protein chains in licroice
+    // Represent all protein chains in licorice
     chainsNGL.push({
       name:
         'Chain ' +
@@ -65,9 +73,17 @@ const Electrostatic = () => {
         getMetadataChainname(c, metadata, pdbData.file) +
         ')',
       selection: ':' + c,
-      defaultDrawingMethod: 'licorice',
+      defaultDrawingMethod: 'cartoon',
     });
   }
+  // Select ligands to be highlighted, so the camera will focus on them
+  const selectedLigands = metadata.LIGANDS ? [] : undefined;
+  if (metadata.LIGANDS) {
+    for (const ligand of metadata.LIGANDS) {
+      selectedLigands.push(ligand.selection);
+    }
+  }
+  /*
   // Show also all ligands with both licorice representations
   if (metadata.LIGANDS) {
     for (const ligand of metadata.LIGANDS) {
@@ -78,6 +94,7 @@ const Electrostatic = () => {
       });
     }
   }
+  */
   // Those chains with residues in the interface show their mentioned residues
   // This representation is in electrostatic surface
   for (const selection of nglInterfaceSelections) {
@@ -89,6 +106,7 @@ const Electrostatic = () => {
         getMetadataChainname(selection.chain, metadata, pdbData.file) +
         ') interface',
       selection: selection.selection,
+      //defaultDrawingMethod: 'licorice',
       defaultDrawingMethod: 'surface',
       defaultColoringMethod: 'electrostatic',
     });
@@ -129,6 +147,7 @@ const Electrostatic = () => {
             //structureURL={structureURL}
             representations={chainsNGL}
             requestedFrame={1}
+            selectedCustom={selectedLigands}
           />
         ) : (
           <div style={{ height: '50vh' }} />

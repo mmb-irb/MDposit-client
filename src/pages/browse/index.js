@@ -184,6 +184,7 @@ const Row = ({ project, highlight, index, setProject }) => {
                   'dist-perres',
                   'hbonds',
                   'electrostatic',
+                  'energies',
                 ].includes(element),
               )
               // For each analysis create a clickable button which links to the analysis route

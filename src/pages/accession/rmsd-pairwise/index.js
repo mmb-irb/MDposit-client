@@ -111,6 +111,10 @@ const RmsdPairwise = () => {
             }}
             onClick={(x, y) => setSelected([x, y])}
             legendTitle={'RMSD (Å)'}
+            maxColor={'red'}
+            minColor={'blue'}
+            xTitle={'Frames'}
+            yTitle={'Frames'}
           />
         </CardContent>
       </Card>

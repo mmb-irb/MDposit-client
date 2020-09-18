@@ -22,15 +22,30 @@ const defaultD3font = 'normal 10px sans-serif';
 const D3HeatmapGrid = memo(
   ({
     data, // The main values
-    xLabels, // String labels for the horizontal axis
-    yLabels, // String labels for the vertical axis
+    xLabels = [], // String labels for the horizontal axis
+    yLabels = [], // String labels for the vertical axis
     xTitle, // String title for the horizontal axis
     yTitle, // String title for the vertical axis
     titlesFont = 'normal 14px sans-serif', // Experimentally verfied
     width = 1000,
     height = 600,
+    verticalPadding = 0,
+    maxColor = 'blue',
+    midColor = 'white',
+    minColor = 'red',
+    onTooltip, // Text to be rendered on the tooltip
     onClick, // Function to be called when clicking on the heatmap
   }) => {
+    if (!data)
+      throw new Error(
+        `Data is missing. Data is mandatory for the heatmap representation`,
+      );
+    // If any label is empty, fill it with 1-n numbers
+    if (xLabels.length === 0)
+      xLabels = Array.from(Array(data[0].length).keys());
+    if (yLabels.length === 0)
+      yLabels = Array.from(Array(data[0].length).keys());
+
     // Convert data to heatmap friendly format
 
     // Join all rows into a single array with all values
@@ -48,12 +63,7 @@ const D3HeatmapGrid = memo(
     for (const i in values) {
       fdata.push({ v: values[i], x: xlabs[i], y: ylabs[i] });
     }
-    /*
-  if (yLabels.length === 1){
-    yLabels = [yTitle + ' ' + yLabels[0]];
-    yTitle = undefined;
-  } 
-  */
+
     // Set the reference to the element where the graph will be allocated
     const containerRef = useRef(null);
     // Save the previous chart reference so we can remove it before a new render
@@ -157,9 +167,9 @@ const D3HeatmapGrid = memo(
 
       // Build Y scales and axis:
       const y = scaleBand()
-        .range([margin.top, bodyHeight + margin.top])
         .domain(yLabels)
-        .paddingInner(0);
+        .range([margin.top, bodyHeight + margin.top])
+        .padding(verticalPadding);
 
       svg
         .append('g')
@@ -193,7 +203,7 @@ const D3HeatmapGrid = memo(
 
       // Build color scale
       const myColor = scaleLinear()
-        .range(['red', 'white', 'blue'])
+        .range([minColor, midColor, maxColor])
         .domain([minv, (minv + maxv) / 2, maxv]);
 
       // Create a tooltip
@@ -215,7 +225,11 @@ const D3HeatmapGrid = memo(
       // WARNING: Arrow function here makes it crash. I dont know why
       const mousemove = function(d) {
         tooltip
-          .html(d.x + ' - ' + d.y + '<br>' + Math.round(d.v * 100) / 100)
+          .html(
+            onTooltip
+              ? onTooltip(d)
+              : d.x + ' - ' + d.y + '<br>' + Math.round(d.v * 100) / 100,
+          )
           .style('left', () => {
             return mouse(this)[0] > margin.left + bodyWidth / 2
               ? mouse(this)[0] - 150 + 'px'
@@ -235,6 +249,7 @@ const D3HeatmapGrid = memo(
         if (onClick) onClick(d);
       };
 
+      // Draw the heatmap cells
       svg
         .selectAll()
         .data(fdata)
@@ -242,8 +257,8 @@ const D3HeatmapGrid = memo(
         .append('rect')
         .attr('x', d => x(d.x))
         .attr('y', d => y(d.y))
-        .attr('width', x.step() * 1.05) // This * 1.05 is to remove the small gap between cells
-        .attr('height', y.step() * 1.05) // Padding is 0 but it is still there
+        .attr('width', x.bandwidth()) // This * 1.05 is to remove the small gap between cells
+        .attr('height', y.bandwidth()) // Padding is 0 but it is still there
         .style('fill', (d, i) => myColor(d.v))
         .on('mouseover', mouseover)
         .on('mousemove', mousemove)

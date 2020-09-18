@@ -152,7 +152,7 @@ const DistPerres = () => {
   };
 
   // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
-  // ALso retireve the absolute residue number, since it is used to ask for the distance representation
+  // Also retrieve the absolute residue number, since it is used to ask for the distance representation
   const parseLabel = label => {
     const num = nglNumerationParser(label);
     const source = model2sourceResidue(num, pdbData.file);

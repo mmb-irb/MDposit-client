@@ -5,6 +5,9 @@ export const BASE_PATH_PROJECTS = BASE_PATH + 'current/projects/';
 // The name how this analysis is tagged in the webpage
 // If no name is provided, the webpage will tag it with the defalt name
 export const NICE_NAMES = new Map([
+  ['overview', 'Overview'],
+  ['trajectory', 'Trajectory'],
+  ['files', 'Downloads'],
   ['dist', 'DIST'],
   ['rmsd', 'RMSd'],
   ['rgyr', 'Rgyr'],
@@ -19,6 +22,7 @@ export const NICE_NAMES = new Map([
   ['dist-perres', 'Distance per residue'],
   ['hbonds', 'Hydrogen bonds'],
   ['electrostatic', 'Electrostatic p. surface'],
+  ['energies', 'Energies'],
 ]);
 
 // The color of the graphics for this analysis

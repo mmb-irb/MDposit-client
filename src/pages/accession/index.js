@@ -61,8 +61,10 @@ const RmsdPairwise = lazy(() =>
   import(/* webpackChunkName: 'rmsd-pairwise' */ './rmsd-pairwise'),
 );
 
-const Hbonds = lazy(() =>
-  import(/* webpackChunkName: 'rmsd-pairwise' */ './hbonds'),
+const Hbonds = lazy(() => import(/* webpackChunkName: 'hbonds' */ './hbonds'));
+
+const Energies = lazy(() =>
+  import(/* webpackChunkName: 'energies' */ './energies'),
 );
 
 // Return an error message and print the error in the console
@@ -303,6 +305,15 @@ const SummarySwitch = ({ setProject }) => {
               render={props => (
                 <Suspense fallback={<Loading />}>
                   <Hbonds {...props} />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/energies"
+              exact
+              render={props => (
+                <Suspense fallback={<Loading />}>
+                  <Energies {...props} />
                 </Suspense>
               )}
             />

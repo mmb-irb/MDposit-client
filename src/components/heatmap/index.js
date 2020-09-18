@@ -27,6 +27,9 @@ const Heatmap = ({
   // Color to represent the maximum and minimum values in rgb format {r:r,g:g,b:b}
   maxValueColor = { r: 255, g: 0, b: 0 },
   minValueColor = { r: 0, g: 0, b: 255 },
+  // New color systems
+  maxColor,
+  minColor,
   xTitle,
   yTitle,
 }) => {
@@ -185,6 +188,8 @@ const Heatmap = ({
         data={data}
         xLabels={xLabels}
         yLabels={yLabels}
+        maxColor={maxColor}
+        minColor={minColor}
         xTitle={xTitle}
         yTitle={yTitle}
         height={yLabels.length === 1 ? 150 : undefined}

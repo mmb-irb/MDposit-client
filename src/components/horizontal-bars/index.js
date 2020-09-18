@@ -90,6 +90,7 @@ const HorizontalBars = ({
       .append('svg')
       .attr('viewBox', [0, 0, width, margin.top + height]);
 
+    // Draw the data bars
     chart
       .append('g')
       .selectAll('rect')
