@@ -65,11 +65,15 @@ const Energies = () => {
           reference={'energies'}
           tooltip={
             <>
-              This graph represents the Van Der Walls forces, the electrostatic
-              charges and the sum of both values respectively. Energies are
-              calculated for each atom individually and then added by residues.
-              The average is calculated from 100 selected frames along the
-              trajectory
+              This graph represents from top to bottom the electrostatic
+              charges, the Van der Waals forces and the sum of both values per
+              each residue respectively. Energies are calculated for each atom
+              individually and then added by residues. Averages are calculated
+              from 100 selected frames along the trajectory. In addition, two
+              more averages are calculated: the average for the frist 20 frames
+              of the 100 selected frames and the average for the last 20 frames.
+              These averages are represented in red and blue colors
+              respectively.
               <br />
               <br />
               The horizontal edge stands for the main protein residues numbers.
