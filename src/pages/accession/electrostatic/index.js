@@ -61,10 +61,18 @@ const Electrostatic = () => {
     nglInterfaceSelections.push({ chain: chain, selection: nglSelection });
   });
 
+  // Select ligands to be highlighted, so the camera will focus on them
+  const selectedLigands = metadata.LIGANDS ? [] : undefined;
+  if (metadata.LIGANDS) {
+    for (const ligand of metadata.LIGANDS) {
+      selectedLigands.push(ligand.selection);
+    }
+  }
+
   // Set the chains to be represented in the NGL viewer
   const chainsNGL = [];
+  // Represent all protein chains in cartoon
   for (const c of chains) {
-    // Represent all protein chains in licorice
     chainsNGL.push({
       name:
         'Chain ' +
@@ -76,25 +84,7 @@ const Electrostatic = () => {
       defaultDrawingMethod: 'cartoon',
     });
   }
-  // Select ligands to be highlighted, so the camera will focus on them
-  const selectedLigands = metadata.LIGANDS ? [] : undefined;
-  if (metadata.LIGANDS) {
-    for (const ligand of metadata.LIGANDS) {
-      selectedLigands.push(ligand.selection);
-    }
-  }
-  /*
-  // Show also all ligands with both licorice representations
-  if (metadata.LIGANDS) {
-    for (const ligand of metadata.LIGANDS) {
-      chainsNGL.push({
-        name: ligand.name,
-        selection: ligand.selection,
-        defaultDrawingMethod: 'licorice',
-      });
-    }
-  }
-  */
+
   // Those chains with residues in the interface show their mentioned residues
   // This representation is in electrostatic surface
   for (const selection of nglInterfaceSelections) {

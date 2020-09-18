@@ -706,7 +706,10 @@ const NGLViewer = memo(
       useEffect(() => {
         if (!(pdbFile && mainTraj)) return;
         const { player } = stageRef.current.compList[0].trajList[0].trajectory;
-        player[playing && isInView ? 'play' : 'pause']();
+        // WARNING: Pausing the player when there is no trajectory may seem redundant
+        // However, if not paused, the surface representations never stop to be calculated
+        if (noTrajectory) player.pause();
+        else player[playing && isInView ? 'play' : 'pause']();
         return () => player.pause();
       }, [pdbFile, mainTraj, playing, isInView, noTrajectory]);
 
