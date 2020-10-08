@@ -107,6 +107,10 @@ const SummarySwitch = ({ setProject }) => {
     { defaultRepresentation: false, ext: 'pdb' },
   );
 
+  if (pdbData.loading) return <Loading />;
+  else if (pdbData.error) return pdbData.error.toString();
+  else if (!pdbData.file) return 'Something bad happened with the topology';
+
   // If loading is null it means the project is already in context
   if (loading === null) {
     loading = false;
