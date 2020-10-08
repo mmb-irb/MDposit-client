@@ -29,27 +29,34 @@ import { NICE_NAMES } from '../../utils/constants';
 import addTextBackground from './add-text-background';
 import addMasks from './add-masks';
 
+import { getTextWidth, getTextSizeDOM } from '../../utils/document-measurer';
+
 import style from './style.module.css';
 
-const MARGIN = { top: 20, right: 30, bottom: 40, left: 50 };
 const NUMBER_OF_DATA_POINTS_ON_SCREEN_AT_MAX_ZOOM = 100;
 
 const dPR = window.devicePixelRatio || 1;
+
+// According to d3 documentation
+const defaultD3font = 'normal 10px sans-serif';
+// Experimentally verfied
+const titlesD3font = 'normal 14px sans-serif';
 
 // The expected input data (y) is:
 // {
 //    dataset1:{
 //      data: [... the main data ...]
 //      average: float,
+//      color: 'red',
 //    }
 //    dataset2:{...}
 // }
 
-const Graph = ({
+const Graph2 = ({
   // The main data
   y: yData,
   // Optional x tags
-  xTags,
+  xAxisValues,
   //start = 0,
   // The difference beyween x values
   step = 1,
@@ -57,12 +64,12 @@ const Graph = ({
   defaultPrecision = 1,
   // Graph title
   title,
+  // The x axis label text
+  xAxisLabel,
   // The y axis label text
-  yLabel,
+  yAxisLabel,
   //
   xScaleFactor = 1,
-  // The x axis label text
-  xLabel,
   // Define the unit (and also the magnitude implicitly) of the x axis
   // This is used to show the right text when the mouse is over it
   // Accepted values: ns, frame, atom
@@ -75,11 +82,21 @@ const Graph = ({
   selected,
   onSelect,
   selfLegend = false,
-  // Array of true/false to set which data is displayed
+  // Object with each dataset name and a value of true/false to set which data is displayed
   show,
   // Set if the precision slider must be shown
-  showPrecisionSlider = true,
-  blockMaxPrecision = false,
+  showPrecisionSlider = false,
+  // Set if precision may be changed with the mouse wheel or is always the maximum available
+  blockMaxPrecision = true,
+  // Display the mean line in the graph
+  mean = false,
+  // Display the standard deviation area in the graph
+  standardDeviation = false,
+  // Set an extra margin around the graph
+  margin = { top: 10, right: 10, bottom: 10, left: 10 },
+  // DANI: Todavía no está implementado pero se usa para calcular márgenes
+  // Set if values in x axis is horizontal (false) or vertical (true)
+  flippedXAxisValues = false,
 }) => {
   //console.log(yData);
   //console.log(selected);
@@ -102,6 +119,68 @@ const Graph = ({
     }
     return false;
   };
+
+  // ----------------------------------------------------------------------------------------
+
+  // OFFSETS: Estimate the space needed for all the labels and titles to not overlap
+
+  // Set the yAxisValues by adding all dataset 'data' values
+  let yAxisValues = yEntries
+    .map(([, dataset]) => dataset.data)
+    .reduce((cv, nv) => cv.concat(nv));
+  // Round values if they are nomeric, since labels just reach x.00
+  yAxisValues = yAxisValues.map(v => Math.round(v * 100) / 100);
+
+  // Set a small offset to be added between normal labels and 90 degrees rotated labels
+  // This offset is added between the y labels (normal) and the y title (rotated)
+  // This offset is added between the x labels (rotated) and the x title (normal)
+  const roatatedTextOffset = 9; // In px
+
+  // Set a small offset to keep away the axis labels and the axis values
+  // They are very close to the axis values by default
+  const axisLabelsOffset = 9; // In px
+
+  // Measure the height of normal and text and labels
+  const textHeight = getTextSizeDOM('|', defaultD3font).height;
+  const labelsHeight =
+    getTextSizeDOM('|', titlesD3font).height + axisLabelsOffset;
+
+  // Get the calculated widths of all y labels and select the maximum
+  // In addition, add a small offset between labels and the axis which is added further
+  // This offset is only in x axes, which are rotated 90 degrees and end too much close to the axis
+  const maxXAxisWidth =
+    Math.max(...xAxisValues.map(label => getTextWidth(label, defaultD3font))) +
+    roatatedTextOffset;
+  // Get the calculated widths of all y labels and select the maximum
+  const maxYAxisWidth = Math.max(
+    ...yAxisValues.map(label => getTextWidth(label, defaultD3font)),
+  );
+
+  // In addition, add a small offset between labels and the axis which is added further
+  // This offset is only in x axes, which are rotated 90 degrees and end too much close to the axis
+  const xAxisLabelHegiht = xAxisLabel ? labelsHeight : 0;
+  const yAxisLabelHegiht = yAxisLabel ? labelsHeight + roatatedTextOffset : 0;
+
+  // Finally, estimate the space needed by axes, titles, etc.
+  const requiredTopOffset = title ? labelsHeight + axisLabelsOffset : 0;
+  const requiredBottomOffset = flippedXAxisValues
+    ? maxXAxisWidth + xAxisLabelHegiht
+    : textHeight + xAxisLabelHegiht;
+  const requiredLeftOffset =
+    yAxisValues.length === 1
+      ? Math.max(maxYAxisWidth, getTextWidth(yAxisLabel, titlesD3font))
+      : maxYAxisWidth + yAxisLabelHegiht;
+
+  // Set the dimensions and offsets of the graph
+  const offset = {
+    top: requiredTopOffset + margin.top,
+    right: margin.right,
+    bottom: requiredBottomOffset + margin.bottom,
+    left: requiredLeftOffset + margin.left,
+  };
+
+  // ----------------------------------------------------------------------------------------
+
   // Boolean array defining which data is displayed (true) or hidden (false)
   const [lab, setLab] = useState(() =>
     fromPairs(yKeys.map(key => [key, activateKey()])),
@@ -161,7 +240,7 @@ const Graph = ({
       .append('rect')
       .attr('x', 0)
       .attr('y', 0)
-      .attr('width', MARGIN.left)
+      .attr('width', offset.left)
       .attr('height', '100%')
       .style('fill', startMaskURL);
     const maskEnd = graph
@@ -202,30 +281,6 @@ const Graph = ({
       });
     });
 
-    // Title over the graph
-    if (title) {
-      axes.title = graph
-        .append('text')
-        .attr('class', 'title')
-        .style('text-anchor', 'middle')
-        .text(title);
-    }
-    // labels
-    if (yLabel) {
-      axes.yLabel = graph
-        .append('text')
-        .attr('transform', 'rotate(-90)')
-        .attr('dy', '1em')
-        .style('text-anchor', 'middle')
-        .text(yLabel);
-    }
-    if (xLabel) {
-      axes.xLabel = graph
-        .append('text')
-        .style('text-anchor', 'middle')
-        .text(xLabel);
-    }
-
     drawRef.current = ({
       hovered,
       precision = prevPrecision.current,
@@ -236,32 +291,57 @@ const Graph = ({
     } = {}) => {
       // container size
       const { clientWidth: width, clientHeight: height } = containerRef.current;
+
+      // DANI: Esto es mio (experimental)
+      const bodyWidth = width - offset.left - offset.right;
+      const bodyHeight = height - offset.top - offset.bottom;
+
       graph.attr('width', width).attr('height', height);
       if (canvas) {
         canvas.attr('width', width * dPR).attr('height', height * dPR);
         canvas.style('width', `${width}px`).style('height', `${height}px`);
       }
 
-      maskEnd.attr('x', width - MARGIN.right).attr('width', MARGIN.right);
+      maskEnd.attr('x', width - offset.right).attr('width', offset.right);
+
+      // Draw the title over the graph
+      if (title) {
+        axes.title = graph
+          .append('text')
+          .attr('class', 'title')
+          .style('text-anchor', 'middle')
+          .attr('x', width / 2)
+          .attr('y', margin.top + labelsHeight)
+          .text(title);
+      }
 
       const xMin = 0;
       const xMax = yEntries[0][1].data.length * step;
+
       // x axis
       const x = rescaleX(
         scaleLinear()
           .domain([xMin, xMax])
-          .range([MARGIN.left, width - MARGIN.right]),
+          .range([offset.left, width - offset.right]),
       );
       const xAxis = g =>
-        g.attr('transform', `translate(0, ${height - MARGIN.bottom})`).call(
+        g.attr('transform', `translate(0, ${height - offset.bottom})`).call(
           // DANI: Estos ticks los he puesto a mano tras comprobar que quedaban bien
           axisBottom(x)
             .ticks(7, '.2f')
-            .tickFormat(d => (xTags ? xTags[d] : d)),
+            .tickFormat(d => (xAxisValues ? xAxisValues[d] : d)),
         );
       axes.x.call(xAxis);
-      if (axes.xLabel) {
-        axes.xLabel.attr('transform', `translate(${width / 2}, ${height - 5})`);
+
+      // Set the x axis/axes label
+      if (xAxisLabel) {
+        axes.xAxisLabel = graph
+          .append('text')
+          .attr('class', 'x label')
+          .attr('text-anchor', 'middle')
+          .attr('x', offset.left + bodyWidth / 2)
+          .attr('y', offset.top + bodyHeight + requiredBottomOffset)
+          .text(xAxisLabel);
       }
 
       // y axis/axes
@@ -276,21 +356,88 @@ const Graph = ({
           ),
         )
         .nice()
-        .range([height - MARGIN.bottom, MARGIN.top]);
+        .range([height - offset.bottom, offset.top]);
 
       const yAxis = g =>
         g
-          .attr('transform', `translate(${MARGIN.left}, 0)`)
+          .attr('transform', `translate(${offset.left}, 0)`)
           .transition()
           .call(axisLeft(y).ticks(8, '.2f'));
       axes.y.call(yAxis);
-      if (axes.yLabel) {
-        axes.yLabel.attr('y', 0).attr('x', 0 - height / 2);
+
+      // Set the y axis/axes label
+      if (yAxisLabel) {
+        axes.yAxisLabel = graph
+          .append('text')
+          .attr('class', 'y label')
+          .attr('text-anchor', 'middle')
+          .attr('x', -(offset.top + bodyHeight / 2))
+          .attr(
+            'y',
+            margin.left +
+              yAxisLabelHegiht -
+              roatatedTextOffset -
+              axisLabelsOffset,
+          )
+          .attr('transform', 'rotate(-90)')
+          .text(yAxisLabel);
       }
 
-      // Place the title in the right position
-      if (axes.title) {
-        axes.title.attr('transform', `translate(${width / 2}, ${15})`);
+      // mean line
+      if (mean) {
+        // Calculate the averages for each dataset
+        for (const [, dataset] of yEntries) {
+          const data = dataset.data;
+          if (!data) continue;
+          const sum = data.reduce((pv, cv) => pv + cv, 0);
+          const n = data.length;
+          dataset.average = sum / n;
+        }
+        // Represent a line with this average value along the whole graph
+        const meanLines = main.selectAll('line.mean').data(yKeys);
+        meanLines
+          .enter()
+          .append('line')
+          .attr('class', 'mean')
+          .attr('stroke', d => (yData[d] && yData[d].color) || 'black')
+          .merge(meanLines)
+          .attr('x1', x(xMin))
+          .attr('x2', x(xMax))
+          .attr('y1', d => y(yData[d].average))
+          .attr('y2', d => y(yData[d].average))
+          .transition()
+          .attr('opacity', d => (labels[d] ? 0.5 : 0));
+      }
+      // mean ± 1σ area
+      if (standardDeviation) {
+        for (const [, dataset] of yEntries) {
+          const data = dataset.data;
+          if (!data) continue;
+          const sum = data.reduce((pv, cv) => pv + cv, 0);
+          const n = data.length;
+          const mean = sum / n;
+          dataset.stddev = Math.sqrt(
+            data.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n,
+          );
+        }
+        const sdRects = main.selectAll('rect.sd').data(yKeys);
+        sdRects
+          .enter()
+          .append('rect')
+          .attr('class', 'sd')
+          .attr('fill', d => (yData[d] && yData[d].color) || 'black')
+          .merge(sdRects)
+          .attr('x', x(xMin))
+          .attr('width', x(xMax) - x(xMin))
+          .attr('y', d => y(yData[d].average + yData[d].stddev))
+          .attr(
+            'height',
+            d =>
+              y(yData[d].average - yData[d].stddev) -
+              y(yData[d].average + yData[d].stddev),
+          )
+          .transition()
+          .attr('opacity', d => (labels[d] ? 0.1 : 0));
       }
 
       const minIndex = Math.floor(x.invert(0) / step / precision);
@@ -378,7 +525,7 @@ const Graph = ({
             d =>
               `translate(0, ${
                 d === 'x'
-                  ? height - MARGIN.bottom
+                  ? height - offset.bottom
                   : (y(yData[d].data[closestIndex]) || 0) + 2.5
               })`,
           )
@@ -405,7 +552,8 @@ const Graph = ({
               }
               if (xUnit === 'residue')
                 return (
-                  'residue ' + (xTags ? xTags[closestIndex] : closestIndex)
+                  'residue ' +
+                  (xAxisValues ? xAxisValues[closestIndex] : closestIndex)
                 );
               return 'Error: Not supported unit';
             }
@@ -431,7 +579,10 @@ const Graph = ({
           if (closestIndex * step < xMin || closestIndex * step > xMax) {
             return;
           }
-          onSelect(closestIndex, xTags ? xTags[closestIndex] : null);
+          onSelect(
+            closestIndex,
+            xAxisValues ? xAxisValues[closestIndex] : null,
+          );
         });
       }
 
@@ -544,4 +695,4 @@ const Graph = ({
   );
 };
 
-export default Graph;
+export default Graph2;

@@ -186,34 +186,15 @@ const Heatmap = ({
     <Suspense fallback={<div className={style.loading}>Loading...</div>}>
       <D3HeatmapGrid
         data={data}
-        xLabels={xLabels}
-        yLabels={yLabels}
+        xAxisValues={xLabels}
+        yAxisValues={yLabels}
         maxColor={maxColor}
         minColor={minColor}
-        xTitle={xTitle}
-        yTitle={yTitle}
+        xAxisLabel={xTitle}
+        yAxisLabel={yTitle}
         height={yLabels.length === 1 ? 150 : undefined}
         onClick={onClick ? d => onClick(d.x, d.y) : undefined}
       />
-      {/**
-      <HeatmapGrid
-        data={data}
-        xLabels={xLabelStepper(xLabels)}
-        yLabels={yLabelStepper(yLabels)}
-        xLabelsLocation={'bottom'}
-        // Cells width is automatically calculated from number of labels to display and available space
-        // Cells height is set here and it will take as much space as needed
-        height={cellHeight}
-        yLabelWidth={longestY}
-        cellStyle={(background, value, min, max, data, x, y) => ({
-          background: colorinter(value, min, max),
-          margin: '0px',
-        })}
-        onClick={
-          onClick ? (x, y) => onClick(xLabels[x], yLabels[y]) : undefined
-        }
-      /> */}
-
       {legendTitle && (
         <Card className={style.card}>
           <CardContent>

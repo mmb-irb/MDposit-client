@@ -191,13 +191,15 @@ const PCA = () => {
                 projection={projections[0]}
                 framesSelect={false}
                 // Projections are backbone trajectories, same as the average.pdb topology
-                structureURL={
-                  hasBackbone
-                    ? `${BASE_PATH_PROJECTS}${accession}/files/md.backbone.pdb`
-                    : `${BASE_PATH_PROJECTS}${accession}/files/average.pdb`
-                }
+                components={[
+                  {
+                    topologyURL: hasBackbone
+                      ? `${BASE_PATH_PROJECTS}${accession}/files/md.backbone.pdb`
+                      : `${BASE_PATH_PROJECTS}${accession}/files/average.pdb`,
+                    representations: chainsNGL,
+                  },
+                ]}
                 trajectoryURL={projectionURL}
-                representations={chainsNGL}
               />
             </Suspense>
           )}

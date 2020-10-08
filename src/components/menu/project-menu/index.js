@@ -131,6 +131,11 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
           dir: 'energies',
           cond: analyses.includes('energies'),
         },
+        {
+          name: 'Pockets',
+          dir: 'pockets',
+          cond: analyses.includes('pockets'),
+        },
       ],
     },
     {

@@ -185,6 +185,7 @@ const Row = ({ project, highlight, index, setProject }) => {
                   'hbonds',
                   'electrostatic',
                   'energies',
+                  'pockets',
                 ].includes(element),
               )
               // For each analysis create a clickable button which links to the analysis route

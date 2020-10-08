@@ -6,7 +6,7 @@ import { MuiThemeProvider, createMuiTheme } from '@material-ui/core/styles';
 // Load the project context
 import { ProjectCtx } from '../contexts';
 
-// Set the header colors
+// Set the header colors (standard model colors)
 import {
   blueGrey as primary, // #607D8B
   lightGreen as secondary, // #76FF03

@@ -1,5 +1,4 @@
 import React from 'react';
-//import { format } from 'd3';
 
 import {
   Table,
@@ -17,7 +16,7 @@ import {
 /*
 {
   nameColumn1: [rowValues], IMPORTANT: All 'rows' arrays must have the same length
-  NameColumn2: [...]
+  nameColumn2: [...]
 }
 */
 // Render the data table

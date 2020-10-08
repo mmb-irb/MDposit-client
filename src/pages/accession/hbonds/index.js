@@ -189,9 +189,9 @@ const Hbonds = () => {
           {framedFormat ? (
             <D3HeatmapGrid
               data={data.hbonds}
-              yLabels={ylabels}
-              xTitle={'Frames'}
-              yTitle={'Hydrogen bonds'}
+              yAxisValues={ylabels}
+              xAxisLabel={'Frames'}
+              yAxisLabel={'Hydrogen bonds'}
               onTooltip={d => d.y}
               onClick={d => {
                 const index = ylabels.indexOf(d.y);

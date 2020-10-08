@@ -99,11 +99,11 @@ const Energies = () => {
               esf: { data: payload.residues_es_avg_final, color: 'blue' },
               es: { data: payload.residues_es_avg, color: 'black' },
             }}
-            xTags={xTags}
+            xAxisValues={xTags}
             xUnit={'residue'}
             title={'Electrostatic'}
             xScaleFactor={0.001}
-            yLabel={'kcal/mol'}
+            yAxisLabel={'kcal/mol'}
             onSelect={(xIndex, xValue) => {
               // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
               const num = nglNumerationParser(xValue);
@@ -112,8 +112,6 @@ const Energies = () => {
             }}
             show={{ esi: display.start, esf: display.end, es: display.all }}
             selected={selected}
-            showPrecisionSlider={false}
-            blockMaxPrecision={true}
           />
           <Graph2
             y={{
@@ -122,9 +120,9 @@ const Energies = () => {
               vdw: { data: payload.residues_vdw_avg, color: 'black' },
             }}
             title={'vdW'}
-            xTags={xTags}
+            xAxisValues={xTags}
             xUnit={'residue'}
-            yLabel={'kcal/mol'}
+            yAxisLabel={'kcal/mol'}
             onSelect={(xIndex, xValue) => {
               // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
               const num = nglNumerationParser(xValue);
@@ -133,8 +131,6 @@ const Energies = () => {
             }}
             show={{ vdwi: display.start, vdwf: display.end, vdw: display.all }}
             selected={selected}
-            showPrecisionSlider={false}
-            blockMaxPrecision={true}
           />
           <Graph2
             y={{
@@ -143,10 +139,10 @@ const Energies = () => {
               both: { data: payload.residues_both_avg, color: 'black' },
             }}
             title={'Electrostatic+vdW'}
-            xLabel={'Residue number'}
-            xTags={xTags}
+            xAxisLabel={'Residue number'}
+            xAxisValues={xTags}
             xUnit={'residue'}
-            yLabel={'kcal/mol'}
+            yAxisLabel={'kcal/mol'}
             onSelect={(xIndex, xValue) => {
               // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
               const num = nglNumerationParser(xValue);
@@ -159,8 +155,6 @@ const Energies = () => {
               both: display.all,
             }}
             selected={selected}
-            showPrecisionSlider={false}
-            blockMaxPrecision={true}
           />
           <Legend
             entries={[

@@ -8,11 +8,11 @@ import React, {
   useEffect,
   useContext,
 } from 'react';
-import useToggleState from '../../hooks/use-toggle-state';
+//import useToggleState from '../../hooks/use-toggle-state';
 import { useInView } from 'react-intersection-observer';
 import { debounce, clamp } from 'lodash-es';
 import cn from 'classnames';
-import { Stage, ColormakerRegistry, Matrix4 } from 'ngl';
+import { Selection, Stage, ColormakerRegistry, Matrix4 } from 'ngl';
 
 import { frame } from 'timing-functions';
 
@@ -41,13 +41,12 @@ const DEFAULT_ORIENTATION_TRANSITION_DURATION = 750; // 750 ms
 
 const CHAIN_SELECTION = 'polymer and not hydrogen ';
 
-const NGL_COLORS = ['red', 'blue'];
+const NGL_COLORS = ['red', 'blue', 'yellow', 'green'];
 
 const NGLViewer = memo(
   forwardRef(
     (
       {
-        structureURL, // URL to find the structure data in the API
         trajectoryURL, // If no URL is provided then use the context pdbData (the 'md.imaged.rot.dry.pdb' file)
         className,
         playing,
@@ -62,8 +61,9 @@ const NGLViewer = memo(
         selectedCustom, // Free NGL selections to be directly represented
         selectedDistances, // Groups of 2 atoms or residues to be represented as a distance
         selectedAngles, // Groups of 3 atoms to be represented as an angle
+        selectedRepresentation, // String name of a representation to be painted in yellow color (only 1)
         noTrajectory, // True when only specific frames must be loaded
-        initialFocus = CHAIN_SELECTION, // The ngl selection to be focused by the camera initially
+        initialFocus = { comp: 0, sele: CHAIN_SELECTION }, // The ngl selection to be focused by the camera initially
         darkBackground,
         perspective,
         speed,
@@ -97,13 +97,22 @@ const NGLViewer = memo(
       // in-view hook
       const [inViewRef, isInView] = useInView();
 
-      // Load the structure data
-      // If a structureURL is provided, download data form the API
+      // Load all requested topologies: Each component may have a different structure URL.
+      // Set the first component topology as the 'pdbData'
+      // If a topologyURL is provided, download data form the API
       // Otherwise, use the context pdbData (i.e. the 'md.imaged.rot.dry.pdb' file )
-      const pdbData = structureURL
-        ? useNGLFile(structureURL, { defaultRepresentation: false, ext: 'pdb' })
-        : useContext(PdbCtx);
-
+      const topologies = components.map(comp =>
+        comp.topologyURL
+          ? useNGLFile(comp.topologyURL, {
+              defaultRepresentation: false,
+              ext: 'pdb',
+            })
+          : useContext(PdbCtx),
+      );
+      const loadingTopologies = topologies.some(t => t.loading);
+      const pdbData = loadingTopologies
+        ? { loading: true, file: null }
+        : topologies[0];
       const { loading: loadingPDB, file: pdbFile } = pdbData;
 
       const isProjection = Number.isFinite(projection);
@@ -140,9 +149,10 @@ const NGLViewer = memo(
           const comps = JSON.parse(componentsRef);
 
           comps.forEach((comp, index) => {
+            if (comp.onlyTopology) return;
             // DANI: Por si acaso algun otro componente no tiene 'frame'
             // DANI: Esto ahora no tendría sentido porque no se podría controlar la trayectoria
-            if (index > 0 && !comp.frame) {
+            if (index > 0 && comp.frame === undefined) {
               console.error(
                 'Only the first component is allowed to load the trajectory',
               );
@@ -295,6 +305,7 @@ const NGLViewer = memo(
       const handleFrameChange = useCallback(
         frame => {
           if (noTrajectory) return; // En pruebas
+          if (!stageRef.current.compList[0].trajList[0]) return;
           if (!onProgress) return;
           const progress = clamp(
             frame /
@@ -331,11 +342,15 @@ const NGLViewer = memo(
       // PDB file, base structure
       // Set the representations in each component
       // Track when these representations are updated
-      const [updater, toggler] = useToggleState(false);
+      // The 'updater' is used to reload trajectory data into the representations when they are reseted
+      //const [updater, toggler] = useToggleState(false);
       useEffect(() => {
+        console.log('reload topology');
         // If there is already a component then toggle
-        if (stageRef.current.compList.length > 0) toggler();
-        // Keep track of the representation count
+        //if (stageRef.current.compList.length > 0) toggler();
+
+        // Keep the count of each representation in each component
+        // (i.e. it is not the same that any iteration index)
         let repCounter = 0;
 
         // Convert the JSON reference back into the 'components' object
@@ -349,19 +364,123 @@ const NGLViewer = memo(
           pdbFile.atomStore.occupancy.length,
         ).fill(1);
 
-        comps.forEach((comp, c) => {
-          // WARNING: This seems useless since the focus is done anyway
-          // WARNING: However, he code fails when this is deleted
-          const structureComponent = stageRef.current.addComponentFromObject(
-            pdbFile,
-          );
+        if (loadingTopologies) return;
 
-          // set the view somehow, in any case no transition duration is set
-          // because it's the first time we do that
+        comps.forEach((comp, c) => {
+          // Set the NGL component
+          let stageComp = stageRef.current.compList[c];
+          if (!stageComp) {
+            const topology = topologies[c];
+            if (!topology.file) {
+              console.error(
+                `The topology file (${comp.topologyURL}) is missing with error: ${topology.error}`,
+              );
+              return;
+            }
+            stageRef.current.addComponentFromObject(topology.file);
+            stageComp = stageRef.current.compList[c];
+            stageComp.onlyTopology = comp.onlyTopology;
+          }
+
+          // Set each representation
+          comp.representations.forEach(rep => {
+            // Adapt a few representation values to the context
+            // If the colorScheme is a defined color, create a custom colorScheme for this color
+            const colorScheme =
+              rep.name === selectedRepresentation
+                ? ColormakerRegistry.addSelectionScheme(
+                    [['yellow', 'all']],
+                    'custom label',
+                  )
+                : NGL_COLORS.includes(coloringMethods[repCounter])
+                ? ColormakerRegistry.addSelectionScheme(
+                    [[coloringMethods[repCounter], 'all']],
+                    'custom label',
+                  )
+                : coloringMethods[repCounter];
+
+            const colorDomain =
+              drawingMethods[repCounter] === 'surface'
+                ? [-200, 200]
+                : undefined;
+
+            const surfaceType =
+              drawingMethods[repCounter] === 'surface' ? 'av' : undefined;
+
+            // Find the previous representation
+            const previousRepresentation = stageComp.reprList.find(
+              previous => previous.name === rep.name,
+            );
+            // Update the previous representation if exists
+            if (previousRepresentation) {
+              const type = previousRepresentation.repr.type;
+              // If the 'drawingMethod' has been changed we have to remake the whole representation
+              if (type !== drawingMethods[repCounter]) {
+                stageComp.removeRepresentation(previousRepresentation);
+                stageComp.addRepresentation(drawingMethods[repCounter], {
+                  sele: rep.selection,
+                  name: rep.name,
+                  opacity: opacities[repCounter],
+                  colorScheme: colorScheme,
+                  colorDomain: colorDomain,
+                  surfaceType: surfaceType,
+                  ...rep.other,
+                });
+              }
+              // Otherwise it is faster just to update the parameters
+              else {
+                previousRepresentation.setParameters({
+                  sele: rep.selection,
+                  name: rep.name,
+                  opacity: opacities[repCounter],
+                  colorScheme: colorScheme,
+                  colorDomain: colorDomain,
+                  surfaceType: surfaceType,
+                  ...rep.other,
+                });
+              }
+            }
+            // If there is no previous representation then set a new one
+            else {
+              stageComp.addRepresentation(drawingMethods[repCounter], {
+                sele: rep.selection,
+                name: rep.name,
+                opacity: opacities[repCounter],
+                colorScheme: colorScheme,
+                colorDomain: colorDomain,
+                surfaceType: surfaceType,
+                ...rep.other,
+              });
+            }
+
+            // Set this representation as the focus if it is selected
+            if (rep.name === selectedRepresentation) {
+              setFocus({ comp: c, sele: rep.selection });
+            }
+
+            repCounter += 1;
+          });
+
+          // Add floating labels over each representation when they are specified
+          const chainLabels = comp.chainLabels;
+          if (chainLabels) {
+            let chainCount = 0;
+            const ap = stageComp.structure.getAtomProxy();
+            stageComp.structure.eachChain(function(cp) {
+              ap.index = cp.atomOffset + Math.floor(cp.atomCount / 2);
+              var elm = document.createElement('div');
+              elm.innerText = chainLabels[chainCount];
+              chainCount += 1;
+              elm.style.color = '#76FF03';
+              elm.style.backgroundColor = '#607D8B';
+              elm.style.padding = '8px';
+              stageComp.addAnnotation(ap.positionToVector3(), elm);
+            }, new Selection(''));
+          }
 
           // if an original orientation was aleady defined
           // (manually created, and stored in the API)
-          structureComponent.autoView(CHAIN_SELECTION, 0);
+          /*
           if (originalOritentationRef.current) {
             // use it to set the initial orientation
             stageRef.current.animationControls.orient(
@@ -371,47 +490,7 @@ const NGLViewer = memo(
           } else {
             originalOritentationRef.current = stageRef.current.viewerControls.getOrientation();
           }
-
-          comp.representations.forEach(rep => {
-            // Get the previous representation
-            const previousRepresentation = stageRef.current.compList[
-              c
-            ].reprList.find(previous => previous.name === rep.name);
-            // Delete previous representation if exists
-            if (previousRepresentation)
-              stageRef.current.compList[c].removeRepresentation(
-                previousRepresentation,
-              );
-
-            // If the colorScheme is a defined color, create a custom colorScheme for this color
-            const colorScheme = NGL_COLORS.includes(coloringMethods[repCounter])
-              ? ColormakerRegistry.addSelectionScheme(
-                  [[coloringMethods[repCounter], 'all']],
-                  'custom label',
-                )
-              : coloringMethods[repCounter];
-
-            // Set a new representation
-            if (opacities[repCounter] !== 0)
-              // DANI: Antes esto se hacía con 'structureComponent.addRepresentation'
-              stageRef.current.compList[c].addRepresentation(
-                drawingMethods[repCounter],
-                {
-                  sele: rep.selection,
-                  name: rep.name,
-                  opacity: opacities[repCounter],
-                  colorScheme: colorScheme,
-                  colorDomain:
-                    drawingMethods[repCounter] === 'surface'
-                      ? [-200, 200]
-                      : undefined,
-                  surfaceType:
-                    drawingMethods[repCounter] === 'surface' ? 'av' : undefined,
-                },
-              );
-
-            repCounter += 1;
-          });
+          */
         });
       }, [
         pdbFile,
@@ -428,7 +507,10 @@ const NGLViewer = memo(
         opacities,
         // eslint-disable-next-line react-hooks/exhaustive-deps
         ...opacities,
-        toggler,
+        //toggler,
+        loadingTopologies,
+        //topologies,
+        selectedRepresentation,
       ]);
 
       // Highlight specific atoms
@@ -496,7 +578,7 @@ const NGLViewer = memo(
         });
 
         // Focus the highlighted zone with the camera
-        setFocus(seleContext);
+        setFocus({ comp: 0, sele: seleContext });
       }, [pdbFile, selectedAtoms, darkBackground]);
 
       // Highlight specific residues
@@ -528,7 +610,7 @@ const NGLViewer = memo(
           name: nameHighlight,
         });
         // Focus the highlighted zone with the camera
-        setFocus(nglSelection);
+        setFocus({ comp: 0, sele: nglSelection });
       }, [pdbFile, selectedResidues]);
 
       // Highlight specific chains
@@ -559,7 +641,7 @@ const NGLViewer = memo(
           name: nameHighlight,
         });
         // Focus the highlighted zone with the camera
-        setFocus(nglSelection);
+        setFocus({ comp: 0, sele: nglSelection });
       }, [pdbFile, selectedChains]);
 
       // Highlight specific free NGL selections
@@ -587,7 +669,7 @@ const NGLViewer = memo(
           name: nameHighlight,
         });
         // Focus the highlighted zone with the camera
-        setFocus(nglSelection);
+        setFocus({ comp: 0, sele: nglSelection });
       }, [pdbFile, selectedCustom]);
 
       // Highlight specific distances
@@ -658,6 +740,7 @@ const NGLViewer = memo(
         trajectoryPayload.forEach((payload, index) => {
           const component = stageRef.current.compList[index];
           if (!component) return;
+          if (component.onlyTopology) return;
           //console.log(component);
 
           // remove all possibly already existing trajectories
@@ -695,7 +778,7 @@ const NGLViewer = memo(
         trajectoryFrames,
         handleFrameChange,
         isProjection,
-        updater, // For when representations are reseted
+        //updater, // For when representations are reseted
       ]);
 
       // play/pause
@@ -914,7 +997,7 @@ const NGLViewer = memo(
 
       // Focus the specified ngl selection with the camera automatically
       useEffect(() => {
-        const comp = stageRef.current.compList[0];
+        const comp = stageRef.current.compList[focus.comp];
         if (!comp) return;
         let transition = DEFAULT_ORIENTATION_TRANSITION_DURATION;
         // First transition is instantaneous
@@ -922,8 +1005,8 @@ const NGLViewer = memo(
           transition = 0;
           firstFocus.current = false;
         }
-        comp.autoView(focus, transition);
-      }, [focus]);
+        comp.autoView(focus.sele, transition);
+      }, [focus.comp, focus.sele]);
 
       // Expose public methods and getters/setters
       useImperativeHandle(

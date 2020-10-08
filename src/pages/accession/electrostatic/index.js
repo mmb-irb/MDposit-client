@@ -50,7 +50,7 @@ const Electrostatic = () => {
     // Exclude ligands. We don't want their surfaces to be represented
     if (metadata.LIGANDS)
       for (const lig of metadata.LIGANDS)
-        if (lig.selection === nglChainSelection) return;
+        if (lig.ngl_selection === nglChainSelection) return;
     // If the chain is already in the interfaces selection list we expand the selection
     for (const sel of nglInterfaceSelections)
       if (sel.chain === chain) {
@@ -65,7 +65,7 @@ const Electrostatic = () => {
   const selectedLigands = metadata.LIGANDS ? [] : undefined;
   if (metadata.LIGANDS) {
     for (const ligand of metadata.LIGANDS) {
-      selectedLigands.push(ligand.selection);
+      selectedLigands.push(ligand.ngl_selection);
     }
   }
 
@@ -134,7 +134,6 @@ const Electrostatic = () => {
         {isNglVisible ? (
           <NGLViewerWithControls
             className={style.container}
-            //structureURL={structureURL}
             representations={chainsNGL}
             requestedFrame={1}
             selectedCustom={selectedLigands}

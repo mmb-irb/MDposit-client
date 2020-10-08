@@ -1,0 +1,28 @@
+.paper {
+  max-height: 500px;
+  overflow-y: scroll;
+}
+
+.tablecard {
+  margin-top: 1em;
+  display: inline-block;
+  width: 25%;
+}
+
+.nglcard {
+  margin-top: 1em;
+  display: inline-block;
+  width: 75%;
+}
+
+.margined {
+  margin: 1em;
+}
+
+.container {
+  height: 500px;
+}
+
+.selectedrow {
+  background-color: #76ff03;
+}

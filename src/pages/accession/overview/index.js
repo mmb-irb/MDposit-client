@@ -19,23 +19,26 @@ import style from './style.module.css';
 const COMMA_SEPARATOR = /\s*,\s*/;
 
 export default React.memo(() => {
-  const { pdbInfo, accession, identifier, published, metadata } = useContext(
-    ProjectCtx,
-  );
+  const { accession, identifier, published, metadata } = useContext(ProjectCtx);
 
+  // Process the pdbInfo metadata to show a report
+  const pdbInfo = metadata.pdbInfo;
+  const pdbId = pdbInfo && pdbInfo._id.toLowerCase();
+
+  // Set the url to get the pdb image
   const imgSrc =
     pdbInfo &&
-    pdbInfo.identifier &&
-    `//cdn.rcsb.org/images/hd/${pdbInfo.identifier
-      .toLowerCase()
-      .substr(
-        1,
-        2,
-      )}/${pdbInfo.identifier.toLowerCase()}/${pdbInfo.identifier.toLowerCase()}.0_chimera_tm_350_350.png`;
+    pdbInfo._id &&
+    `https://cdn.rcsb.org/images/structures/${pdbId.substr(
+      1,
+      2,
+    )}/${pdbId}/${pdbId}_assembly-1.jpeg`;
+
+  // Mine the organism, keyword and publish date
   let organisms;
   let keywords;
   let publishDate;
-  if (pdbInfo && pdbInfo.identifier) {
+  if (pdbInfo && pdbInfo._id) {
     organisms = Array.from(
       new Set((pdbInfo.sources || '').split(COMMA_SEPARATOR)),
     );
@@ -44,6 +47,7 @@ export default React.memo(() => {
     );
     publishDate = new Date(pdbInfo.ascDate);
   }
+
   let citation;
   if (metadata && metadata.CITATION) {
     // Replace the metadat break lines by proper JSX break lines
@@ -70,7 +74,35 @@ export default React.memo(() => {
 
   return (
     <>
-      {pdbInfo && pdbInfo.identifier && (
+      <Card className={style.card}>
+        <CardContent className={style['card-content']}>
+          <Typography variant="h6">MD information</Typography>
+          <div className={style['summary-list']}>
+            <div>
+              Authors: {(metadata && metadata.AUTHORS) || 'Not available'}
+            </div>
+            <div>
+              Program: {(metadata && metadata.PROGRAM) || 'Not available'}
+            </div>
+            <div>
+              Version: {(metadata && metadata.VERSION) || 'Not available'}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      <Card className={style.card}>
+        <CardContent className={style['card-content']}>
+          <Typography variant="h6">Molecule information</Typography>
+          <div className={style['summary-list']}>
+            <div>Name: {(metadata && metadata.NAME) || 'Not available'}</div>
+            <div>
+              Description:{' '}
+              {(metadata && metadata.DESCRIPTION) || 'Not available'}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      {pdbInfo && pdbInfo._id && (
         <Card className={style.card}>
           <CardContent className={style['card-content']}>
             <Typography variant="h6">PDB information</Typography>
@@ -79,13 +111,13 @@ export default React.memo(() => {
               width="350"
               height="350"
               loading="lazy"
-              alt={`3D view of the ${pdbInfo.identifier} structure`}
+              alt={`3D view of the ${pdbInfo._id} structure`}
             />
             {pdbInfo && (
               <div className={style['summary-list']}>
                 <div>{pdbInfo.title}</div>
                 <div>
-                  PDB Accession: {pdbInfo.identifier}
+                  PDB Accession: {pdbInfo._id}
                   {pdbInfo.replaces && ` (replaces ${pdbInfo.replaces})`}
                 </div>
                 <div>
@@ -133,7 +165,7 @@ export default React.memo(() => {
             <Button
               component={'a'}
               variant="contained"
-              href={`https://www.ebi.ac.uk/pdbe/entry/pdb/${pdbInfo.identifier}`}
+              href={`https://www.ebi.ac.uk/pdbe/entry/pdb/${pdbInfo._id}`}
               size="small"
               color="primary"
               target="_blank"
@@ -145,7 +177,7 @@ export default React.memo(() => {
             <Button
               component={'a'}
               variant="contained"
-              href={`https://www.rcsb.org/structure/${pdbInfo.identifier}`}
+              href={`https://www.rcsb.org/structure/${pdbInfo._id}`}
               size="small"
               color="primary"
               target="_blank"
@@ -157,34 +189,6 @@ export default React.memo(() => {
           </CardActions>
         </Card>
       )}
-      <Card className={style.card}>
-        <CardContent className={style['card-content']}>
-          <Typography variant="h6">MD information</Typography>
-          <div className={style['summary-list']}>
-            <div>
-              Authors: {(metadata && metadata.AUTHORS) || 'Not available'}
-            </div>
-            <div>
-              Program: {(metadata && metadata.PROGRAM) || 'Not available'}
-            </div>
-            <div>
-              Version: {(metadata && metadata.VERSION) || 'Not available'}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      <Card className={style.card}>
-        <CardContent className={style['card-content']}>
-          <Typography variant="h6">Molecule information</Typography>
-          <div className={style['summary-list']}>
-            <div>Name: {(metadata && metadata.NAME) || 'Not available'}</div>
-            <div>
-              Description:{' '}
-              {(metadata && metadata.DESCRIPTION) || 'Not available'}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
       {metadata && metadata.LIGANDS && (
         <Card className={style.card}>
           <CardContent className={style['card-content']}>

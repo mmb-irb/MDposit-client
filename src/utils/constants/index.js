@@ -23,6 +23,7 @@ export const NICE_NAMES = new Map([
   ['hbonds', 'Hydrogen bonds'],
   ['electrostatic', 'Electrostatic p. surface'],
   ['energies', 'Energies'],
+  ['pockets', 'Pockets'],
 ]);
 
 // The color of the graphics for this analysis

@@ -15,6 +15,8 @@ import {
 
 // According to d3 documentation
 const defaultD3font = 'normal 10px sans-serif';
+// Experimentally verfied
+const titlesD3font = 'normal 14px sans-serif';
 
 // DANI: Ni este 'memo' ni el 'useMemo' de dentro funcionan. Siempre se vuelve a calcular
 // Lo óptimo sería que funcionase, ya que cada vez que el ususario hace click todo se vuelve a cargar
@@ -22,11 +24,10 @@ const defaultD3font = 'normal 10px sans-serif';
 const D3HeatmapGrid = memo(
   ({
     data, // The main values
-    xLabels = [], // String labels for the horizontal axis
-    yLabels = [], // String labels for the vertical axis
-    xTitle, // String title for the horizontal axis
-    yTitle, // String title for the vertical axis
-    titlesFont = 'normal 14px sans-serif', // Experimentally verfied
+    xAxisValues = [], // String labels for the horizontal axis
+    yAxisValues = [], // String labels for the vertical axis
+    xAxisLabel, // String title for the horizontal axis
+    yAxisLabel, // String title for the vertical axis
     width = 1000,
     height = 600,
     verticalPadding = 0,
@@ -35,16 +36,18 @@ const D3HeatmapGrid = memo(
     minColor = 'red',
     onTooltip, // Text to be rendered on the tooltip
     onClick, // Function to be called when clicking on the heatmap
+    flippedXAxisValues = true, // Set if values in x axis is horizontal (false) or vertical (true)
+    margin = { top: 10, right: 10, bottom: 10, left: 10 },
   }) => {
     if (!data)
       throw new Error(
         `Data is missing. Data is mandatory for the heatmap representation`,
       );
     // If any label is empty, fill it with 1-n numbers
-    if (xLabels.length === 0)
-      xLabels = Array.from(Array(data[0].length).keys());
-    if (yLabels.length === 0)
-      yLabels = Array.from(Array(data[0].length).keys());
+    if (xAxisValues.length === 0)
+      xAxisValues = Array.from(Array(data[0].length).keys());
+    if (yAxisValues.length === 0)
+      yAxisValues = Array.from(Array(data[0].length).keys());
 
     // Convert data to heatmap friendly format
 
@@ -54,10 +57,11 @@ const D3HeatmapGrid = memo(
     const maxv = Math.max(...values);
     const minv = Math.min(...values);
     // Repeat the x labels as many times as rows are there
-    const xlabs = [].concat(...Array(data.length).fill(xLabels));
+    const xlabs = [].concat(...Array(data.length).fill(xAxisValues));
     // Repeat each y label as many times as rows are there
     const ylabs = [];
-    for (const lab of yLabels) ylabs.push(...Array(xLabels.length).fill(lab));
+    for (const lab of yAxisValues)
+      ylabs.push(...Array(xAxisValues.length).fill(lab));
     // Fill an array with an object fo each d, x and y
     const fdata = [];
     for (const i in values) {
@@ -69,52 +73,72 @@ const D3HeatmapGrid = memo(
     // Save the previous chart reference so we can remove it before a new render
     const previousCharts = useRef(null);
 
+    // ----------------------------------------------------------------------------------------
+
+    // OFFSETS: Estimate the space needed for all the labels and titles to not overlap
+
+    // Set a small offset to be added between normal labels and 90 degrees rotated labels
+    // This offset is added between the y labels (normal) and the y title (rotated)
+    // This offset is added between the x labels (rotated) and the x title (normal)
+    const roatatedTextOffset = 9; // In px
+
+    // Set a small offset to keep away the axis labels and the axis values
+    // They are very close to the axis values by default
+    const axisLabelsOffset = 9; // In px
+
+    // Measure the height of normal and text and labels
+    const textHeight = getTextSizeDOM('|', defaultD3font).height;
+    const labelsHeight =
+      getTextSizeDOM('|', titlesD3font).height + axisLabelsOffset;
+
     // Get the calculated widths of all y labels and select the maximum
-    // In addition, add a small margin between labels and the axis which is added further
-    // This margin is only in x axes, which are rotated 90 degrees and end too much close to the axis
-    const xLabelsMargin = 9; // In px
-    const maxXLabelWidth =
-      Math.max(...xLabels.map(label => getTextWidth(label, defaultD3font))) +
-      xLabelsMargin;
+    // In addition, add a small offset between labels and the axis which is added further
+    // This offset is only in x axes, which are rotated 90 degrees and end too much close to the axis
+    const maxXAxisWidth =
+      Math.max(
+        ...xAxisValues.map(label => getTextWidth(label, defaultD3font)),
+      ) + roatatedTextOffset;
     // Get the calculated widths of all y labels and select the maximum
-    const maxYLabelWidth = Math.max(
-      ...yLabels.map(label => getTextWidth(label, defaultD3font)),
+    const maxYAxisWidth = Math.max(
+      ...yAxisValues.map(label => getTextWidth(label, defaultD3font)),
     );
 
-    // In addition, add a small margin between labels and the axis which is added further
-    // This margin is only in x axes, which are rotated 90 degrees and end too much close to the axis
-    const yTitleMargin = 9; // Extra margin In px
-    const titlesHeight = getTextSizeDOM('|', titlesFont).height;
-    const xTitleHegiht = xTitle ? titlesHeight : 0;
-    const yTitleHegiht = yTitle ? titlesHeight + yTitleMargin : 0;
+    // In addition, add a small offset between labels and the axis which is added further
+    // This offset is only in x axes, which are rotated 90 degrees and end too much close to the axis
+    const xAxisLabelHegiht = xAxisLabel ? labelsHeight : 0;
+    const yAxisLabelHegiht = yAxisLabel ? labelsHeight + roatatedTextOffset : 0;
 
-    // Finally, estimate the space need by axes, titles, etc.
-    const requiredXMargin = maxXLabelWidth + xTitleHegiht;
-    // DANI: Aquí no debería ir la default font, sino la titlesFont. Sin embargo queda mejor así.
-    const requiredYMargin =
-      yLabels.length === 1
-        ? Math.max(maxYLabelWidth, getTextWidth(yTitle, titlesFont))
-        : maxYLabelWidth + yTitleHegiht;
+    // Finally, estimate the space needed by axes, titles, etc.
+    const requiredXOffset = flippedXAxisValues
+      ? maxXAxisWidth + xAxisLabelHegiht
+      : textHeight + xAxisLabelHegiht;
+    const requiredYOffset =
+      yAxisValues.length === 1
+        ? Math.max(maxYAxisWidth, getTextWidth(yAxisLabel, titlesD3font))
+        : maxYAxisWidth + yAxisLabelHegiht;
 
-    // Set the dimensions and margins of the graph
-    const margin = {
-        top: 10,
-        right: 10,
-        bottom: requiredXMargin + 10,
-        left: requiredYMargin + 10,
+    // Set the dimensions and offsets of the graph
+    const offset = {
+        top: margin.top,
+        right: margin.right,
+        bottom: requiredXOffset + margin.bottom,
+        left: requiredYOffset + margin.left,
       },
-      bodyWidth = width - margin.left - margin.right,
-      bodyHeight = height - margin.top - margin.bottom;
+      bodyWidth = width - offset.left - offset.right,
+      bodyHeight = height - offset.top - offset.bottom;
+
+    // ----------------------------------------------------------------------------------------
 
     // Calculate how many labels we can show in any axis while avoiding overlapping
     // Take in count that bottom labels are rotated 90º, so it is their height that counts
-    const labelsHeight = getTextSizeDOM('|', defaultD3font).height;
-    const xSlots = bodyWidth / (labelsHeight * 1.05); // This '* 1.05' is to grant a small padding
-    const ySlots = bodyHeight / (labelsHeight * 1.05); // This '* 1.05' is to grant a small padding
+    // The '* 1.05' is to grant a small padding
+    const xSlots =
+      bodyWidth / ((flippedXAxisValues ? textHeight : maxXAxisWidth) * 1.05);
+    const ySlots = bodyHeight / (textHeight * 1.05);
 
     // Estimate how many labels we must skip to reach the desired number
-    const xstep = Math.ceil(xLabels.length / xSlots);
-    const ystep = Math.ceil(yLabels.length / ySlots);
+    const xstep = Math.ceil(xAxisValues.length / xSlots);
+    const ystep = Math.ceil(yAxisValues.length / ySlots);
 
     // The chart is assigned to a referenced 'div' which must be rendered first
     // All this process is runned after the render
@@ -128,52 +152,51 @@ const D3HeatmapGrid = memo(
       // append the svg object to the body of the page
       const svg = select(containerRef.current)
         .append('svg')
-        .attr('viewBox', [
-          0,
-          0,
-          bodyWidth + margin.left + margin.right,
-          bodyHeight + margin.top + margin.bottom,
-        ]);
+        .attr('viewBox', [0, 0, width, height]);
 
       // Build X scales and axis:
       const x = scaleBand()
-        .range([margin.left, bodyWidth + margin.left])
-        .domain(xLabels)
+        .range([offset.left, bodyWidth + offset.left])
+        .domain(xAxisValues)
         .paddingInner(0);
 
-      svg
+      const xAxis = svg
         .append('g')
-        .attr('transform', 'translate(0,' + (bodyHeight + margin.top) + ')')
+        .attr('transform', 'translate(0,' + (bodyHeight + offset.top) + ')')
         .call(
           axisBottom(x).tickFormat((d, i) => {
             if (i % xstep === 0) return d;
             else return '';
           }),
         )
-        .selectAll('text')
-        .style('text-anchor', 'end')
-        .attr('dx', -xLabelsMargin + 'px')
-        .attr('dy', -xLabelsMargin + 'px')
-        .attr('transform', 'rotate(-90)');
+        .selectAll('text');
 
-      // Build the X axis title
+      if (flippedXAxisValues) {
+        xAxis
+          .style('text-anchor', 'end')
+          .attr('dx', -roatatedTextOffset + 'px')
+          .attr('dy', -roatatedTextOffset + 'px')
+          .attr('transform', 'rotate(-90)');
+      }
+
+      // Build the X axis label
       svg
         .append('text')
         .attr('class', 'x label')
         .attr('text-anchor', 'middle')
-        .attr('x', margin.left + bodyWidth / 2)
-        .attr('y', margin.top + bodyHeight + maxXLabelWidth + xTitleHegiht)
-        .text(xTitle);
+        .attr('x', offset.left + bodyWidth / 2)
+        .attr('y', offset.top + bodyHeight + requiredXOffset)
+        .text(xAxisLabel);
 
       // Build Y scales and axis:
       const y = scaleBand()
-        .domain(yLabels)
-        .range([margin.top, bodyHeight + margin.top])
+        .domain(yAxisValues)
+        .range([offset.top, bodyHeight + offset.top])
         .padding(verticalPadding);
 
       svg
         .append('g')
-        .attr('transform', 'translate(' + margin.left + ', 0)')
+        .attr('transform', 'translate(' + offset.left + ', 0)')
         .call(
           axisLeft(y).tickFormat((d, i) => {
             if (i % ystep === 0) return d;
@@ -181,24 +204,30 @@ const D3HeatmapGrid = memo(
           }),
         );
 
-      // Build the Y axis title
-      if (yLabels.length === 1) {
+      // Build the Y axis label
+      if (yAxisValues.length === 1) {
         svg
           .append('text')
           .attr('class', 'y label')
           .attr('text-anchor', 'start')
           .attr('x', 0)
-          .attr('y', yTitleHegiht - yTitleMargin)
-          .text(yTitle);
+          .attr('y', margin.top + bodyHeight)
+          .text(yAxisLabel);
       } else {
         svg
           .append('text')
           .attr('class', 'y label')
           .attr('text-anchor', 'middle')
-          .attr('x', -(margin.top + bodyHeight / 2))
-          .attr('y', yTitleHegiht - yTitleMargin)
+          .attr('x', -(offset.top + bodyHeight / 2))
+          .attr(
+            'y',
+            margin.left +
+              yAxisLabelHegiht -
+              roatatedTextOffset -
+              axisLabelsOffset,
+          )
           .attr('transform', 'rotate(-90)')
-          .text(yTitle);
+          .text(yAxisLabel);
       }
 
       // Build color scale
@@ -231,12 +260,12 @@ const D3HeatmapGrid = memo(
               : d.x + ' - ' + d.y + '<br>' + Math.round(d.v * 100) / 100,
           )
           .style('left', () => {
-            return mouse(this)[0] > margin.left + bodyWidth / 2
+            return mouse(this)[0] > offset.left + bodyWidth / 2
               ? mouse(this)[0] - 150 + 'px'
               : mouse(this)[0] + 50 + 'px';
           })
           .style('top', () => {
-            return mouse(this)[1] > margin.top + bodyHeight / 2
+            return mouse(this)[1] > offset.top + bodyHeight / 2
               ? mouse(this)[1] + 'px'
               : mouse(this)[1] + 150 + 'px';
           });

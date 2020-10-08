@@ -67,6 +67,10 @@ const Energies = lazy(() =>
   import(/* webpackChunkName: 'energies' */ './energies'),
 );
 
+const Pockets = lazy(() =>
+  import(/* webpackChunkName: 'pockets' */ './pockets'),
+);
+
 // Return an error message and print the error in the console
 const Error = ({ error }) => {
   console.error(error);
@@ -93,7 +97,7 @@ const SummarySwitch = ({ setProject }) => {
 
   // Order the chains inexes by alphabetic number
   useMemo(() => {
-    if (payload) payload.chains.sort();
+    if (payload && payload.chains) payload.chains.sort();
   }, [payload]);
 
   // Load the structure data form the API
@@ -314,6 +318,15 @@ const SummarySwitch = ({ setProject }) => {
               render={props => (
                 <Suspense fallback={<Loading />}>
                   <Energies {...props} />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/pockets"
+              exact
+              render={props => (
+                <Suspense fallback={<Loading />}>
+                  <Pockets {...props} />
                 </Suspense>
               )}
             />

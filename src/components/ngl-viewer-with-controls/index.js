@@ -85,15 +85,24 @@ const NGLViewerWithControls = forwardRef(
       framesSelect = true,
       // The NGL representations
       // It is an array with objects with the following structure:
-      // { selection: (OBLIGATORY) The NGL selection string to define this string,
-      //   name: (by default, the selection string) The string label of this representation,
-      //   show: (by default, true) Boolean to set if this representation is shown or not,
-      //   defaultDrawingMethod: (by default, 'cartoon') The initial representation 'type',
-      //   defaultColoringMethod: (by default, 'chainid') The initial representation 'colorScheme',
-      //   defaultOpacity: (by default, 1) The initial representation opacity }
+      // {
+      //   selection: ('all' by default) The NGL selection string to define the atom selection,
+      //   name: ('representation' by default) The string label of this representation,
+      //   show: ('true' by default) Boolean to set if this representation is shown or not,
+      //   defaultDrawingMethod: ('cartoon' by default) The initial representation 'type',
+      //   defaultColoringMethod: ('chainid' by default) The initial representation 'colorScheme',
+      //   defaultOpacity: ('1' by default) The initial representation opacity
+      //   other: object with any other ngl options to be passed for the representation
+      // }
       representations = [],
       // New method to call the NGL
-      // Components are objects which include a 'frame' value and the 'representations' array
+      // Components are objects which may include the following values
+      // All values are optional since missing values will be set by default
+      //  {
+      //    topologyURL: string,
+      //    frame: int,
+      //    representations: [...],
+      //  }
       components = [],
       ...props
     },
@@ -127,7 +136,7 @@ const NGLViewerWithControls = forwardRef(
         for (const ligand of metadata.LIGANDS) {
           reps.push({
             name: ligand.name,
-            selection: ligand.selection,
+            selection: ligand.ngl_selection,
             defaultDrawingMethod: 'licorice',
           });
         }
