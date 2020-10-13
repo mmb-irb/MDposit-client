@@ -193,7 +193,6 @@ const Energies = () => {
         }
         onClose={viewer =>
           setSelected(previous => {
-            console.log(viewer.selectedResidues + ' / ' + previous);
             if (viewer.selectedResidues === previous) return null;
             else return previous;
           })

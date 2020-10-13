@@ -1,4 +1,4 @@
-import React, { lazy, useContext, useState } from 'react';
+import React, { lazy, useContext, useState, useRef } from 'react';
 // A hook to track whenever some element is on screen
 import { useInView } from 'react-intersection-observer';
 
@@ -8,6 +8,8 @@ import {
   TableRow,
   TableCell,
   TableBody,
+  FormControlLabel,
+  Checkbox,
 } from '@material-ui/core';
 
 import Card from '../../../components/animated-card';
@@ -42,17 +44,21 @@ const Pockets = () => {
   // The status (e.g. isNglVisible) is returned true/false when the element is in/out the screen respectively
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
 
-  // Get the accession
-  //const accession = useContext(AccessionCtx);
-  // Get the current project chains
+  // Get the current project metadata
   const { metadata } = useContext(ProjectCtx);
   // Get the accession
   const accession = useContext(AccessionCtx);
   // Get the current topology, including the residue names
   const pdbData = useContext(PdbCtx);
 
+  // This blockRef is a workaround to avoid selecting a pocket row when clicking on the checkbox
+  const blockRef = useRef(null);
+
   // Set which pocket is selected by the user
   const [selectedPocket, setSelectedPocket] = useState('p1');
+
+  // Set which pocket is selected by the user
+  const [shownPockets, setShownPockets] = useState(new Array(99).fill(true));
 
   // Send a request to the API with the url of the rgyr analysis
   const { loading, payload, error } = useAPI(
@@ -76,7 +82,7 @@ const Pockets = () => {
   // Set the input objets for the graph
   const graphInputData = {};
   const show = {};
-  for (const pocketName of pocketNames) {
+  pocketNames.forEach((pocketName, pocketNum) => {
     // NGL
     const pocket = {
       topologyURL: `${BASE_PATH_PROJECTS}${accession}/files/${pocketName}.pdb`,
@@ -87,9 +93,10 @@ const Pockets = () => {
           defaultDrawingMethod: 'surface',
           // Make the surface a transparent net
           other: { contour: true },
+          label: pocketName,
         },
       ],
-      chainLabels: [pocketName],
+      //chainLabels: [pocketName],
     };
     pockets.push(pocket);
     // Graph
@@ -97,12 +104,12 @@ const Pockets = () => {
       data: payload[pocketName].pock_volume,
     };
     show[pocketName] = pocketName === selectedPocket;
-  }
+  });
 
   // Set the xAxis values: frame numbers
-  const datalength = payload[selectedPocket].pock_volume.length;
-  const xAxisStep = Math.floor(metadata.SNAPSHOTS / datalength);
-  const xAxisValues = Array(datalength)
+  const dataLength = payload[selectedPocket].pock_volume.length;
+  const xAxisStep = Math.floor(metadata.SNAPSHOTS / (dataLength - 1));
+  const xAxisValues = Array(dataLength)
     .fill(undefined)
     .map((v, i) => i * xAxisStep);
 
@@ -128,7 +135,7 @@ const Pockets = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {pocketNames.map(pocketName => (
+              {pocketNames.map((pocketName, r) => (
                 <TableRow
                   key={pocketName}
                   // Hover only when it is not already selected
@@ -139,10 +146,36 @@ const Pockets = () => {
                       ? style.selectedrow
                       : undefined
                   }
-                  onClick={() => setSelectedPocket(pocketName)}
+                  onClick={() => {
+                    if (blockRef.current === r) return;
+                    return setSelectedPocket(pocketName);
+                  }}
                 >
                   {[
-                    pocketName,
+                    <FormControlLabel
+                      data-key={pocketName}
+                      key={pocketName}
+                      onMouseOver={() => {
+                        blockRef.current = r;
+                      }}
+                      onMouseOut={() => {
+                        blockRef.current = null;
+                      }}
+                      onChange={() =>
+                        setShownPockets(previous => {
+                          previous[r] = !previous[r];
+                          return [...previous];
+                        })
+                      }
+                      control={
+                        <Checkbox
+                          checked={shownPockets[r]}
+                          style={{ color: 'black' }}
+                          inputProps={{ 'data-key': pocketName }}
+                        />
+                      }
+                      label={pocketName}
+                    />,
                     roundedAvg(payload[pocketName].pock_volume),
                   ].map(cell => (
                     <TableCell key={cell}>{cell}</TableCell>
@@ -182,6 +215,7 @@ const Pockets = () => {
             className={style.container}
             components={[{}, ...pockets]}
             selectedRepresentation={selectedPocket}
+            showRepresentations={[true, ...shownPockets]}
           />
         ) : (
           <div style={{ height: '50vh' }} />

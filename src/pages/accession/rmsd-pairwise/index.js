@@ -8,7 +8,7 @@ import Card from '../../../components/animated-card';
 import Loading from '../../../components/loading';
 import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 
-import { AccessionCtx } from '../../../contexts';
+import { AccessionCtx, ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
@@ -20,6 +20,8 @@ import Heatmap from '../../../components/heatmap';
 const RmsdPairwise = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
+  // Get the current project metadata
+  const { metadata } = useContext(ProjectCtx);
 
   // The selected frames
   const [selected, setSelected] = useState(null);
@@ -36,6 +38,13 @@ const RmsdPairwise = () => {
   if (loading) return <Loading />;
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
+
+  // Set the both values: frame numbers
+  const dataLength = payload[display].length;
+  const AxesStep = Math.floor(metadata.SNAPSHOTS / (dataLength - 1));
+  const AxesValues = Array(dataLength)
+    .fill(undefined)
+    .map((v, i) => i * AxesStep);
 
   // Set the frames to be represented in the NGL viewer
   const components = [];
@@ -106,8 +115,8 @@ const RmsdPairwise = () => {
           <Heatmap
             inputData={{
               data: payload[display],
-              xLabels: payload.xLabels,
-              yLabels: payload.yLabels,
+              xLabels: AxesValues,
+              yLabels: AxesValues,
             }}
             onClick={(x, y) => setSelected([x, y])}
             legendTitle={'RMSD (Å)'}

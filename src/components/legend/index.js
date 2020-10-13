@@ -25,7 +25,7 @@ const Legend = ({ entries, onChange, onMouseOver, onMouseOut }) => {
           control={
             <Checkbox
               checked={check}
-              style={{ color: color || 'back' }}
+              style={{ color: color || 'black' }}
               inputProps={{ 'data-key': name }}
             />
           }

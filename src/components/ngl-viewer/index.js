@@ -5,6 +5,7 @@ import React, {
   useRef,
   useImperativeHandle,
   useCallback,
+  useMemo,
   useEffect,
   useContext,
 } from 'react';
@@ -12,7 +13,7 @@ import React, {
 import { useInView } from 'react-intersection-observer';
 import { debounce, clamp } from 'lodash-es';
 import cn from 'classnames';
-import { Selection, Stage, ColormakerRegistry, Matrix4 } from 'ngl';
+import { autoLoad, Stage, ColormakerRegistry, Matrix4 } from 'ngl';
 
 import { frame } from 'timing-functions';
 
@@ -33,7 +34,6 @@ import style from './style.module.css';
 // To get frames
 import { BASE_PATH_PROJECTS } from '../../utils/constants';
 import extractCounts from './extract-counts';
-import useNGLFile from '../../hooks/use-ngl-file';
 import axios from 'axios';
 
 const DEFAULT_NUMBER_OF_FRAMES = 25;
@@ -71,14 +71,20 @@ const NGLViewer = memo(
         coloringMethods,
         opacities,
         components,
+        showRepresentations,
       },
       ref,
     ) => {
+      // This is a workaround to include the 'components' object in useEffect hooks
+      // The 'components' object is not a suitable dependency. It would re-render the hook all the time
+      const componentsRef = JSON.stringify(components);
+
       // If no URL is provided then use the main trajectory (the 'md.imaged.rot.xtc' file) // URL to find the trajectory data in the API
       // True when we just want to display a static structure // Requeste number of frames to display
       // data from context
       const accession = useContext(AccessionCtx);
       const { metadata, curatedOrientation } = useContext(ProjectCtx);
+      const pdbData = useContext(PdbCtx);
 
       // The last automatic camera focus
       const [focus, setFocus] = useState(initialFocus);
@@ -100,20 +106,83 @@ const NGLViewer = memo(
       // Load all requested topologies: Each component may have a different structure URL.
       // Set the first component topology as the 'pdbData'
       // If a topologyURL is provided, download data form the API
-      // Otherwise, use the context pdbData (i.e. the 'md.imaged.rot.dry.pdb' file )
-      const topologies = components.map(comp =>
-        comp.topologyURL
-          ? useNGLFile(comp.topologyURL, {
-              defaultRepresentation: false,
-              ext: 'pdb',
-            })
-          : useContext(PdbCtx),
+      // Otherwise, use the context pdbData (i.e. the 'md.imaged.rot.dry.pdb' file)
+
+      // Memoize the topolgy URLs into an array
+      const topologyURLs = useMemo(() => {
+        const comps = JSON.parse(componentsRef);
+        return comps.map(comp => comp.topologyURL);
+      }, [componentsRef]);
+
+      /*
+      const topologies = useNGLFiles(topologyURLs,
+        {
+          defaultRepresentation: false,
+          ext: 'pdb',
+        },
+        pdbData.file);
+        */
+      const [topologies, setTopologies] = useState(
+        topologyURLs.map(url => ({
+          loading: true,
+          file: null,
+          error: null,
+        })),
       );
+
+      // Load all requested topologies from the API
+      // WARNING: The '[...previous]' is essential to make the array object change
+      // This is important, since the 'topologies' object is used as a dependendy further
+      // And if we do not change the array then the change is not detected
+      useEffect(() => {
+        if (!topologyURLs) return;
+        let didCancel = false;
+        // Make an API request fro each url
+        topologyURLs.forEach((url, i) => {
+          // If there is no URL load the context pdbData
+          if (!url)
+            setTopologies(previous => {
+              const current = previous[i];
+              current.loading = false;
+              current.file = pdbData.file;
+              return [...previous];
+            });
+          // If there is an URL
+          else {
+            // 'autoLoad' is the built in function from NGL to load data
+            autoLoad(url, { defaultRepresentation: false, ext: 'pdb' })
+              // If the request was sucessful
+              .then(
+                file =>
+                  !didCancel &&
+                  setTopologies(previous => {
+                    const current = previous[i];
+                    current.loading = false;
+                    current.file = file;
+                    return [...previous];
+                  }),
+              )
+              // If the request failed
+              .catch(
+                error =>
+                  !didCancel &&
+                  setTopologies(previous => {
+                    const current = previous[i];
+                    current.loading = false;
+                    current.error = error;
+                    return [...previous];
+                  }),
+              );
+          }
+        });
+        return () => (didCancel = true);
+      }, [topologyURLs, pdbData]);
+
       const loadingTopologies = topologies.some(t => t.loading);
-      const pdbData = loadingTopologies
+      const mainTopology = loadingTopologies
         ? { loading: true, file: null }
         : topologies[0];
-      const { loading: loadingPDB, file: pdbFile } = pdbData;
+      const { loading: loadingPDB, file: pdbFile } = mainTopology;
 
       const isProjection = Number.isFinite(projection);
 
@@ -123,10 +192,6 @@ const NGLViewer = memo(
         frameCount: [],
         loading: [],
       });
-
-      // This is a workaround to include the 'components' object in useEffect hooks
-      // The 'components' object is not a suitable dependency. It would re-render the hook all the time
-      const componentsRef = JSON.stringify(components);
 
       // Hook for the trajectory data (frames)
       useEffect(
@@ -345,7 +410,6 @@ const NGLViewer = memo(
       // The 'updater' is used to reload trajectory data into the representations when they are reseted
       //const [updater, toggler] = useToggleState(false);
       useEffect(() => {
-        console.log('reload topology');
         // If there is already a component then toggle
         //if (stageRef.current.compList.length > 0) toggler();
 
@@ -383,8 +447,12 @@ const NGLViewer = memo(
           }
 
           // Set each representation
-          comp.representations.forEach(rep => {
+          comp.representations.forEach((rep, r) => {
+            const show =
+              !showRepresentations || showRepresentations[repCounter];
             // Adapt a few representation values to the context
+            const opacity = show ? opacities[repCounter] : 0;
+
             // If the colorScheme is a defined color, create a custom colorScheme for this color
             const colorScheme =
               rep.name === selectedRepresentation
@@ -420,7 +488,7 @@ const NGLViewer = memo(
                 stageComp.addRepresentation(drawingMethods[repCounter], {
                   sele: rep.selection,
                   name: rep.name,
-                  opacity: opacities[repCounter],
+                  opacity: opacity,
                   colorScheme: colorScheme,
                   colorDomain: colorDomain,
                   surfaceType: surfaceType,
@@ -432,7 +500,7 @@ const NGLViewer = memo(
                 previousRepresentation.setParameters({
                   sele: rep.selection,
                   name: rep.name,
-                  opacity: opacities[repCounter],
+                  opacity: opacity,
                   colorScheme: colorScheme,
                   colorDomain: colorDomain,
                   surfaceType: surfaceType,
@@ -445,12 +513,52 @@ const NGLViewer = memo(
               stageComp.addRepresentation(drawingMethods[repCounter], {
                 sele: rep.selection,
                 name: rep.name,
-                opacity: opacities[repCounter],
+                opacity: opacity,
                 colorScheme: colorScheme,
                 colorDomain: colorDomain,
                 surfaceType: surfaceType,
                 ...rep.other,
               });
+            }
+
+            // Add a floating label over the representation when it is specified
+            const label = rep.label;
+            if (label) {
+              const name = rep.label + '-' + repCounter;
+              // Find the equivalent previous label
+              const previous = stageComp.annotationList.find(
+                annotation => annotation.name === name,
+              );
+              //console.log(previous);
+              // If the representation is shown
+              if (show) {
+                // If there is a previous representation then just update the label
+                // The rest should be always the same
+                if (previous) {
+                  previous.element.label = rep.label;
+                }
+                // If there is not previous label then set it
+                else {
+                  var elm = document.createElement('div');
+                  elm.innerText = rep.label;
+                  elm.style.color = '#76FF03';
+                  elm.style.backgroundColor = '#607D8B';
+                  elm.style.padding = '8px';
+                  // get the geometrical center of the representation
+                  const center =
+                    stageComp.reprList[r].repr.structureView.center;
+                  const annotation = stageComp.addAnnotation(center, elm);
+                  annotation.name = name;
+                }
+              }
+              // If the representation is hidden
+              else {
+                // If there is a previous representation then remove it
+                if (previous) {
+                  console.log('eliminando ' + name);
+                  stageComp.removeAnnotation(previous);
+                }
+              }
             }
 
             // Set this representation as the focus if it is selected
@@ -460,23 +568,6 @@ const NGLViewer = memo(
 
             repCounter += 1;
           });
-
-          // Add floating labels over each representation when they are specified
-          const chainLabels = comp.chainLabels;
-          if (chainLabels) {
-            let chainCount = 0;
-            const ap = stageComp.structure.getAtomProxy();
-            stageComp.structure.eachChain(function(cp) {
-              ap.index = cp.atomOffset + Math.floor(cp.atomCount / 2);
-              var elm = document.createElement('div');
-              elm.innerText = chainLabels[chainCount];
-              chainCount += 1;
-              elm.style.color = '#76FF03';
-              elm.style.backgroundColor = '#607D8B';
-              elm.style.padding = '8px';
-              stageComp.addAnnotation(ap.positionToVector3(), elm);
-            }, new Selection(''));
-          }
 
           // if an original orientation was aleady defined
           // (manually created, and stored in the API)
@@ -509,8 +600,9 @@ const NGLViewer = memo(
         ...opacities,
         //toggler,
         loadingTopologies,
-        //topologies,
+        topologies,
         selectedRepresentation,
+        showRepresentations,
       ]);
 
       // Highlight specific atoms
@@ -728,7 +820,14 @@ const NGLViewer = memo(
       // pause on loading
       // Make the NGL static while loading after user changes the frame number
       useEffect(() => {
-        if (!(pdbFile && stageRef.current.compList[0].trajList[0])) return;
+        if (
+          !(
+            pdbFile &&
+            stageRef.current.compList[0] &&
+            stageRef.current.compList[0].trajList[0]
+          )
+        )
+          return;
         stageRef.current.compList[0].trajList[0].trajectory.player.pause();
       }, [pdbFile, trajectoryLoadingStatus]);
 
