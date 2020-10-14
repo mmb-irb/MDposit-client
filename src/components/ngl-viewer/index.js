@@ -417,6 +417,10 @@ const NGLViewer = memo(
         // (i.e. it is not the same that any iteration index)
         let repCounter = 0;
 
+        // Track if any representation has been focused
+        // If not, focus the first
+        let focused = false;
+
         // Convert the JSON reference back into the 'components' object
         const comps = JSON.parse(componentsRef);
 
@@ -564,6 +568,7 @@ const NGLViewer = memo(
             // Set this representation as the focus if it is selected
             if (rep.name === selectedRepresentation) {
               setFocus({ comp: c, sele: rep.selection });
+              focused = true;
             }
 
             repCounter += 1;
@@ -582,6 +587,11 @@ const NGLViewer = memo(
             originalOritentationRef.current = stageRef.current.viewerControls.getOrientation();
           }
           */
+
+          // If nothing has been focused at the end then focus the whole first component
+          if (!focused) {
+            setFocus({ comp: 0, sele: 'all' });
+          }
         });
       }, [
         pdbFile,
