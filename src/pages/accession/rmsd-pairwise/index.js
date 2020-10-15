@@ -40,7 +40,9 @@ const RmsdPairwise = () => {
   else if (!payload) return 'Something bad happened';
 
   // Set the both values: frame numbers
-  const dataLength = payload[display].length;
+  const data = payload[display];
+  if (!data) return 'The requested rmsd-pairwise dataset does not exist';
+  const dataLength = data.length;
   const AxesStep = Math.floor(metadata.SNAPSHOTS / (dataLength - 1));
   const AxesValues = Array(dataLength)
     .fill(undefined)
@@ -110,11 +112,13 @@ const RmsdPairwise = () => {
               label="RMSD pairwise"
               //className={style['disabled-tab']}
             />
-            <Tab value={'interface'} label="Interface RMSD pairwise" />
+            {metadata && metadata.INTERFACES && (
+              <Tab value={'interface'} label="Interface RMSD pairwise" />
+            )}
           </Tabs>
           <Heatmap
             inputData={{
-              data: payload[display],
+              data: data,
               xLabels: AxesValues,
               yLabels: AxesValues,
             }}
