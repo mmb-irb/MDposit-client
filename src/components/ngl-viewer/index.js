@@ -1102,7 +1102,7 @@ const NGLViewer = memo(
         });
         // Cleaning function
         return () => tooltip.remove();
-      }, [pdbFile, metadata, metadata.CHAINNAMES]);
+      }, [pdbFile, metadata]);
 
       // Focus the specified ngl selection with the camera automatically
       useEffect(() => {
