@@ -144,7 +144,7 @@ const RmsdPerres = () => {
 
   // Set which options will be available in the resiude selector
   const selectorOptions = [{ label: 'All', value: '' }];
-  if (metadata.INTERFACES[0])
+  if (metadata.INTERFACES && metadata.INTERFACES[0])
     selectorOptions.push({ label: 'Interface', value: metadata.INTERFACES[0] });
 
   // Render
