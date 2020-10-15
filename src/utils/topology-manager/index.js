@@ -134,11 +134,20 @@ export const getMetadataChainname = (
   if (!metadata) throw new Error('There is no metadata');
   if (!topology) throw new Error('There is no topology');
   const metadataChainnames = metadata.CHAINNAMES;
-  if (!metadataChainnames) return '';
-  for (let c = 0; c < metadata.CHAINNAMES.length; c++) {
-    const topologyChainname = topology.chainStore.getChainname(c);
-    if (topologyChainname === chain) return metadataChainnames[c];
+  // OBSOLETE: Chains were stored as an array of names
+  if (Array.isArray(metadataChainnames)) {
+    if (!metadataChainnames) return '';
+    for (let c = 0; c < metadata.CHAINNAMES.length; c++) {
+      const topologyChainname = topology.chainStore.getChainname(c);
+      if (topologyChainname === chain) return metadataChainnames[c];
+    }
   }
+  // Chains are stored as and object (e.g. { 'A': 'ACE2', 'B': 'RBD' })
+  else {
+    const chainname = metadataChainnames[chain];
+    if (chainname) return chainname;
+  }
+
   // "charCodeAt" transforms a string character to int code
   // The 'A' string returns 65, the 'B' returns 66 and so on
   //const name = metadataChainnames[chain.charCodeAt(0) - 65];
@@ -244,7 +253,9 @@ export const absolute2modelResidue = (
 ) => {
   const chainIndex = topology.residueStore.chainIndex[residue];
   const chain = topology.chainStore.getChainname(chainIndex); // e.g. 'A'
-  const chainName = metadata.CHAINNAMES[chainIndex]; // e.g. 'ACE2'
+  const chainName = Array.isArray(metadata.CHAINNAMES) // e.g. 'ACE2'
+    ? metadata.CHAINNAMES[chainIndex]
+    : metadata.CHAINNAMES[chain];
   const offset = topology.chainStore.residueOffset[chainIndex];
   const chainResidue = residue - offset + 1;
   const residueType = getResidueType(residue, topology);
