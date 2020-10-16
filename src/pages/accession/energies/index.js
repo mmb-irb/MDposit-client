@@ -94,7 +94,7 @@ const Energies = () => {
         <CardContent>
           <Typography variant="h6" />
           <Graph2
-            y={{
+            yData={{
               esi: { data: payload.residues_es_avg_initial, color: 'red' },
               esf: { data: payload.residues_es_avg_final, color: 'blue' },
               es: { data: payload.residues_es_avg, color: 'black' },
@@ -114,7 +114,7 @@ const Energies = () => {
             selected={selected}
           />
           <Graph2
-            y={{
+            yData={{
               vdwi: { data: payload.residues_vdw_avg_initial, color: 'red' },
               vdwf: { data: payload.residues_vdw_avg_final, color: 'blue' },
               vdw: { data: payload.residues_vdw_avg, color: 'black' },
@@ -133,7 +133,7 @@ const Energies = () => {
             selected={selected}
           />
           <Graph2
-            y={{
+            yData={{
               bothi: { data: payload.residues_both_avg_initial, color: 'red' },
               bothf: { data: payload.residues_both_avg_final, color: 'blue' },
               both: { data: payload.residues_both_avg, color: 'black' },

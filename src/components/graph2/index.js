@@ -42,6 +42,8 @@ const defaultD3font = 'normal 10px sans-serif';
 // Experimentally verfied
 const titlesD3font = 'normal 14px sans-serif';
 
+const yDataPlaceholder = { placeholder: { data: [0] } };
+
 // The expected input data (y) is:
 // {
 //    dataset1:{
@@ -54,10 +56,9 @@ const titlesD3font = 'normal 14px sans-serif';
 
 const Graph2 = ({
   // The main data
-  y: yData,
+  yData,
   // Optional x tags
   xAxisValues,
-  //start = 0,
   // The difference beyween x values
   step = 1,
   //
@@ -98,17 +99,21 @@ const Graph2 = ({
   // Set if values in x axis is horizontal (false) or vertical (true)
   flippedXAxisValues = false,
 }) => {
-  //console.log(yData);
-  //console.log(selected);
+  // Set a fake dataset to allow the grapgh to work when no data is passed
+  if (!yData || Object.keys(yData).length === 0) yData = yDataPlaceholder;
+
   const pdbData = useContext(PdbCtx);
 
   const containerRef = useRef(null);
+  // Save the previous chart reference so we can remove it before a new render
+  const previousCharts = useRef(null);
   const drawRef = useRef(noop);
   const selectedRef = useRef(new Set());
   const pdbDataRef = useRef({});
 
   // Get each dataset
-  const yEntries = Object.entries(yData);
+  let yEntries = Object.entries(yData);
+
   // Get each dataset name
   const yKeys = yEntries.map(([key]) => key);
   let counter = 0;
@@ -148,9 +153,11 @@ const Graph2 = ({
   // Get the calculated widths of all y labels and select the maximum
   // In addition, add a small offset between labels and the axis which is added further
   // This offset is only in x axes, which are rotated 90 degrees and end too much close to the axis
-  const maxXAxisWidth =
-    Math.max(...xAxisValues.map(label => getTextWidth(label, defaultD3font))) +
-    roatatedTextOffset;
+  const maxXAxisWidth = xAxisValues
+    ? Math.max(
+        ...xAxisValues.map(label => getTextWidth(label, defaultD3font)),
+      ) + roatatedTextOffset
+    : 10;
   // Get the calculated widths of all y labels and select the maximum
   const maxYAxisWidth = Math.max(
     ...yAxisValues.map(label => getTextWidth(label, defaultD3font)),
@@ -185,7 +192,11 @@ const Graph2 = ({
   const [lab, setLab] = useState(() =>
     fromPairs(yKeys.map(key => [key, activateKey()])),
   );
-  if (lab !== show) setLab(show);
+
+  // if show is not available we set all as true
+  if (!show && (!lab.length || lab.length < yKeys.length))
+    setLab(Array(yKeys.length).fill(true));
+  if (show && lab !== show) setLab(show);
 
   const [pr, setPrecision] = useState(defaultPrecision);
 
@@ -205,6 +216,12 @@ const Graph2 = ({
 
   // should only be run once
   useEffect(() => {
+    // Reset the chart
+    // WARNING: For some reason, if this part is re-render the original render is not gone
+    // WARNING: We must reset the element manually or infinite elements are rendered and stacked
+    if (previousCharts.current)
+      previousCharts.current.forEach(chart => chart.remove());
+
     // Set the d3 base
     let canvas;
     const graph = select(containerRef.current).append('svg');
@@ -594,21 +611,26 @@ const Graph2 = ({
       prevLabels.current = labels;
       prevPrecision.current = precision;
       prevRescaleX.current = rescaleX;
+      previousCharts.current = [graph];
     };
 
     window.addEventListener('resize', drawRef.current);
 
     return () => window.removeEventListener('resize', drawRef.current);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [yData]); // eslint-disable-line react-hooks/exhaustive-deps
   // Maybe might need to double-check that and remove the exception
 
   useEffect(() => {
     selectedRef.current = selected;
     pdbDataRef.current = pdbData || pdbDataRef.current;
     drawRef.current({ selected, pdbData });
-  }, [selected, pdbData]);
+  }, [selected, pdbData, yData]);
 
-  useEffect(() => drawRef.current({ precision: pr, labels: lab }), [pr, lab]);
+  useEffect(() => drawRef.current({ precision: pr, labels: lab }), [
+    pr,
+    lab,
+    yData,
+  ]);
 
   // Handle when user clicks on legend checkboxes
   const handleChange = useCallback(({ target: { dataset: { key } } }) => {

@@ -17,7 +17,6 @@ import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls'
 
 import style from './style.module.css';
 
-//import { AccessionCtx } from '../../../contexts';
 import { AccessionCtx, ProjectCtx, PdbCtx } from '../../../contexts';
 
 import Info from '../../../components/info';
@@ -223,7 +222,7 @@ const Pockets = () => {
       </Card>
       <Card>
         <Graph2
-          y={graphInputData}
+          yData={graphInputData}
           xAxisValues={xAxisValues}
           xUnit={'frame'}
           xScaleFactor={0.001}

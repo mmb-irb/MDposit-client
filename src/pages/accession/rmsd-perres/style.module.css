@@ -10,3 +10,32 @@
 .card {
   margin: 1em 0;
 }
+
+.paper {
+  max-height: 500px;
+  overflow-y: scroll;
+}
+
+.tablecard {
+  margin-top: 1em;
+  display: inline-block;
+  width: 40%;
+}
+
+.nglcard {
+  margin-top: 1em;
+  display: inline-block;
+  width: 60%;
+}
+
+.margined {
+  margin: 1em;
+}
+
+.container {
+  height: 500px;
+}
+
+.selectedrow {
+  background-color: #76ff03;
+}

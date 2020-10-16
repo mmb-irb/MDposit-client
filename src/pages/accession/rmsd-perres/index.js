@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useState, useContext } from 'react';
+import { useInView } from 'react-intersection-observer';
 
 import {
   CardContent,
@@ -11,10 +12,10 @@ import {
   TableBody,
   TableFooter,
   TablePagination,
-  Typography,
 } from '@material-ui/core';
 
 import Card from '../../../components/animated-card';
+import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
 import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 import Loading from '../../../components/loading';
 import Info from '../../../components/info';
@@ -34,43 +35,50 @@ import {
 
 import Selector from '../../../components/selector';
 
-const Graph = lazy(() =>
-  import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
+const Graph2 = lazy(() =>
+  import(/* webpackChunkName: 'graph2' */ '../../../components/graph2'),
 );
 
-const colors = ['red', 'yellow', 'green', 'blue', 'orange'];
+const colors = ['red', 'green', 'blue', 'orange'];
+
+// Define permanent options for the "useInView"
+const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
+
+const nice = number => Math.round(number * 100) / 100;
 
 const RmsdPerres = () => {
+  // useInView acts as a React hook
+  // Track if the NGL viewer (nglRef) and the analyses (nightingaleRef) are on screen
+  // The status (e.g. isNglVisible) is returned true/false when the element is in/out the screen respectively
+  const [nglRef, isNglVisible] = useInView(useInViewOptions);
+
   // Get the accession
   const accession = useContext(AccessionCtx);
   // Get the current project metadata
   const { metadata } = useContext(ProjectCtx);
   // Get the current topology, including the residue names
   const pdbData = useContext(PdbCtx);
-  // Set the graph analysis propierties
-  const analysis = 'rmsd-perres';
-  const defaultPrecision = 1;
-  const xLabel = 'Time (ns)';
-  const xScaleFactor = 0.001;
-  const yLabel = 'RMSd (Å)';
 
   // Send a request to the API with the url of the specific analysis
   const { loading, payload, error } = useAPI(
-    `${BASE_PATH_PROJECTS}${accession}/analyses/${analysis}/`,
+    `${BASE_PATH_PROJECTS}${accession}/analyses/rmsd-perres/`,
   );
 
   // Set when one point in the graph is selected
   const [selectedFrame, setSelectedFrame] = useState(null);
+
+  // Set when one point in the graph is selected
+  const [selectedResidues, setSelectedResidues] = useState([]);
 
   // Set when which resiudes are we meant to find
   const [searchResidues, setSearchResidues] = useState('');
 
   // Table management
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // The graphics to be displayed
-  const [displays, setDisplays] = useState(Array(rowsPerPage).fill(true));
+  //const [displays, setDisplays] = useState(Array(rowsPerPage).fill(true));
 
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
@@ -79,67 +87,32 @@ const RmsdPerres = () => {
 
   if (!pdbData.file || !metadata) return <Loading />;
 
+  const data = payload.y;
+
   // Remove the first property: 'RMSD_00001'
   if (payload.y['RMSD_00001']) delete payload.y['RMSD_00001'];
 
   // Parse the selection string into a numeric array
-  const curatedSelection = searchResidues ? searchResidues.split(', ') : null;
+  const availableResidues = searchResidues
+    ? searchResidues.split(', ')
+    : Object.keys(data);
 
   // Now get only the selected keys from the payload
-  let selectedPayload = {};
-  if (curatedSelection)
-    for (const res of curatedSelection) {
-      selectedPayload[res] = payload.y[res];
-    }
-  else {
-    // If there is no selection, get the whole payload
-    selectedPayload = payload.y;
-  }
-
-  // Now give the selected payload a standarized format for the data table
-  const data = {
-    Name: [],
-    'Mean (Å)': [],
-    'Standard deviation (Å)': [],
-  };
-
-  for (const key of Object.keys(selectedPayload)) {
-    const numeration = complexNumerationParser(key);
-    const model = source2modelResidue(numeration, pdbData.file, metadata);
-    data['Name'].push(model.tag);
-    data['Mean (Å)'].push(selectedPayload[key].average);
-    data['Standard deviation (Å)'].push(selectedPayload[key].stddev);
-  }
-
-  const rowsNumber = Object.keys(selectedPayload).length;
-
-  // Harvest the finally selected residues
-  const selectedResidues = [];
-
-  // Set an object with boolean keys defining which data is displayed (true) or hidden (false)
-  let displayedPayload = {};
-  const from = page * rowsPerPage;
-  const to = (page + 1) * rowsPerPage;
-  let count = 0;
-  Object.keys(selectedPayload).forEach((key, index) => {
-    // If the residue appears in the data table
-    if (index >= from && index < to) {
-      // If it is marked to be displayed
-      if (displays[count]) {
-        displayedPayload[key] = true;
-        //const numeration = complexNumerationParser(key);
-        //selectedResidues.push(numeration.residueNumber);
-        selectedResidues.push(key);
-      } else displayedPayload[key] = false;
-      count += 1;
-    } else displayedPayload[key] = false;
+  const selectedData = { ...selectedResidues.map(residue => data[residue]) };
+  // Color the first selected reisdues in the graph
+  selectedResidues.forEach((residue, i) => {
+    selectedData[residue] = data[residue];
+    if (i < colors.length) selectedData[residue].color = colors[i];
   });
 
-  // Handle when user clicks on legend checkboxes
-  const handleChange = row => {
-    const newDisplays = [...displays];
-    newDisplays[row] = !newDisplays[row];
-    setDisplays(newDisplays);
+  // Count the number of residues
+  const rowsNumber = availableResidues.length;
+
+  // Set a function to get the standard model key from the topology formatted residue key
+  const getLabel = residue => {
+    const numeration = complexNumerationParser(residue);
+    const model = source2modelResidue(numeration, pdbData.file, metadata);
+    return model.tag;
   };
 
   // Set which options will be available in the resiude selector
@@ -175,7 +148,77 @@ const RmsdPerres = () => {
           />
         </CardContent>
       </Card>
-      <Card className={style.margined}>
+      <Card className={style.tablecard}>
+        <div className={style.paper}>
+          <Table stickyHeader>
+            <TableHead>
+              <TableRow>
+                {['Name', 'Mean (Å)', 'Stdev (Å)'].map(name => (
+                  <TableCell key={name}>{name}</TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {availableResidues
+                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                .map((residue, index) => {
+                  const selectedIndex = selectedResidues.indexOf(residue);
+                  return (
+                    <TableRow key={residue}>
+                      {[
+                        <FormControlLabel
+                          key={residue}
+                          onChange={() =>
+                            setSelectedResidues(previous => {
+                              const newState = [...previous];
+                              const index = newState.indexOf(residue);
+                              if (index === -1) newState.push(residue);
+                              else newState.splice(index, 1);
+                              return newState;
+                            })
+                          }
+                          control={
+                            <Checkbox
+                              checked={selectedIndex !== -1}
+                              style={{
+                                color: colors[selectedIndex] || '#000000',
+                              }}
+                            />
+                          }
+                          label={getLabel(residue)}
+                        />,
+                        nice(data[residue].average),
+                        nice(data[residue].stddev),
+                      ].map(cell => (
+                        <TableCell key={cell}>{cell}</TableCell>
+                      ))}
+                    </TableRow>
+                  );
+                })}
+            </TableBody>
+            <TableFooter>
+              <TableRow>
+                <TablePagination
+                  rowsPerPageOptions={[10, 25, 50, 100]}
+                  colSpan={3}
+                  count={rowsNumber}
+                  rowsPerPage={rowsPerPage}
+                  page={page}
+                  onChangePage={(event, newPage) => {
+                    setPage(newPage);
+                  }}
+                  onChangeRowsPerPage={event => {
+                    const newValue = event.target.value;
+                    setRowsPerPage(parseInt(newValue, 10));
+                    setPage(0);
+                  }}
+                />
+              </TableRow>
+            </TableFooter>
+          </Table>
+        </div>
+      </Card>
+      <Card className={style.nglcard} ref={nglRef}>
         <Info
           reference={'rmsd-perres-table'}
           tooltip={
@@ -195,119 +238,28 @@ const RmsdPerres = () => {
             </>
           }
         />
-        <CardContent>
-          {/* Render the table with all the statistics */}
-          <Table>
-            <TableHead>
-              <TableRow>
-                {Object.keys(data).map(column => (
-                  <TableCell key={column}>{column}</TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {[...Array(rowsNumber).keys()]
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((row, index) => (
-                  <TableRow key={row}>
-                    {Object.entries(data).map(column => (
-                      <TableCell key={column[0]}>
-                        {// Data is returned as plain text as default
-                        // If u want some specific column to behave different set it here
-                        column[0] === 'Name' ? (
-                          <FormControlLabel
-                            key={row}
-                            onChange={() => handleChange(index)}
-                            //onMouseOver={handleMouseOver}
-                            //onMouseOut={handleMouseOut}
-                            control={
-                              <Checkbox
-                                checked={displays[index]}
-                                style={{ color: colors[index] || '#000000' }}
-                                //inputProps={{ 'data-key': key }}
-                              />
-                            }
-                            label={column[1][row]}
-                          />
-                        ) : (
-                          // Return the plain text
-                          Math.round(column[1][row] * 10000) / 10000
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-            </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TablePagination
-                  rowsPerPageOptions={[5, 10, 25]}
-                  colSpan={3}
-                  count={rowsNumber}
-                  rowsPerPage={rowsPerPage}
-                  page={page}
-                  onChangePage={(event, newPage) => {
-                    setDisplays(Array(rowsPerPage).fill(true));
-                    setPage(newPage);
-                  }}
-                  onChangeRowsPerPage={event => {
-                    const newValue = event.target.value;
-                    setRowsPerPage(parseInt(newValue, 10));
-                    setDisplays(Array(newValue).fill(true));
-                    setPage(0);
-                  }}
-                />
-              </TableRow>
-            </TableFooter>
-          </Table>
-        </CardContent>
-      </Card>
-      <Card className={style.margined}>
-        <Info
-          reference={'rmsd-perres-graph'}
-          tooltip={
-            <>
-              This graph represents the RMSd in the for each residue position
-              along the trajectory compared to the original position (frame 0).
-              Data is displayed (more opaque lines) alongside corresponding mean
-              value (light horizontal line) and mean ± 1 standard deviation
-              (lighter horizontal bands)
-              <br />
-              <br />
-              The horizontal edge stands for the trajectory time in nanoseconds.
-              <br />
-              The vertical edge stands for the RMSd in nanometers.
-              <br />
-              <br />
-              The graph is{' '}
-              <span style={{ color: 'lightGreen' }}>interactive</span>. Use the
-              mouse to move along data by holding the click button and dragging
-              left or right. Use the mouse wheel to zoom in a specific region.
-              <span style={{ color: 'lightGreen' }}> Click any point </span>
-              on the graph to open an interactive window to display the
-              strucutre at the corresponding frame with the specified
-              highlighted residues.
-            </>
-          }
-        />
-        <CardContent>
-          <Typography variant="h6" />
-          <Graph
-            y={selectedPayload}
-            start={payload.start}
-            step={payload.step}
-            defaultPrecision={defaultPrecision}
-            xLabel={xLabel}
-            xScaleFactor={xScaleFactor}
-            yLabel={yLabel}
-            onSelect={setSelectedFrame}
-            selected={selectedFrame}
-            mean={false}
-            standardDeviation={false}
-            show={displayedPayload}
-            colors={colors}
+        {/* Render the NGL viewer when it is on screen*/}
+        {isNglVisible ? (
+          <NGLViewerWithControls
+            className={style.container}
+            components={[{ frame: 0 }]}
+            selectedResidues={selectedResidues}
           />
-        </CardContent>
+        ) : (
+          <div style={{ height: '50vh' }} />
+        )}
+      </Card>
+      <Card>
+        <Graph2
+          yData={selectedData}
+          step={payload.step}
+          xAxisLabel={'Time (ns)'}
+          xScaleFactor={0.001}
+          yAxisLabel={'RMSd (Å)'}
+          onSelect={setSelectedFrame}
+          selected={selectedFrame}
+          colors={colors}
+        />
       </Card>
       <NGLViewerSpawner
         // Set the new viewer or null if there is not a proper "selected" value
