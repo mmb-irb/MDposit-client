@@ -118,6 +118,15 @@ const NGLViewerWithControls = forwardRef(
       // Represent each protein chain
       const reps = [];
       for (const chain of chains) {
+        // DANI: Hardcodeado para los glicanos de las trayectorias de Amaro
+        if (chain === 'G') {
+          reps.push({
+            name: 'Glycans',
+            selection: ':G',
+            defaultDrawingMethod: 'licorice',
+          });
+          continue;
+        }
         reps.push({
           name: 'Chain ' + chain,
           selection: ':' + chain,
