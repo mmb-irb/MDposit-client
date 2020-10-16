@@ -193,7 +193,7 @@ const NGLViewer = memo(
         loading: [],
       });
 
-      // Hook for the trajectory data (frames)
+      // Load the requested trajectory data (frames)
       useEffect(
         () => {
           // Set the url to ask the API
@@ -225,6 +225,7 @@ const NGLViewer = memo(
             }
             // Save the number of frames asked when the load starts
             const frameCount = comp.frame ? 1 : nFrames;
+
             // Get the frames to be loaded in a standarized string format for the API
             const frames = getFrames(
               isProjection,
@@ -264,7 +265,10 @@ const NGLViewer = memo(
                 trajectoryRef.current.counts = extractCounts(response);
                 // Save inside the ref
                 trajectoryRef.current.frameCount = parseInt(frameCount);
-                trajectoryRef.current.payload[index] = response.data;
+                // We create a new object to force the trajectory data load in ngl (payload dependent)
+                const newPayload = [...trajectoryRef.current.payload];
+                newPayload[index] = response.data;
+                trajectoryRef.current.payload = newPayload;
                 trajectoryRef.current.loading[index] = false;
               })
               // Otherwise
