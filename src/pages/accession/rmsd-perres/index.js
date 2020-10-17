@@ -89,6 +89,11 @@ const RmsdPerres = () => {
 
   const data = payload.y;
 
+  const firstKey = Object.keys(data)[0];
+
+  const dataLength = data[firstKey].data.length;
+  const xAxesStep = metadata.LENGTH / (dataLength - 1);
+
   // Remove the first property: 'RMSD_00001'
   if (payload.y['RMSD_00001']) delete payload.y['RMSD_00001'];
 
@@ -252,9 +257,9 @@ const RmsdPerres = () => {
       <Card>
         <Graph2
           yData={selectedData}
-          step={payload.step}
+          step={xAxesStep}
           xAxisLabel={'Time (ns)'}
-          xScaleFactor={0.001}
+          //xScaleFactor={0.001}
           yAxisLabel={'RMSd (Å)'}
           onSelect={setSelectedFrame}
           selected={selectedFrame}

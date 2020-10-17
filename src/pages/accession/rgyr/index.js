@@ -16,7 +16,7 @@ import Loading from '../../../components/loading';
 
 import useAPI from '../../../hooks/use-api';
 
-import { AccessionCtx } from '../../../contexts';
+import { AccessionCtx, ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
@@ -31,6 +31,8 @@ const Graph = lazy(() =>
 const Rgyr = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
+  // Get the current project metadata
+  const { metadata } = useContext(ProjectCtx);
 
   // Send a request to the API with the url of the rgyr analysis
   const { loading, payload, error } = useAPI(
@@ -47,6 +49,9 @@ const Rgyr = () => {
   else if (!payload) return 'Something bad happened';
 
   const cents = num => Math.round(num * 100) / 100;
+
+  const dataLength = payload.y['rgyr'].data.length;
+  const xAxesStep = (metadata.LENGTH / (dataLength - 1)) * 1000;
 
   // Render
   return (
@@ -132,7 +137,7 @@ const Rgyr = () => {
           <Graph
             y={payload.y}
             start={payload.start || 0}
-            step={payload.step}
+            step={xAxesStep}
             //defaultPrecision={2 ** 6}
             xLabel={'Time (ns)'}
             xScaleFactor={0.001}

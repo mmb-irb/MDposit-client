@@ -57,7 +57,7 @@ const Analysis = ({
   else if (!payload) return 'Something bad happened';
 
   const dataLength = payload.y['rmsd'].data.length;
-  const AxesStep = (metadata.LENGTH / (dataLength - 1)) * 1000;
+  const xAxesStep = (metadata.LENGTH / (dataLength - 1)) * 1000;
 
   // Render
   return (
@@ -75,7 +75,7 @@ const Analysis = ({
           <Graph
             y={payload.y}
             start={payload.start || 0}
-            step={AxesStep}
+            step={xAxesStep}
             defaultPrecision={defaultPrecision}
             xLabel={xLabel}
             xScaleFactor={xScaleFactor}
