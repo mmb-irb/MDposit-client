@@ -8,7 +8,7 @@ import Loading from '../../../components/loading';
 
 import useAPI from '../../../hooks/use-api';
 
-import { AccessionCtx } from '../../../contexts';
+import { AccessionCtx, ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
@@ -39,6 +39,8 @@ const Analysis = ({
 }) => {
   // Get the accession
   const accession = useContext(AccessionCtx);
+  // Get the current project metadata
+  const { metadata } = useContext(ProjectCtx);
 
   // Send a request to the API with the url of the specific analysis
   const { loading, payload, error } = useAPI(
@@ -53,6 +55,9 @@ const Analysis = ({
   if (loading) return <Loading />;
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
+
+  const dataLength = payload.y['rmsd'].data.length;
+  const AxesStep = (metadata.LENGTH / (dataLength - 1)) * 1000;
 
   // Render
   return (
@@ -70,7 +75,7 @@ const Analysis = ({
           <Graph
             y={payload.y}
             start={payload.start || 0}
-            step={payload.step}
+            step={AxesStep}
             defaultPrecision={defaultPrecision}
             xLabel={xLabel}
             xScaleFactor={xScaleFactor}
