@@ -25,7 +25,7 @@ const Graph = lazy(() =>
   import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
 );
 
-const Rmsd = ({}) => {
+const Rmsd = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
   // Get the current project metadata
