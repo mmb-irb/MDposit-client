@@ -1,8 +1,9 @@
 import { ProjectCtx, PdbCtx } from '../../contexts';
 import { range } from 'lodash-es';
 
-// Many functions to handle atom/residue/chain numeration conversions
-// All these functions whcih need the topology are able to read the context topology
+// Topology manager
+// Many functions to handle atom/residue/chain numeration conversions and more
+// All these functions which need the topology are able to read the context topology
 // However, it may be better to pass them the topology as an argument since the context may be null
 
 // There are 3 different residue numeration types in the client:
@@ -95,11 +96,14 @@ export const nglNumerationParser = numeration => {
   return { chain, residue: +residue, icode, nglSelection, complex };
 };
 
-// Return the absolute residue number to whom the specified absolute atom number belongs to
+// Return residue data whom the specified absolute atom number belongs to
 export const getAtomResidue = (atom, topology = PdbCtx._currentValue.file) => {
-  const residue = topology.atomStore.residueIndex[atom];
-  //console.log(atom + ' => ' + residue);
-  return residue;
+  const index = topology.atomStore.residueIndex[atom];
+  const residueStore = topology.residueStore;
+  const atomCount = residueStore.atomCount[index];
+  const atomOffset = residueStore.atomOffset[index];
+  //console.log(atom + ' => ' + index);
+  return { index, atomCount, atomOffset };
 };
 
 // Get first atom absolute number from resiude absolute number

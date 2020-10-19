@@ -527,6 +527,14 @@ const NGLViewer = memo(
                 surfaceType: surfaceType,
                 ...rep.other,
               });
+              /*
+              stageComp.addRepresentation('ball+stick', {
+                sele: '@0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30',
+                name: 'test',
+                opacity: 1,
+                colorScheme: 'element',
+              });
+              */
             }
 
             // Add a floating label over the representation when it is specified
@@ -668,12 +676,25 @@ const NGLViewer = memo(
         const seleContext = Array.from(
           new Set(
             atoms.map(
+              atomsNumber => {
+                const { atomCount, atomOffset } = getAtomResidue(
+                  atomsNumber,
+                  pdbFile,
+                );
+                const atomIndexes = [...Array(atomCount).keys()].map(
+                  i => atomOffset + i,
+                );
+                const nglAtomSelection = '@' + atomIndexes.join(',');
+                return nglAtomSelection;
+              },
               // 'atoms' are in abolsute numeration
+              /*
               atomsNumber =>
                 absolute2sourceResidue(
-                  getAtomResidue(atomsNumber, pdbFile),
+                  getAtomResidue(atomsNumber, pdbFile).index,
                   pdbFile,
-                ).nglSelection,
+                ).nglSelection
+              */
             ),
           ),
         ).join(' or ');
