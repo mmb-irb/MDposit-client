@@ -56,7 +56,7 @@ const Analysis = ({
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
 
-  const dataLength = payload.y['rmsd'].data.length;
+  const dataLength = payload.y['dist'].data.length;
   const xAxesStep = (metadata.LENGTH / (dataLength - 1)) * 1000;
 
   // Render
