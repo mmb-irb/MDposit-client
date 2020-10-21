@@ -102,6 +102,8 @@ const Graph2 = ({
   // Set a fake dataset to allow the grapgh to work when no data is passed
   if (!yData || Object.keys(yData).length === 0) yData = yDataPlaceholder;
 
+  const dataRef = JSON.stringify(yData);
+
   const pdbData = useContext(PdbCtx);
 
   const containerRef = useRef(null);
@@ -214,13 +216,15 @@ const Graph2 = ({
     [],
   );
 
-  // should only be run once
+  // Updated when input data changes
   useEffect(() => {
     // Reset the chart
     // WARNING: For some reason, if this part is re-render the original render is not gone
     // WARNING: We must reset the element manually or infinite elements are rendered and stacked
     if (previousCharts.current)
       previousCharts.current.forEach(chart => chart.remove());
+
+    const data = JSON.parse(dataRef);
 
     // Set the d3 base
     let canvas;
@@ -416,12 +420,12 @@ const Graph2 = ({
           .enter()
           .append('line')
           .attr('class', 'mean')
-          .attr('stroke', d => (yData[d] && yData[d].color) || 'black')
+          .attr('stroke', d => (data[d] && data[d].color) || 'black')
           .merge(meanLines)
           .attr('x1', x(xMin))
           .attr('x2', x(xMax))
-          .attr('y1', d => y(yData[d].average))
-          .attr('y2', d => y(yData[d].average))
+          .attr('y1', d => y(data[d].average))
+          .attr('y2', d => y(data[d].average))
           .transition()
           .attr('opacity', d => (labels[d] ? 0.5 : 0));
       }
@@ -442,16 +446,16 @@ const Graph2 = ({
           .enter()
           .append('rect')
           .attr('class', 'sd')
-          .attr('fill', d => (yData[d] && yData[d].color) || 'black')
+          .attr('fill', d => (data[d] && data[d].color) || 'black')
           .merge(sdRects)
           .attr('x', x(xMin))
           .attr('width', x(xMax) - x(xMin))
-          .attr('y', d => y(yData[d].average + yData[d].stddev))
+          .attr('y', d => y(data[d].average + data[d].stddev))
           .attr(
             'height',
             d =>
-              y(yData[d].average - yData[d].stddev) -
-              y(yData[d].average + yData[d].stddev),
+              y(data[d].average - data[d].stddev) -
+              y(data[d].average + data[d].stddev),
           )
           .transition()
           .attr('opacity', d => (labels[d] ? 0.1 : 0));
@@ -473,12 +477,12 @@ const Graph2 = ({
         .append('path')
         .attr('class', 'line')
         .attr('fill', 'none')
-        .attr('stroke', d => yData[d].color || 'black')
+        .attr('stroke', d => data[d].color || 'black')
         .attr('stroke-linejoin', 'round')
         .attr('stroke-linecap', 'round')
         .merge(lines)
         .attr('d', d =>
-          lineFn(yData[d].data.filter((_, i) => i % precision === 0)),
+          lineFn(data[d].data.filter((_, i) => i % precision === 0)),
         )
         .transition()
         .attr('opacity', d => (labels[d] ? 1 : 0))
@@ -508,14 +512,14 @@ const Graph2 = ({
         .attr('cx', 0)
         .attr('cy', 0)
         .attr('r', 5)
-        .attr('fill', d => (yData[d] && yData[d].color) || 'black');
+        .attr('fill', d => (data[d] && data[d].color) || 'black');
       dotGroups
         .append('text')
         .style('text-anchor', 'middle')
         .style('font-weight', 'bold')
         .style('paint-order', 'stroke')
         .attr('y', '-5px')
-        .attr('fill', d => (yData[d] && yData[d].color) || 'black')
+        .attr('fill', d => (data[d] && data[d].color) || 'black')
         .attr('stroke', 'rgba(255, 255, 255, 0.5)')
         .attr('stroke-width', 5)
         .attr('filter', textBackgroundURL);
@@ -543,7 +547,7 @@ const Graph2 = ({
               `translate(0, ${
                 d === 'x'
                   ? height - offset.bottom
-                  : (y(yData[d].data[closestIndex]) || 0) + 2.5
+                  : (y(data[d].data[closestIndex]) || 0) + 2.5
               })`,
           )
           .attr('opacity', d => (d === 'x' || labels[d] ? 1 : 0))
@@ -576,7 +580,7 @@ const Graph2 = ({
             }
             // Dot over data
             else {
-              return Math.round(yData[d].data[closestIndex] * 100) / 100;
+              return Math.round(data[d].data[closestIndex] * 100) / 100;
             }
           });
         if (onHover) {
@@ -617,19 +621,19 @@ const Graph2 = ({
     window.addEventListener('resize', drawRef.current);
 
     return () => window.removeEventListener('resize', drawRef.current);
-  }, [yData]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dataRef]); // eslint-disable-line react-hooks/exhaustive-deps
   // Maybe might need to double-check that and remove the exception
 
   useEffect(() => {
     selectedRef.current = selected;
     pdbDataRef.current = pdbData || pdbDataRef.current;
     drawRef.current({ selected, pdbData });
-  }, [selected, pdbData, yData]);
+  }, [selected, pdbData, dataRef]);
 
   useEffect(() => drawRef.current({ precision: pr, labels: lab }), [
     pr,
     lab,
-    yData,
+    dataRef,
   ]);
 
   // Handle when user clicks on legend checkboxes
