@@ -245,7 +245,7 @@ export const source2absoluteResidue = (
     }
   }
   throw new Error(
-    'The requested chain, residue number and icode did not match any residue',
+    'The requested chain (' + chain + '), residue number (' + residue + ') and icode (' + icode + ') did not match any residue',
   );
 };
 
