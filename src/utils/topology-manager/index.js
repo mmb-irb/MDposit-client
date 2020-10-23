@@ -242,7 +242,7 @@ export const source2absoluteResidue = (
       topology.chainStore.getChainname(chainIndexes[index]) === chain &&
       (inscodes[index] === code || !icode)
     ) {
-      console.log(chain + ':' + residue + ' => ' + index);
+      //console.log(chain + ':' + residue + ' => ' + index);
       return index;
     }
   }
@@ -259,7 +259,7 @@ export const absolute2modelResidue = (
 ) => {
   const chainIndex = topology.residueStore.chainIndex[residue];
   const chain = topology.chainStore.getChainname(chainIndex); // e.g. 'A'
-  const chainName = getMetadataChainname(chain, topology, metadata) // e.g. 'ACE2'
+  const chainName = getMetadataChainname(chain, metadata, topology) // e.g. 'ACE2'
   const offset = topology.chainStore.residueOffset[chainIndex];
   const chainResidue = residue - offset + 1;
   const residueType = getResidueType(residue, topology);
