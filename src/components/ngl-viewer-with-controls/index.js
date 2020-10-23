@@ -133,6 +133,7 @@ const NGLViewerWithControls = forwardRef(
         });
       }
       // Represent the mebrane if exist
+      /*
       if (metadata.MEMBRANE !== 'No')
         reps.push({
           selection: '(not polymer or hetero) and not (water or ion)',
@@ -140,6 +141,7 @@ const NGLViewerWithControls = forwardRef(
           defaultDrawingMethod: 'licorice',
           defaultOpacity: 0.5,
         });
+      */
       // Show also all ligands with licorice representations
       if (metadata.LIGANDS) {
         for (const ligand of metadata.LIGANDS) {
@@ -149,6 +151,18 @@ const NGLViewerWithControls = forwardRef(
             defaultDrawingMethod: 'licorice',
           });
         }
+      }
+      // Represent all chains which are not in the 'chains' list (i.e. not protein chains) in licorice 
+      if (metadata.CHAINNAMES && !Array.isArray(metadata.CHAINNAMES)) {
+        const chainnames = Object.entries(metadata.CHAINNAMES)
+        chainnames.forEach(([chain, name]) => {
+          if (chains.indexOf(chain) !== -1) return;
+          reps.push({
+            name: name,
+            selection: ':' + chain,
+            defaultDrawingMethod: 'licorice',
+          });
+        });
       }
 
       return reps;
