@@ -81,6 +81,7 @@ const ChainAnalyses = memo(({ chain, accession }) => {
     <protvista-manager
       attributes="length displaystart displayend highlight"
       data-chain-length={length}
+      chain={chain}
     >
       <protvista-navigation
         length={length}

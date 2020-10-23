@@ -27,6 +27,7 @@ import {
   absolute2sourceResidue,
   complexNumerationParser,
   source2modelResidue,
+  model2sourceResidue,
 } from '../../utils/topology-manager';
 
 import style from './style.module.css';
@@ -976,33 +977,27 @@ const NGLViewer = memo(
           ) {
             return;
           }
-          let offset = 0;
           let highlight = '';
-          const addOffsetMappingFn = item => +item + offset;
           for (const manager of document.querySelectorAll(
             'protvista-manager',
           )) {
             // get highlight value for each manager
             const thisHiglight = manager.attributeValues.get('highlight');
-            const nextOffset = offset + +manager.dataset.chainLength;
+            // Get the chain letter to know which chain has been selected
+            const chain = manager.attributes.chain.value;
             if (!thisHiglight) {
               // if none, escape
-              offset = nextOffset;
               continue;
             }
-            // Start and end values are in absolute numeration + 1
-            // DANI: No se en que parte del código se establecen estos valores
-            // DANI: Habría que mirar si se pueden estandarizar como numeración asboluta
-            // DANI: De esa manera no habría que hacer el -1 más abajo, que queda muy feo.
+            // Start and end values are in model numeration 
+            // DANI: This is totally by chance. I didn't program this previous part
             const [start, end] = thisHiglight
               .split(':')
-              .map(addOffsetMappingFn);
-            const sourceStart = absolute2sourceResidue(start - 1, pdbFile);
-            const sourceEnd = absolute2sourceResidue(end - 1, pdbFile);
+            const sourceStart = model2sourceResidue({ chain, residue: start }, pdbFile);
+            const sourceEnd = model2sourceResidue({ chain, residue: end}, pdbFile);
             if (sourceStart.chain !== sourceEnd.chain)
               throw new Error(`Range from multiple chains is not supported`);
             highlight += ` or :${sourceStart.chain} and ${sourceStart.residueNumber}-${sourceEnd.residueNumber}`;
-            offset = nextOffset;
           }
           highlight = highlight.substr(4); // remove initial ' or '
 
@@ -1025,10 +1020,12 @@ const NGLViewer = memo(
               name: 'structure',
               opacity: 1,
             });
-            stageRef.current.animationControls.orient(
-              originalOritentationRef.current,
-              DEFAULT_ORIENTATION_TRANSITION_DURATION,
-            );
+            if (originalOritentationRef.current){
+              stageRef.current.animationControls.orient(
+                originalOritentationRef.current,
+                DEFAULT_ORIENTATION_TRANSITION_DURATION,
+              );
+            }
             return;
           }
 

@@ -138,6 +138,7 @@ export const getMetadataChainname = (
   if (!metadata) throw new Error('There is no metadata');
   if (!topology) throw new Error('There is no topology');
   const metadataChainnames = metadata.CHAINNAMES;
+  if (!metadataChainnames) return '';
   // OBSOLETE: Chains were stored as an array of names
   if (Array.isArray(metadataChainnames)) {
     if (!metadataChainnames) return '';
@@ -258,9 +259,7 @@ export const absolute2modelResidue = (
 ) => {
   const chainIndex = topology.residueStore.chainIndex[residue];
   const chain = topology.chainStore.getChainname(chainIndex); // e.g. 'A'
-  const chainName = Array.isArray(metadata.CHAINNAMES) // e.g. 'ACE2'
-    ? metadata.CHAINNAMES[chainIndex]
-    : metadata.CHAINNAMES[chain];
+  const chainName = getMetadataChainname(chain, topology, metadata) // e.g. 'ACE2'
   const offset = topology.chainStore.residueOffset[chainIndex];
   const chainResidue = residue - offset + 1;
   const residueType = getResidueType(residue, topology);
@@ -310,7 +309,8 @@ export const model2absoluteResidue = (
   //console.log(topology);
   const chainIndex = getChainIndex(chain, topology);
   const residueOffest = topology.chainStore.residueOffset[chainIndex];
-  const residueNumber = residueOffest + residue - 1;
+  // Make sure residue is a number and not an string
+  const residueNumber = residueOffest + +residue - 1;
   //console.log(chain + ':' + residue + ' -> ' + residueNumber);
   return residueNumber;
 };
