@@ -180,7 +180,7 @@ const NGLViewerWithControls = forwardRef(
     for (const comp of components) {
       // Create a generic 'representations' value when missing
       if (!comp.representations || comp.representations.length === 0)
-        comp.representations = [{ name: 'Structure', selection: 'all' }];
+        comp.representations = defaultRepresentations;
       // Fill the missing 'representations' values with some default values
       for (const rep of comp.representations) {
         if (!rep.name) rep.name = 'Representation';

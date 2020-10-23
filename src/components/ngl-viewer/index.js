@@ -456,6 +456,10 @@ const NGLViewer = memo(
 
           // Set each representation
           comp.representations.forEach((rep, r) => {
+
+            // The name here is used to indetify previous existing representations
+            const name = r + '-' + rep.name;
+            
             const show =
               !showRepresentations || showRepresentations[repCounter];
             // Adapt a few representation values to the context
@@ -485,8 +489,9 @@ const NGLViewer = memo(
 
             // Find the previous representation
             const previousRepresentation = stageComp.reprList.find(
-              previous => previous.name === rep.name,
+              previous => previous.name === name,
             );
+
             // Update the previous representation if exists
             if (previousRepresentation) {
               const type = previousRepresentation.repr.type;
@@ -495,7 +500,7 @@ const NGLViewer = memo(
                 stageComp.removeRepresentation(previousRepresentation);
                 stageComp.addRepresentation(drawingMethods[repCounter], {
                   sele: rep.selection,
-                  name: rep.name,
+                  name: name,
                   opacity: opacity,
                   colorScheme: colorScheme,
                   colorDomain: colorDomain,
@@ -507,7 +512,7 @@ const NGLViewer = memo(
               else {
                 previousRepresentation.setParameters({
                   sele: rep.selection,
-                  name: rep.name,
+                  name: name,
                   opacity: opacity,
                   colorScheme: colorScheme,
                   colorDomain: colorDomain,
@@ -520,21 +525,13 @@ const NGLViewer = memo(
             else {
               stageComp.addRepresentation(drawingMethods[repCounter], {
                 sele: rep.selection,
-                name: rep.name,
+                name: name,
                 opacity: opacity,
                 colorScheme: colorScheme,
                 colorDomain: colorDomain,
                 surfaceType: surfaceType,
                 ...rep.other,
               });
-              /*
-              stageComp.addRepresentation('ball+stick', {
-                sele: '@0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30',
-                name: 'test',
-                opacity: 1,
-                colorScheme: 'element',
-              });
-              */
             }
 
             // Add a floating label over the representation when it is specified

@@ -229,18 +229,19 @@ export const source2absoluteResidue = (
   { chain, residue, icode },
   topology = PdbCtx._currentValue.file,
 ) => {
-  const chainIndex = getChainIndex(chain, topology);
+  const chainIndexes = topology.residueStore.chainIndex;
   const resnos = topology.residueStore.resno;
+  const inscodes = topology.residueStore.inscode;
   const code = icode.charCodeAt(0);
   //console.log('we need chain: ' + chainIndex + ' res: ' + residue);
   for (const [index, res] of resnos.entries()) {
     //console.log(index + ' -> ' + topology.residueStore.chainIndex[index] + ':' + res);
     if (
       res === residue &&
-      topology.residueStore.chainIndex[index] === chainIndex &&
-      (topology.residueStore.inscode[index] === code || !icode)
+      topology.chainStore.getChainname(chainIndexes[index]) === chain &&
+      (inscodes[index] === code || !icode)
     ) {
-      //console.log(chain + ':' + residue + ' => ' + index);
+      console.log(chain + ':' + residue + ' => ' + index);
       return index;
     }
   }
