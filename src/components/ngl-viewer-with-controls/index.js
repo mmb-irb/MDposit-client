@@ -114,7 +114,7 @@ const NGLViewerWithControls = forwardRef(
     // Set the chains to be represented in the NGL viewer by default
     // WARNING: This is experimental and may have some bugs
     const defaultRepresentations = useMemo(() => {
-      if (!metadata || !chains) return;
+      if (!metadata || !chains) return [{ name: 'Structure' }];
       // Represent each protein chain
       const reps = [];
       for (const chain of chains) {
@@ -152,9 +152,9 @@ const NGLViewerWithControls = forwardRef(
           });
         }
       }
-      // Represent all chains which are not in the 'chains' list (i.e. not protein chains) in licorice 
+      // Represent all chains which are not in the 'chains' list (i.e. not protein chains) in licorice
       if (metadata.CHAINNAMES && !Array.isArray(metadata.CHAINNAMES)) {
-        const chainnames = Object.entries(metadata.CHAINNAMES)
+        const chainnames = Object.entries(metadata.CHAINNAMES);
         chainnames.forEach(([chain, name]) => {
           if (chains.indexOf(chain) !== -1) return;
           reps.push({
@@ -175,7 +175,9 @@ const NGLViewerWithControls = forwardRef(
     )
       representations = defaultRepresentations;
 
-    if (!metadata || !chains) return <Loading />;
+    // DANI: La metadata habría que plantearse hasta que punto es un requisito indispensable
+    // Gran parte del NGL podría seguir funcionando en una trayectoria que por error no tiene metadata
+    if (!metadata) return <Loading />;
 
     // 'representations' is an alternative (and the original) method to call the NGL
     // Here we convert old inputs to the new format: 'components'
