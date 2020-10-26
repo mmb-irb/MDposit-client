@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState, useContext } from 'react';
+import React, { lazy, Suspense, useState, useContext, useMemo } from 'react';
 
 import { CardContent, Typography } from '@material-ui/core';
 
@@ -35,6 +35,12 @@ const Rmsd = () => {
   const { loading, payload, error } = useAPI(
     `${BASE_PATH_PROJECTS}${accession}/analyses/rmsd/`,
   );
+
+  // Rmsd analysis comes in nanometers (nm) and we want it in Ångstroms
+  useMemo(() => {
+    if (!payload) return;
+    payload.y['rmsd'].data = payload.y['rmsd'].data.map(v => v * 10);
+  }, [payload]);
 
   // React hooks
   // Set when one point in the graph is selected
@@ -100,7 +106,7 @@ const Rmsd = () => {
             step={xAxesStep}
             xLabel={'Time (ns)'}
             xScaleFactor={0.001}
-            yLabel={'RMSd (nm)'}
+            yLabel={'RMSd (Å)'}
             onSelect={setSelected}
             selected={selected}
             selfLegend={false}

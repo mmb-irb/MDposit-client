@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState, useContext } from 'react';
+import React, { lazy, Suspense, useState, useContext, useMemo } from 'react';
 
 import {
   CardContent,
@@ -39,6 +39,12 @@ const Rgyr = () => {
     `${BASE_PATH_PROJECTS}${accession}/analyses/rgyr/`,
   );
 
+  // Rgyr analysis comes in nanometers (nm) and we want it in Ångstroms
+  useMemo(() => {
+    if (!payload) return;
+    payload.y['rgyr'].data = payload.y['rgyr'].data.map(v => v * 10);
+  }, [payload]);
+
   // React hooks
   // Set when one point in the graph is selected
   const [selected, setSelected] = useState(null);
@@ -72,8 +78,8 @@ const Rgyr = () => {
             <TableHead>
               <TableRow>
                 <TableCell>name</TableCell>
-                <TableCell>mean (nm)</TableCell>
-                <TableCell>standard deviation (nm)</TableCell>
+                <TableCell>mean (Å)</TableCell>
+                <TableCell>standard deviation (Å)</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -141,7 +147,7 @@ const Rgyr = () => {
             //defaultPrecision={2 ** 6}
             xLabel={'Time (ns)'}
             xScaleFactor={0.001}
-            yLabel={'Rgyr (nm)'}
+            yLabel={'Rgyr (Å)'}
             onSelect={setSelected}
             selected={selected}
             selfLegend={true}

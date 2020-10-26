@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState, useContext } from 'react';
+import React, { lazy, Suspense, useState, useContext, useMemo } from 'react';
 
 import { CardContent, Typography } from '@material-ui/core';
 
@@ -33,6 +33,12 @@ const FluctuationAnalysis = () => {
   const { loading, payload, error } = useAPI(
     `${BASE_PATH_PROJECTS}${accession}/analyses/fluctuation/`,
   );
+
+  // Fluctuation analysis comes in nanometers (nm) and we want it in Ångstroms
+  useMemo(() => {
+    if (!payload) return;
+    payload.y['rmsf'].data = payload.y['rmsf'].data.map(v => v * 10);
+  }, [payload]);
 
   // React hooks
   // Set when the mouse is over the graph
@@ -96,7 +102,7 @@ const FluctuationAnalysis = () => {
             step={payload.step}
             xLabel={'Atom'}
             xUnit={'atom'}
-            yLabel={'Fluctuation (nm)'}
+            yLabel={'Fluctuation (Å)'}
             type={'dash'}
             startsAtOne={true}
             onHover={setHoveredAtom}
