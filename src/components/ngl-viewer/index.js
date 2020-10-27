@@ -73,6 +73,7 @@ const NGLViewer = memo(
         opacities,
         components,
         showRepresentations,
+        nglSelections,
       },
       ref,
     ) => {
@@ -457,14 +458,17 @@ const NGLViewer = memo(
 
           // Set each representation
           comp.representations.forEach((rep, r) => {
-
             // The name here is used to indetify previous existing representations
             const name = r + '-' + rep.name;
-            
+
+            // Adapt a few representation values to the context
+
             const show =
               !showRepresentations || showRepresentations[repCounter];
-            // Adapt a few representation values to the context
-            const opacity = show ? opacities[repCounter] : 0;
+
+            const sele = nglSelections[repCounter];
+
+            const type = drawingMethods[repCounter];
 
             // If the colorScheme is a defined color, create a custom colorScheme for this color
             const colorScheme =
@@ -480,13 +484,22 @@ const NGLViewer = memo(
                   )
                 : coloringMethods[repCounter];
 
-            const colorDomain =
-              drawingMethods[repCounter] === 'surface'
-                ? [-200, 200]
-                : undefined;
+            const colorDomain = type === 'surface' ? [-200, 200] : undefined;
 
-            const surfaceType =
-              drawingMethods[repCounter] === 'surface' ? 'av' : undefined;
+            const surfaceType = type === 'surface' ? 'av' : undefined;
+
+            const opacity = show ? opacities[repCounter] : 0;
+
+            // Join all parameters into a single input object
+            const parameters = {
+              sele,
+              name,
+              opacity,
+              colorScheme,
+              colorDomain,
+              surfaceType,
+              ...rep.other,
+            };
 
             // Find the previous representation
             const previousRepresentation = stageComp.reprList.find(
@@ -495,44 +508,22 @@ const NGLViewer = memo(
 
             // Update the previous representation if exists
             if (previousRepresentation) {
-              const type = previousRepresentation.repr.type;
+              const previousType = previousRepresentation.repr.type;
+              const previousSelection =
+                previousRepresentation.repr.selection.string;
               // If the 'drawingMethod' has been changed we have to remake the whole representation
-              if (type !== drawingMethods[repCounter]) {
+              if (previousType !== type || previousSelection !== sele) {
                 stageComp.removeRepresentation(previousRepresentation);
-                stageComp.addRepresentation(drawingMethods[repCounter], {
-                  sele: rep.selection,
-                  name: name,
-                  opacity: opacity,
-                  colorScheme: colorScheme,
-                  colorDomain: colorDomain,
-                  surfaceType: surfaceType,
-                  ...rep.other,
-                });
+                stageComp.addRepresentation(type, parameters);
               }
               // Otherwise it is faster just to update the parameters
               else {
-                previousRepresentation.setParameters({
-                  sele: rep.selection,
-                  name: name,
-                  opacity: opacity,
-                  colorScheme: colorScheme,
-                  colorDomain: colorDomain,
-                  surfaceType: surfaceType,
-                  ...rep.other,
-                });
+                previousRepresentation.setParameters(parameters);
               }
             }
             // If there is no previous representation then set a new one
             else {
-              stageComp.addRepresentation(drawingMethods[repCounter], {
-                sele: rep.selection,
-                name: name,
-                opacity: opacity,
-                colorScheme: colorScheme,
-                colorDomain: colorDomain,
-                surfaceType: surfaceType,
-                ...rep.other,
-              });
+              stageComp.addRepresentation(type, parameters);
             }
 
             // Add a floating label over the representation when it is specified
@@ -569,7 +560,6 @@ const NGLViewer = memo(
               else {
                 // If there is a previous representation then remove it
                 if (previous) {
-                  console.log('eliminando ' + name);
                   stageComp.removeAnnotation(previous);
                 }
               }
@@ -623,6 +613,9 @@ const NGLViewer = memo(
         topologies,
         selectedRepresentation,
         showRepresentations,
+        nglSelections,
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        ...nglSelections,
       ]);
 
       // Highlight specific atoms
@@ -989,12 +982,17 @@ const NGLViewer = memo(
               // if none, escape
               continue;
             }
-            // Start and end values are in model numeration 
+            // Start and end values are in model numeration
             // DANI: This is totally by chance. I didn't program this previous part
-            const [start, end] = thisHiglight
-              .split(':')
-            const sourceStart = model2sourceResidue({ chain, residue: start }, pdbFile);
-            const sourceEnd = model2sourceResidue({ chain, residue: end}, pdbFile);
+            const [start, end] = thisHiglight.split(':');
+            const sourceStart = model2sourceResidue(
+              { chain, residue: start },
+              pdbFile,
+            );
+            const sourceEnd = model2sourceResidue(
+              { chain, residue: end },
+              pdbFile,
+            );
             if (sourceStart.chain !== sourceEnd.chain)
               throw new Error(`Range from multiple chains is not supported`);
             highlight += ` or :${sourceStart.chain} and ${sourceStart.residueNumber}-${sourceEnd.residueNumber}`;
@@ -1020,7 +1018,7 @@ const NGLViewer = memo(
               name: 'structure',
               opacity: 1,
             });
-            if (originalOritentationRef.current){
+            if (originalOritentationRef.current) {
               stageRef.current.animationControls.orient(
                 originalOritentationRef.current,
                 DEFAULT_ORIENTATION_TRANSITION_DURATION,

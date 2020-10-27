@@ -2,6 +2,7 @@ import React, { memo, useState, useCallback } from 'react';
 import screenfull from 'screenfull';
 
 import {
+  Checkbox,
   IconButton,
   Popover,
   Paper,
@@ -10,6 +11,7 @@ import {
   TableCell,
   TableHead,
   TableRow,
+  TextField,
   Select,
   Slider,
 } from '@material-ui/core';
@@ -69,6 +71,10 @@ const availableColoringMethods = [
 const Paints = memo(
   ({
     representations, // Array with all representations
+    showRepresentations,
+    setShowRepresentations,
+    nglSelections,
+    setNglSelections,
     drawingMethods,
     setDrawingMethods,
     coloringMethods,
@@ -80,6 +86,8 @@ const Paints = memo(
     ...buttonProps
   }) => {
     const [element, setElement] = useState(null);
+    // Save text in selection text fields. The real selection value is not updated until 'enter' is down
+    const [textSelections, setTextSelections] = useState(nglSelections);
 
     return (
       <>
@@ -109,6 +117,8 @@ const Paints = memo(
               <TableHead>
                 <TableRow>
                   <TableCell>Name</TableCell>
+                  <TableCell align="right">Show</TableCell>
+                  <TableCell align="right">Selection</TableCell>
                   <TableCell align="right">Drawing method</TableCell>
                   <TableCell align="right">Coloring method</TableCell>
                   <TableCell align="right">Opacity</TableCell>
@@ -119,6 +129,45 @@ const Paints = memo(
                   <TableRow key={rep.name + index}>
                     <TableCell component="th" scope="row">
                       {rep.name}
+                    </TableCell>
+                    <TableCell align="right">
+                      {
+                        <Checkbox
+                          key={rep.name}
+                          checked={showRepresentations[index]}
+                          onChange={() =>
+                            setShowRepresentations(previous => {
+                              const newState = [...previous];
+                              newState[index] = !newState[index];
+                              return newState;
+                            })
+                          }
+                          style={{ color: 'black' }}
+                          inputProps={{ 'data-key': rep.name }}
+                        />
+                      }
+                    </TableCell>
+                    <TableCell align="right">
+                      {
+                        <TextField
+                          id="outlined-basic"
+                          value={textSelections[index]}
+                          variant="outlined"
+                          onChange={event =>
+                            setTextSelections(previous => {
+                              const newState = [...previous];
+                              if (!event.target || !event.target.value)
+                                return previous;
+                              newState[index] = event.target.value;
+                              return newState;
+                            })
+                          }
+                          onKeyPress={event => {
+                            if (event.key !== 'Enter') return;
+                            setNglSelections(textSelections);
+                          }}
+                        />
+                      }
                     </TableCell>
                     <TableCell align="right">
                       {

@@ -175,10 +175,6 @@ const NGLViewerWithControls = forwardRef(
     )
       representations = defaultRepresentations;
 
-    // DANI: La metadata habría que plantearse hasta que punto es un requisito indispensable
-    // Gran parte del NGL podría seguir funcionando en una trayectoria que por error no tiene metadata
-    if (!metadata) return <Loading />;
-
     // 'representations' is an alternative (and the original) method to call the NGL
     // Here we convert old inputs to the new format: 'components'
     if (
@@ -212,6 +208,22 @@ const NGLViewerWithControls = forwardRef(
     // When there is only 1 frame to load or all representations have their specific frame
     const noTrajectory = Number.isFinite(components[0].frame);
 
+    const [showRepresentations, setShowRepresentations] = useState(() => {
+      const init = [];
+      for (const rep of allRepresentations) {
+        init.push(rep.show);
+      }
+      return init;
+    });
+
+    const [nglSelections, setNglSelections] = useState(() => {
+      const init = [];
+      for (const rep of allRepresentations) {
+        init.push(rep.selection);
+      }
+      return init;
+    });
+
     const [drawingMethods, setDrawingMethods] = useState(() => {
       const init = [];
       for (const rep of allRepresentations) {
@@ -235,6 +247,8 @@ const NGLViewerWithControls = forwardRef(
     });
     // Remember the default drawing methods, coloring methods and opacity values
     const defaults = useRef({
+      showRepresentations: [...showRepresentations],
+      nglSelections: [...nglSelections],
       drawingMethods: [...drawingMethods],
       coloringMethods: [...coloringMethods],
       opacities: [...opacities],
@@ -327,6 +341,10 @@ const NGLViewerWithControls = forwardRef(
     // DANI: Esto podría no tener mucho sentido aquí, hay que darle una vuelta
     //if (!metadata || !chains) return <Loading />;
 
+    // DANI: La metadata habría que plantearse hasta que punto es un requisito indispensable
+    // Gran parte del NGL podría seguir funcionando en una trayectoria que por error no tiene metadata
+    if (!metadata) return <Loading />;
+
     return (
       <div
         className={cn(style['fullscreen-target'], {
@@ -346,6 +364,8 @@ const NGLViewerWithControls = forwardRef(
             darkBackground={darkBackground}
             perspective={perspective}
             speed={speed}
+            showRepresentations={showRepresentations}
+            nglSelections={nglSelections}
             drawingMethods={drawingMethods}
             coloringMethods={coloringMethods}
             opacities={opacities}
@@ -515,6 +535,10 @@ const NGLViewerWithControls = forwardRef(
             <Paints
               representations={allRepresentations}
               title="Change representation parameters"
+              showRepresentations={showRepresentations}
+              setShowRepresentations={setShowRepresentations}
+              nglSelections={nglSelections}
+              setNglSelections={setNglSelections}
               drawingMethods={drawingMethods}
               setDrawingMethods={setDrawingMethods}
               coloringMethods={coloringMethods}

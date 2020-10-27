@@ -214,7 +214,7 @@ const Pockets = () => {
             className={style.container}
             components={[{}, ...pockets]}
             selectedRepresentation={selectedPocket}
-            showRepresentations={[true, ...shownPockets]}
+            showRepresentations={[true, true, ...shownPockets]}
           />
         ) : (
           <div style={{ height: '50vh' }} />
