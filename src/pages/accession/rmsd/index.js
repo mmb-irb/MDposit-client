@@ -1,6 +1,14 @@
 import React, { lazy, Suspense, useState, useContext, useMemo } from 'react';
 
-import { CardContent, Typography } from '@material-ui/core';
+import {
+  CardContent,
+  Typography,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '@material-ui/core';
 
 import Card from '../../../components/animated-card';
 import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
@@ -16,11 +24,6 @@ import Info from '../../../components/info';
 
 import style from './style.module.css';
 
-const StatisticsTable = lazy(() =>
-  import(
-    /* webpackChunkName: 'statistics-table' */ '../../../components/statistics-table'
-  ),
-);
 const Graph = lazy(() =>
   import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
 );
@@ -39,7 +42,10 @@ const Rmsd = () => {
   // Rmsd analysis comes in nanometers (nm) and we want it in Ångstroms
   useMemo(() => {
     if (!payload) return;
-    payload.y['rmsd'].data = payload.y['rmsd'].data.map(v => v * 10);
+    const rmsd = payload.y['rmsd'];
+    rmsd.data = rmsd.data.map(v => v * 10);
+    rmsd.average = rmsd.average * 10;
+    rmsd.stddev = rmsd.stddev * 10;
   }, [payload]);
 
   // React hooks
@@ -53,6 +59,8 @@ const Rmsd = () => {
 
   const dataLength = payload.y['rmsd'].data.length;
   const xAxesStep = (metadata.LENGTH / (dataLength - 1)) * 1000;
+
+  const cents = num => Math.round(num * 100) / 100;
 
   // Render
   return (
@@ -68,7 +76,22 @@ const Rmsd = () => {
           }
         />
         <CardContent>
-          <StatisticsTable y={payload.y} />
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>name</TableCell>
+                <TableCell>mean (Å)</TableCell>
+                <TableCell>standard deviation (Å)</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              <TableRow>
+                <TableCell>{'RMSd'}</TableCell>
+                <TableCell>{cents(payload.y.rmsd.average)}</TableCell>
+                <TableCell>{cents(payload.y.rmsd.stddev)}</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
       <Card className={style.card}>

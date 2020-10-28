@@ -1,6 +1,14 @@
 import React, { lazy, Suspense, useState, useContext, useMemo } from 'react';
 
-import { CardContent, Typography } from '@material-ui/core';
+import {
+  CardContent,
+  Typography,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '@material-ui/core';
 
 import Card from '../../../components/animated-card';
 import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
@@ -16,11 +24,6 @@ import Info from '../../../components/info';
 
 import style from './style.module.css';
 
-const StatisticsTable = lazy(() =>
-  import(
-    /* webpackChunkName: 'statistics-table' */ '../../../components/statistics-table'
-  ),
-);
 const Graph = lazy(() =>
   import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
 );
@@ -37,7 +40,10 @@ const FluctuationAnalysis = () => {
   // Fluctuation analysis comes in nanometers (nm) and we want it in Ångstroms
   useMemo(() => {
     if (!payload) return;
-    payload.y['rmsf'].data = payload.y['rmsf'].data.map(v => v * 10);
+    const rmsf = payload.y['rmsf'];
+    rmsf.data = rmsf.data.map(v => v * 10);
+    rmsf.average = rmsf.average * 10;
+    rmsf.stddev = rmsf.stddev * 10;
   }, [payload]);
 
   // React hooks
@@ -50,6 +56,8 @@ const FluctuationAnalysis = () => {
   if (loading) return <Loading />;
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
+
+  const cents = num => Math.round(num * 100) / 100;
 
   // Render
   return (
@@ -65,7 +73,22 @@ const FluctuationAnalysis = () => {
           }
         />
         <CardContent>
-          <StatisticsTable y={payload.y} />
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>name</TableCell>
+                <TableCell>mean (Å)</TableCell>
+                <TableCell>standard deviation (Å)</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              <TableRow>
+                <TableCell>{'Fluctuation'}</TableCell>
+                <TableCell>{cents(payload.y.rmsf.average)}</TableCell>
+                <TableCell>{cents(payload.y.rmsf.stddev)}</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
       <Card className={style.card}>

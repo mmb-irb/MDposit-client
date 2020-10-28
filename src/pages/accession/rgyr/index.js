@@ -42,7 +42,22 @@ const Rgyr = () => {
   // Rgyr analysis comes in nanometers (nm) and we want it in Ångstroms
   useMemo(() => {
     if (!payload) return;
-    payload.y['rgyr'].data = payload.y['rgyr'].data.map(v => v * 10);
+    const rgyr = payload.y['rgyr'];
+    rgyr.average = rgyr.average * 10;
+    rgyr.stddev = rgyr.stddev * 10;
+    rgyr.data = rgyr.data.map(v => v * 10);
+    const rgyrx = payload.y['rgyrx'];
+    rgyrx.average = rgyrx.average * 10;
+    rgyrx.stddev = rgyrx.stddev * 10;
+    rgyrx.data = rgyrx.data.map(v => v * 10);
+    const rgyry = payload.y['rgyry'];
+    rgyry.average = rgyry.average * 10;
+    rgyry.stddev = rgyry.stddev * 10;
+    rgyry.data = rgyry.data.map(v => v * 10);
+    const rgyrz = payload.y['rgyrz'];
+    rgyrz.average = rgyrz.average * 10;
+    rgyrz.stddev = rgyrz.stddev * 10;
+    rgyrz.data = rgyrz.data.map(v => v * 10);
   }, [payload]);
 
   // React hooks
