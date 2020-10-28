@@ -24,10 +24,6 @@ import Loading from '../../../components/loading';
 
 import useAPI from '../../../hooks/use-api';
 
-import //complexNumerationParser,
-//getMetadataChainname,
-'../../../utils/topology-manager';
-
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 const Graph2 = lazy(() =>
