@@ -42,7 +42,9 @@ const DEFAULT_ORIENTATION_TRANSITION_DURATION = 750; // 750 ms
 
 const CHAIN_SELECTION = 'polymer and not hydrogen ';
 
-const NGL_COLORS = ['red', 'blue', 'yellow', 'green'];
+//const defaultFocus = { comp: 0, sele: 'all' };
+
+const NGL_COLORS = ['red', 'blue', 'yellow', 'green', 'white', 'grey'];
 
 const NGLViewer = memo(
   forwardRef(
@@ -64,7 +66,7 @@ const NGLViewer = memo(
         selectedAngles, // Groups of 3 atoms to be represented as an angle
         selectedRepresentation, // String name of a representation to be painted in yellow color (only 1)
         noTrajectory, // True when only specific frames must be loaded
-        initialFocus = { comp: 0, sele: CHAIN_SELECTION }, // The ngl selection to be focused by the camera initially
+        initialFocus, // The ngl selection to be focused by the camera initially
         darkBackground,
         perspective,
         speed,
@@ -79,7 +81,10 @@ const NGLViewer = memo(
     ) => {
       // This is a workaround to include the 'components' object in useEffect hooks
       // The 'components' object is not a suitable dependency. It would re-render the hook all the time
-      const componentsRef = JSON.stringify(components);
+      //const componentsRef = JSON.stringify(components);
+
+      // Save the components object into a local constant which can be modified
+      const comps = useMemo(() => components, [components]);
 
       // If no URL is provided then use the main trajectory (the 'md.imaged.rot.xtc' file) // URL to find the trajectory data in the API
       // True when we just want to display a static structure // Requeste number of frames to display
@@ -90,8 +95,11 @@ const NGLViewer = memo(
 
       // The last automatic camera focus
       const [focus, setFocus] = useState(initialFocus);
-      // Track when the first focus has been performed
-      const firstFocus = useRef(true);
+
+      useMemo(() => {
+        //console.log(initialFocus);
+        setFocus(initialFocus);
+      },[initialFocus]);
 
       // references
       const containerRef = useRef(null);
@@ -105,25 +113,19 @@ const NGLViewer = memo(
       // in-view hook
       const [inViewRef, isInView] = useInView();
 
-      // Load all requested topologies: Each component may have a different structure URL.
+      // Download topologies ------------------------------------------------------------------------------------------------
+
+      // Download all requested topologies: Each component may have a different structure URL.
       // Set the first component topology as the 'pdbData'
       // If a topologyURL is provided, download data form the API
       // Otherwise, use the context pdbData (i.e. the 'md.imaged.rot.dry.pdb' file)
 
       // Memoize the topolgy URLs into an array
       const topologyURLs = useMemo(() => {
-        const comps = JSON.parse(componentsRef);
+        //const comps = JSON.parse(componentsRef);
         return comps.map(comp => comp.topologyURL);
-      }, [componentsRef]);
+      }, [comps]);
 
-      /*
-      const topologies = useNGLFiles(topologyURLs,
-        {
-          defaultRepresentation: false,
-          ext: 'pdb',
-        },
-        pdbData.file);
-        */
       const [topologies, setTopologies] = useState(
         topologyURLs.map(url => ({
           loading: true,
@@ -132,10 +134,7 @@ const NGLViewer = memo(
         })),
       );
 
-      // Load all requested topologies from the API
-      // WARNING: The '[...previous]' is essential to make the array object change
-      // This is important, since the 'topologies' object is used as a dependendy further
-      // And if we do not change the array then the change is not detected
+      // Download all requested topologies from the API
       useEffect(() => {
         if (!topologyURLs) return;
         let didCancel = false;
@@ -143,6 +142,9 @@ const NGLViewer = memo(
         topologyURLs.forEach((url, i) => {
           // If there is no URL load the context pdbData
           if (!url)
+            // WARNING: The '[...previous]' is essential to make the array object change
+            // This is important, since the 'topologies' object is used as a dependendy further
+            // And if we do not change the array then the change is not detected
             setTopologies(previous => {
               const current = previous[i];
               current.loading = false;
@@ -186,61 +188,109 @@ const NGLViewer = memo(
         : topologies[0];
       const { loading: loadingPDB, file: pdbFile } = mainTopology;
 
+      // Download trajectories ------------------------------------------------------------------------------------------------
+
+      // First we find all trajectory URLs (i.e. all requests to API)
+      // Then we ask the API skipping repeated URLs
+
+      // Find out if this is a PCA projection
       const isProjection = Number.isFinite(projection);
 
       // Set variable to store trajectory data and loading status
       const trajectoryRef = useRef({
-        payload: [],
-        frameCount: [],
+        urls: [],
+        payloads: [],
+        frames: [],
         loading: [],
       });
 
-      // Load the requested trajectory data (frames)
+      // Memoize the trajectory URLs
+      const trajectoryURLs = useMemo(() => {
+        console.log('get urls');
+        // When it is forced from the arguments
+        if (trajectoryURL) return [trajectoryURL];
+
+        // Set the url to ask the API
+        // Here, if you ask for the trajectory.bin instead of just trajectory, you get the whole file
+        // This is because the only route of the API accepting frames selection is the "trajectory" endpoint
+        // Other paths such as "trajectory.bin" will be processed as "/:files"
+        const baseUrl = `${BASE_PATH_PROJECTS}${accession}/files/trajectory`;
+
+        // Convert the JSON reference back into the 'components' object
+        //const comps = JSON.parse(componentsRef);
+
+        const urlsRef = trajectoryRef.current.urls;
+        const framesRef = trajectoryRef.current.frames;
+        const loadingRefs = trajectoryRef.current.loading;
+
+        // Store all trajectory urls to be requested
+        comps.forEach((comp, index) => {
+          if (comp.onlyTopology) return;
+          // DANI: Por si acaso algun otro componente no tiene 'frame'
+          // DANI: Esto ahora no tendría sentido porque no se podría controlar la trayectoria
+          if (index > 0 && comp.frame === undefined) {
+            console.error(
+              'Only the first component is allowed to load the trajectory',
+            );
+            comp.frame = 0;
+          }
+          // Save the number of frames asked when the load starts
+          const frameCount = comp.frame ? 1 : nFrames;
+
+          // Get the frames to be loaded in a standarized string format for the API
+          const frames = getFrames(
+            isProjection,
+            metadata,
+            frameCount,
+            noTrajectory,
+            comp.frame,
+          );
+
+          // Add the frame selection
+          // Load the whole trajectory if no frames are provided. This should never happen
+          const url = frames ? baseUrl + `?frames=${frames}` : baseUrl;
+          
+          // Add the url to the component
+          comp.url = url;
+
+          // Check if the requested url is already in the list
+          // If so, skip this request
+          // If not, save the request url and proceed
+          if (urlsRef.indexOf(url) === -1) {
+            urlsRef.push(url);
+            framesRef.push(frameCount);
+            loadingRefs.push(true);
+          }
+        });
+
+        // Set it in spread syntax to force the rerun of the trajectory download code
+        return [...urlsRef];
+      }, [
+        trajectoryURL,
+        accession,
+        nFrames,
+        comps,
+        //projection,
+        isProjection,
+        metadata,
+        noTrajectory,
+      ]);
+
+      // Download the requested trajectory data (frames)
       useEffect(
         () => {
-          // Set the url to ask the API
-          // Here, if you ask for the trajectory.bin instead of just trajectory, you get the whole file
-          // This is because the only route of the API accepting frames selection is the "trajectory" endpoint
-          // Other paths such as "trajectory.bin" will be processed as "/:files"
-          const baseUrl = trajectoryURL
-            ? trajectoryURL
-            : `${BASE_PATH_PROJECTS}${accession}/files/trajectory`;
-
+          console.log('download trajectories');
           // Ask the API through axios (https://www.npmjs.com/package/axios)
           // Some extra load features are passed through axios
           // Set a cancel 'token'
           const source = axios.CancelToken.source();
           let didCancel = false;
+          
+          trajectoryURLs.forEach((url, index) => {
 
-          // Convert the JSON reference back into the 'components' object
-          const comps = JSON.parse(componentsRef);
-
-          comps.forEach((comp, index) => {
-            if (comp.onlyTopology) return;
-            // DANI: Por si acaso algun otro componente no tiene 'frame'
-            // DANI: Esto ahora no tendría sentido porque no se podría controlar la trayectoria
-            if (index > 0 && comp.frame === undefined) {
-              console.error(
-                'Only the first component is allowed to load the trajectory',
-              );
-              comp.frame = 0;
-            }
-            // Save the number of frames asked when the load starts
-            const frameCount = comp.frame ? 1 : nFrames;
-
-            // Get the frames to be loaded in a standarized string format for the API
-            const frames = getFrames(
-              isProjection,
-              metadata,
-              frameCount,
-              noTrajectory,
-              comp.frame,
-            );
-
-            // Add the frame selection
-            const url = frames ? baseUrl + `?frames=${frames}` : baseUrl;
-            //const url = frames ? baseUrl + `?frames=1:1668:3` : baseUrl;
-            //console.log(url);
+            // Check if the requested url has the data already downloaded
+            // If so, skip this request
+            if (trajectoryRef.current.payloads[index]) return;
 
             // Set the loading status as true
             trajectoryRef.current.loading[index] = true;
@@ -265,12 +315,10 @@ const NGLViewer = memo(
                 if (didCancel) return;
                 // 'counts' include the number of atoms and the real number of frames
                 trajectoryRef.current.counts = extractCounts(response);
-                // Save inside the ref
-                trajectoryRef.current.frameCount = parseInt(frameCount);
                 // We create a new object to force the trajectory data load in ngl (payload dependent)
-                const newPayload = [...trajectoryRef.current.payload];
-                newPayload[index] = response.data;
-                trajectoryRef.current.payload = newPayload;
+                const newPayloads = [...trajectoryRef.current.payloads];
+                newPayloads[index] = response.data;
+                trajectoryRef.current.payloads = newPayloads;
                 trajectoryRef.current.loading[index] = false;
               })
               // Otherwise
@@ -284,28 +332,13 @@ const NGLViewer = memo(
             source.cancel();
             didCancel = true;
           };
-        },
-        // Dependencies
-        [
-          trajectoryURL,
-          projection,
-          isProjection,
-          metadata,
-          noTrajectory,
-          nFrames,
-          accession,
-          componentsRef,
-        ],
-      );
+      }, [trajectoryURLs]);
+
       const trajectoryLoadingStatus = [...trajectoryRef.current.loading].some(
         l => l === true,
       );
-      const trajectoryPayload = trajectoryRef.current.payload;
+      const trajectoryPayload = trajectoryRef.current.payloads;
       const trajectoryProgress = trajectoryRef.current.progress;
-      const trajectoryFrames = trajectoryRef.current.frameCount;
-      const trajectoryAtoms = trajectoryRef.current.counts
-        ? trajectoryRef.current.counts.atoms
-        : undefined;
 
       // Stage creation and removal on mounting and unmounting
       useEffect(() => {
@@ -425,10 +458,10 @@ const NGLViewer = memo(
 
         // Track if any representation has been focused
         // If not, focus the first
-        let focused = false;
+        //let focused = false;
 
         // Convert the JSON reference back into the 'components' object
-        const comps = JSON.parse(componentsRef);
+        //const comps = JSON.parse(componentsRef);
 
         if (!pdbFile) return;
         // Atom occupancy is a field which is not used anywhere but in the electrostatic representation
@@ -457,14 +490,16 @@ const NGLViewer = memo(
           }
 
           // Set each representation
+          // Save all current representation names so we can delete previous representations which are not requested anymore
+          const registredNames = []
           comp.representations.forEach((rep, r) => {
             // The name here is used to indetify previous existing representations
             const name = r + '-' + rep.name;
+            registredNames.push(name);
 
             // Adapt a few representation values to the context
 
-            const show =
-              !showRepresentations || showRepresentations[repCounter];
+            const show = !showRepresentations || showRepresentations[repCounter];
 
             const sele = nglSelections[repCounter];
 
@@ -568,10 +603,20 @@ const NGLViewer = memo(
             // Set this representation as the focus if it is selected
             if (rep.name === selectedRepresentation) {
               setFocus({ comp: c, sele: rep.selection });
-              focused = true;
+              //focused = true;
             }
 
             repCounter += 1;
+          });
+
+          // Delete all representations which are not required anymore
+          stageComp.reprList.forEach(rep => {
+            const name = rep.name;
+            for (const registredName of registredNames) {
+              if (name === registredName) return;
+            }
+            // If the name is not in the list the representation must be removed
+            stageComp.removeRepresentation(rep);
           });
 
           // if an original orientation was aleady defined
@@ -589,33 +634,25 @@ const NGLViewer = memo(
           */
 
           // If nothing has been focused at the end then focus the whole first component
-          if (!focused) {
-            setFocus({ comp: 0, sele: 'all' });
-          }
+          setFocus(previous => {
+            if (previous) return previous; // This will not trigger any rerender
+            return { comp: 0, sele: 'all' };
+          });
         });
       }, [
         pdbFile,
         isProjection,
         //components,
-        componentsRef,
+        comps,
         drawingMethods,
-        // We make eslint keep quiet or it complains about using spread syntax in the dependencies
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        ...drawingMethods,
         coloringMethods,
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        ...coloringMethods,
         opacities,
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        ...opacities,
         //toggler,
         loadingTopologies,
         topologies,
         selectedRepresentation,
         showRepresentations,
         nglSelections,
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        ...nglSelections,
       ]);
 
       // Highlight specific atoms
@@ -858,39 +895,67 @@ const NGLViewer = memo(
       }, [pdbFile, trajectoryLoadingStatus]);
 
       // DCD file, trajectory
-      // Once the trajectory is loaded, introduce it into the representation
+      // Once the trajectories are downloaded, load them in corresponding NGL representations
       useEffect(() => {
+        console.log('reload trajectories');
+        console.log(trajectoryRef.current);
+        // Check if trajectories are
+        if (!trajectoryPayload || trajectoryPayload.length === 0) return;
+
         let frames = [];
 
-        trajectoryPayload.forEach((payload, index) => {
-          const component = stageRef.current.compList[index];
-          if (!component) return;
-          if (component.onlyTopology) return;
-          //console.log(component);
+        const urls = trajectoryRef.current.urls;
+        const frameCounts = trajectoryRef.current.frames;
+
+        // Payloads are assigned through constant instead of through reference because they are in the dependencies
+        // Every time the trajectory payloads change this useEffect must be rerun
+        const trajectories = trajectoryPayload;
+
+        // DANI: esta todavía no es iterable
+        const trajectoryAtoms = trajectoryRef.current.counts.atoms;
+
+        comps.forEach((comp, c) => {
+          const stageComp = stageRef.current.compList[c];
+          // Wait if the topology has not been loaded yet
+          if (!stageComp) return;
+          // Abort if the component is marked as 'only topology'
+          if (stageComp.onlyTopology) return;
+
+          // Find the trajectory payload from the component url
+          const url = comp.url;
+          const index = urls.indexOf(url)
+          if (index === -1) throw new Error(`The url '${url}' has not been requested to the API`);
+          const trajectory = trajectories[index];
+          const trajectoryFrames = frameCounts[index];
+
+          // DANI: Aquí se asignaría el valor de trajectoryAtoms si fuese iterable
 
           // remove all possibly already existing trajectories
           // This return an error in console: "updateStructure: traj disposed"
           // This may be a bug but it is actually working
           // See https://github.com/arose/ngl/issues/680
-          component.trajList.forEach(
-            component.removeTrajectory.bind(component),
+          // DANI: Hay que revisar esto porque alomejor se puede ahorrar este paso si la trayectoria coincide
+          stageComp.trajList.forEach(
+            stageComp.removeTrajectory.bind(stageComp),
           );
 
+          // Transform the binary trajectory data to an NGL friendly format
           const file = payloadToNGLFile(
             pdbFile,
-            payload,
+            trajectory,
             trajectoryAtoms,
             trajectoryFrames,
             isProjection,
           );
 
           if (file) {
-            frames[index] = component.addTrajectory(file);
+            frames[index] = stageComp.addTrajectory(file);
             //console.log(frames[index]);
             frames[index].signals.frameChanged.add(handleFrameChange);
             frames[index].trajectory.setFrame(0);
           }
-        });
+
+        })
 
         return () =>
           frames.forEach(frame =>
@@ -899,10 +964,9 @@ const NGLViewer = memo(
       }, [
         pdbFile,
         trajectoryPayload,
-        trajectoryAtoms,
-        trajectoryFrames,
         handleFrameChange,
         isProjection,
+        comps,
         //updater, // For when representations are reseted
       ]);
 
@@ -1121,8 +1185,11 @@ const NGLViewer = memo(
         return () => tooltip.remove();
       }, [pdbFile, metadata]);
 
+      // Track when the first focus has been performed, since first focus is instantaneous
+      const firstFocus = useRef(true);
       // Focus the specified ngl selection with the camera automatically
       useEffect(() => {
+        if (!focus) return;
         const comp = stageRef.current.compList[focus.comp];
         if (!comp) return;
         let transition = DEFAULT_ORIENTATION_TRANSITION_DURATION;
@@ -1132,7 +1199,7 @@ const NGLViewer = memo(
           firstFocus.current = false;
         }
         comp.autoView(focus.sele, transition);
-      }, [focus.comp, focus.sele]);
+      }, [focus]);
 
       // Expose public methods and getters/setters
       useImperativeHandle(
@@ -1204,19 +1271,18 @@ const NGLViewer = memo(
               loadingPDB
                 ? `Loading structure`
                 : !pdbFile
-                ? `No structure available`
-                : trajectoryLoadingStatus
-                ? `Loading ${
-                    loadingPDB
-                      ? 'structure'
-                      : `trajectory (${Math.round(trajectoryProgress * 100)}%)`
-                  }…`
-                : !trajectoryPayload.length && !noTrajectory
-                ? `No trajectory available`
-                : // Show nothing when everything was finished and fine
-                stageRef.current && stageRef.current.tasks.count > 0
-                ? `Rendering...`
-                : undefined
+                  ? `No structure available`
+                  : trajectoryLoadingStatus
+                    ? `Loading ${
+                        loadingPDB
+                          ? 'structure'
+                          : `trajectory (${Math.round(trajectoryProgress * 100)}%)`
+                      }…`
+                    : !trajectoryPayload.length && !noTrajectory
+                      ? `No trajectory available`
+                      : stageRef.current && stageRef.current.tasks.count > 0
+                        ? `Rendering...`
+                        : undefined // Show nothing when everything was finished and fine
             }
           />
         </>

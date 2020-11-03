@@ -44,6 +44,7 @@ export const cnrsParser = selection => {
     const residuesList = rangedSelectionParser(residuesSelection);
     residuesList.forEach(residue => residues.push(chain + ':' + residue));
   });
+  return residues;
 };
 
 // This function transforms a range selection string into a numeric array

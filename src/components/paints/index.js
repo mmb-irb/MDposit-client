@@ -86,8 +86,6 @@ const Paints = memo(
     ...buttonProps
   }) => {
     const [element, setElement] = useState(null);
-    // Save text in selection text fields. The real selection value is not updated until 'enter' is down
-    const [textSelections, setTextSelections] = useState(nglSelections);
 
     return (
       <>
@@ -151,20 +149,17 @@ const Paints = memo(
                       {
                         <TextField
                           id="outlined-basic"
-                          value={textSelections[index]}
+                          defaultValue={nglSelections[index]}
                           variant="outlined"
-                          onChange={event =>
-                            setTextSelections(previous => {
+                          onKeyPress={event => {
+                            if (event.key !== 'Enter') return;
+                            setNglSelections(previous => {
                               const newState = [...previous];
                               if (!event.target || !event.target.value)
                                 return previous;
                               newState[index] = event.target.value;
                               return newState;
-                            })
-                          }
-                          onKeyPress={event => {
-                            if (event.key !== 'Enter') return;
-                            setNglSelections(textSelections);
+                            });
                           }}
                         />
                       }
