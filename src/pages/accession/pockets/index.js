@@ -1,4 +1,4 @@
-import React, { lazy, useContext, useState, useRef } from 'react';
+import React, { lazy, useContext, useState, useRef, useMemo } from 'react';
 // A hook to track whenever some element is on screen
 import { useInView } from 'react-intersection-observer';
 
@@ -60,6 +60,39 @@ const Pockets = () => {
     `${BASE_PATH_PROJECTS}${accession}/analyses/pockets/`,
   );
 
+  // DANI: Esto lo suyo sería corregirlo desde la base de datos
+  if (payload && payload.name) delete payload.name;
+
+  // Set the components to be passed to NGL
+  const components = useMemo(() => {
+    // Wait for payload to be downloaded
+    if (!payload) return;
+
+    // Set a new NGL component for each pocket
+    const pockets = [];
+    const pocketNames = Object.keys(payload);
+    pocketNames.forEach(pocketName => {
+      // NGL
+      const pocket = {
+        topologyURL: `${BASE_PATH_PROJECTS}${accession}/files/${pocketName}.pdb`,
+        onlyTopology: true,
+        representations: [
+          {
+            name: pocketName,
+            defaultDrawingMethod: 'surface',
+            // Make the surface a transparent net
+            other: { contour: true },
+            label: pocketName,
+          },
+        ],
+        //chainLabels: [pocketName],
+      };
+      pockets.push(pocket);
+    });
+    // Set first an empty object, so the default representation is displayed in first place
+    return [{}, ...pockets];
+  }, [accession, payload]);
+
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
   else if (error) return error.toString();
@@ -67,33 +100,12 @@ const Pockets = () => {
 
   if (!metadata || !pdbData.file) return <Loading />;
 
-  //console.log(payload);
-
-  delete payload.name;
-  const pocketNames = Object.keys(payload);
-
-  // Set the input objet for the NGL
-  const pockets = [];
   // Set the input objets for the graph
   const graphInputData = {};
   const show = {};
-  pocketNames.forEach((pocketName, pocketNum) => {
-    // NGL
-    const pocket = {
-      topologyURL: `${BASE_PATH_PROJECTS}${accession}/files/${pocketName}.pdb`,
-      onlyTopology: true,
-      representations: [
-        {
-          name: pocketName,
-          defaultDrawingMethod: 'surface',
-          // Make the surface a transparent net
-          other: { contour: true },
-          label: pocketName,
-        },
-      ],
-      //chainLabels: [pocketName],
-    };
-    pockets.push(pocket);
+
+  const pocketNames = Object.keys(payload);
+  pocketNames.forEach(pocketName => {
     // Graph
     graphInputData[pocketName] = {
       data: payload[pocketName].pock_volume,
@@ -208,7 +220,7 @@ const Pockets = () => {
         {isNglVisible ? (
           <NGLViewerWithControls
             className={style.container}
-            components={[{}, ...pockets]}
+            components={components}
             selectedRepresentation={selectedPocket}
             showRepresentations={[true, true, ...shownPockets]}
           />

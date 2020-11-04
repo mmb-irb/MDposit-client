@@ -519,90 +519,67 @@ const Trajectory = () => {
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
   const [nightingaleRef, isNightingaleVisible] = useInView(useInViewOptions);
 
+  const { metadata } = useContext(ProjectCtx);
+
   // Show floatting bubles with domain names
   // When a bubble is selected the the
-  const domains = [
-    {
-      name: 'N-terminal domain (NTD)',
-      representations: [
-        {
-          name:'Chain A',
-          selection:':A and 16-316',
-        },
-        {
-          name:'Chain B',
-          selection:':B and 16-316',
-        },
-        {
-          name:'Chain C',
-          selection:':C and 16-316',
-        },
-      ],
-    },
-    {
-      name: 'receptor binding domain (RBD)',
-      representations: [
-        {
-          name:'Chain A',
-          selection:':A and 318-512',
-        },
-        {
-          name:'Chain B',
-          selection:':B and 318-512',
-        },
-        {
-          name:'Chain C',
-          selection:':C and 318-512',
-        },
-      ],
-    },
-  ];
+  const domains = metadata && metadata.DOMAINS;
 
   const [selectedDomain, setSelectedDomain] = useState(null);
 
   const representations = useMemo(() => {
     if (!selectedDomain) return;
     // Set an NGL representation for each domain representation
-    const representations = selectedDomain.representations.map(rep => { return { name: rep.name, selection: rep.selection } });
+    const representations = selectedDomain.representations.map(rep => {
+      return { name: rep.name, selection: rep.selection };
+    });
     // Add a representation with the whole strucutre in grey color and with the opacity reduced
-    representations.push({ name: 'Reference', defaultColoringMethod: 'grey', defaultOpacity: 0.1 });
+    representations.push({
+      name: 'Reference',
+      defaultColoringMethod: 'grey',
+      defaultOpacity: 0.1,
+    });
     return representations;
   }, [selectedDomain]);
 
   const initialFocus = useMemo(() => {
     if (!selectedDomain) return;
     // Set the NGL selection for the focus
-    const focusSelection = '(' + selectedDomain.representations.map(rep => rep.selection).join(') or (') + ')';
-    return { comp:0, sele:focusSelection };
+    const focusSelection =
+      '(' +
+      selectedDomain.representations.map(rep => rep.selection).join(') or (') +
+      ')';
+    return { comp: 0, sele: focusSelection };
   }, [selectedDomain]);
 
   return (
     <>
-      {domains && 
-      <Card className={style.card}>
-        <Info
-          reference={'domain-selection'}
-          tooltip={
-            <>
-              Suggested interesting domains
-              <br />
-              <br />
-              Click any domain to highlight it in the NGL viewer.
-            </>
-          }
-        />
-        <CardContent>
-          {'Domains: '}
-          {domains.map(dom => (
-            <Chip
-              key={dom.name}
-              className={style.chips}
-              label={dom.name}
-              onClick={() => setSelectedDomain(dom)}
-            />
-          ))}
-        </CardContent>
-      </Card>}
+      {domains && (
+        <Card className={style.card}>
+          <Info
+            reference={'domain-selection'}
+            tooltip={
+              <>
+                Suggested interesting domains
+                <br />
+                <br />
+                Click any domain to highlight it in the NGL viewer.
+              </>
+            }
+          />
+          <CardContent>
+            {'Domains: '}
+            {domains.map(dom => (
+              <Chip
+                key={dom.name}
+                className={style.chips}
+                label={dom.name}
+                onClick={() => setSelectedDomain(dom)}
+              />
+            ))}
+          </CardContent>
+        </Card>
+      )}
       <Card className={style.card} ref={nglRef}>
         <Info
           reference={'trajectory-ngl'}
@@ -656,8 +633,8 @@ const Trajectory = () => {
           tooltip={
             <>
               Trajectory metadata. Part of metadata is provided by the author.
-              The rest is automatically mined from the original topology
-              and trajectory files.
+              The rest is automatically mined from the original topology and
+              trajectory files.
               <br />
               <br />
               Click in the 'trajectory metadata' title to display it. Hover any

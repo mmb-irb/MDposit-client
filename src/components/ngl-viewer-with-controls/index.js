@@ -76,6 +76,12 @@ const defaultStartsPlaying = !reducedMotion() && window.innerWidth > 750;
 // DANI: Habría que chequear que esto no pase en otros
 const paintsIcon = <FontAwesomeIcon icon={faPaintBrush} />;
 
+// Set an NGL view window which is managed by some controls
+// There are different ways to call this script
+// 1 - With components: Used for situations where more than a topology or trajectory are required
+// 2 - With representations: Which internally means there will be only 1 component
+// 3 - With no parameters: In which case a default representation in set up
+// * In case of both components and representations passed, the valid argument will be the components
 const NGLViewerWithControls = forwardRef(
   (
     {
@@ -87,6 +93,7 @@ const NGLViewerWithControls = forwardRef(
       requestedFrame,
       // Set if the frame number selector is allowed for trajectories (false in PCA projections)
       framesSelect = true,
+      // Old method to call the NGL
       // The NGL representations
       // It is an array of objects with the following structure:
       // {
@@ -176,7 +183,6 @@ const NGLViewerWithControls = forwardRef(
 
     // Set the components. If components are not provided use default values
     const comps = useMemo(() => {
-
       // WARNING!! Do not modify the original value of 'components' since it is a dependency for some hooks
       let ncomps;
       if (!components) ncomps = [];
@@ -185,18 +191,15 @@ const NGLViewerWithControls = forwardRef(
       // If there are no components we set a default value
       // If 'representatios' is also undefined a default value will be assigned further
       if (ncomps.length === 0) {
-        ncomps = [
-          { representations: representations, frame: requestedFrame },
-        ];
+        ncomps = [{ representations: representations, frame: requestedFrame }];
       }
-  
+
       return ncomps;
-    },[components, representations, requestedFrame]);
+    }, [components, representations, requestedFrame]);
 
     // Save all representations mined from each component
     // These representations will have stated parameters which may be changed by the user
     const allRepresentations = useMemo(() => {
-
       const finalRepresentations = [];
       for (const comp of comps) {
         // Create a generic 'representations' value when missing
@@ -215,44 +218,61 @@ const NGLViewerWithControls = forwardRef(
       }
 
       return finalRepresentations;
-
-    },[comps, defaultRepresentations]);
+    }, [comps, defaultRepresentations]);
 
     // When there is only 1 frame to load or all representations have their specific frame
     const noTrajectory = Number.isFinite(comps[0].frame);
-    
+
     // Builtin states. They are always declared but only used when there is no forced state in the arguments
-    const [showRepresentationsBuiltin, setShowRepresentationsBuiltin] = useState(allRepresentations.map(rep => rep.show));
-    const [nglSelectionsBuiltin, setNglSelectionsBuiltin] = useState(allRepresentations.map(rep => rep.selection));
-    const [drawingMethodsBuiltin, setDrawingMethodsBuiltin] = useState(allRepresentations.map(rep => rep.defaultDrawingMethod));
-    const [coloringMethodsBuiltin, setColoringMethodsBuiltin] = useState(allRepresentations.map(rep => rep.defaultColoringMethod));
-    const [opacitieBuiltins, setOpacitiesBuiltin] = useState(allRepresentations.map(rep => rep.defaultOpacity));
+    const [
+      showRepresentationsBuiltin,
+      setShowRepresentationsBuiltin,
+    ] = useState(allRepresentations.map(rep => rep.show));
+    const [nglSelectionsBuiltin, setNglSelectionsBuiltin] = useState(
+      allRepresentations.map(rep => rep.selection),
+    );
+    const [drawingMethodsBuiltin, setDrawingMethodsBuiltin] = useState(
+      allRepresentations.map(rep => rep.defaultDrawingMethod),
+    );
+    const [coloringMethodsBuiltin, setColoringMethodsBuiltin] = useState(
+      allRepresentations.map(rep => rep.defaultColoringMethod),
+    );
+    const [opacitieBuiltins, setOpacitiesBuiltin] = useState(
+      allRepresentations.map(rep => rep.defaultOpacity),
+    );
 
     // Reset builtin states when the 'components' argument changes
     useMemo(() => {
       setShowRepresentationsBuiltin(allRepresentations.map(rep => rep.show));
       setNglSelectionsBuiltin(allRepresentations.map(rep => rep.selection));
-      setDrawingMethodsBuiltin(allRepresentations.map(rep => rep.defaultDrawingMethod));
-      setColoringMethodsBuiltin(allRepresentations.map(rep => rep.defaultColoringMethod));
+      setDrawingMethodsBuiltin(
+        allRepresentations.map(rep => rep.defaultDrawingMethod),
+      );
+      setColoringMethodsBuiltin(
+        allRepresentations.map(rep => rep.defaultColoringMethod),
+      );
       setOpacitiesBuiltin(allRepresentations.map(rep => rep.defaultOpacity));
-    },[allRepresentations]);
+    }, [allRepresentations]);
 
     // Real states. They get the forced state value if exist. If not, they get the builtin state value
-    const [showRepresentations, setShowRepresentations] = showRepresentationsForced
-    ? showRepresentationsForced
-    : [showRepresentationsBuiltin, setShowRepresentationsBuiltin];
+    const [
+      showRepresentations,
+      setShowRepresentations,
+    ] = showRepresentationsForced
+      ? showRepresentationsForced
+      : [showRepresentationsBuiltin, setShowRepresentationsBuiltin];
     const [nglSelections, setNglSelections] = nglSelectionsForced
-    ? nglSelectionsForced
-    : [nglSelectionsBuiltin, setNglSelectionsBuiltin];
+      ? nglSelectionsForced
+      : [nglSelectionsBuiltin, setNglSelectionsBuiltin];
     const [drawingMethods, setDrawingMethods] = drawingMethodsForced
-    ? drawingMethodsForced
-    : [drawingMethodsBuiltin, setDrawingMethodsBuiltin];
+      ? drawingMethodsForced
+      : [drawingMethodsBuiltin, setDrawingMethodsBuiltin];
     const [coloringMethods, setColoringMethods] = coloringMethodsForced
-    ? coloringMethodsForced
-    : [coloringMethodsBuiltin, setColoringMethodsBuiltin];
+      ? coloringMethodsForced
+      : [coloringMethodsBuiltin, setColoringMethodsBuiltin];
     const [opacities, setOpacities] = opacitiesForced
-    ? opacitiesForced
-    : [opacitieBuiltins, setOpacitiesBuiltin];
+      ? opacitiesForced
+      : [opacitieBuiltins, setOpacitiesBuiltin];
 
     // Remember the default drawing methods, coloring methods and opacity values
     const defaults = useRef({

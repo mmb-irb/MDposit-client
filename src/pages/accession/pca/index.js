@@ -44,7 +44,6 @@ const PCA = () => {
   const accession = useContext(AccessionCtx);
   // Get the current project chains
   const { metadata, chains, files } = useContext(ProjectCtx);
-  const hasBackbone = files.some(f => f.filename === 'md.backbone.pdb');
 
   // Load the main data from the API
   const { loading, payload, error } = useAPI(
@@ -59,26 +58,47 @@ const PCA = () => {
     return processStats(payload, projections);
   }, [payload, projections]);
 
+  // Set the component to be passed to the NGL
+  const [nglChains, nglComponent] = useMemo(() => {
+    if (!payload || !files) return [undefined, undefined];
+
+    // Set the chains to be represented in the NGL viewer
+    const chainsNGL = chains.map(chain => {
+      return {
+        name: 'Chain ' + chain,
+        selection: ':' + chain,
+      };
+    });
+
+    // Get the API URL to the requested projection trajectory
+    let projectionURL;
+    if (projections[0] !== undefined)
+      // It may be 0
+      projectionURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory.pca-${projections[0] +
+        1}.bin`;
+
+    // Use the backbone if possible
+    const hasBackbone = files.some(f => f.filename === 'md.backbone.pdb');
+
+    // Set the NGL component
+    const componentNGL = [
+      {
+        topologyURL: hasBackbone
+          ? `${BASE_PATH_PROJECTS}${accession}/files/md.backbone.pdb`
+          : `${BASE_PATH_PROJECTS}${accession}/files/average.pdb`,
+        trajectoryURL: projectionURL,
+        representations: chainsNGL,
+      },
+    ];
+
+    return [chainsNGL, componentNGL];
+  }, [payload, chains, files, projections, accession]);
+
   if (loading) {
     return <Loading />;
   }
   if (error) {
     return error.toString();
-  }
-
-  let projectionURL;
-  if (projections[0] !== undefined)
-    // It may be 0
-    projectionURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory.pca-${projections[0] +
-      1}.bin`;
-
-  // Set the chains to be represented in the NGL viewer
-  const chainsNGL = [];
-  for (const chain of chains) {
-    chainsNGL.push({
-      name: 'Chain ' + chain,
-      selection: ':' + chain,
-    });
   }
 
   return (
@@ -191,15 +211,7 @@ const PCA = () => {
                 projection={projections[0]}
                 framesSelect={false}
                 // Projections are backbone trajectories, same as the average.pdb topology
-                components={[
-                  {
-                    topologyURL: hasBackbone
-                      ? `${BASE_PATH_PROJECTS}${accession}/files/md.backbone.pdb`
-                      : `${BASE_PATH_PROJECTS}${accession}/files/average.pdb`,
-                    representations: chainsNGL,
-                  },
-                ]}
-                trajectoryURL={projectionURL}
+                components={nglComponent}
               />
             </Suspense>
           )}
@@ -226,7 +238,7 @@ const PCA = () => {
             ? {
                 accession: accession,
                 requestedFrame: requestedFrame,
-                representations: chainsNGL,
+                representations: nglChains,
               }
             : null
         }

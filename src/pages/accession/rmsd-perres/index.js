@@ -41,6 +41,8 @@ const Graph2 = lazy(() =>
 
 const colors = ['red', 'green', 'blue', 'orange'];
 
+const firstFrameComponent = [{ frame: 0 }];
+
 // Define permanent options for the "useInView"
 const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
 
@@ -247,7 +249,7 @@ const RmsdPerres = () => {
         {isNglVisible ? (
           <NGLViewerWithControls
             className={style.container}
-            components={[{ frame: 0 }]}
+            components={firstFrameComponent}
             selectedResidues={selectedResidues}
           />
         ) : (
