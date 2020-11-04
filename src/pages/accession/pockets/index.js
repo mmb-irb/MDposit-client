@@ -14,6 +14,7 @@ import {
 
 import Card from '../../../components/animated-card';
 import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
+import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 
 import style from './style.module.css';
 
@@ -40,7 +41,7 @@ const Pockets = () => {
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
 
   // Get the current project metadata
-  const { metadata } = useContext(ProjectCtx);
+  const { chains, metadata } = useContext(ProjectCtx);
   // Get the accession
   const accession = useContext(AccessionCtx);
   // Get the current topology, including the residue names
@@ -49,12 +50,6 @@ const Pockets = () => {
   // This blockRef is a workaround to avoid selecting a pocket row when clicking on the checkbox
   const blockRef = useRef(null);
 
-  // Set which pocket is selected by the user
-  const [selectedPocket, setSelectedPocket] = useState('p1');
-
-  // Set which pocket is selected by the user
-  const [shownPockets, setShownPockets] = useState(new Array(99).fill(true));
-
   // Send a request to the API with the url of the rgyr analysis
   const { loading, payload, error } = useAPI(
     `${BASE_PATH_PROJECTS}${accession}/analyses/pockets/`,
@@ -62,6 +57,13 @@ const Pockets = () => {
 
   // DANI: Esto lo suyo sería corregirlo desde la base de datos
   if (payload && payload.name) delete payload.name;
+
+  // Use this hook to get the memoized NGL default representations
+  // We need to access the default representations from here to know the number of representations
+  const defaultRepresentations = useDefaultRepresentations(chains, metadata);
+  const representationsNumber = defaultRepresentations
+    ? defaultRepresentations.length
+    : undefined;
 
   // Set the components to be passed to NGL
   const components = useMemo(() => {
@@ -89,9 +91,27 @@ const Pockets = () => {
       };
       pockets.push(pocket);
     });
-    // Set first an empty object, so the default representation is displayed in first place
-    return [{}, ...pockets];
-  }, [accession, payload]);
+    // Set first the default representations object
+    return [{ representations: defaultRepresentations }, ...pockets];
+  }, [accession, payload, defaultRepresentations]);
+
+  // Set which pocket is selected by the user
+  const [selectedPocket, setSelectedPocket] = useState('p1');
+
+  // Set which pocket is selected by the user
+  const [showRepresentations, setShowRepresentations] = useState([]);
+
+  // Set the default 'showRepresentations' value
+  // Should run only once
+  useMemo(() => {
+    if (!payload) return;
+    // Create an array of 'true' as long as the number of default representations
+    const showDefaultRepresentations = Array(representationsNumber).fill(true);
+    // Create an array of 'true' as long as the number of pockets
+    const pocketNumber = Object.keys(payload).length;
+    const showPockets = Array(pocketNumber).fill(true);
+    setShowRepresentations([...showDefaultRepresentations, ...showPockets]);
+  }, [payload, representationsNumber]);
 
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
@@ -169,14 +189,18 @@ const Pockets = () => {
                         blockRef.current = null;
                       }}
                       onChange={() =>
-                        setShownPockets(previous => {
-                          previous[r] = !previous[r];
+                        setShowRepresentations(previous => {
+                          previous[r + representationsNumber] = !previous[
+                            r + representationsNumber
+                          ];
                           return [...previous];
                         })
                       }
                       control={
                         <Checkbox
-                          checked={shownPockets[r]}
+                          checked={
+                            showRepresentations[r + representationsNumber]
+                          }
                           style={{ color: 'black' }}
                           inputProps={{ 'data-key': pocketName }}
                         />
@@ -222,7 +246,10 @@ const Pockets = () => {
             className={style.container}
             components={components}
             selectedRepresentation={selectedPocket}
-            showRepresentations={[true, true, ...shownPockets]}
+            showRepresentationsForced={[
+              showRepresentations,
+              setShowRepresentations,
+            ]}
           />
         ) : (
           <div style={{ height: '50vh' }} />
