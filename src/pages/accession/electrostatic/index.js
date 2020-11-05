@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useMemo } from 'react';
 // A hook to track whenever some element is on screen
 import { useInView } from 'react-intersection-observer';
 
@@ -36,71 +36,79 @@ const Electrostatic = () => {
   // Get the current topology
   const pdbData = useContext(PdbCtx);
 
-  if (!metadata || !pdbData.file) return <Loading />;
-
-  // Get the interface selection string
-  const interfaceSelection = metadata.INTERFACES[0];
-
-  // Set the NGL selection for each chain interface
-  const nglInterfaceSelections = [];
-  interfaceSelection.split(', ').forEach(res => {
-    const { chain, nglSelection, nglChainSelection } = complexNumerationParser(
-      res,
-    );
-    // Exclude ligands. We don't want their surfaces to be represented
-    if (metadata.LIGANDS)
-      for (const lig of metadata.LIGANDS)
-        if (lig.ngl_selection === nglChainSelection) return;
-    // If the chain is already in the interfaces selection list we expand the selection
-    for (const sel of nglInterfaceSelections)
-      if (sel.chain === chain) {
-        sel.selection += ' or ' + nglSelection;
-        return;
-      }
-    // If not, we add a new interface selection
-    nglInterfaceSelections.push({ chain: chain, selection: nglSelection });
-  });
-
-  // Select ligands to be highlighted, so the camera will focus on them
-  const selectedLigands = metadata.LIGANDS ? [] : undefined;
-  if (metadata.LIGANDS) {
-    for (const ligand of metadata.LIGANDS) {
-      selectedLigands.push(ligand.ngl_selection);
-    }
-  }
-
   // Set the chains to be represented in the NGL viewer
-  const chainsNGL = [];
-  // Represent all protein chains in cartoon
-  for (const c of chains) {
-    chainsNGL.push({
-      name:
-        'Chain ' +
-        c +
-        ' (' +
-        getMetadataChainname(c, metadata, pdbData.file) +
-        ')',
-      selection: ':' + c,
-      defaultDrawingMethod: 'cartoon',
-    });
-  }
+  const [nglChains, selectedLigands] = useMemo(() => {
+    if (!chains || !metadata || !pdbData.file) return;
 
-  // Those chains with residues in the interface show their mentioned residues
-  // This representation is in electrostatic surface
-  for (const selection of nglInterfaceSelections) {
-    chainsNGL.push({
-      name:
-        'Chain ' +
-        selection.chain +
-        ' (' +
-        getMetadataChainname(selection.chain, metadata, pdbData.file) +
-        ') interface',
-      selection: selection.selection,
-      //defaultDrawingMethod: 'licorice',
-      defaultDrawingMethod: 'surface',
-      defaultColoringMethod: 'electrostatic',
+    const chainsNGL = [];
+    // Represent all protein chains in cartoon
+    for (const c of chains) {
+      chainsNGL.push({
+        name:
+          'Chain ' +
+          c +
+          ' (' +
+          getMetadataChainname(c, metadata, pdbData.file) +
+          ')',
+        selection: ':' + c,
+        defaultDrawingMethod: 'cartoon',
+      });
+    }
+
+    // Get the interface selection string
+    const interfaceSelection = metadata.INTERFACES[0];
+
+    // Set the NGL selection for each chain interface
+    const nglInterfaceSelections = [];
+    interfaceSelection.split(', ').forEach(res => {
+      const {
+        chain,
+        nglSelection,
+        nglChainSelection,
+      } = complexNumerationParser(res);
+      // Exclude ligands. We don't want their surfaces to be represented
+      if (metadata.LIGANDS)
+        for (const lig of metadata.LIGANDS)
+          if (lig.ngl_selection === nglChainSelection) return;
+      // If the chain is already in the interfaces selection list we expand the selection
+      for (const sel of nglInterfaceSelections)
+        if (sel.chain === chain) {
+          sel.selection += ' or ' + nglSelection;
+          return;
+        }
+      // If not, we add a new interface selection
+      nglInterfaceSelections.push({ chain: chain, selection: nglSelection });
     });
-  }
+
+    // Those chains with residues in the interface show their mentioned residues
+    // This representation is in electrostatic surface
+    for (const selection of nglInterfaceSelections) {
+      chainsNGL.push({
+        name:
+          'Chain ' +
+          selection.chain +
+          ' (' +
+          getMetadataChainname(selection.chain, metadata, pdbData.file) +
+          ') interface',
+        selection: selection.selection,
+        //defaultDrawingMethod: 'licorice',
+        defaultDrawingMethod: 'surface',
+        defaultColoringMethod: 'electrostatic',
+      });
+    }
+
+    // Select ligands to be highlighted, so the camera will focus on them
+    const ligandsNGL = metadata.LIGANDS ? [] : undefined;
+    if (metadata.LIGANDS) {
+      for (const ligand of metadata.LIGANDS) {
+        ligandsNGL.push(ligand.ngl_selection);
+      }
+    }
+
+    return [chainsNGL, ligandsNGL];
+  }, [chains, metadata, pdbData]);
+
+  if (!metadata || !pdbData.file) return <Loading />;
 
   return (
     <>
@@ -134,7 +142,7 @@ const Electrostatic = () => {
         {isNglVisible ? (
           <NGLViewerWithControls
             className={style.container}
-            representations={chainsNGL}
+            representations={nglChains}
             requestedFrame={1}
             selectedCustom={selectedLigands}
           />
