@@ -86,6 +86,7 @@ const NGLViewer = memo(
       const { metadata, curatedOrientation } = useContext(ProjectCtx);
       const pdbData = useContext(PdbCtx);
 
+      const [isFirstCompStaged, setIsFirstCompStaged] = useState(false);
       // The last automatic camera focus
       const [focus, setFocus] = useState(initialFocus);
 
@@ -106,7 +107,7 @@ const NGLViewer = memo(
       // in-view hook
       const [inViewRef, isInView] = useInView();
 
-      // Download topologies ------------------------------------------------------------------------------------------------
+      // Download topologies ----------------------------------------------------------------------
 
       // Download all requested topologies: Each component may have a different structure URL.
       // Set the first component topology as the 'pdbData'
@@ -467,6 +468,7 @@ const NGLViewer = memo(
             stageRef.current.addComponentFromObject(topology.file);
             stageComp = stageRef.current.compList[c];
             stageComp.onlyTopology = comp.onlyTopology;
+            setIsFirstCompStaged(true);
           }
 
           // Set each representation
@@ -1170,7 +1172,7 @@ const NGLViewer = memo(
           firstFocus.current = false;
         }
         comp.autoView(focus.sele, transition);
-      }, [focus]);
+      }, [isFirstCompStaged, focus, comps]);
 
       // Expose public methods and getters/setters
       useImperativeHandle(

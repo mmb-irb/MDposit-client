@@ -36,14 +36,14 @@ const Electrostatic = () => {
   // Get the current topology
   const pdbData = useContext(PdbCtx);
 
-  // Set the chains to be represented in the NGL viewer
-  const [nglChains, selectedLigands] = useMemo(() => {
+  // Set the representations for the NGL viewer
+  const representations = useMemo(() => {
     if (!chains || !metadata || !pdbData.file) return;
 
-    const chainsNGL = [];
+    const reps = [];
     // Represent all protein chains in cartoon
     for (const c of chains) {
-      chainsNGL.push({
+      reps.push({
         name:
           'Chain ' +
           c +
@@ -83,7 +83,7 @@ const Electrostatic = () => {
     // Those chains with residues in the interface show their mentioned residues
     // This representation is in electrostatic surface
     for (const selection of nglInterfaceSelections) {
-      chainsNGL.push({
+      reps.push({
         name:
           'Chain ' +
           selection.chain +
@@ -91,22 +91,35 @@ const Electrostatic = () => {
           getMetadataChainname(selection.chain, metadata, pdbData.file) +
           ') interface',
         selection: selection.selection,
-        //defaultDrawingMethod: 'licorice',
         defaultDrawingMethod: 'surface',
         defaultColoringMethod: 'electrostatic',
       });
     }
 
-    // Select ligands to be highlighted, so the camera will focus on them
-    const ligandsNGL = metadata.LIGANDS ? [] : undefined;
+    // Represent the ligand
     if (metadata.LIGANDS) {
       for (const ligand of metadata.LIGANDS) {
-        ligandsNGL.push(ligand.ngl_selection);
+        reps.push({
+          name: ligand.name,
+          selection: ligand.ngl_selection,
+          defaultDrawingMethod: 'ball+stick',
+          defaultColoringMethod: 'element',
+        });
       }
     }
 
-    return [chainsNGL, ligandsNGL];
+    return reps;
   }, [chains, metadata, pdbData]);
+
+  const initialFocus = useMemo(() => {
+    if (!metadata) return;
+    // Set the NGL selection for the focus
+    const focusSelection =
+      '(' +
+      metadata.LIGANDS.map(ligand => ligand.ngl_selection).join(') or (') +
+      ')';
+    return { comp: 0, sele: focusSelection };
+  }, [metadata]);
 
   if (!metadata || !pdbData.file) return <Loading />;
 
@@ -142,9 +155,9 @@ const Electrostatic = () => {
         {isNglVisible ? (
           <NGLViewerWithControls
             className={style.container}
-            representations={nglChains}
+            representations={representations}
             requestedFrame={1}
-            selectedCustom={selectedLigands}
+            initialFocus={initialFocus}
           />
         ) : (
           <div style={{ height: '50vh' }} />
