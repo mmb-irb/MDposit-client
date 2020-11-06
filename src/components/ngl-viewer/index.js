@@ -459,6 +459,9 @@ const NGLViewer = memo(
           let stageComp = stageRef.current.compList[c];
           if (!stageComp) {
             const topology = topologies[c];
+            if (!topology) {
+              throw new Error(`The component with index ${c} has no topology`);
+            }
             if (!topology.file) {
               console.error(
                 `The topology file (${comp.topologyURL}) is missing with error: ${topology.error}`,

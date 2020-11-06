@@ -3,6 +3,7 @@ import screenfull from 'screenfull';
 
 import {
   Checkbox,
+  Chip,
   IconButton,
   Popover,
   Paper,
@@ -15,6 +16,8 @@ import {
   Select,
   Slider,
 } from '@material-ui/core';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPlusCircle } from '@fortawesome/free-solid-svg-icons';
 
 import style from './style.module.css';
 
@@ -67,10 +70,12 @@ const availableColoringMethods = [
   },
 ];
 
-// Display a small panel to select which representations to show or hide
+// Display a huge panel to select which representations must be shown or hidden
+// In addition the user can manage the way these representatios are shown
 const Paints = memo(
   ({
     representations, // Array with all representations
+    setAdditionalRepresentations,
     showRepresentations,
     setShowRepresentations,
     nglSelections,
@@ -161,6 +166,7 @@ const Paints = memo(
                               return newState;
                             });
                           }}
+                          disabled={!rep.custom}
                         />
                       }
                     </TableCell>
@@ -233,6 +239,29 @@ const Paints = memo(
                     </TableCell>
                   </TableRow>
                 ))}
+              </TableBody>
+              <TableBody>
+                <TableRow key={'addCustom'}>
+                  <TableCell align="center" colSpan={6}>
+                    {
+                      <Chip
+                        icon={<FontAwesomeIcon icon={faPlusCircle} />}
+                        label={'Add representation'}
+                        variant="outlined"
+                        onClick={() =>
+                          setAdditionalRepresentations(previous => {
+                            const newRepresentation = {
+                              selection: 'None',
+                              name: 'Custom',
+                            };
+                            const current = [newRepresentation, ...previous];
+                            return current;
+                          })
+                        }
+                      />
+                    }
+                  </TableCell>
+                </TableRow>
               </TableBody>
             </Table>
           </Paper>

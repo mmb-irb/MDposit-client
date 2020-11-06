@@ -83,6 +83,8 @@ const paintsIcon = <FontAwesomeIcon icon={faPaintBrush} />;
 // 2 - With representations: Which internally means there will be only 1 component
 // 3 - With no parameters: In which case a default representation in set up
 // * In case of both components and representations passed, the valid argument will be the components
+// WARNING: There are many important hooks which have components/representations as a dependency
+// Avoid passing an object which is created every render. Use a somehow memoized array.
 const NGLViewerWithControls = forwardRef(
   (
     {
@@ -111,8 +113,9 @@ const NGLViewerWithControls = forwardRef(
       // Components are objects which may include the following values
       // All values are optional since missing values will be set by default
       //  {
-      //    topologyURL: string,
-      //    frame: int,
+      //    topologyURL: string, (used in pockets analysis)
+      //    trajectoryURL: string, (used in pca analysis)
+      //    frame: int, (used in rmsd pairwise analysis)
       //    representations: [...],
       //  }
       components,
@@ -135,30 +138,94 @@ const NGLViewerWithControls = forwardRef(
     // Use this hook to get the memoized NGL default representations
     const defaultRepresentations = useDefaultRepresentations(chains, metadata);
 
+    // Additional representations which may be added by the user
+    // It is an array of objects with the following structure:
+    // {
+    //   topologyURL: string,
+    //   trajectoryURL: string,
+    //   frame: int,
+    //   selection: ('all' by default) The NGL selection string to define the atom selection,
+    //   name: ('representation' by default) The string label of this representation,
+    //   show: ('true' by default) Boolean to set if this representation is shown or not,
+    //   defaultDrawingMethod: ('cartoon' by default) The initial representation 'type',
+    //   defaultColoringMethod: ('chainid' by default) The initial representation 'colorScheme',
+    //   defaultOpacity: ('1' by default) The initial representation opacity
+    // }
+    const [additionalRepresentations, setAdditionalRepresentations] = useState(
+      [],
+    );
+
     // Set the components. If components are not provided use default values
-    const comps = useMemo(() => {
-      // WARNING!! Do not modify the original value of 'components' since it is a dependency for some hooks
-      let ncomps;
-      if (!components) ncomps = [];
-      else ncomps = [...components];
+    // Set also all representations mined from each component
+    // These representations will have stated parameters which may be changed by the user
+    const [allComponents, allRepresentations] = useMemo(() => {
+      // WARNING!! Do not modify the original value of 'components'
+      let comps;
+      if (!components) comps = [];
+      else comps = [...components];
+      // WARNING!! Do not modify the original value of 'representations'
+      let reps;
+      if (!representations) reps = [];
+      else reps = [...representations];
 
       // If there are no components we set a default value
-      // If 'representatios' is also undefined a default value will be assigned further
-      if (ncomps.length === 0) {
-        ncomps = [{ representations: representations, frame: requestedFrame }];
+      // If 'representations' is also undefined a default value will be assigned further
+      if (comps.length === 0) {
+        comps = [{ representations: reps, frame: requestedFrame }];
+      }
+      // Set all missing components 'representations' value whit the default representations
+      for (const comp of comps) {
+        if (!comp.representations || comp.representations.length === 0)
+          // Spread syntax here prevents the 'defaultRepresentations' to be overwritten
+          comp.representations = [...defaultRepresentations];
+      }
+      // Create a new component for each additional representation with different component parameters
+      // (i.e. topologyURL, trajectoryURL or frame)
+      for (const rep of additionalRepresentations) {
+        // Set the component for this representation
+        let comp;
+        const search = comps.filter(
+          c =>
+            c.topologyURL === rep.topologyURL &&
+            c.trajectoryURL === rep.trajectoryURL &&
+            c.frame === rep.frame,
+        );
+        // Set the representation object without the component parameters
+        const representation = {
+          selection: rep.selection,
+          name: rep.name,
+          show: rep.show,
+          defaultDrawingMethod: rep.defaultDrawingMethod,
+          defaultColoringMethod: rep.defaultColoringMethod,
+          defaultOpacity: rep.defaultOpacity,
+          custom: true,
+        };
+        // If there is no result we create a new component
+        if (search.length === 0) {
+          // Set the component object
+          const component = {
+            topologyURL: rep.topologyURL,
+            trajectoryURL: rep.trajectoryURL,
+            frame: rep.frame,
+            representations: [representation],
+          };
+          comps.push(component);
+        }
+        // If there is one result we assign the representation to this component
+        else if (search.length === 1) {
+          comp = search[0];
+          comp.representations.push(representation);
+        }
+        // Never should be more than one component with these parameters identical
+        else {
+          throw new Error(`There is a duplicated NGL component`);
+        }
       }
 
-      return ncomps;
-    }, [components, representations, requestedFrame]);
-
-    // Save all representations mined from each component
-    // These representations will have stated parameters which may be changed by the user
-    const allRepresentations = useMemo(() => {
-      const finalRepresentations = [];
+      // Save all representations mined from each component
+      // These representations will have stated parameters which may be changed by the user
+      const allReps = [];
       for (const comp of comps) {
-        // Create a generic 'representations' value when missing
-        if (!comp.representations || comp.representations.length === 0)
-          comp.representations = defaultRepresentations;
         // Fill the missing 'representations' values with some default values
         for (const rep of comp.representations) {
           if (!rep.name) rep.name = 'Representation';
@@ -167,17 +234,25 @@ const NGLViewerWithControls = forwardRef(
           if (!rep.defaultDrawingMethod) rep.defaultDrawingMethod = 'cartoon';
           if (!rep.defaultColoringMethod) rep.defaultColoringMethod = 'chainid';
           if (!rep.defaultOpacity) rep.defaultOpacity = 1;
-          finalRepresentations.push(rep);
+          allReps.push(rep);
         }
       }
 
-      return finalRepresentations;
-    }, [comps, defaultRepresentations]);
+      return [comps, allReps];
+    }, [
+      components,
+      representations,
+      additionalRepresentations,
+      requestedFrame,
+      defaultRepresentations,
+    ]);
 
     // When there is only 1 frame to load or all representations have their specific frame
-    const noTrajectory = Number.isFinite(comps[0].frame);
+    const noTrajectory = Number.isFinite(allComponents[0].frame);
 
-    // Builtin states. They are always declared but only used when there is no forced state in the arguments
+    // Builtin states
+    // They are always declared but only used when there is no forced state in the arguments
+    // (They are used almost always)
     const [
       showRepresentationsBuiltin,
       setShowRepresentationsBuiltin,
@@ -352,7 +427,7 @@ const NGLViewerWithControls = forwardRef(
             drawingMethods={drawingMethods}
             coloringMethods={coloringMethods}
             opacities={opacities}
-            components={comps}
+            components={allComponents}
             {...props}
           />
           {noTrajectory || (
@@ -517,6 +592,7 @@ const NGLViewerWithControls = forwardRef(
 
             <Paints
               representations={allRepresentations}
+              setAdditionalRepresentations={setAdditionalRepresentations}
               title="Change representation parameters"
               showRepresentations={showRepresentations}
               setShowRepresentations={setShowRepresentations}
