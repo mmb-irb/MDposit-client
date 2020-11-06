@@ -574,7 +574,14 @@ const Trajectory = () => {
                 key={dom.name}
                 className={style.chips}
                 label={dom.name}
-                onClick={() => setSelectedDomain(dom)}
+                variant={selectedDomain === dom ? undefined : 'outlined'}
+                color={selectedDomain === dom ? 'primary' : undefined}
+                onClick={() =>
+                  setSelectedDomain(previous => {
+                    if (previous === dom) return null;
+                    return dom;
+                  })
+                }
               />
             ))}
           </CardContent>
@@ -621,7 +628,6 @@ const Trajectory = () => {
             className={style.container}
             representations={representations}
             initialFocus={initialFocus}
-            //components={nglComponents}
           />
         ) : (
           <div style={{ height: '50vh' }} />
