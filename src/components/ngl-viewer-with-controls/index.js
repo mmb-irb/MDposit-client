@@ -13,6 +13,7 @@ import cn from 'classnames';
 import screenfull from 'screenfull';
 // Visual assets
 import {
+  Card,
   CardContent,
   LinearProgress,
   IconButton,
@@ -48,6 +49,8 @@ import {
 
 import Slider from '../slider';
 import Paints from '../paints';
+
+import RepresentationsManager from '../representations-manager';
 
 import { get, setAsync } from '../../utils/storage';
 import NGLViewer from '../ngl-viewer';
@@ -430,6 +433,43 @@ const NGLViewerWithControls = forwardRef(
             components={allComponents}
             {...props}
           />
+        </CardContent>
+        <Card className={style['settings-big']}>
+          <RepresentationsManager
+            representations={allRepresentations}
+            setAdditionalRepresentations={setAdditionalRepresentations}
+            title="Change representation parameters"
+            showRepresentations={showRepresentations}
+            setShowRepresentations={setShowRepresentations}
+            nglSelections={nglSelections}
+            setNglSelections={setNglSelections}
+            drawingMethods={drawingMethods}
+            setDrawingMethods={setDrawingMethods}
+            coloringMethods={coloringMethods}
+            setColoringMethods={setColoringMethods}
+            opacities={opacities}
+            setOpacities={setOpacities}
+            defaults={defaults.current}
+          />
+        </Card>
+        <CardContent>
+          {/*<NglSettings
+              className = {style.tablecard}
+              representations={allRepresentations}
+              setAdditionalRepresentations={setAdditionalRepresentations}
+              title="Change representation parameters"
+              showRepresentations={showRepresentations}
+              setShowRepresentations={setShowRepresentations}
+              nglSelections={nglSelections}
+              setNglSelections={setNglSelections}
+              drawingMethods={drawingMethods}
+              setDrawingMethods={setDrawingMethods}
+              coloringMethods={coloringMethods}
+              setColoringMethods={setColoringMethods}
+              opacities={opacities}
+              setOpacities={setOpacities}
+              defaults={defaults.current}
+            />*/}
           {noTrajectory || (
             <div
               className={cn(style.progress, { [style.dark]: darkBackground })}
