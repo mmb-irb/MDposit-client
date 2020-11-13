@@ -154,8 +154,8 @@ const NGLViewerInDND = props => {
       <Card className={style['floating-card']} elevation={4}>
         <Suspense fallback={null}>
           <NGLViewerWithControls
+            className={style['floating-card']}
             ref={nglViewRef}
-            className={style['ngl-viewer-with-controls']}
             startsPlaying={false}
             {...props}
           />

@@ -17,31 +17,58 @@
   transform: rotateY(0.5turn);
 }
 
-.card-content {
-  display: inline-flex;
-  flex-direction: column;
-  width: 40%;
-  max-height: 200px;
-  padding: 1px;
-}
-
-.ngl-main-window {
+.adapter {
   display: flex;
   flex-direction: column;
-  height: 200px;
-  padding: 0px;
 }
 
-.settings-small {
-  height: 300px;
-  padding: 0px;
+.ngl-with-settings {
+  flex: 1;
+  display: flex;
 }
 
-.settings-big {
+.ngl-without-settings {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-left {
+  width: 45%;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-controls {
+  display: flex;
+  justify-content: space-around;
+  flex-direction: column;
+  padding: 2em;
+}
+
+.ngl-alone {
+  display: flex;
+  flex-direction: column;
+}
+
+.stacked-icons {
+  display: flex;
+  justify-content: space-around;
+}
+
+.extra-top-margin {
+  margin-top: 0.2em;
+}
+
+.settings-right {
   display: inline-block;
-  width: 60%;
-  height: 500px;
+  width: 55%;
+  flex: 1;
   overflow-y: scroll;
+}
+
+.hidden {
+  opacity: 0;
 }
 
 @keyframes expand {
@@ -120,8 +147,7 @@
 
 .controls {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  justify-content: space-between;
 }
 
 [data-rnd] .controls button {

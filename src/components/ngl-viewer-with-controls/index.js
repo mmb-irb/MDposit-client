@@ -15,11 +15,11 @@ import screenfull from 'screenfull';
 import {
   Card,
   CardContent,
+  Grid,
   LinearProgress,
+  Icon,
   IconButton,
-  Select,
-  FormControl,
-  InputLabel,
+  Slider,
 } from '@material-ui/core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -37,18 +37,14 @@ import {
   faSyncAlt,
   faVideo,
   faAdjust,
+  faCog,
   faCube,
-  faPaintBrush,
   faWalking,
-  faRunning,
   faBiking,
   faTimes,
   faLock,
   faUnlock,
 } from '@fortawesome/free-solid-svg-icons';
-
-import Slider from '../slider';
-import Paints from '../paints';
 
 import RepresentationsManager from '../representations-manager';
 
@@ -78,7 +74,29 @@ const defaultStartsPlaying = !reducedMotion() && window.innerWidth > 750;
 
 // I set the paint icon here as constant because if it is defined as paints index it triggers the unnecessary paints rerender
 // DANI: Habría que chequear que esto no pase en otros
-const paintsIcon = <FontAwesomeIcon icon={faPaintBrush} />;
+//const paintsIcon = <FontAwesomeIcon icon={faPaintBrush} />;
+
+// Set the possible number of frames the user can request
+// DANI: Por algún motivo estos sliders parece que no pasan de 100
+// DANI: De todas formas esto no nos viene mal ya que si pides 500 frames entra el misterioso bug
+const frameNumbers = [
+  {
+    value: 10,
+    label: '10',
+  },
+  {
+    value: 25,
+    label: '25',
+  },
+  {
+    value: 50,
+    label: '50',
+  },
+  {
+    value: 100,
+    label: '100',
+  },
+];
 
 // Set an NGL view window which is managed by some controls
 // There are different ways to call this script
@@ -88,6 +106,7 @@ const paintsIcon = <FontAwesomeIcon icon={faPaintBrush} />;
 // * In case of both components and representations passed, the valid argument will be the components
 // WARNING: There are many important hooks which have components/representations as a dependency
 // Avoid passing an object which is created every render. Use a somehow memoized array.
+// WARNING: The style of this component and its parent is very important. Use a reference to call it
 const NGLViewerWithControls = forwardRef(
   (
     {
@@ -348,10 +367,7 @@ const NGLViewerWithControls = forwardRef(
       }, []),
     );
     const [speed, setSpeed] = useState(useMemo(() => get('speed', 50), []));
-
-    let speedIcon = faWalking;
-    if (speed > 45) speedIcon = faRunning;
-    if (speed > 90) speedIcon = faBiking;
+    const [settings, openSettings] = useState(false);
 
     // handlers
     // handle click or click & drag progress bar
@@ -406,286 +422,312 @@ const NGLViewerWithControls = forwardRef(
     // Gran parte del NGL podría seguir funcionando en una trayectoria que por error no tiene metadata
     if (!metadata) return <Loading />;
 
+    // DANI: Si no quieres buscarte problemas no cambies las "Card"s de aquí abajo por "div"s o similar
     return (
-      <div
+      <Card
         className={cn(style['fullscreen-target'], {
           [style['is-fullscreen']]: isFullscreen,
         })}
         ref={containerRef}
       >
-        <CardContent className={cn(style['card-content'], className)}>
-          <NGLViewer
-            playing={playing}
-            spinning={spinning}
-            smooth={smooth}
-            onProgress={setProgress}
-            ref={viewerRef}
-            noTrajectory={noTrajectory}
-            nFrames={nFrames}
-            darkBackground={darkBackground}
-            perspective={perspective}
-            speed={speed}
-            showRepresentations={showRepresentations}
-            nglSelections={nglSelections}
-            drawingMethods={drawingMethods}
-            coloringMethods={coloringMethods}
-            opacities={opacities}
-            components={allComponents}
-            {...props}
-          />
-        </CardContent>
-        <Card className={style['settings-big']}>
-          <RepresentationsManager
-            representations={allRepresentations}
-            setAdditionalRepresentations={setAdditionalRepresentations}
-            title="Change representation parameters"
-            showRepresentations={showRepresentations}
-            setShowRepresentations={setShowRepresentations}
-            nglSelections={nglSelections}
-            setNglSelections={setNglSelections}
-            drawingMethods={drawingMethods}
-            setDrawingMethods={setDrawingMethods}
-            coloringMethods={coloringMethods}
-            setColoringMethods={setColoringMethods}
-            opacities={opacities}
-            setOpacities={setOpacities}
-            defaults={defaults.current}
-          />
-        </Card>
-        <CardContent>
-          {/*<NglSettings
-              className = {style.tablecard}
-              representations={allRepresentations}
-              setAdditionalRepresentations={setAdditionalRepresentations}
-              title="Change representation parameters"
-              showRepresentations={showRepresentations}
-              setShowRepresentations={setShowRepresentations}
-              nglSelections={nglSelections}
-              setNglSelections={setNglSelections}
-              drawingMethods={drawingMethods}
-              setDrawingMethods={setDrawingMethods}
-              coloringMethods={coloringMethods}
-              setColoringMethods={setColoringMethods}
-              opacities={opacities}
-              setOpacities={setOpacities}
-              defaults={defaults.current}
-            />*/}
-          {noTrajectory || (
-            <div
-              className={cn(style.progress, { [style.dark]: darkBackground })}
-              onClick={handleManualProgress}
-              onMouseMove={handleManualProgress}
+        <div className={cn(style.adapter, className)}>
+          <Card
+            className={
+              settings
+                ? style['ngl-with-settings']
+                : style['ngl-without-settings']
+            }
+            style={{ border: 'none', boxShadow: 'none' }}
+          >
+            <Card
+              className={
+                settings
+                  ? cn(style['settings-left'], className)
+                  : cn(style['ngl-alone'], className)
+              }
+              style={{ border: 'none', boxShadow: 'none' }}
             >
-              <LinearProgress
-                variant="determinate"
-                color="secondary"
-                value={progress * 100}
+              <NGLViewer
+                playing={playing}
+                spinning={spinning}
+                smooth={smooth}
+                onProgress={setProgress}
+                ref={viewerRef}
+                noTrajectory={noTrajectory}
+                nFrames={nFrames}
+                darkBackground={darkBackground}
+                perspective={perspective}
+                speed={speed}
+                showRepresentations={showRepresentations}
+                nglSelections={nglSelections}
+                drawingMethods={drawingMethods}
+                coloringMethods={coloringMethods}
+                opacities={opacities}
+                components={allComponents}
+                {...props}
               />
-            </div>
-          )}
-          <div className={style.controls}>
-            {close && (
-              <IconButton title="Close viewer" onClick={close}>
-                <FontAwesomeIcon icon={faTimes} />
-              </IconButton>
-            )}
+              {settings && (
+                <div className={style['settings-controls']}>
+                  <div className={style['stacked-icons']}>
+                    <IconButton title="Toggle spin" onClick={toggleSpinning}>
+                      <FontAwesomeIcon icon={faSyncAlt} />
+                    </IconButton>
 
-            {nail && (
-              <IconButton
-                title={nailed ? 'Unnail viewer' : 'Nail viewer'}
-                disabled={nailed}
-                onClick={() => {
-                  nail();
-                  toggleNailed();
-                }}
-              >
-                <div className={style['flip-container']}>
-                  <div
-                    className={cn(style['flip-card-container'], {
-                      [style.flipped]: nailed,
-                    })}
-                  >
-                    <FontAwesomeIcon
-                      className={cn(style['flip-card'], style.front)}
-                      icon={faUnlock}
-                    />
-                    <FontAwesomeIcon
-                      className={cn(style['flip-card'], style.back)}
-                      icon={faLock}
-                    />
+                    <IconButton
+                      onClick={() => {
+                        if (viewerRef.current) viewerRef.current.centerFocus();
+                      }}
+                    >
+                      <FontAwesomeIcon icon={faDotCircle} />
+                    </IconButton>
+
+                    {noTrajectory || (
+                      <IconButton
+                        title={`Toggle smooth interpolation ${
+                          smooth
+                            ? 'off'
+                            : 'on (may display artifacts for simulation box border atoms)'
+                        }`}
+                        onClick={toggleSmooth}
+                        disabled={!playing}
+                      >
+                        <FontAwesomeIcon icon={smooth ? faImages : faVideo} />
+                      </IconButton>
+                    )}
+
+                    <IconButton
+                      title="Invert background color"
+                      onClick={() => {
+                        toggleDarkBackground();
+                        setAsync('dark-background', !darkBackground);
+                      }}
+                    >
+                      <div
+                        className={cn(style['background-toggle'], {
+                          [style.dark]: darkBackground,
+                        })}
+                      >
+                        <FontAwesomeIcon icon={faAdjust} />
+                      </div>
+                    </IconButton>
+
+                    <IconButton
+                      title={`Switch to ${
+                        perspective ? 'ortographic' : 'perspective'
+                      } view`}
+                      onClick={() => {
+                        togglePerspective();
+                        setAsync('perspective', !perspective);
+                      }}
+                    >
+                      <FontAwesomeIcon icon={perspective ? faSquare : faCube} />
+                    </IconButton>
+                  </div>
+                  <div>
+                    Speed:
+                    {!noTrajectory ? (
+                      <Grid
+                        container
+                        spacing={2}
+                        className={style['extra-top-margin']}
+                      >
+                        <Grid item>
+                          <Icon>
+                            <FontAwesomeIcon icon={faWalking} />
+                          </Icon>
+                        </Grid>
+                        <Grid item xs>
+                          <Slider
+                            title="Change player speed"
+                            value={speed}
+                            aria-labelledby="continuous-slider"
+                            onChange={(_, value) => {
+                              setSpeed(value);
+                              setAsync('speed', value);
+                            }}
+                          />
+                        </Grid>
+                        <Grid item>
+                          <Icon>
+                            <FontAwesomeIcon icon={faBiking} />
+                          </Icon>
+                        </Grid>
+                      </Grid>
+                    ) : (
+                      ' There is no trajectory'
+                    )}
+                  </div>
+                  <div>
+                    Frames:
+                    {framesSelect ? (
+                      !noTrajectory ? (
+                        <Slider
+                          title="Select frame number"
+                          value={nFrames}
+                          onChange={(_, value) => setNFrames(value)}
+                          aria-labelledby="discrete-slider-restrict"
+                          step={null}
+                          valueLabelDisplay="auto"
+                          marks={frameNumbers}
+                        />
+                      ) : (
+                        ' There is no trajectory'
+                      )
+                    ) : (
+                      // DANI: Esto puede que no esté bien. Deberían ser 20 frames cuando es una PCA projection
+                      ' ' + nFrames
+                    )}
                   </div>
                 </div>
-              </IconButton>
+              )}
+            </Card>
+            {settings && (
+              <div className={style['settings-right']}>
+                <RepresentationsManager
+                  representations={allRepresentations}
+                  setAdditionalRepresentations={setAdditionalRepresentations}
+                  title="Change representation parameters"
+                  showRepresentations={showRepresentations}
+                  setShowRepresentations={setShowRepresentations}
+                  nglSelections={nglSelections}
+                  setNglSelections={setNglSelections}
+                  drawingMethods={drawingMethods}
+                  setDrawingMethods={setDrawingMethods}
+                  coloringMethods={coloringMethods}
+                  setColoringMethods={setColoringMethods}
+                  opacities={opacities}
+                  setOpacities={setOpacities}
+                  defaults={defaults.current}
+                />
+              </div>
             )}
-
+          </Card>
+          <CardContent>
             {noTrajectory || (
-              <>
+              <div
+                className={cn(style.progress, { [style.dark]: darkBackground })}
+                onClick={handleManualProgress}
+                onMouseMove={handleManualProgress}
+              >
+                <LinearProgress
+                  variant="determinate"
+                  color="secondary"
+                  value={progress * 100}
+                />
+              </div>
+            )}
+            <div className={style.controls}>
+              <div>
                 <IconButton
-                  title="Previous frame"
-                  onClick={useCallback(() => handleFrameChange(-1), [
-                    handleFrameChange,
-                  ])}
+                  title="Close viewer"
+                  className={cn({ [style.hidden]: !close })}
+                  disabled={!close}
+                  onClick={close}
                 >
-                  <FontAwesomeIcon icon={faStepBackward} />
+                  <FontAwesomeIcon icon={faTimes} />
                 </IconButton>
+
                 <IconButton
-                  title={playing ? 'Pause' : 'Play'}
-                  onClick={togglePlaying}
+                  title={nailed ? 'Nailed viewer' : 'Nail viewer'}
+                  className={cn({ [style.hidden]: !nail })}
+                  disabled={!nail || nailed}
+                  onClick={() => {
+                    nail();
+                    toggleNailed();
+                  }}
                 >
                   <div className={style['flip-container']}>
                     <div
                       className={cn(style['flip-card-container'], {
-                        [style.flipped]: playing,
+                        [style.flipped]: nailed,
                       })}
                     >
                       <FontAwesomeIcon
                         className={cn(style['flip-card'], style.front)}
-                        icon={faPlay}
+                        icon={faUnlock}
                       />
                       <FontAwesomeIcon
                         className={cn(style['flip-card'], style.back)}
-                        icon={faPause}
+                        icon={faLock}
                       />
                     </div>
                   </div>
                 </IconButton>
-                <IconButton
-                  title="Next frame"
-                  onClick={useCallback(() => handleFrameChange(1), [
-                    handleFrameChange,
-                  ])}
-                >
-                  <FontAwesomeIcon icon={faStepForward} />
-                </IconButton>
-              </>
-            )}
-
-            {screenfull.isEnabled && (
-              <IconButton
-                title={`${isFullscreen ? 'exit' : 'go'} fullscreen`}
-                onClick={useCallback(() => {
-                  if (containerRef.current)
-                    screenfull.toggle(containerRef.current);
-                }, [])}
-                className={cn(style['fullscreen-toggle'], {
-                  [style['is-fullscreen']]: isFullscreen,
-                })}
-              >
-                <FontAwesomeIcon icon={isFullscreen ? faCompress : faExpand} />
-              </IconButton>
-            )}
-
-            <IconButton title="Toggle spin" onClick={toggleSpinning}>
-              <FontAwesomeIcon icon={faSyncAlt} />
-            </IconButton>
-
-            <IconButton
-              title="Center focus"
-              onClick={useCallback(() => {
-                if (viewerRef.current) viewerRef.current.centerFocus();
-              }, [])}
-            >
-              <FontAwesomeIcon icon={faDotCircle} />
-            </IconButton>
-
-            {noTrajectory || (
-              <IconButton
-                title={`Toggle smooth interpolation ${
-                  smooth
-                    ? 'off'
-                    : 'on (may display artifacts for simulation box border atoms)'
-                }`}
-                onClick={toggleSmooth}
-                disabled={!playing}
-              >
-                <FontAwesomeIcon icon={smooth ? faImages : faVideo} />
-              </IconButton>
-            )}
-
-            <IconButton
-              title="Invert background color"
-              onClick={() => {
-                toggleDarkBackground();
-                setAsync('dark-background', !darkBackground);
-              }}
-            >
-              <div
-                className={cn(style['background-toggle'], {
-                  [style.dark]: darkBackground,
-                })}
-              >
-                <FontAwesomeIcon icon={faAdjust} />
               </div>
-            </IconButton>
-
-            <IconButton
-              title={`Switch to ${
-                perspective ? 'ortographic' : 'perspective'
-              } view`}
-              onClick={() => {
-                togglePerspective();
-                setAsync('perspective', !perspective);
-              }}
-            >
-              <FontAwesomeIcon icon={perspective ? faSquare : faCube} />
-            </IconButton>
-
-            <Paints
-              representations={allRepresentations}
-              setAdditionalRepresentations={setAdditionalRepresentations}
-              title="Change representation parameters"
-              showRepresentations={showRepresentations}
-              setShowRepresentations={setShowRepresentations}
-              nglSelections={nglSelections}
-              setNglSelections={setNglSelections}
-              drawingMethods={drawingMethods}
-              setDrawingMethods={setDrawingMethods}
-              coloringMethods={coloringMethods}
-              setColoringMethods={setColoringMethods}
-              opacities={opacities}
-              setOpacities={setOpacities}
-              defaults={defaults.current}
-            >
-              {paintsIcon}
-            </Paints>
-
-            {!noTrajectory && (
-              <Slider
-                className={style.slider}
-                label="Player speed:"
-                title="Change player speed"
-                value={speed}
-                handleChange={(_, value) => {
-                  setSpeed(value);
-                  setAsync('speed', value);
-                }}
-              >
-                <FontAwesomeIcon icon={speedIcon} />
-              </Slider>
-            )}
-
-            {framesSelect && !noTrajectory && (
-              <FormControl>
-                <InputLabel>frames</InputLabel>
-                <Select
-                  // DANI: Esto de 'native' hace que quede mucho mejor
-                  // DANI: El problema es un bug inexplicable en mozilla que hace que el 'Rnd' salte mucho
-                  // DANI: Cuando no es 'native' aparece un log de error en consola. De momento lo ignoro
-                  //native
-                  value={nFrames}
-                  onChange={({ target: { value } }) => setNFrames(value)}
+              <div>
+                {noTrajectory || (
+                  <>
+                    <IconButton
+                      title="Previous frame"
+                      onClick={useCallback(() => handleFrameChange(-1), [
+                        handleFrameChange,
+                      ])}
+                    >
+                      <FontAwesomeIcon icon={faStepBackward} />
+                    </IconButton>
+                    <IconButton
+                      title={playing ? 'Pause' : 'Play'}
+                      onClick={togglePlaying}
+                    >
+                      <div className={style['flip-container']}>
+                        <div
+                          className={cn(style['flip-card-container'], {
+                            [style.flipped]: playing,
+                          })}
+                        >
+                          <FontAwesomeIcon
+                            className={cn(style['flip-card'], style.front)}
+                            icon={faPlay}
+                          />
+                          <FontAwesomeIcon
+                            className={cn(style['flip-card'], style.back)}
+                            icon={faPause}
+                          />
+                        </div>
+                      </div>
+                    </IconButton>
+                    <IconButton
+                      title="Next frame"
+                      onClick={useCallback(() => handleFrameChange(1), [
+                        handleFrameChange,
+                      ])}
+                    >
+                      <FontAwesomeIcon icon={faStepForward} />
+                    </IconButton>
+                  </>
+                )}
+              </div>
+              <div>
+                <IconButton
+                  title={`${isFullscreen ? 'Exit' : 'Go'} fullscreen`}
+                  onClick={useCallback(() => {
+                    if (containerRef.current)
+                      screenfull.toggle(containerRef.current);
+                  }, [])}
+                  className={cn(style['fullscreen-toggle'], {
+                    [style.hidden]: !screenfull.isEnabled,
+                    [style['is-fullscreen']]: isFullscreen,
+                  })}
+                  disabled={!screenfull.isEnabled}
                 >
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                  <option value={500}>500</option>
-                </Select>
-              </FormControl>
-            )}
-          </div>
-        </CardContent>
-      </div>
+                  <FontAwesomeIcon
+                    icon={isFullscreen ? faCompress : faExpand}
+                  />
+                </IconButton>
+                <IconButton
+                  title={'Settings'}
+                  onClick={() => {
+                    openSettings(previous => !previous);
+                    viewerRef.current.autoResize();
+                  }}
+                >
+                  <FontAwesomeIcon icon={faCog} />
+                </IconButton>
+              </div>
+            </div>
+          </CardContent>
+        </div>
+      </Card>
     );
   },
 );

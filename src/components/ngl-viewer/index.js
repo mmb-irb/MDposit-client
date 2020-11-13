@@ -1175,7 +1175,7 @@ const NGLViewer = memo(
           firstFocus.current = false;
         }
         comp.autoView(focus.sele, transition);
-      }, [isFirstCompStaged, focus, comps]);
+      }, [isFirstCompStaged, focus]);
 
       // Expose public methods and getters/setters
       useImperativeHandle(
@@ -1183,11 +1183,14 @@ const NGLViewer = memo(
         () => ({
           autoResize: handleResize,
           centerFocus() {
+            setFocus({ comp: 0, sele: 'all' });
+            /*
             if (!originalOritentationRef.current) return;
             stageRef.current.animationControls.orient(
               originalOritentationRef.current,
               DEFAULT_ORIENTATION_TRANSITION_DURATION,
             );
+            */
           },
           get currentFrame() {
             if (!(pdbFile && trajectoryPayload.length)) return -1;

@@ -587,7 +587,7 @@ const Trajectory = () => {
           </CardContent>
         </Card>
       )}
-      <Card className={style.card} ref={nglRef}>
+      <Card className={style['ngl-card']} ref={nglRef}>
         <Info
           reference={'trajectory-ngl'}
           tooltip={
