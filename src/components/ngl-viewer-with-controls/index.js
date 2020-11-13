@@ -292,18 +292,61 @@ const NGLViewerWithControls = forwardRef(
       allRepresentations.map(rep => rep.defaultOpacity),
     );
 
-    // Reset builtin states when the 'components' argument changes
+    // Set a reference to check when input arguments (components and representations) change
+    const inputs = useRef({
+      components: null,
+      representations: null,
+    });
+
+    // Reset builtin states when inputs change
+    // Set missing values in builtin states when additional representations are added by the user
     useMemo(() => {
-      setShowRepresentationsBuiltin(allRepresentations.map(rep => rep.show));
-      setNglSelectionsBuiltin(allRepresentations.map(rep => rep.selection));
-      setDrawingMethodsBuiltin(
-        allRepresentations.map(rep => rep.defaultDrawingMethod),
-      );
-      setColoringMethodsBuiltin(
-        allRepresentations.map(rep => rep.defaultColoringMethod),
-      );
-      setOpacitiesBuiltin(allRepresentations.map(rep => rep.defaultOpacity));
-    }, [allRepresentations]);
+      if (
+        inputs.current.components === components &&
+        inputs.current.representations === representations
+      ) {
+        // 'show' values are set this way because they are booleans
+        // We the other states syntax a 'false' boolean would be taken as a missing value
+        setShowRepresentationsBuiltin(previous =>
+          allRepresentations.map((rep, index) => {
+            if (previous[index] !== undefined) return previous[index];
+            return rep.show;
+          }),
+        );
+        setNglSelectionsBuiltin(previous =>
+          allRepresentations.map(
+            (rep, index) => previous[index] || rep.selection,
+          ),
+        );
+        setDrawingMethodsBuiltin(previous =>
+          allRepresentations.map(
+            (rep, index) => previous[index] || rep.defaultDrawingMethod,
+          ),
+        );
+        setColoringMethodsBuiltin(previous =>
+          allRepresentations.map(
+            (rep, index) => previous[index] || rep.defaultColoringMethod,
+          ),
+        );
+        setOpacitiesBuiltin(previous =>
+          allRepresentations.map(
+            (rep, index) => previous[index] || rep.defaultOpacity,
+          ),
+        );
+      } else {
+        setShowRepresentationsBuiltin(allRepresentations.map(rep => rep.show));
+        setNglSelectionsBuiltin(allRepresentations.map(rep => rep.selection));
+        setDrawingMethodsBuiltin(
+          allRepresentations.map(rep => rep.defaultDrawingMethod),
+        );
+        setColoringMethodsBuiltin(
+          allRepresentations.map(rep => rep.defaultColoringMethod),
+        );
+        setOpacitiesBuiltin(allRepresentations.map(rep => rep.defaultOpacity));
+      }
+      // Save a reference of components and representations to compare with future triggers
+      inputs.current = { components, representations };
+    }, [allRepresentations, components, representations]);
 
     // Real states. They get the forced state value if exist. If not, they get the builtin state value
     const [

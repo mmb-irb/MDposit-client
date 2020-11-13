@@ -99,7 +99,7 @@ const RepresentationsManager = memo(
           </TableHead>
           <TableBody>
             {representations.map((rep, index) => (
-              <TableRow key={rep.name + index}>
+              <TableRow key={rep.name + index + nglSelections[index]}>
                 <TableCell component="th" scope="row">
                   {rep.name}
                 </TableCell>
