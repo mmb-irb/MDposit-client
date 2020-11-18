@@ -42,7 +42,18 @@ const DEFAULT_ORIENTATION_TRANSITION_DURATION = 750; // 750 ms
 
 const CHAIN_SELECTION = 'polymer and not hydrogen ';
 
-const NGL_COLORS = ['red', 'blue', 'yellow', 'green', 'white', 'grey'];
+const NGL_COLORS = [
+  'red',
+  'blue',
+  'yellow',
+  'green',
+  'white',
+  'grey',
+  'orange',
+  'wheat',
+  'lime',
+  'cyan',
+];
 
 const NGLViewer = memo(
   forwardRef(
