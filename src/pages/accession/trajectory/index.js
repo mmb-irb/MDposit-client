@@ -522,7 +522,24 @@ const Trajectory = () => {
   const { metadata } = useContext(ProjectCtx);
 
   // Show floatting bubles with domain names
-  // When a bubble is selected the the
+  // When a bubble is selected the domain is represented
+  // The domains strucutre is:
+  // DOMAINS: [
+  //    {
+  //      "name" : "Example domain",
+  //      "representations" : [
+  //        {
+  //          "name" : "Chain A",
+  //          "selection" : ":A and 16-316",
+  //          ...
+  //        },
+  //        {
+  //          "name" : "Chain B",
+  //          "selection" : ":B and 16-316"
+  //        }
+  //      ]
+  //    },
+  // ]
   const domains = metadata && metadata.DOMAINS;
 
   const [selectedDomain, setSelectedDomain] = useState(null);
@@ -531,7 +548,14 @@ const Trajectory = () => {
     if (!selectedDomain) return;
     // Set an NGL representation for each domain representation
     const representations = selectedDomain.representations.map(rep => {
-      return { name: rep.name, selection: rep.selection };
+      return {
+        name: rep.name,
+        selection: rep.selection,
+        show: rep.show,
+        defaultDrawingMethod: rep.type,
+        defaultColoringMethod: rep.color,
+        defaultOpacity: rep.opacity,
+      };
     });
     // Add a representation with the whole strucutre in grey color and with the opacity reduced
     representations.push({
