@@ -2,10 +2,13 @@
   margin: 1em 0;
 }
 
-.placeholder .ngl-viewer-with-controls {
-  background: black;
-  width: calc(100% - 2em);
-  margin: 1em 1em 3em 1em;
+.ngl-card {
+  height: 500px;
+  padding: 0;
+}
+
+.ngl-card:last-child {
+  padding-bottom: 0px;
 }
 
 .placeholder .projection {
@@ -13,5 +16,5 @@
 }
 
 .ngl-viewer-with-controls {
-  height: 50vh;
+  height: 100%;
 }

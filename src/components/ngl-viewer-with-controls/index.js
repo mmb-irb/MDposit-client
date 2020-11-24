@@ -566,9 +566,9 @@ const NGLViewerWithControls = forwardRef(
                       <FontAwesomeIcon icon={perspective ? faSquare : faCube} />
                     </IconButton>
                   </div>
-                  <div>
-                    Speed:
-                    {!noTrajectory ? (
+                  {noTrajectory || (
+                    <div>
+                      Speed:
                       <Grid
                         container
                         spacing={2}
@@ -596,14 +596,12 @@ const NGLViewerWithControls = forwardRef(
                           </Icon>
                         </Grid>
                       </Grid>
-                    ) : (
-                      ' There is no trajectory'
-                    )}
-                  </div>
-                  <div>
-                    Frames:
-                    {framesSelect ? (
-                      !noTrajectory ? (
+                    </div>
+                  )}
+                  {noTrajectory || (
+                    <div>
+                      Frames:
+                      {framesSelect ? (
                         <Slider
                           title="Select frame number"
                           value={nFrames}
@@ -614,13 +612,11 @@ const NGLViewerWithControls = forwardRef(
                           marks={frameNumbers}
                         />
                       ) : (
-                        ' There is no trajectory'
-                      )
-                    ) : (
-                      // DANI: Esto puede que no esté bien. Deberían ser 20 frames cuando es una PCA projection
-                      ' ' + nFrames
-                    )}
-                  </div>
+                        // DANI: Esto puede que no esté bien. Deberían ser 20 frames cuando es una PCA projection
+                        ' ' + nFrames
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </Card>
@@ -645,7 +641,7 @@ const NGLViewerWithControls = forwardRef(
               </div>
             )}
           </Card>
-          <CardContent>
+          <CardContent className={style['bottom-controls']}>
             {noTrajectory || (
               <div
                 className={cn(style.progress, { [style.dark]: darkBackground })}

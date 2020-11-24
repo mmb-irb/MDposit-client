@@ -41,9 +41,9 @@
 
 .settings-controls {
   display: flex;
-  justify-content: space-around;
+  justify-content: space-between;
   flex-direction: column;
-  padding: 2em;
+  padding: 0.5em 2em;
 }
 
 .ngl-alone {
@@ -114,10 +114,17 @@
   height: 100vh;
 }
 
+.bottom-controls {
+  padding: 0;
+}
+
+.bottom-controls:last-child {
+  padding-bottom: 0px;
+}
+
 .progress {
   flex: 0 0 auto;
   align-self: stretch;
-  padding-bottom: 1em;
   cursor: crosshair;
   opacity: 0.75;
   transition-property: transform, opacity;
@@ -133,7 +140,7 @@
 }
 
 .progress > * {
-  border-radius: 0.5ch;
+  /* border-radius: 0.5ch; this makes the bar border circular */
   height: 1ch;
 }
 
@@ -148,6 +155,7 @@
 .controls {
   display: flex;
   justify-content: space-between;
+  padding: 0.5em;
 }
 
 [data-rnd] .controls button {

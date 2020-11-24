@@ -13,6 +13,7 @@
   margin-top: 1em;
   display: inline-block;
   width: 75%;
+  height: 500px;
 }
 
 .margined {
@@ -20,7 +21,7 @@
 }
 
 .container {
-  height: 500px;
+  height: 100%;
 }
 
 .selectedrow {

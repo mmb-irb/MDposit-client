@@ -198,38 +198,44 @@ const PCA = () => {
             }
           />
         )}
-        <CardContent>
-          <Typography variant="h6">PCA projections</Typography>
-          {/* Show a brief explanation about selected projection and their explained variance accounting */}
-          <p>{plainTextExplanation(projections, explanation)}</p>
+        <div>
+          <CardContent>
+            <Typography variant="h6">PCA projections</Typography>
+            {/* Show a brief explanation about selected projection and their explained variance accounting */}
+            <p>{plainTextExplanation(projections, explanation)}</p>
+          </CardContent>
           {/* When only 1 frame is selected use the regula ngl viewer */}
           {projections.length === 1 && (
             <Suspense fallback={nglPlaceholder}>
-              <NGLViewerWithControls
-                accession={accession}
-                className={style['ngl-viewer-with-controls']}
-                projection={projections[0]}
-                framesSelect={false}
-                // Projections are backbone trajectories, same as the average.pdb topology
-                components={nglComponent}
-              />
+              <CardContent className={style['ngl-card']}>
+                <NGLViewerWithControls
+                  accession={accession}
+                  className={style['ngl-viewer-with-controls']}
+                  projection={projections[0]}
+                  framesSelect={false}
+                  // Projections are backbone trajectories, same as the average.pdb topology
+                  components={nglComponent}
+                />
+              </CardContent>
             </Suspense>
           )}
           {/* When only 2 frames are selected use the projections graph */}
           {projections.length === 2 && (
             <Suspense fallback={projectionPlaceholder}>
-              <Projections
-                //step={payload.step / metadata.FREQUENCY} // The payload.step is meant to be in picoseconds
-                step={payload.step}
-                data={payload.y}
-                projections={projections}
-                totalFrames={metadata.frameCount}
-                setRequestedFrame={setRequestedFrame}
-              />
+              <CardContent>
+                <Projections
+                  //step={payload.step / metadata.FREQUENCY} // The payload.step is meant to be in picoseconds
+                  step={payload.step}
+                  data={payload.y}
+                  projections={projections}
+                  totalFrames={metadata.frameCount}
+                  setRequestedFrame={setRequestedFrame}
+                />
+              </CardContent>
             </Suspense>
           )}
           {/* When more than 2 frames are selected display nothing but the plain text explanation*/}
-        </CardContent>
+        </div>
       </Card>
       <NGLViewerSpawner
         // Set the new viewer or null if there is not a proper "selected" value
