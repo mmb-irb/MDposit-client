@@ -186,6 +186,18 @@ export default React.memo(() => {
               <FontAwesomeIcon icon={faLink} />
               &nbsp;RCSB website
             </Button>
+            <Button
+              component={'a'}
+              variant="contained"
+              href={`http://3dbionotes-ws.cnb.csic.es/?queryId=${pdbInfo._id}`}
+              size="small"
+              color="primary"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              <FontAwesomeIcon icon={faLink} />
+              &nbsp;3DBIONOTES
+            </Button>
           </CardActions>
         </Card>
       )}
