@@ -42,18 +42,11 @@ const DEFAULT_ORIENTATION_TRANSITION_DURATION = 750; // 750 ms
 
 const CHAIN_SELECTION = 'polymer and not hydrogen ';
 
-const NGL_COLORS = [
-  'red',
-  'blue',
-  'yellow',
-  'green',
-  'white',
-  'grey',
-  'orange',
-  'wheat',
-  'lime',
-  'cyan',
-];
+const isValidColor = colorName => {
+  var s = new Option().style;
+  s.color = colorName;
+  return s.color === colorName;
+};
 
 const NGLViewer = memo(
   forwardRef(
@@ -78,12 +71,15 @@ const NGLViewer = memo(
         darkBackground,
         perspective,
         speed,
+        // Hooked values for changing representation parameters
         drawingMethods,
         coloringMethods,
         opacities,
         components,
         showRepresentations,
         nglSelections,
+        // Customized ngl representation coloring methods
+        customColorSchemes,
       },
       ref,
     ) => {
@@ -502,19 +498,25 @@ const NGLViewer = memo(
 
             const type = drawingMethods[repCounter];
 
-            // If the colorScheme is a defined color, create a custom colorScheme for this color
             const colorScheme =
               rep.name === selectedRepresentation
-                ? ColormakerRegistry.addSelectionScheme(
+                ? // If the representation is selected then the color is yellow
+                  ColormakerRegistry.addSelectionScheme(
                     [['yellow', 'all']],
                     'custom label',
                   )
-                : NGL_COLORS.includes(coloringMethods[repCounter])
+                : // If the colorScheme is in the passed custom schemes use it
+                customColorSchemes &&
+                  customColorSchemes[coloringMethods[repCounter]]
+                ? customColorSchemes[coloringMethods[repCounter]]
+                : // If the colorScheme is a defined color, create a custom colorScheme for this color
+                isValidColor(coloringMethods[repCounter])
                 ? ColormakerRegistry.addSelectionScheme(
                     [[coloringMethods[repCounter], 'all']],
                     'custom label',
                   )
-                : coloringMethods[repCounter];
+                : // Otherwise let the color scheme as it is
+                  coloringMethods[repCounter];
 
             const colorDomain = type === 'surface' ? [-200, 200] : undefined;
 
