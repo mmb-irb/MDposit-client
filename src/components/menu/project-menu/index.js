@@ -136,6 +136,11 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
           dir: 'pockets',
           cond: analyses.includes('pockets'),
         },
+        {
+          name: 'Mutations',
+          dir: 'mutations',
+          cond: metadata.TOPOREF,
+        },
       ],
     },
     {

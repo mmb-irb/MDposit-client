@@ -72,6 +72,10 @@ const Pockets = lazy(() =>
   import(/* webpackChunkName: 'pockets' */ './pockets'),
 );
 
+const Mutations = lazy(() =>
+  import(/* webpackChunkName: 'trajectory' */ './mutations'),
+);
+
 // Return an error message and print the error in the console
 const Error = ({ error }) => {
   console.error(error);
@@ -289,6 +293,15 @@ const SummarySwitch = ({ setProject }) => {
               render={props => (
                 <Suspense fallback={<Loading />}>
                   <Pockets {...props} />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/mutations"
+              exact
+              render={props => (
+                <Suspense fallback={<Loading />}>
+                  <Mutations {...props} />
                 </Suspense>
               )}
             />

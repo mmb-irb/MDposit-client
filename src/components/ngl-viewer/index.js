@@ -650,6 +650,7 @@ const NGLViewer = memo(
         selectedRepresentation,
         showRepresentations,
         nglSelections,
+        customColorSchemes,
       ]);
 
       // Highlight specific atoms
