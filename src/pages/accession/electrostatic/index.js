@@ -112,7 +112,7 @@ const Electrostatic = () => {
   }, [chains, metadata, pdbData]);
 
   const initialFocus = useMemo(() => {
-    if (!metadata) return;
+    if (!metadata || !metadata.LIGANDS) return;
     // Set the NGL selection for the focus
     const focusSelection =
       '(' +
