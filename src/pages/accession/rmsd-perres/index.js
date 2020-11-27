@@ -49,9 +49,8 @@ const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
 const nice = number => Math.round(number * 100) / 100;
 
 const RmsdPerres = () => {
-  // useInView acts as a React hook
-  // Track if the NGL viewer (nglRef) and the analyses (nightingaleRef) are on screen
-  // The status (e.g. isNglVisible) is returned true/false when the element is in/out the screen respectively
+  // Track if the NGL viewer
+  // The status isNglVisible is returned true/false when the element is in/out the screen respectively
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
 
   // Get the accession

@@ -35,9 +35,8 @@ const Graph2 = lazy(() =>
 const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
 
 const Pockets = () => {
-  // useInView acts as a React hook
-  // Track if the NGL viewer (nglRef) and the analyses (nightingaleRef) are on screen
-  // The status (e.g. isNglVisible) is returned true/false when the element is in/out the screen respectively
+  // Track if the NGL viewer
+  // The status isNglVisible is returned true/false when the element is in/out the screen respectively
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
 
   // Get the current project metadata
