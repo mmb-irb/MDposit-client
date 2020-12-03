@@ -578,7 +578,7 @@ const Trajectory = () => {
 
   return (
     <>
-      {domains && (
+      {domains && domains.length > 0 && (
         <Card className={style.card}>
           <Info
             reference={'domain-selection'}
