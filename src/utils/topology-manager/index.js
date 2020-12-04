@@ -130,6 +130,51 @@ export const getResidueType = (
   return type;
 };
 
+// Define the residue type letters
+const residueLetters = {
+  ALA: 'A',
+  ARG: 'R',
+  ASN: 'N',
+  ASP: 'D',
+  ASX: 'B',
+  CYS: 'C',
+  GLU: 'E',
+  GLN: 'Q',
+  GLX: 'Z',
+  GLY: 'G',
+  HIS: 'H',
+  ILE: 'I',
+  LEU: 'L',
+  LYS: 'K',
+  MET: 'M',
+  PHE: 'F',
+  PRO: 'P',
+  SER: 'S',
+  THR: 'T',
+  TRP: 'W',
+  TYR: 'Y',
+  VAL: 'V',
+};
+
+export const getResidueLetter = residueType => {
+  if (!residueType) return;
+  const letter = residueLetters[residueType];
+  if (letter) return letter;
+  return 'X';
+};
+
+// This function returns an array with all chains in topology
+// Specifically, it returns the string chain letters
+export const getTopologyChains = (topology = PdbCtx._currentValue.file) => {
+  const chainCount = topology.chainStore.count;
+  const chains = [];
+  for (let chain = 0; chain < chainCount; chain++) {
+    chains.push(topology.chainStore.getChainname(chain));
+  }
+
+  return chains;
+};
+
 // This function returns the chain name from a chain letter (e.g 'A')
 export const getMetadataChainname = (
   chain,
@@ -248,7 +293,13 @@ export const source2absoluteResidue = (
     }
   }
   throw new Error(
-    'The requested chain (' + chain + '), residue number (' + residue + ') and icode (' + icode + ') did not match any residue',
+    'The requested chain (' +
+      chain +
+      '), residue number (' +
+      residue +
+      ') and icode (' +
+      icode +
+      ') did not match any residue',
   );
 };
 
@@ -260,19 +311,19 @@ export const absolute2modelResidue = (
 ) => {
   const chainIndex = topology.residueStore.chainIndex[residue];
   const chain = topology.chainStore.getChainname(chainIndex); // e.g. 'A'
-  const chainName = getMetadataChainname(chain, metadata, topology) // e.g. 'ACE2'
+  const chainName = getMetadataChainname(chain, metadata, topology); // e.g. 'ACE2'
   const offset = topology.chainStore.residueOffset[chainIndex];
   const chainResidue = residue - offset + 1;
-  const residueType = getResidueType(residue, topology);
+  const type = getResidueType(residue, topology);
+  const letter = getResidueLetter(type);
   // Formated string representations used in model labels
   const numeration = chain + ':' + chainResidue;
-  const tag =
-    chain + '(' + chainName + '):' + chainResidue + '(' + residueType + ')';
+  const tag = chain + '(' + chainName + '):' + chainResidue + '(' + type + ')';
   // WARNING: This is the ngl standard syntax for residue display (e.g. in the tooltip): [AAA]NN:C
   // However, ngl does not show or read resiudes in 'model' format, but in 'source' format
-  const ngl = '[' + residueType + ']' + chainResidue + ':' + chain;
+  const ngl = '[' + type + ']' + chainResidue + ':' + chain;
   //console.log(residue + ' -> ' + chainResidue);
-  return { chain, chainName, chainResidue, residueType, numeration, tag, ngl };
+  return { chain, chainName, chainResidue, type, letter, numeration, tag, ngl };
 };
 
 // This function converts absolute residue numbers to topology residue numbers
