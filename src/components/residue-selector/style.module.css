@@ -20,6 +20,7 @@
 }
 
 .extra-right-margin {
+  position: relative;
   margin-right: 1em;
 }
 
