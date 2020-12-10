@@ -121,13 +121,11 @@ const FluctuationAnalysis = () => {
           <Typography variant="h6" />
           <Graph
             y={payload.y}
-            start={payload.start || 0}
             step={payload.step}
             xLabel={'Atom'}
             xUnit={'atom'}
             yLabel={'Fluctuation (Å)'}
             type={'dash'}
-            startsAtOne={true}
             onHover={setHoveredAtom}
             hovered={hoveredAtom}
             onSelect={setSelectedAtoms}

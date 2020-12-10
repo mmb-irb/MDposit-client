@@ -43,10 +43,11 @@ const dPR = window.devicePixelRatio || 1;
 const Graph = ({
   // The main data
   y: yData,
-  //start = 0,
   // The difference beyween x values
   step = 1,
   // Set if the x origin is not 0, but 1. This is for the fluctuation analysis
+  // DANI: Esto solo lo usaba el fluctuation y un buen día descubirí que funciona mejor sin el
+  // DANI: Habría que pensar en quitarlo
   startsAtOne = false,
   //
   defaultPrecision = 1,
