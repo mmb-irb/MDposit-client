@@ -1,18 +1,9 @@
-import React, { lazy, Suspense, useState, useContext } from 'react';
+import React, { lazy, Suspense, useState, useContext, useMemo } from 'react';
 import { useInView } from 'react-intersection-observer';
 
-import {
-  CardContent,
-  Checkbox,
-  FormControlLabel,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  TableFooter,
-  TablePagination,
-} from '@material-ui/core';
+import { CardContent } from '@material-ui/core';
+
+import { interpolateRgb } from 'd3';
 
 import Card from '../../../components/animated-card';
 import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
@@ -33,20 +24,30 @@ import {
   source2modelResidue,
 } from '../../../utils/topology-manager';
 
-import Selector from '../../../components/selector';
+//import Selector from '../../../components/selector';
+
+import ResidueSelector from '../../../components/residue-selector';
 
 const Graph2 = lazy(() =>
   import(/* webpackChunkName: 'graph2' */ '../../../components/graph2'),
 );
-
-const colors = ['red', 'green', 'blue', 'orange'];
 
 const firstFrameComponent = [{ frame: 0 }];
 
 // Define permanent options for the "useInView"
 const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
 
+// Round to cents
 const nice = number => Math.round(number * 100) / 100;
+// Get the average and standard deviation
+const getStaistics = values => {
+  const n = values.length;
+  const mean = values.reduce((a, b) => a + b) / n;
+  const stdv = Math.sqrt(
+    values.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n,
+  );
+  return [nice(mean), nice(stdv)];
+};
 
 const RmsdPerres = () => {
   // Track if the NGL viewer
@@ -71,15 +72,84 @@ const RmsdPerres = () => {
   // Set when one point in the graph is selected
   const [selectedResidues, setSelectedResidues] = useState([]);
 
-  // Set when which resiudes are we meant to find
-  const [searchResidues, setSearchResidues] = useState('');
+  // Get the residues list in model notation
+  const { xAxesStep, sequences } = useMemo(() => {
+    if (!pdbData.file || !metadata || !payload) return {};
 
-  // Table management
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+    const data = payload.data;
+    // Calculate the mean and standard deviation of each residue rmsds
+    // Also get the maximum and minimum means
+    const means = [];
+    data.forEach(residue => {
+      const [mean, stdv] = getStaistics(residue.rmsds);
+      residue.mean = mean;
+      residue.stdv = stdv;
+      means.push(mean);
+    });
 
-  // The graphics to be displayed
-  //const [displays, setDisplays] = useState(Array(rowsPerPage).fill(true));
+    const max = Math.max(...means);
+    const min = Math.min(...means);
+
+    // Set the color scale according to the maximum and minimum means
+    const lowerScale = interpolateRgb('white', 'yellow');
+    const higherScale = interpolateRgb('yellow', 'red');
+    const colorScale = value => {
+      const normalizedValue = (value - min) * (1 / (max - min));
+      if (normalizedValue < 0.5) return lowerScale(normalizedValue * 2);
+      else return higherScale((normalizedValue - 0.5) * 2);
+    };
+
+    const firstResidue = data[0];
+    const dataLength = firstResidue.rmsds.length;
+    const xAxesStep = metadata.LENGTH / (dataLength - 1);
+
+    // Parse the selection string into a numeric array
+    const availableResidues = data;
+
+    // Get a list with all residues converted from source to model format
+    const modelResidues = availableResidues.map(residue => {
+      const numeration = complexNumerationParser(residue.name);
+      const model = source2modelResidue(numeration, pdbData.file, metadata);
+      return model;
+    });
+
+    // Separate the residues in chains and format them residues according to residue selector input format
+    const chains = {};
+    modelResidues.forEach((residue, index) => {
+      const residueData = availableResidues[index];
+      const fResidue = {
+        letter: residue.letter,
+        value: residueData,
+        tooltip: `Mean: ${residueData.mean}\nStandard deviation: ${residueData.stdv}`,
+        color: colorScale(residueData.mean),
+      };
+      const chain = residue.chain;
+      const current = chains[chain];
+      if (current) chains[chain].push(fResidue);
+      else chains[chain] = [fResidue];
+    });
+    const sequences = Object.entries(chains).map(([chain, residues]) => {
+      return {
+        name: 'Chain ' + chain,
+        residues: residues,
+      };
+    });
+
+    return { xAxesStep, sequences };
+  }, [payload, pdbData, metadata]);
+
+  // Get the residues list in model notation
+  const selectedData = useMemo(() => {
+    // Now get only the selected keys from the payload
+    const selectedData = {};
+    // Color the first selected residues in the graph
+    selectedResidues.forEach((residue, i) => {
+      const newData = { data: residue.rmsds };
+      newData.color = residue.color;
+      selectedData[i] = newData;
+    });
+    return selectedData;
+  }, [selectedResidues]);
 
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
@@ -88,141 +158,34 @@ const RmsdPerres = () => {
 
   if (!pdbData.file || !metadata) return <Loading />;
 
-  const data = payload.y;
-
-  const firstKey = Object.keys(data)[0];
-
-  const dataLength = data[firstKey].data.length;
-  const xAxesStep = metadata.LENGTH / (dataLength - 1);
-
-  // Remove the first property: 'RMSD_00001'
-  if (payload.y['RMSD_00001']) delete payload.y['RMSD_00001'];
-
-  // Parse the selection string into a numeric array
-  const availableResidues = searchResidues
-    ? searchResidues.split(', ')
-    : Object.keys(data);
-
-  // Now get only the selected keys from the payload
-  const selectedData = { ...selectedResidues.map(residue => data[residue]) };
-  // Color the first selected reisdues in the graph
-  selectedResidues.forEach((residue, i) => {
-    selectedData[residue] = data[residue];
-    if (i < colors.length) selectedData[residue].color = colors[i];
-  });
-
-  // Count the number of residues
-  const rowsNumber = availableResidues.length;
-
-  // Set a function to get the standard model key from the topology formatted residue key
-  const getLabel = residue => {
-    const numeration = complexNumerationParser(residue);
-    const model = source2modelResidue(numeration, pdbData.file, metadata);
-    return model.tag;
-  };
-
   // Set which options will be available in the resiude selector
+  /*
   const selectorOptions = [{ label: 'All', value: '' }];
   if (metadata.INTERFACES && metadata.INTERFACES[0])
     selectorOptions.push({ label: 'Interface', value: metadata.INTERFACES[0] });
+  */
 
   // Render
   return (
     <Suspense fallback={<Loading />}>
-      <Card className={style.card}>
-        <Info
-          reference={'rmsd-perres-selector'}
-          tooltip={
-            <>
-              This is the residues selector.
-              <br />
-              <br />
-              Use this panel to select which residues are taken in count in the
-              data table below and thus in the graph. Some default residue
-              groups are provided by the authors (e.g. interface residues
-              between two proteins).
-            </>
-          }
-        />
-        <CardContent>
-          <Selector
-            label="Residues selection"
-            selection={searchResidues}
-            setter={setSearchResidues}
-            options={selectorOptions}
-            //custom
+      <Card>
+        <CardContent className={style.paper}>
+          <ResidueSelector
+            //modelResidues={modelResidues}
+            sequences={sequences}
+            selectedResiduesSetter={setSelectedResidues}
           />
         </CardContent>
       </Card>
-      <Card className={style.tablecard}>
-        <div className={style.paper}>
-          <Table stickyHeader>
-            <TableHead>
-              <TableRow>
-                {['Name', 'Mean (Å)', 'Stdev (Å)'].map(name => (
-                  <TableCell key={name}>{name}</TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {availableResidues
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((residue, index) => {
-                  const selectedIndex = selectedResidues.indexOf(residue);
-                  return (
-                    <TableRow key={residue}>
-                      {[
-                        <FormControlLabel
-                          key={residue}
-                          onChange={() =>
-                            setSelectedResidues(previous => {
-                              const newState = [...previous];
-                              const index = newState.indexOf(residue);
-                              if (index === -1) newState.push(residue);
-                              else newState.splice(index, 1);
-                              return newState;
-                            })
-                          }
-                          control={
-                            <Checkbox
-                              checked={selectedIndex !== -1}
-                              style={{
-                                color: colors[selectedIndex] || '#000000',
-                              }}
-                            />
-                          }
-                          label={getLabel(residue)}
-                        />,
-                        nice(data[residue].average),
-                        nice(data[residue].stddev),
-                      ].map(cell => (
-                        <TableCell key={cell}>{cell}</TableCell>
-                      ))}
-                    </TableRow>
-                  );
-                })}
-            </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TablePagination
-                  rowsPerPageOptions={[10, 25, 50, 100]}
-                  colSpan={3}
-                  count={rowsNumber}
-                  rowsPerPage={rowsPerPage}
-                  page={page}
-                  onChangePage={(event, newPage) => {
-                    setPage(newPage);
-                  }}
-                  onChangeRowsPerPage={event => {
-                    const newValue = event.target.value;
-                    setRowsPerPage(parseInt(newValue, 10));
-                    setPage(0);
-                  }}
-                />
-              </TableRow>
-            </TableFooter>
-          </Table>
-        </div>
+      <Card className={style['graph']}>
+        <Graph2
+          yData={selectedData}
+          step={xAxesStep}
+          xAxisLabel={'Time (ns)'}
+          yAxisLabel={'RMSd (Å)'}
+          onSelect={setSelectedFrame}
+          selected={selectedFrame}
+        />
       </Card>
       <Card className={style.nglcard} ref={nglRef}>
         <Info
@@ -249,23 +212,11 @@ const RmsdPerres = () => {
           <NGLViewerWithControls
             className={style.container}
             components={firstFrameComponent}
-            selectedResidues={selectedResidues}
+            selectedResidues={selectedResidues.map(residue => residue.name)}
           />
         ) : (
           <div style={{ height: '50vh' }} />
         )}
-      </Card>
-      <Card>
-        <Graph2
-          yData={selectedData}
-          step={xAxesStep}
-          xAxisLabel={'Time (ns)'}
-          //xScaleFactor={0.001}
-          yAxisLabel={'RMSd (Å)'}
-          onSelect={setSelectedFrame}
-          selected={selectedFrame}
-          colors={colors}
-        />
       </Card>
       <NGLViewerSpawner
         // Set the new viewer or null if there is not a proper "selected" value
@@ -274,7 +225,7 @@ const RmsdPerres = () => {
             ? {
                 accession: accession,
                 requestedFrame: selectedFrame,
-                selectedResidues: selectedResidues,
+                selectedResidues: selectedResidues.map(residue => residue.name),
               }
             : null
         }

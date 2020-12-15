@@ -1,42 +1,20 @@
-.widest {
-  margin: 1em 0;
-  width: 100%;
-}
-
-.margined {
-  margin: 1em 0;
-}
-
-.card {
-  margin: 1em 0;
-}
-
 .paper {
-  max-height: 500px;
+  max-height: 300px;
   overflow-y: scroll;
 }
 
-.tablecard {
-  margin-top: 1em;
+.graph {
   display: inline-block;
-  width: 40%;
+  width: 55%;
+  height: 300px;
 }
 
 .nglcard {
-  margin-top: 1em;
   display: inline-block;
-  width: 60%;
-  height: 500px;
-}
-
-.margined {
-  margin: 1em;
+  width: 45%;
+  height: 300px;
 }
 
 .container {
   height: 100%;
-}
-
-.selectedrow {
-  background-color: #76ff03;
 }

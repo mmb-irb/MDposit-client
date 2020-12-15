@@ -254,7 +254,7 @@ const Pockets = () => {
           <div style={{ height: '50vh' }} />
         )}
       </Card>
-      <Card>
+      <Card className={style.graph}>
         <Graph2
           yData={graphInputData}
           xAxisValues={xAxisValues}

@@ -6,14 +6,14 @@
 .normal {
   font-size: 85%;
   font-family: 'Courier New', monospace;
-  line-height: 180%;
+  margin-top: 0.5em;
   cursor: pointer;
 }
 
 .selected {
   font-size: 85%;
   font-family: 'Courier New', monospace;
-  line-height: 180%;
+  margin-top: 0.5em;
   cursor: pointer;
   color: white;
   background-color: black;
@@ -26,6 +26,19 @@
 
 .small-up-number {
   position: absolute;
-  transform: translate(0em, -0.5em);
+  transform: translate(0em, -0.1em);
   font-size: 64%;
+}
+
+.pivot {
+  position: relative;
+}
+
+/* Create a triangle over the hovered residue letter */
+.pointer {
+  position: absolute;
+  transform: translate(-0.75em, -0.5em);
+  border-top: solid 0.5em black;
+  border-left: solid 0.5em transparent;
+  border-right: solid 0.5em transparent;
 }

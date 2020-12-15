@@ -1,8 +1,13 @@
-import React, { useContext, useMemo } from 'react';
+import React, { useContext, useMemo, Suspense } from 'react';
 // A hook to track whenever some element is on screen
 import { useInView } from 'react-intersection-observer';
 
 import Card from '../../../components/animated-card';
+/*
+import {
+  CardContent,
+} from '@material-ui/core';
+*/
 import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
 
 import style from './style.module.css';
@@ -22,14 +27,18 @@ import { ColormakerRegistry } from 'ngl';
 
 import { color as d3color, interpolateRgb } from 'd3';
 
+//import ResidueSelector from '../../../components/residue-selector';
+
 // Define permanent options for the "useInView"
 const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
 
 const Mutations = () => {
-  // useInView acts as a React hook
-  // Track if the NGL viewer (nglRef) and the analyses (nightingaleRef) are on screen
-  // The status (e.g. isNglVisible) is returned true/false when the element is in/out the screen respectively
+  // Track if the NGL viewer
+  // The status isNglVisible is returned true/false when the element is in/out the screen respectively
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
+
+  // Set when one point in the graph is selected
+  //const [selectedResidues, setSelectedResidues] = useState([]);
 
   // Get the current project chains
   const { metadata } = useContext(ProjectCtx);
@@ -47,7 +56,19 @@ const Mutations = () => {
   const [representations, mutationsScheme] = useMemo(() => {
     if (!payload) return [];
 
-    const mutations = payload.mutations;
+    const mutations = payload && payload.mutations;
+
+    //getToporefMap(payload, topology)
+
+    // Get a list with all residues converted from source to model format
+    /*
+    const modelResidues = availableResidues.map(residue => {
+      const numeration = complexNumerationParser(residue.name);
+      const model = source2modelResidue(numeration, pdbData.file, metadata);
+      return model;
+    });
+    */
+
     // We add a small extra value to avoid having 0s, which would return a negative infinity
     const logaritmicEntropy = mutations.map(entropy =>
       Math.log(entropy + 0.0001),
@@ -93,10 +114,8 @@ const Mutations = () => {
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
 
-  //console.log(representations);
-
   return (
-    <>
+    /*<>
       <Card className={style.card} ref={nglRef}>
         <Info
           reference={'mutations'}
@@ -117,18 +136,50 @@ const Mutations = () => {
             </>
           }
         />
+      </Card>
+    </>*/
+    <Suspense fallback={<Loading />}>
+      {/*<Card>
+        <CardContent className={style.paper}>
+          
+          <ResidueSelector
+            modelResidues={modelResidues}
+            selectedResiduesSetter={setSelectedResidues}
+          />
+          
+        </CardContent>
+      </Card>*/}
+      <Card className={style.nglcard} ref={nglRef}>
+        <Info
+          reference={'mutations'}
+          tooltip={
+            <>
+              This data table shows the residues list ordered by entropy. First
+              column contains residue name, which is composed by the union of
+              the residue type abbreviation (e.g. ASN, ASP, CYS...) and the
+              topology numeration. Next column provides the entropy value.
+              <br />
+              <br />
+              Use this data table to navigate through all selected resiudes and
+              set which of them must be displayed in the graph below. To do so,
+              click in the first column checkbox of the residue to be
+              shown/hidden.
+            </>
+          }
+        />
         {/* Render the NGL viewer when it is on screen*/}
         {isNglVisible ? (
           <NGLViewerWithControls
             className={style.container}
             representations={representations}
             customColorSchemes={{ mutations: mutationsScheme }}
+            //selectedResidues={selectedResidues}
           />
         ) : (
           <div style={{ height: '50vh' }} />
         )}
       </Card>
-    </>
+    </Suspense>
   );
 };
 

@@ -27,3 +27,7 @@
 .selectedrow {
   background-color: #76ff03;
 }
+
+.graph {
+  height: 50vh;
+}

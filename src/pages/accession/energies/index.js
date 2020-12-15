@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useState, useContext } from 'react';
 
-import { CardContent, Typography } from '@material-ui/core';
+import { CardContent } from '@material-ui/core';
 
 import Card from '../../../components/animated-card';
 import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
@@ -92,70 +92,83 @@ const Energies = () => {
           }
         />
         <CardContent>
-          <Typography variant="h6" />
-          <Graph2
-            yData={{
-              esi: { data: payload.residues_es_avg_initial, color: 'red' },
-              esf: { data: payload.residues_es_avg_final, color: 'blue' },
-              es: { data: payload.residues_es_avg, color: 'black' },
-            }}
-            xAxisValues={xTags}
-            xUnit={'residue'}
-            title={'Electrostatic'}
-            xScaleFactor={0.001}
-            yAxisLabel={'kcal/mol'}
-            onSelect={(xIndex, xValue) => {
-              // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
-              const num = nglNumerationParser(xValue);
-              const source = model2sourceResidue(num, pdbData.file);
-              setSelected([source.numeration]);
-            }}
-            show={{ esi: display.start, esf: display.end, es: display.all }}
-            selected={selected}
-          />
-          <Graph2
-            yData={{
-              vdwi: { data: payload.residues_vdw_avg_initial, color: 'red' },
-              vdwf: { data: payload.residues_vdw_avg_final, color: 'blue' },
-              vdw: { data: payload.residues_vdw_avg, color: 'black' },
-            }}
-            title={'vdW'}
-            xAxisValues={xTags}
-            xUnit={'residue'}
-            yAxisLabel={'kcal/mol'}
-            onSelect={(xIndex, xValue) => {
-              // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
-              const num = nglNumerationParser(xValue);
-              const source = model2sourceResidue(num, pdbData.file);
-              setSelected([source.numeration]);
-            }}
-            show={{ vdwi: display.start, vdwf: display.end, vdw: display.all }}
-            selected={selected}
-          />
-          <Graph2
-            yData={{
-              bothi: { data: payload.residues_both_avg_initial, color: 'red' },
-              bothf: { data: payload.residues_both_avg_final, color: 'blue' },
-              both: { data: payload.residues_both_avg, color: 'black' },
-            }}
-            title={'Electrostatic+vdW'}
-            xAxisLabel={'Residue number'}
-            xAxisValues={xTags}
-            xUnit={'residue'}
-            yAxisLabel={'kcal/mol'}
-            onSelect={(xIndex, xValue) => {
-              // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
-              const num = nglNumerationParser(xValue);
-              const source = model2sourceResidue(num, pdbData.file);
-              setSelected([source.numeration]);
-            }}
-            show={{
-              bothi: display.start,
-              bothf: display.end,
-              both: display.all,
-            }}
-            selected={selected}
-          />
+          <div className={style.graph}>
+            <Graph2
+              yData={{
+                esi: { data: payload.residues_es_avg_initial, color: 'red' },
+                esf: { data: payload.residues_es_avg_final, color: 'blue' },
+                es: { data: payload.residues_es_avg, color: 'black' },
+              }}
+              xAxisValues={xTags}
+              xUnit={'residue'}
+              title={'Electrostatic'}
+              xScaleFactor={0.001}
+              yAxisLabel={'kcal/mol'}
+              onSelect={(xIndex, xValue) => {
+                // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
+                const num = nglNumerationParser(xValue);
+                const source = model2sourceResidue(num, pdbData.file);
+                setSelected([source.numeration]);
+              }}
+              show={{ esi: display.start, esf: display.end, es: display.all }}
+              selected={selected}
+            />
+          </div>
+          <div className={style.graph}>
+            <Graph2
+              yData={{
+                vdwi: { data: payload.residues_vdw_avg_initial, color: 'red' },
+                vdwf: { data: payload.residues_vdw_avg_final, color: 'blue' },
+                vdw: { data: payload.residues_vdw_avg, color: 'black' },
+              }}
+              title={'vdW'}
+              xAxisValues={xTags}
+              xUnit={'residue'}
+              yAxisLabel={'kcal/mol'}
+              onSelect={(xIndex, xValue) => {
+                // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
+                const num = nglNumerationParser(xValue);
+                const source = model2sourceResidue(num, pdbData.file);
+                setSelected([source.numeration]);
+              }}
+              show={{
+                vdwi: display.start,
+                vdwf: display.end,
+                vdw: display.all,
+              }}
+              selected={selected}
+            />
+          </div>
+          <div className={style.graph}>
+            <Graph2
+              yData={{
+                bothi: {
+                  data: payload.residues_both_avg_initial,
+                  color: 'red',
+                },
+                bothf: { data: payload.residues_both_avg_final, color: 'blue' },
+                both: { data: payload.residues_both_avg, color: 'black' },
+              }}
+              title={'Electrostatic+vdW'}
+              xAxisLabel={'Residue number'}
+              xAxisValues={xTags}
+              xUnit={'residue'}
+              yAxisLabel={'kcal/mol'}
+              onSelect={(xIndex, xValue) => {
+                // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
+                const num = nglNumerationParser(xValue);
+                const source = model2sourceResidue(num, pdbData.file);
+                setSelected([source.numeration]);
+              }}
+              show={{
+                bothi: display.start,
+                bothf: display.end,
+                both: display.all,
+              }}
+              selected={selected}
+            />
+          </div>
+
           <Legend
             entries={[
               { name: 'all', color: 'black', check: display.all },

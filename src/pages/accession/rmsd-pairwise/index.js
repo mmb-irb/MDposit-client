@@ -39,6 +39,8 @@ const RmsdPairwise = () => {
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
 
+  //console.log(payload);
+
   // Set the both values: frame numbers
   const data = payload[display];
   if (!data) return 'The requested rmsd-pairwise dataset does not exist';
