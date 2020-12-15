@@ -122,10 +122,11 @@ const ResidueSelector = ({ sequences, selectedResiduesSetter }) => {
       }
       // Remove the pointer
       else {
-        const pointer = event.target.lastChild;
+        const pivot = event.target.lastChild;
+        const pointer = pivot.lastChild;
         color = pointer.style['border-top-color'];
         freeColor(color);
-        event.target.removeChild(pointer);
+        event.target.removeChild(pivot);
       }
       // Set the hover pointer back
       addPointer(event.target);
@@ -137,11 +138,12 @@ const ResidueSelector = ({ sequences, selectedResiduesSetter }) => {
     manager.addEventListener('mouseout', handleMouseOut, true);
     // Set the selected residue when the mouse clicks
     manager.addEventListener('mousedown', hadleMouseClick, true);
-    // Remove all added events in the clean up function
+    // Remove all events and free all colors in the clean up function
     return () => {
       manager.removeEventListener('mouseover', handleMouseOver, true);
       manager.removeEventListener('mouseout', handleMouseOut, true);
       manager.removeEventListener('mousedown', hadleMouseClick, true);
+      asignedColors.forEach(ac => (ac.used = false));
     };
   }, [sequences, selectedResiduesSetter, values]);
 
