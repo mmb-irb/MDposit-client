@@ -1,22 +1,7 @@
-.widest {
-  margin: 1em 0;
-  width: 100%;
-}
-
 .margined {
   margin: 1em 0;
 }
 
 .margined-bottom {
   margin-bottom: 1em;
-}
-
-.card {
-  margin: 1em 0;
-}
-
-.flipped {
-  transform: rotate(-90deg) translate(-100%);
-  position: absolute;
-  transform-origin: top left;
 }

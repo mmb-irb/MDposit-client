@@ -1,4 +1,4 @@
-import React, { useContext, useState, useRef, useMemo } from 'react';
+import React, { useContext, useState, useMemo } from 'react';
 
 import { CardContent, Tabs, Tab } from '@material-ui/core';
 
@@ -17,15 +17,16 @@ import {
   nglNumerationParser,
   source2modelResidue,
   model2sourceResidue,
-  getMetadataChainnames,
 } from '../../../utils/topology-manager';
 
 import Info from '../../../components/info';
-import Selector from '../../../components/selector';
+//import Selector from '../../../components/selector';
+import InteractionSelector from '../../../components/interaction-selector';
 import Heatmap from '../../../components/heatmap';
 
 import style from './style.module.css';
 
+// Distance per residue analysis
 const DistPerres = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
@@ -34,13 +35,12 @@ const DistPerres = () => {
   // Get the current topology, including the residue names
   const pdbData = useContext(PdbCtx);
 
-  // The stored previous data after filtering
-  const filteredData = useRef(null);
+  // The interaction to be displayed
+  const [selectedInteraction, setSelectedInteraction] = useState(0);
 
-  // The residues selection string managed by the selector
-  const [searchResidues, setSearchResidues] = useState(
-    metadata.INTERFACES[0] || '',
-  );
+  // The interaction residues to be displayed
+  // May be all 'residues' or only the 'interface' residues
+  const [selectedResidues, setSelectedResidues] = useState('interface');
 
   // The selected heatmap residues
   const [selected, setSelected] = useState(null);
@@ -54,60 +54,72 @@ const DistPerres = () => {
   const { loading, payload, error } = useAPI(url);
 
   // Filter data by selected residues
-  useMemo(() => {
+  const filteredData = useMemo(() => {
     // Return if the payload is not ready
     if (loading || error || !payload) return;
 
-    // Return the intact payload if there is no selection
-    if (!searchResidues) {
-      filteredData.current = payload;
-      return;
-    }
-    // Otherwise, filter the payload to get only specified residues
+    //const data = payload;
+    const data = payload.data[selectedInteraction];
+    const interaction = metadata.INTERACTIONS[selectedInteraction];
 
-    // Parse the selection string into a numeric array
-    const curatedSelection = searchResidues.split(', ');
+    const residuesX = interaction[selectedResidues + '_1'];
+    const residuesY = interaction[selectedResidues + '_2'];
 
-    // Set new data
-    const xLabels = [];
-    const yLabels = [];
-
-    for (const res of curatedSelection) {
-      if (payload.xLabels.includes(res)) {
-        xLabels.push(res);
-      } else if (payload.yLabels.includes(res)) {
-        yLabels.push(res);
-      } else {
-        console.error(`Residue ${res} not found`);
+    let means = [];
+    let stdvs = [];
+    if (selectedResidues === 'residues') {
+      means = data.means;
+      stdvs = data.stdvs;
+    } else {
+      const allResiduesX = interaction['residues_1'];
+      const allResiduesY = interaction['residues_2'];
+      for (const y of residuesY) {
+        const yIndex = allResiduesY.indexOf(y);
+        const newMeansRow = [];
+        const newStdvsRow = [];
+        for (const x of residuesX) {
+          const xIndex = allResiduesX.indexOf(x);
+          newMeansRow.push(data.means[yIndex][xIndex]);
+          newStdvsRow.push(data.stdvs[yIndex][xIndex]);
+        }
+        means.push(newMeansRow);
+        stdvs.push(newStdvsRow);
       }
     }
 
-    // Harvest the right mean and stdv values according to selected indexes
-    const mean = [];
-    const stdv = [];
-    for (const y of yLabels) {
-      const yIndex = payload.yLabels.indexOf(y);
-      const newMeanRow = [];
-      const newStdvRow = [];
-      for (const x of xLabels) {
-        const xIndex = payload.xLabels.indexOf(x);
-        newMeanRow.push(payload.mean[yIndex][xIndex]);
-        newStdvRow.push(payload.stdv[yIndex][xIndex]);
-      }
-      mean.push(newMeanRow);
-      stdv.push(newStdvRow);
-    }
+    // Convert the residues from topology numeration to model numeration to use them as labels
+    const xLabels = residuesX.map(lab => {
+      const numeration = complexNumerationParser(lab);
+      const mod = source2modelResidue(numeration, pdbData.file);
+      return mod.ngl;
+    });
+    const yLabels = residuesY.map(lab => {
+      const numeration = complexNumerationParser(lab);
+      const mod = source2modelResidue(numeration, pdbData.file);
+      return mod.ngl;
+    });
 
-    // Finally create the heatmap input data sets
-    filteredData.current = {
-      xLabels: xLabels,
-      yLabels: yLabels,
-      mean: mean,
-      stdv: stdv,
+    // Get the titles from the interaction data
+    const xTitle = interaction['agent_1'];
+    const yTitle = interaction['agent_2'];
+
+    return {
+      mean: means,
+      stdv: stdvs,
+      xLabels,
+      yLabels,
+      xTitle,
+      yTitle,
     };
-    //console.log(filteredData.current);
-  }, [loading, error, payload, searchResidues]);
-  //console.log(filteredData.current);
+  }, [
+    loading,
+    error,
+    payload,
+    pdbData,
+    metadata,
+    selectedInteraction,
+    selectedResidues,
+  ]);
 
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
@@ -115,36 +127,6 @@ const DistPerres = () => {
   else if (!payload) return 'Something bad happened';
 
   if (!pdbData.file) return <Loading />;
-
-  // If any of the labels is empty we can't render the heatmap
-  // if (filteredData.current.xLabels.length === 0 || filteredData.current.yLabels.length === 0)
-  // return 'Analysis error: At least one of the dimensions is empty'
-
-  // Convert the yLabels from topology numeration to model numeration
-  // Also, harvest x and y chains to elaborate their axes titles
-  const xChains = [];
-  const mxLabels = filteredData.current.xLabels.map(lab => {
-    const numeration = complexNumerationParser(lab);
-    const mod = source2modelResidue(numeration, pdbData.file);
-    xChains.push(mod.chain);
-    return mod.ngl;
-  });
-  const yChains = [];
-  const myLabels = filteredData.current.yLabels.map(lab => {
-    const numeration = complexNumerationParser(lab);
-    const mod = source2modelResidue(numeration, pdbData.file);
-    yChains.push(mod.chain);
-    return mod.ngl;
-  });
-  const xTitle = getMetadataChainnames(xChains, metadata, pdbData.file)
-    .sentence;
-  const yTitle = getMetadataChainnames(yChains, metadata, pdbData.file)
-    .sentence;
-
-  // Set which options will be available in the resiude selector
-  const selectorOptions = [{ label: 'All', value: '' }];
-  if (metadata.INTERFACES && metadata.INTERFACES[0])
-    selectorOptions.push({ label: 'Interface', value: metadata.INTERFACES[0] });
 
   // handles when the tabs are switched
   const handleTabs = (event, newValue) => {
@@ -165,7 +147,7 @@ const DistPerres = () => {
   // Render
   return (
     <>
-      <Card className={style.card}>
+      <Card>
         <Info
           reference={'dist-perres-selector'}
           tooltip={
@@ -180,12 +162,12 @@ const DistPerres = () => {
           }
         />
         <CardContent>
-          <Selector
-            label="Residues selection"
-            selection={searchResidues}
-            setter={setSearchResidues}
-            options={selectorOptions}
-            //custom
+          <InteractionSelector
+            interactions={metadata.INTERACTIONS}
+            selectedInteraction={selectedInteraction}
+            setSelectedInteraction={setSelectedInteraction}
+            selectedResidues={selectedResidues}
+            setSelectedResidues={setSelectedResidues}
           />
         </CardContent>
       </Card>
@@ -232,9 +214,9 @@ const DistPerres = () => {
           </Tabs>
           <Heatmap
             inputData={{
-              data: filteredData.current[display],
-              xLabels: mxLabels,
-              yLabels: myLabels,
+              data: filteredData[display],
+              xLabels: filteredData['xLabels'],
+              yLabels: filteredData['yLabels'],
             }}
             onClick={(x, y) => {
               const px = parseLabel(x);
@@ -252,9 +234,9 @@ const DistPerres = () => {
             // Invert colors here, since minimum values belong to closer residues
             maxValueColor={{ r: 0, g: 0, b: 255 }}
             minValueColor={{ r: 255, g: 0, b: 0 }}
-            totalHeight={myLabels.length === 1 ? 30 : undefined}
-            xTitle={xTitle}
-            yTitle={yTitle}
+            totalHeight={filteredData['yLabels'].length === 1 ? 30 : undefined}
+            xTitle={filteredData['xTitle']}
+            yTitle={filteredData['yTitle']}
           />
         </CardContent>
       </Card>
