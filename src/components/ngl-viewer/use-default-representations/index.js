@@ -30,7 +30,7 @@ const useDefaultRepresentations = (chains, metadata) => {
       for (const ligand of metadata.LIGANDS) {
         reps.push({
           name: ligand.name,
-          selection: ligand.ngl_selection,
+          selection: ligand.ngl,
           defaultDrawingMethod: 'licorice',
         });
       }

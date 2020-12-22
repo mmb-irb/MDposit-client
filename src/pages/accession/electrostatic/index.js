@@ -68,7 +68,7 @@ const Electrostatic = () => {
       // Exclude ligands. We don't want their surfaces to be represented
       if (metadata.LIGANDS)
         for (const lig of metadata.LIGANDS)
-          if (lig.ngl_selection === nglChainSelection) return;
+          if (lig.ngl === nglChainSelection) return;
       // If the chain is already in the interfaces selection list we expand the selection
       for (const sel of nglInterfaceSelections)
         if (sel.chain === chain) {
@@ -100,7 +100,7 @@ const Electrostatic = () => {
       for (const ligand of metadata.LIGANDS) {
         reps.push({
           name: ligand.name,
-          selection: ligand.ngl_selection,
+          selection: ligand.ngl,
           defaultDrawingMethod: 'ball+stick',
           defaultColoringMethod: 'element',
         });
@@ -114,9 +114,7 @@ const Electrostatic = () => {
     if (!metadata || !metadata.LIGANDS) return;
     // Set the NGL selection for the focus
     const focusSelection =
-      '(' +
-      metadata.LIGANDS.map(ligand => ligand.ngl_selection).join(') or (') +
-      ')';
+      '(' + metadata.LIGANDS.map(ligand => ligand.ngl).join(') or (') + ')';
     return { comp: 0, sele: focusSelection };
   }, [metadata]);
 
