@@ -58,9 +58,13 @@ const DistPerres = () => {
     // Return if the payload is not ready
     if (loading || error || !payload) return;
 
-    //const data = payload;
-    const data = payload.data[selectedInteraction];
+    // Get the selected interaction
     const interaction = metadata.INTERACTIONS[selectedInteraction];
+
+    // Get the data whose name matches the interaction name
+    const data = payload.data.find(dataset => {
+      return dataset.name === interaction.name;
+    });
 
     const residuesX = interaction[selectedResidues + '_1'];
     const residuesY = interaction[selectedResidues + '_2'];
