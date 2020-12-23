@@ -1,6 +1,6 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useMemo } from 'react';
 
-import { CardContent, Tabs, Tab } from '@material-ui/core';
+import { CardContent } from '@material-ui/core';
 
 import useAPI from '../../../hooks/use-api';
 
@@ -15,6 +15,7 @@ import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 import style from './style.module.css';
 
 import Info from '../../../components/info';
+import InteractionSelector from '../../../components/interaction-selector';
 import Heatmap from '../../../components/heatmap';
 
 const RmsdPairwise = () => {
@@ -26,29 +27,64 @@ const RmsdPairwise = () => {
   // The selected frames
   const [selected, setSelected] = useState(null);
 
-  // The graphic to be displayed ('all' or 'interface')
-  const [display, setDisplay] = useState('all');
+  // The interaction to be displayed
+  const [selectedInteraction, setSelectedInteraction] = useState(0);
 
   // Set the API url for the heatmap data
   const url = `${BASE_PATH_PROJECTS}${accession}/analyses/rmsd-pairwise/`;
 
   const { loading, payload, error } = useAPI(url);
 
+  const interactions = useMemo(() => {
+    // Return if the payload is not ready
+    if (!metadata) return;
+    if (!metadata.INTERACTIONS) return [{ name: 'Overall' }];
+    const metadataInteractions = metadata.INTERACTIONS;
+    // Label all metadata interactions with the 'interface residues' ending
+    metadataInteractions.forEach(interaction => {
+      interaction.label = interaction.name + ' (interface residues)';
+    });
+    const interactions = [{ name: 'Overall' }, ...metadataInteractions];
+    return interactions;
+  }, [metadata]);
+
+  const { rmsds, AxesValues } = useMemo(() => {
+    // Return if the payload is not ready
+    if (!payload) return {};
+
+    // Get the selected interaction
+    const interaction = interactions[selectedInteraction];
+
+    // Get the data whose name matches the interaction name
+    const data = payload.data.find(dataset => {
+      return dataset.name === interaction.name;
+    });
+    if (!data) return 'The requested rmsd-pairwise dataset does not exist';
+
+    // Get the rmsds values
+    const rmsds = data.rmsds;
+
+    // Calculate the step
+    // DANI: Esto no es del todo correcto pero hace que los números de frames siempre cuadren
+    const dataLength = rmsds.length;
+    const AxesStep = Math.floor(metadata.SNAPSHOTS / (dataLength - 1));
+
+    // DANI: Esto es lo correcto
+    // DANI: En algunos análisis antiguos las frames no cuadran y hay que rehacerlos
+    //const xAxesStep = payload.step;
+
+    // Calculate the frames labels
+    const AxesValues = Array(dataLength)
+      .fill(undefined)
+      .map((v, i) => i * AxesStep);
+
+    return { rmsds, AxesValues };
+  }, [payload, metadata, interactions, selectedInteraction]);
+
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
-
-  //console.log(payload);
-
-  // Set the both values: frame numbers
-  const data = payload[display];
-  if (!data) return 'The requested rmsd-pairwise dataset does not exist';
-  const dataLength = data.length;
-  const AxesStep = Math.floor(metadata.SNAPSHOTS / (dataLength - 1));
-  const AxesValues = Array(dataLength)
-    .fill(undefined)
-    .map((v, i) => i * AxesStep);
 
   // Set the frames to be represented in the NGL viewer
   const components = [];
@@ -65,15 +101,10 @@ const RmsdPairwise = () => {
       });
     });
 
-  // handles when the tabs are switched
-  const handleTabs = (event, newValue) => {
-    setDisplay(newValue);
-  };
-
   // Render
   return (
     <>
-      <Card className={style.margined} id="heatmap">
+      <Card>
         <Info
           reference={'rmsd-pairwise-heatmap'}
           tooltip={
@@ -88,7 +119,7 @@ const RmsdPairwise = () => {
               below shows the corresponding values in Ångstroms.
               <br />
               <br />
-              Use tabs over the heatmap to switch between different RMSd
+              Use the selector over the heatmap to switch between different RMSd
               pairwise analyses. Each analysis is calculated with a different
               selection of atoms/residues which have been suggested to be
               relevant by the authors.
@@ -101,26 +132,18 @@ const RmsdPairwise = () => {
           }
         />
         <CardContent>
-          <Tabs
-            value={display}
-            variant="fullWidth"
-            indicatorColor="secondary"
-            textColor="secondary"
-            onChange={handleTabs}
-            className={style['margined-bottom']}
-          >
-            <Tab
-              value={'all'}
-              label="RMSD pairwise"
-              //className={style['disabled-tab']}
-            />
-            {metadata && metadata.INTERFACES && (
-              <Tab value={'interface'} label="Interface RMSD pairwise" />
-            )}
-          </Tabs>
+          <InteractionSelector
+            interactions={interactions}
+            selectedInteraction={selectedInteraction}
+            setSelectedInteraction={setSelectedInteraction}
+          />
+        </CardContent>
+      </Card>
+      <Card className={style.margined} id="heatmap">
+        <CardContent>
           <Heatmap
             inputData={{
-              data: data,
+              data: rmsds,
               xLabels: AxesValues,
               yLabels: AxesValues,
             }}
