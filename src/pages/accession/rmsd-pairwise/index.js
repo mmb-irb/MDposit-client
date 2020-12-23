@@ -81,14 +81,10 @@ const RmsdPairwise = () => {
     return { rmsds, AxesValues };
   }, [payload, metadata, interactions, selectedInteraction]);
 
-  // Render loading or error messages according with the API response
-  if (loading) return <Loading />;
-  else if (error) return error.toString();
-  else if (!payload) return 'Something bad happened';
-
   // Set the frames to be represented in the NGL viewer
-  const components = [];
-  if (selected)
+  const components = useMemo(() => {
+    if (!selected) return;
+    const components = [];
     selected.forEach((frame, index) => {
       components.push({
         frame: frame,
@@ -100,6 +96,13 @@ const RmsdPairwise = () => {
         ],
       });
     });
+    return components;
+  }, [selected]);
+
+  // Render loading or error messages according with the API response
+  if (loading) return <Loading />;
+  else if (error) return error.toString();
+  else if (!payload) return 'Something bad happened';
 
   // Render
   return (
