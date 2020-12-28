@@ -59,7 +59,8 @@ const RmsdPairwise = () => {
     const data = payload.data.find(dataset => {
       return dataset.name === interaction.name;
     });
-    if (!data) return 'The requested rmsd-pairwise dataset does not exist';
+    if (!data)
+      return `Dataset for the interaction "${interaction.name}" not found`;
 
     // Get the rmsds values
     const rmsds = data.rmsds;
@@ -74,6 +75,7 @@ const RmsdPairwise = () => {
     //const xAxesStep = payload.step;
 
     // Calculate the frames labels
+    // These values are used for BOTH axes
     const AxesValues = Array(dataLength)
       .fill(undefined)
       .map((v, i) => i * AxesStep);
