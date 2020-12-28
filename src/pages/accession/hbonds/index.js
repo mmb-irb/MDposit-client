@@ -1,10 +1,9 @@
-import React, { Suspense, useContext, useState } from 'react';
+import React, { Suspense, useContext, useState, useMemo } from 'react';
 
 import { CardContent } from '@material-ui/core';
 
 import Card from '../../../components/animated-card';
 import Loading from '../../../components/loading';
-import HorizontalBars from '../../../components/horizontal-bars';
 import D3HeatmapGrid from '../../../components/d3-heatmap-grid';
 import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 import Info from '../../../components/info';
@@ -12,17 +11,16 @@ import ChainsLegend from '../../../components/chains-legend';
 
 import useAPI from '../../../hooks/use-api';
 
-import { AccessionCtx, PdbCtx } from '../../../contexts';
+import { AccessionCtx, PdbCtx, ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 import {
-  source2modelResidue,
-  source2absoluteResidue,
-  complexNumerationParser,
-  getAtom,
-  absolute2sourceResidue,
+  getAtomResidue,
+  absolute2modelResidue,
 } from '../../../utils/topology-manager';
+
+import InteractionSelector from '../../../components/interaction-selector';
 
 import style from './style.module.css';
 
@@ -31,9 +29,13 @@ const Hbonds = () => {
   const accession = useContext(AccessionCtx);
   // Get the current topology, including the residue names
   const pdbData = useContext(PdbCtx);
+  // Get the current project metadata
+  const { metadata } = useContext(ProjectCtx);
+  const interactions = metadata.INTERACTIONS;
 
-  // The bar which the mouse is over
-  const [hoveredHB, setHoveredHB] = useState(null);
+  // The interaction to be displayed
+  const [selectedInteraction, setSelectedInteraction] = useState(0);
+
   // The hydrogen bond bar which the mouse has clicked
   const [selectedHB, setSelectedHB] = useState(null);
 
@@ -43,6 +45,98 @@ const Hbonds = () => {
   // Send a request to the API with the url of the specific analysis
   const { loading, payload, error } = useAPI(url);
 
+  // Set the filtered data which will be displayed
+  const filteredData = useMemo(() => {
+    // Return here if there is no payload or topology
+    if (!payload || !pdbData || !pdbData.file) return;
+
+    // The newest format has 4 fields: acceptors, donors, hydrogens and hbonds
+    // The hbonds includes arrays of true and false per frame
+    const interaction = interactions[selectedInteraction];
+
+    // Get the data whose name matches the interaction name
+    const data = payload.data.find(dataset => {
+      return dataset.name === interaction.name;
+    });
+    if (!data)
+      return `Dataset for the interaction "${interaction.name}" not found`;
+
+    const filteredData = {
+      hbonds: [],
+      acceptorAtomIndex: [],
+      donorAtomIndex: [],
+      hydrogenAtomIndex: [],
+      ylabels: [],
+    };
+
+    // Get the step
+    // DANI: Esto no es del todo correcto pero hace que los números de frames siempre cuadren
+    // DANI: Lo correcto sería hacer el hydrogen bonds con todas las frames y que el step fuese 1
+    // DANI: Osea quitar todo el código del step
+    // DANI: Esto es un apaño temporal porque algunos hydrogen bonds son de trayectorias reducidas
+    // DANI: Esto se debe a que con la trayectoria completa excedían el límite de 16Mb
+    // DANI: Lo correcto es implementar un nuevo sistema de carga de análisis sin límites
+    const dataLength = data.hbonds[0].length;
+    const step = Math.floor(metadata.SNAPSHOTS / (dataLength - 1));
+    // Calculate the frames labels
+    const xAxisValues = Array(dataLength)
+      .fill(undefined)
+      .map((v, i) => i * step);
+    filteredData.xlabels = xAxisValues;
+
+    // Find out the percent of frames where the bond is done along the trajectory for each bond
+    const percents = data.hbonds.map(hb => {
+      const totalFrames = hb.length;
+      const hbFrames = hb.filter(value => value).length;
+      return (hbFrames / totalFrames) * 100;
+    });
+
+    // Get the orderer index of 'hbonds' values greater than 1%
+    const orderedIndexes = Array.from(Array(percents.length).keys());
+    orderedIndexes.sort((a, b) => {
+      return percents[b] - percents[a];
+    });
+
+    // Discard values lower than 1%
+    const indexes = orderedIndexes.filter(i => percents[i] > 1);
+
+    for (const hb of indexes) {
+      // Push the selected bond to the filteredData object
+      const hbonds = data.hbonds[hb];
+      filteredData.hbonds.push(hbonds);
+      const acceptor = data.acceptors[hb];
+      filteredData.acceptorAtomIndex.push(acceptor);
+      const donor = data.donors[hb];
+      filteredData.donorAtomIndex.push(donor);
+      const hydrogen = data.hydrogens[hb];
+      filteredData.hydrogenAtomIndex.push(hydrogen);
+
+      // Set a human readable lable for this bond
+      const acceptorResidueIndex = getAtomResidue(acceptor).index;
+      const donorResidueIndex = getAtomResidue(donor).index;
+
+      const acceptorResidue = absolute2modelResidue(
+        acceptorResidueIndex,
+        pdbData.file,
+      );
+      const donorResidue = absolute2modelResidue(
+        donorResidueIndex,
+        pdbData.file,
+      );
+      filteredData.ylabels.push(
+        acceptorResidue.ngl +
+          '.' +
+          acceptor +
+          ' - ' +
+          donorResidue.ngl +
+          '.' +
+          donor,
+      );
+    }
+
+    return filteredData;
+  }, [payload, pdbData, interactions, selectedInteraction, metadata.SNAPSHOTS]);
+
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
   else if (error) return error.toString();
@@ -50,114 +144,18 @@ const Hbonds = () => {
 
   if (!pdbData.file) return <Loading />;
 
-  // The new format has 4 fields: acceptorAtomIndex, donorAtomIndex, hydrogenAtomIndex and hbonds
-  // The old format has 6 fields: atom1, resnum1, atom2, resnum2, link and hbonds
-  const newFormat = !!payload.acceptorAtomIndex;
-  // The framed format is the new format with arrays of 1s and 0s instead of a percent in 'hbonds'
-  const framedFormat = !!payload.hbonds[0].length;
-
-  const percents = framedFormat
-    ? payload.hbonds.map(hb => {
-        const totalFrames = hb.length;
-        const hbFrames = hb.filter(value => value === 1).length;
-        return (hbFrames / totalFrames) * 100;
-      })
-    : payload.hbonds;
-
-  // Get the orderer index of 'payload.hbonds' values greater than 1%
-  const orderedIndexes = Array.from(Array(percents.length).keys());
-  orderedIndexes.sort((a, b) => {
-    return percents[b] - percents[a];
-  });
-
-  const indexes = orderedIndexes.filter(i => percents[i] > 1);
-
-  // Use the indexes array to get a new filtered and ordered data set
-  const data = {
-    hbonds: [],
-    atom1: [],
-    resnum1: [],
-    atom2: [],
-    resnum2: [],
-    link: [],
-    acceptorAtomIndex: [],
-    donorAtomIndex: [],
-    hydrogenAtomIndex: [],
-  };
-  const ylabels = [];
-
-  if (newFormat) {
-    payload.atom1 = [];
-    payload.resnum1 = [];
-    payload.atom2 = [];
-    payload.resnum2 = [];
-    payload.link = [];
-    for (const hb in payload.hbonds) {
-      const atom1 = getAtom(payload.acceptorAtomIndex[hb], pdbData.file);
-      const residue1 = absolute2sourceResidue(atom1.residue);
-      payload.atom1.push(atom1.name);
-      payload.resnum1.push(residue1.numeration);
-      const atom2 = getAtom(payload.donorAtomIndex[hb], pdbData.file);
-      const residue2 = absolute2sourceResidue(atom2.residue);
-      payload.atom2.push(atom2.name);
-      payload.resnum2.push(residue2.numeration);
-      const link = getAtom(payload.hydrogenAtomIndex[hb], pdbData.file);
-      payload.link.push(link.name);
-    }
-  }
-
-  for (const hb of indexes) {
-    data.hbonds.push(payload.hbonds[hb]);
-    data.atom1.push(payload.atom1[hb]);
-    data.resnum1.push(payload.resnum1[hb]);
-    data.atom2.push(payload.atom2[hb]);
-    data.resnum2.push(payload.resnum2[hb]);
-    data.link.push(payload.link[hb]);
-    const numeration1 = complexNumerationParser(payload.resnum1[hb]);
-    const numeration2 = complexNumerationParser(payload.resnum2[hb]);
-    const res1 = source2modelResidue(numeration1, pdbData.file);
-    const res2 = source2modelResidue(numeration2, pdbData.file);
-    ylabels.push(
-      res1.ngl +
-        '.' +
-        payload.atom1[hb] +
-        ' - ' +
-        res2.ngl +
-        '.' +
-        payload.atom2[hb],
-    );
-    if (newFormat) {
-      data.acceptorAtomIndex.push(payload.acceptorAtomIndex[hb]);
-      data.donorAtomIndex.push(payload.donorAtomIndex[hb]);
-      data.hydrogenAtomIndex.push(payload.hydrogenAtomIndex[hb]);
-    }
-  }
-
-  // Get atom number from resiude number and atom type
-  const getAtomIndex = (numeration, atomType) => {
-    const topology = pdbData.file;
-    const pnum = complexNumerationParser(numeration);
-    const nResidue = source2absoluteResidue(pnum, topology);
-    const firstResidueAtom = topology.residueStore.atomOffset[nResidue];
-    const residueSize = topology.residueStore.atomCount[nResidue];
-    const residueAtomIndexes = [...Array(residueSize).keys()].map(
-      i => i + firstResidueAtom,
-    );
-    const atomTypeIds = topology.atomStore.atomTypeId;
-    const residueAtomTypes = residueAtomIndexes.map(
-      i => topology.atomMap.get(atomTypeIds[i]).atomname,
-    );
-    const residueAtomNumber = residueAtomTypes.indexOf(atomType);
-    const atomNumber = firstResidueAtom + residueAtomNumber;
-    //console.log(residue + '(' + atomType + ') -> ' + atomNumber);
-    return atomNumber;
-  };
-
-  //console.log(ylabels);
-
   // Render
   return (
     <Suspense fallback={<Loading />}>
+      <Card>
+        <CardContent>
+          <InteractionSelector
+            interactions={interactions}
+            selectedInteraction={selectedInteraction}
+            setSelectedInteraction={setSelectedInteraction}
+          />
+        </CardContent>
+      </Card>
       <Card className={style.margined}>
         <Info
           reference={'hbonds-graph'}
@@ -186,66 +184,30 @@ const Hbonds = () => {
         />
         <CardContent>
           <ChainsLegend />
-          {framedFormat ? (
-            <D3HeatmapGrid
-              data={data.hbonds}
-              yAxisValues={ylabels}
-              xAxisLabel={'Frames'}
-              yAxisLabel={'Hydrogen bonds'}
-              onTooltip={d => d.y}
-              onClick={d => {
-                const index = ylabels.indexOf(d.y);
-                // Convert the clicked bar index to the corresponding atom indexes
-                if (index < 0) return;
-                const acceptor = newFormat
-                  ? data.acceptorAtomIndex[index]
-                  : getAtomIndex(data.resnum1[index], data.atom1[index]);
-                const donor = newFormat
-                  ? data.donorAtomIndex[index]
-                  : getAtomIndex(data.resnum2[index], data.atom2[index]);
-                const hydrogen = newFormat
-                  ? data.hydrogenAtomIndex[index]
-                  : getAtomIndex(data.resnum2[index], data.link[index]);
-                setSelectedHB({
-                  index,
-                  selectedAtoms: [acceptor, donor],
-                  selectedDistances: [[acceptor, donor]],
-                  selectedAngles: [[acceptor, hydrogen, donor]],
-                });
-              }}
-              verticalPadding={0.2}
-              minColor={'#f0f0f0'}
-            />
-          ) : (
-            <HorizontalBars
-              data={data.hbonds}
-              ylabels={ylabels}
-              height={20 * data.hbonds.length}
-              xMax={100}
-              hoveredBar={hoveredHB}
-              onHover={index => setHoveredHB(index)}
-              selectedBar={selectedHB ? selectedHB.index : null}
-              onClick={index => {
-                // Convert the clicked bar index to the corresponding atom indexes
-                if (index < 0) return;
-                const acceptor = newFormat
-                  ? data.acceptorAtomIndex[index]
-                  : getAtomIndex(data.resnum1[index], data.atom1[index]);
-                const donor = newFormat
-                  ? data.donorAtomIndex[index]
-                  : getAtomIndex(data.resnum2[index], data.atom2[index]);
-                const hydrogen = newFormat
-                  ? data.hydrogenAtomIndex[index]
-                  : getAtomIndex(data.resnum2[index], data.link[index]);
-                setSelectedHB({
-                  index,
-                  selectedAtoms: [acceptor, donor],
-                  selectedDistances: [[acceptor, donor]],
-                  selectedAngles: [[acceptor, hydrogen, donor]],
-                });
-              }}
-            />
-          )}
+          <D3HeatmapGrid
+            data={filteredData.hbonds}
+            xAxisValues={filteredData.xlabels}
+            yAxisValues={filteredData.ylabels}
+            xAxisLabel={'Frames'}
+            yAxisLabel={'Hydrogen bonds'}
+            onTooltip={d => d.y}
+            onClick={d => {
+              const index = filteredData.ylabels.indexOf(d.y);
+              // Convert the clicked bar index to the corresponding atom indexes
+              if (index < 0) return;
+              const acceptor = filteredData.acceptorAtomIndex[index];
+              const donor = filteredData.donorAtomIndex[index];
+              const hydrogen = filteredData.hydrogenAtomIndex[index];
+              setSelectedHB({
+                index,
+                selectedAtoms: [acceptor, donor],
+                selectedDistances: [[acceptor, donor]],
+                selectedAngles: [[acceptor, hydrogen, donor]],
+              });
+            }}
+            verticalPadding={0.2}
+            minColor={'#f0f0f0'}
+          />
         </CardContent>
       </Card>
       <NGLViewerSpawner
