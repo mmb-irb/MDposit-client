@@ -537,7 +537,7 @@ const Graph2 = ({
           .attr(
             'opacity',
             // Dots become invisible if the closest index is not between the minimum and the maximum
-            closestIndex * step >= xMin && closestIndex * step <= xMax ? 1 : 0,
+            closestIndex * step >= xMin && closestIndex * step < xMax ? 1 : 0,
           );
         allDotGroups
           .selectAll('g.dot-group')
@@ -585,7 +585,7 @@ const Graph2 = ({
           });
         if (onHover) {
           onHover(
-            closestIndex * step >= xMin && closestIndex * step <= xMax
+            closestIndex * step >= xMin && closestIndex * step < xMax
               ? closestIndex
               : null,
           );
@@ -597,7 +597,7 @@ const Graph2 = ({
           const [xValue] = mouse(nodes[index]);
           const closestIndex =
             Math.round(x.invert(xValue) / precision / step) * precision;
-          if (closestIndex * step < xMin || closestIndex * step > xMax) {
+          if (closestIndex * step < xMin || closestIndex * step >= xMax) {
             return;
           }
           onSelect(
