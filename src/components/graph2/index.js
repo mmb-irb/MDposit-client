@@ -290,7 +290,11 @@ const Graph2 = ({
       allDotGroups.selectAll('g.dot-group').attr('opacity', 0);
 
       let precision;
-      if (event.sourceEvent.type === 'wheel' && !blockMaxPrecision) {
+      if (
+        event.sourceEvent &&
+        event.sourceEvent.type === 'wheel' &&
+        !blockMaxPrecision
+      ) {
         precision =
           2 ** Math.floor(Math.log2(precisionScale(event.transform.k)));
         setPrecision(precision);
