@@ -138,6 +138,7 @@ const NGLViewerWithControls = forwardRef(
       //    topologyURL: string, (used in pockets analysis)
       //    trajectoryURL: string, (used in pca analysis)
       //    frame: int, (used in rmsd pairwise analysis)
+      //    onlyTopology: bool, (used in pockets analysis)
       //    representations: [...],
       //  }
       components,
@@ -269,8 +270,9 @@ const NGLViewerWithControls = forwardRef(
       defaultRepresentations,
     ]);
 
-    // When there is only 1 frame to load or all representations have their specific frame
-    const noTrajectory = Number.isFinite(allComponents[0].frame);
+    // When there is only 1 frame to load or only topology in the main (first) component
+    const noTrajectory =
+      Number.isFinite(allComponents[0].frame) || allComponents[0].onlyTopology;
 
     // Builtin states
     // They are always declared but only used when there is no forced state in the arguments
