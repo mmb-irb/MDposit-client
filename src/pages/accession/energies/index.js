@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState, useContext } from 'react';
+import React, { lazy, Suspense, useState, useContext, useMemo } from 'react';
 
 import { CardContent } from '@material-ui/core';
 
@@ -8,12 +8,14 @@ import Loading from '../../../components/loading';
 
 import useAPI from '../../../hooks/use-api';
 
-import { AccessionCtx, PdbCtx } from '../../../contexts';
+import { AccessionCtx, PdbCtx, ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 import Info from '../../../components/info';
 import Legend from '../../../components/legend';
+
+import LigandSelector from '../../../components/ligand-selector';
 
 import style from './style.module.css';
 
@@ -31,6 +33,8 @@ const Graph2 = lazy(() =>
 const Energies = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
+  // Get the current project metadata
+  const { metadata } = useContext(ProjectCtx);
   // Get the current topology, including the residue names
   const pdbData = useContext(PdbCtx);
 
@@ -39,23 +43,44 @@ const Energies = () => {
     `${BASE_PATH_PROJECTS}${accession}/analyses/energies/`,
   );
 
+  // The ligand to be displayed
+  const [selectedLigand, setSelectedLigand] = useState(0);
+
   // Set when one point in the graph is selected
   const [selected, setSelected] = useState(null);
 
   // Set which data is displayed: all, start, end or any combination of them
   const [display, setDisplay] = useState({ all: true, start: true, end: true });
 
+  const ligands = metadata && metadata.LIGANDS;
+
+  const data = useMemo(() => {
+    // Return if the payload is not ready
+    if (!payload) return;
+
+    // Get the selected ligand
+    const ligand = ligands[selectedLigand];
+
+    // Get the data whose name matches the ligand name
+    const data = payload.data.find(dataset => {
+      return dataset.name === ligand.name;
+    });
+    if (!data) return `Dataset for the ligand "${ligand.name}" not found`;
+
+    data.xTags = [];
+    for (const residue of data.labels) {
+      const numeration = complexNumerationParser(residue);
+      const mod = source2modelResidue(numeration, pdbData.file);
+      data.xTags.push(mod.ngl);
+    }
+
+    return data;
+  }, [payload, ligands, selectedLigand, pdbData]);
+
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
-
-  const xTags = [];
-  for (const residue of payload.residues_labels) {
-    const numeration = complexNumerationParser(residue);
-    const mod = source2modelResidue(numeration, pdbData.file);
-    xTags.push(mod.ngl);
-  }
 
   // Render
   return (
@@ -92,14 +117,21 @@ const Energies = () => {
           }
         />
         <CardContent>
+          <LigandSelector
+            ligands={ligands}
+            selectedLigand={selectedLigand}
+            setSelectedLigand={setSelectedLigand}
+          />
+        </CardContent>
+        <CardContent>
           <div className={style.graph}>
             <Graph2
               yData={{
-                esi: { data: payload.residues_es_avg_initial, color: 'red' },
-                esf: { data: payload.residues_es_avg_final, color: 'blue' },
-                es: { data: payload.residues_es_avg, color: 'black' },
+                esi: { data: data.ies, color: 'red' },
+                esf: { data: data.fes, color: 'blue' },
+                es: { data: data.es, color: 'black' },
               }}
-              xAxisValues={xTags}
+              xAxisValues={data.xTags}
               xUnit={'residue'}
               title={'Electrostatic'}
               xScaleFactor={0.001}
@@ -117,12 +149,12 @@ const Energies = () => {
           <div className={style.graph}>
             <Graph2
               yData={{
-                vdwi: { data: payload.residues_vdw_avg_initial, color: 'red' },
-                vdwf: { data: payload.residues_vdw_avg_final, color: 'blue' },
-                vdw: { data: payload.residues_vdw_avg, color: 'black' },
+                vdwi: { data: data.ivdw, color: 'red' },
+                vdwf: { data: data.fvdw, color: 'blue' },
+                vdw: { data: data.vdw, color: 'black' },
               }}
               title={'vdW'}
-              xAxisValues={xTags}
+              xAxisValues={data.xTags}
               xUnit={'residue'}
               yAxisLabel={'kcal/mol'}
               onSelect={(xIndex, xValue) => {
@@ -143,15 +175,15 @@ const Energies = () => {
             <Graph2
               yData={{
                 bothi: {
-                  data: payload.residues_both_avg_initial,
+                  data: data.iboth,
                   color: 'red',
                 },
-                bothf: { data: payload.residues_both_avg_final, color: 'blue' },
-                both: { data: payload.residues_both_avg, color: 'black' },
+                bothf: { data: data.fboth, color: 'blue' },
+                both: { data: data.both, color: 'black' },
               }}
               title={'Electrostatic+vdW'}
               xAxisLabel={'Residue number'}
-              xAxisValues={xTags}
+              xAxisValues={data.xTags}
               xUnit={'residue'}
               yAxisLabel={'kcal/mol'}
               onSelect={(xIndex, xValue) => {
