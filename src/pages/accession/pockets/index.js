@@ -14,6 +14,7 @@ import {
 
 import Card from '../../../components/animated-card';
 import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
+import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 
 import style from './style.module.css';
@@ -34,6 +35,15 @@ const Graph2 = lazy(() =>
 // Define permanent options for the "useInView"
 const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
 
+// Set a function to calculate the average value from a values array
+const roundedAvg = values => {
+  const sum = values.reduce((pv, cv) => pv + cv, 0);
+  const length = values.length;
+  const average = sum / length;
+  const rounded = Math.round(average * 10) / 10;
+  return rounded;
+};
+
 const Pockets = () => {
   // Track if the NGL viewer
   // The status isNglVisible is returned true/false when the element is in/out the screen respectively
@@ -49,32 +59,37 @@ const Pockets = () => {
   // This blockRef is a workaround to avoid selecting a pocket row when clicking on the checkbox
   const blockRef = useRef(null);
 
+  // Set which pocket is selected by the user
+  const [selectedPocket, setSelectedPocket] = useState(0);
+
+  // Set which pocket is selected by the user
+  const [showRepresentations, setShowRepresentations] = useState([]);
+
+  // Set when one point in the graph is selected
+  const [selectedFrame, setSelectedFrame] = useState(null);
+
   // Send a request to the API with the url of the rgyr analysis
   const { loading, payload, error } = useAPI(
     `${BASE_PATH_PROJECTS}${accession}/analyses/pockets/`,
   );
 
-  // DANI: Esto lo suyo sería corregirlo desde la base de datos
-  if (payload && payload.name) delete payload.name;
-
   // Use this hook to get the memoized NGL default representations
   // We need to access the default representations from here to know the number of representations
   const defaultRepresentations = useDefaultRepresentations(chains, metadata);
-  const representationsNumber = defaultRepresentations
-    ? defaultRepresentations.length
-    : undefined;
 
   // Set the components to be passed to NGL
-  const components = useMemo(() => {
+  const { data, components, representationsNumber } = useMemo(() => {
     // Wait for payload to be downloaded
-    if (!payload) return;
+    if (!payload) return {};
+
+    const data = payload.data;
 
     // Set a new NGL component for each pocket
-    const pockets = [];
-    const pocketNames = Object.keys(payload);
-    pocketNames.forEach(pocketName => {
+    const pocketComponents = [];
+    data.forEach(pocket => {
       // NGL
-      const pocket = {
+      const pocketName = pocket.name;
+      const pocketComponent = {
         topologyURL: `${BASE_PATH_PROJECTS}${accession}/files/${pocketName}.pdb`,
         onlyTopology: true,
         representations: [
@@ -88,29 +103,61 @@ const Pockets = () => {
         ],
         //chainLabels: [pocketName],
       };
-      pockets.push(pocket);
+      pocketComponents.push(pocketComponent);
     });
+    // Use the average structure to reference the pockets (only backbone right now)
+    const averageURL = `${BASE_PATH_PROJECTS}${accession}/files/average.pdb`;
     // Set first the default representations object
-    return [{ representations: defaultRepresentations }, ...pockets];
-  }, [accession, payload, defaultRepresentations]);
+    const components = [
+      {
+        topologyURL: averageURL,
+        onlyTopology: true,
+        representations: defaultRepresentations,
+      },
+      ...pocketComponents,
+    ];
 
-  // Set which pocket is selected by the user
-  const [selectedPocket, setSelectedPocket] = useState('p1');
+    const representationsNumber = defaultRepresentations
+      ? defaultRepresentations.length
+      : undefined;
 
-  // Set which pocket is selected by the user
-  const [showRepresentations, setShowRepresentations] = useState([]);
-
-  // Set the default 'showRepresentations' value
-  // Should run only once
-  useMemo(() => {
-    if (!payload) return;
     // Create an array of 'true' as long as the number of default representations
     const showDefaultRepresentations = Array(representationsNumber).fill(true);
     // Create an array of 'true' as long as the number of pockets
-    const pocketNumber = Object.keys(payload).length;
+    const pocketNumber = data.length;
     const showPockets = Array(pocketNumber).fill(true);
     setShowRepresentations([...showDefaultRepresentations, ...showPockets]);
-  }, [payload, representationsNumber]);
+
+    return { data, components, representationsNumber };
+  }, [accession, payload, defaultRepresentations]);
+
+  const { graphInputData, show, xAxisValues, currentPocket } = useMemo(() => {
+    // Wait for data and metadata to be ready
+    if (!data || !metadata) return {};
+
+    // Set the input objets for the graph
+    const graphInputData = {};
+    const show = {};
+
+    data.forEach((pocket, p) => {
+      const pocketName = pocket.name;
+      // Graph
+      graphInputData[pocketName] = {
+        data: pocket.volumes,
+      };
+      show[pocketName] = p === selectedPocket;
+    });
+
+    // Set the xAxis values: frame numbers
+    const currentPocket = data[selectedPocket];
+    const dataLength = currentPocket.volumes.length;
+    const xAxisStep = Math.floor(metadata.SNAPSHOTS / (dataLength - 1));
+    const xAxisValues = Array(dataLength)
+      .fill(undefined)
+      .map((v, i) => i * xAxisStep);
+
+    return { graphInputData, show, xAxisValues, currentPocket };
+  }, [data, metadata, selectedPocket]);
 
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
@@ -118,35 +165,6 @@ const Pockets = () => {
   else if (!payload) return 'Something bad happened';
 
   if (!metadata || !pdbData.file) return <Loading />;
-
-  // Set the input objets for the graph
-  const graphInputData = {};
-  const show = {};
-
-  const pocketNames = Object.keys(payload);
-  pocketNames.forEach(pocketName => {
-    // Graph
-    graphInputData[pocketName] = {
-      data: payload[pocketName].pock_volume,
-    };
-    show[pocketName] = pocketName === selectedPocket;
-  });
-
-  // Set the xAxis values: frame numbers
-  const dataLength = payload[selectedPocket].pock_volume.length;
-  const xAxisStep = Math.floor(metadata.SNAPSHOTS / (dataLength - 1));
-  const xAxisValues = Array(dataLength)
-    .fill(undefined)
-    .map((v, i) => i * xAxisStep);
-
-  // Set a function to calculate the average value from a values array
-  const roundedAvg = values => {
-    const sum = values.reduce((pv, cv) => pv + cv, 0);
-    const length = values.length;
-    const average = sum / length;
-    const rounded = Math.round(average * 10) / 10;
-    return rounded;
-  };
 
   return (
     <>
@@ -161,57 +179,58 @@ const Pockets = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {pocketNames.map((pocketName, r) => (
-                <TableRow
-                  key={pocketName}
-                  // Hover only when it is not already selected
-                  hover={pocketName !== selectedPocket}
-                  role="checkbox"
-                  className={
-                    pocketName === selectedPocket
-                      ? style.selectedrow
-                      : undefined
-                  }
-                  onClick={() => {
-                    if (blockRef.current === r) return;
-                    return setSelectedPocket(pocketName);
-                  }}
-                >
-                  {[
-                    <FormControlLabel
-                      data-key={pocketName}
-                      key={pocketName}
-                      onMouseOver={() => {
-                        blockRef.current = r;
-                      }}
-                      onMouseOut={() => {
-                        blockRef.current = null;
-                      }}
-                      onChange={() =>
-                        setShowRepresentations(previous => {
-                          previous[r + representationsNumber] = !previous[
-                            r + representationsNumber
-                          ];
-                          return [...previous];
-                        })
-                      }
-                      control={
-                        <Checkbox
-                          checked={
-                            showRepresentations[r + representationsNumber]
-                          }
-                          style={{ color: 'black' }}
-                          inputProps={{ 'data-key': pocketName }}
-                        />
-                      }
-                      label={pocketName}
-                    />,
-                    roundedAvg(payload[pocketName].pock_volume),
-                  ].map(cell => (
-                    <TableCell key={cell}>{cell}</TableCell>
-                  ))}
-                </TableRow>
-              ))}
+              {data.map((pocket, p) => {
+                const pocketName = pocket.name;
+                return (
+                  <TableRow
+                    key={pocketName}
+                    // Hover only when it is not already selected
+                    hover={p !== selectedPocket}
+                    role="checkbox"
+                    className={
+                      p === selectedPocket ? style.selectedrow : undefined
+                    }
+                    onClick={() => {
+                      if (blockRef.current === p) return;
+                      return setSelectedPocket(p);
+                    }}
+                  >
+                    {[
+                      <FormControlLabel
+                        data-key={pocketName}
+                        key={pocketName}
+                        onMouseOver={() => {
+                          blockRef.current = p;
+                        }}
+                        onMouseOut={() => {
+                          blockRef.current = null;
+                        }}
+                        onChange={() =>
+                          setShowRepresentations(previous => {
+                            previous[p + representationsNumber] = !previous[
+                              p + representationsNumber
+                            ];
+                            return [...previous];
+                          })
+                        }
+                        control={
+                          <Checkbox
+                            checked={
+                              showRepresentations[p + representationsNumber]
+                            }
+                            style={{ color: 'black' }}
+                            inputProps={{ 'data-key': pocketName }}
+                          />
+                        }
+                        label={pocketName}
+                      />,
+                      roundedAvg(pocket.volumes),
+                    ].map(cell => (
+                      <TableCell key={cell}>{cell}</TableCell>
+                    ))}
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
@@ -244,7 +263,7 @@ const Pockets = () => {
           <NGLViewerWithControls
             className={style.container}
             components={components}
-            selectedRepresentation={selectedPocket}
+            selectedRepresentation={currentPocket.name}
             showRepresentationsForced={[
               showRepresentations,
               setShowRepresentations,
@@ -268,8 +287,36 @@ const Pockets = () => {
           roundcents={false}
           mean
           standardDeviation
+          onSelect={setSelectedFrame}
         />
       </Card>
+      {selectedFrame && (
+        <NGLViewerSpawner
+          // Set the new viewer or null if there is not a proper "selected" value
+          newViewer={
+            typeof selectedFrame === 'number'
+              ? {
+                  accession: accession,
+                  requestedFrame: selectedFrame,
+                  selectedAtoms: currentPocket.atoms,
+                }
+              : null
+          }
+          // If the nailed/closed viewer is the current viewer then reset the 'selected'
+          onNail={viewer =>
+            setSelectedFrame(previous => {
+              if (viewer.requestedFrame === previous) return null;
+              else return previous;
+            })
+          }
+          onClose={viewer =>
+            setSelectedFrame(previous => {
+              if (viewer.requestedFrame === previous) return null;
+              else return previous;
+            })
+          }
+        />
+      )}
     </>
   );
 };
