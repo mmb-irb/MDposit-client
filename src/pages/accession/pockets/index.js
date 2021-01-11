@@ -106,12 +106,13 @@ const Pockets = () => {
       pocketComponents.push(pocketComponent);
     });
     // Use the average structure to reference the pockets (only backbone right now)
-    const averageURL = `${BASE_PATH_PROJECTS}${accession}/files/average.pdb`;
+    const averageURL = `${BASE_PATH_PROJECTS}${accession}/files/average.bin`;
     // Set first the default representations object
     const components = [
       {
-        topologyURL: averageURL,
-        onlyTopology: true,
+        trajectoryURL: averageURL,
+        //frame: 0,
+        //onlyTopology: true,
         representations: defaultRepresentations,
       },
       ...pocketComponents,

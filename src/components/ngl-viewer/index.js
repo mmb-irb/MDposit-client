@@ -225,7 +225,8 @@ const NGLViewer = memo(
           const forcedURL = comp.trajectoryURL;
           if (forcedURL) {
             url = forcedURL;
-            frameCount = null;
+            // It must be 1, since loading multiple trajectories is not supported
+            frameCount = 1;
           }
           // If not, build the url
           else {
@@ -237,7 +238,6 @@ const NGLViewer = memo(
               );
               comp.frame = 0;
             }
-
             // Save the number of frames asked when the load starts
             frameCount = comp.frame ? 1 : nFrames;
 
