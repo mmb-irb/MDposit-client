@@ -289,7 +289,7 @@ const NGLViewer = memo(
         comps,
         //projection,
         isProjection,
-        metadata,
+        files,
         noTrajectory,
       ]);
 
