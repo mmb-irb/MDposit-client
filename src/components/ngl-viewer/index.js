@@ -90,7 +90,7 @@ const NGLViewer = memo(
       // True when we just want to display a static structure // Requeste number of frames to display
       // data from context
       const accession = useContext(AccessionCtx);
-      const { metadata, curatedOrientation } = useContext(ProjectCtx);
+      const { metadata, files, curatedOrientation } = useContext(ProjectCtx);
       const pdbData = useContext(PdbCtx);
 
       const [isFirstCompStaged, setIsFirstCompStaged] = useState(false);
@@ -241,10 +241,23 @@ const NGLViewer = memo(
             // Save the number of frames asked when the load starts
             frameCount = comp.frame ? 1 : nFrames;
 
+            // Get the name of the trajectory file inside the database
+            // i.e. the end of the requested URL
+            // The exception is the API endpoint 'trajectory', which uses the 'trajectory.bin' file
+            let trajectoryFilename = baseUrl.split('/').slice(-1)[0];
+            if (trajectoryFilename === 'trajectory')
+              trajectoryFilename = 'trajectory.bin';
+
+            // Get the total number of frames in the requested trajectory
+            const trajectorySummary = files.find(file => {
+              return file.filename === trajectoryFilename;
+            });
+            const totalTrajectoryFrames = trajectorySummary.metadata.frames;
+
             // Get the frames to be loaded in a standarized string format for the API
             const frames = getFrames(
               isProjection,
-              metadata,
+              totalTrajectoryFrames,
               frameCount,
               noTrajectory,
               comp.frame,

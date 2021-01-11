@@ -3,7 +3,7 @@
 // This string is standarized in a API friendly format
 const getFrames = (
   isProjection,
-  metadata,
+  totalTrajectoryFrames,
   nFrames,
   noTrajectory,
   requestedFrame,
@@ -18,16 +18,16 @@ const getFrames = (
   // DANI: En un futuro habría que enseñarle a combinar estas frames con las de la trayectoria completa
   //if (repFrames)
   //  return repFrames.join(',');
-  // multiple frames loaded, as a trajectory
-  if (metadata && !noTrajectory) {
-    if (!metadata.frameCount)
-      return console.error('Metadata has no frameCount');
-    const frameStep = Math.floor(metadata.frameCount / nFrames);
-    return `${1}:${metadata.frameCount}:${frameStep}`;
-  }
+  if (!totalTrajectoryFrames)
+    throw new Error('Missing number of frames in the requested trajectory');
   // only one specific frame loaded, as a projection
-  if (metadata && noTrajectory) {
+  if (noTrajectory) {
     return (requestedFrame + 1).toString();
+  }
+  // multiple frames loaded, as a trajectory
+  else {
+    const frameStep = Math.floor(totalTrajectoryFrames / nFrames);
+    return `${1}:${totalTrajectoryFrames}:${frameStep}`;
   }
 };
 
