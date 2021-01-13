@@ -8,7 +8,7 @@ import { ProjectCtx, PdbCtx } from '../../contexts';
 // Results are collapsed according to unique chainnames
 const ChainsLegend = () => {
   const chainTopology = useContext(PdbCtx).file.chainStore;
-  const chainnames = useContext(ProjectCtx).metadata.CHAINNAMES;
+  const chainnames = Object.values(useContext(ProjectCtx).metadata.CHAINNAMES);
   // Number of chains must match
   if (chainTopology.count !== chainnames.length)
     throw new Error(
