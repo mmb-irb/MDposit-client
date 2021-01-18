@@ -82,7 +82,7 @@ export const complexNumerationParser = numeration => {
 };
 
 // Harvest from a '[residue_type]residue:chain' string the chain letter and the residue number values
-const nglFormat = /^\[[A-Z_]*\]([0-9]*)([A-Z]?):([A-Z])$/;
+const nglFormat = /^\[[0-9a-zA-Z_]*\]([0-9]*)([A-Z]?):([A-Z])$/;
 export const nglNumerationParser = numeration => {
   const result = nglFormat.exec(numeration);
   if (!result)
