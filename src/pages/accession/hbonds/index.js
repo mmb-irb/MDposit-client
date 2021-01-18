@@ -1,6 +1,6 @@
 import React, { Suspense, useContext, useState, useMemo } from 'react';
 
-import { CardContent } from '@material-ui/core';
+import { CardContent, Typography } from '@material-ui/core';
 
 import Card from '../../../components/animated-card';
 import Loading from '../../../components/loading';
@@ -60,6 +60,10 @@ const Hbonds = () => {
     });
     if (!data)
       return `Dataset for the interaction "${interaction.name}" not found`;
+
+    // If data is empty it means no hydrgoen bonds where found for this interaction
+    if (!data.hbonds[0])
+      return 'No hydrogen bonds where found for this interaction';
 
     const filteredData = {
       hbonds: [],
@@ -134,6 +138,10 @@ const Hbonds = () => {
       );
     }
 
+    // If data is empty it means no hydrgoen bonds where found for this interaction
+    if (!filteredData.hbonds[0])
+      return 'No hydrogen bonds stable enough where found for this interaction';
+
     return filteredData;
   }, [payload, pdbData, interactions, selectedInteraction, metadata.SNAPSHOTS]);
 
@@ -156,60 +164,69 @@ const Hbonds = () => {
           />
         </CardContent>
       </Card>
-      <Card className={style.margined}>
-        <Info
-          reference={'hbonds-graph'}
-          tooltip={
-            <>
-              This is the hydrogen bonds analysis representation.
-              <br />
-              <br />
-              All pairs of hydrogen bridging atoms are listed in order of
-              probability. Left edge labels describe the acceptor and donor
-              atoms respectively. Chain names are listed in the legend above.
-              The horizontal bars stand for the percent of frames along the
-              trajectory in which the specified pair of atoms may form an
-              hydrogen bond. Two atoms are considered to form an hydrogen bond
-              when the distance between them is inferior to 3 Ångstroms and the
-              'acceptor atom - hydrogen - donor atom' angle is superior to 15
-              degrees.
-              <br />
-              <br />
-              <span style={{ color: 'lightGreen' }}> Click any bar </span>
-              in the graph to open an interactive window displaying the
-              trajectory with the corresponding highlighted atoms and the
-              distance between them.
-            </>
-          }
-        />
-        <CardContent>
-          <ChainsLegend />
-          <D3HeatmapGrid
-            data={filteredData.hbonds}
-            xAxisValues={filteredData.xlabels}
-            yAxisValues={filteredData.ylabels}
-            xAxisLabel={'Frames'}
-            yAxisLabel={'Hydrogen bonds'}
-            onTooltip={d => d.y}
-            onClick={d => {
-              const index = filteredData.ylabels.indexOf(d.y);
-              // Convert the clicked bar index to the corresponding atom indexes
-              if (index < 0) return;
-              const acceptor = filteredData.acceptorAtomIndex[index];
-              const donor = filteredData.donorAtomIndex[index];
-              const hydrogen = filteredData.hydrogenAtomIndex[index];
-              setSelectedHB({
-                index,
-                selectedAtoms: [acceptor, donor],
-                selectedDistances: [[acceptor, donor]],
-                selectedAngles: [[acceptor, hydrogen, donor]],
-              });
-            }}
-            verticalPadding={0.2}
-            minColor={'#f0f0f0'}
+      {typeof filteredData === 'string' && (
+        <Card>
+          <CardContent>
+            <Typography variant="h6">{filteredData}</Typography>
+          </CardContent>
+        </Card>
+      )}
+      {typeof filteredData === 'object' && (
+        <Card className={style.margined}>
+          <Info
+            reference={'hbonds-graph'}
+            tooltip={
+              <>
+                This is the hydrogen bonds analysis representation.
+                <br />
+                <br />
+                All pairs of hydrogen bridging atoms are listed in order of
+                probability. Left edge labels describe the acceptor and donor
+                atoms respectively. Chain names are listed in the legend above.
+                The horizontal bars stand for the percent of frames along the
+                trajectory in which the specified pair of atoms may form an
+                hydrogen bond. Two atoms are considered to form an hydrogen bond
+                when the distance between them is inferior to 3 Ångstroms and
+                the 'acceptor atom - hydrogen - donor atom' angle is superior to
+                15 degrees.
+                <br />
+                <br />
+                <span style={{ color: 'lightGreen' }}> Click any bar </span>
+                in the graph to open an interactive window displaying the
+                trajectory with the corresponding highlighted atoms and the
+                distance between them.
+              </>
+            }
           />
-        </CardContent>
-      </Card>
+          <CardContent>
+            <ChainsLegend />
+            <D3HeatmapGrid
+              data={filteredData.hbonds}
+              xAxisValues={filteredData.xlabels}
+              yAxisValues={filteredData.ylabels}
+              xAxisLabel={'Frames'}
+              yAxisLabel={'Hydrogen bonds'}
+              onTooltip={d => d.y}
+              onClick={d => {
+                const index = filteredData.ylabels.indexOf(d.y);
+                // Convert the clicked bar index to the corresponding atom indexes
+                if (index < 0) return;
+                const acceptor = filteredData.acceptorAtomIndex[index];
+                const donor = filteredData.donorAtomIndex[index];
+                const hydrogen = filteredData.hydrogenAtomIndex[index];
+                setSelectedHB({
+                  index,
+                  selectedAtoms: [acceptor, donor],
+                  selectedDistances: [[acceptor, donor]],
+                  selectedAngles: [[acceptor, hydrogen, donor]],
+                });
+              }}
+              verticalPadding={0.2}
+              minColor={'#f0f0f0'}
+            />
+          </CardContent>
+        </Card>
+      )}
       <NGLViewerSpawner
         // Set the new viewer or null if there is not a proper "selected" value
         newViewer={
