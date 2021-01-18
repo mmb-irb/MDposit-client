@@ -82,6 +82,9 @@ export default React.memo(() => {
               Authors: {(metadata && metadata.AUTHORS) || 'Not available'}
             </div>
             <div>
+              Groups: {(metadata && metadata.GROUPS) || 'Not available'}
+            </div>
+            <div>
               Program: {(metadata && metadata.PROGRAM) || 'Not available'}
             </div>
             <div>
