@@ -1,8 +1,10 @@
-import React, { useContext, useMemo } from 'react';
+import React, { useContext, useMemo, useState } from 'react';
 // A hook to track whenever some element is on screen
 import { useInView } from 'react-intersection-observer';
 
 import Card from '../../../components/animated-card';
+import { CardContent } from '@material-ui/core';
+
 import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
 
 import style from './style.module.css';
@@ -12,6 +14,8 @@ import { ProjectCtx, PdbCtx } from '../../../contexts';
 
 import Info from '../../../components/info';
 import Loading from '../../../components/loading';
+
+import InteractionSelector from '../../../components/interaction-selector';
 
 import {
   complexNumerationParser,
@@ -35,6 +39,9 @@ const Electrostatic = () => {
   // Get the current topology
   const pdbData = useContext(PdbCtx);
 
+  // The interaction to be displayed
+  const [selectedInteraction, setSelectedInteraction] = useState(0);
+
   // Set the representations for the NGL viewer
   const representations = useMemo(() => {
     if (!chains || !metadata || !pdbData.file) return;
@@ -54,12 +61,17 @@ const Electrostatic = () => {
       });
     }
 
+    const interaction = metadata.INTERACTIONS[selectedInteraction];
+
     // Get the interface selection string
-    const interfaceSelection = metadata.INTERFACES[0];
+    const interfaceSelection = [
+      ...interaction.interface_1,
+      ...interaction.interface_2,
+    ];
 
     // Set the NGL selection for each chain interface
-    const nglInterfaceSelections = [];
-    interfaceSelection.split(', ').forEach(res => {
+    const nglinterfaceSelection = [];
+    interfaceSelection.forEach(res => {
       const {
         chain,
         nglSelection,
@@ -69,19 +81,19 @@ const Electrostatic = () => {
       if (metadata.LIGANDS)
         for (const lig of metadata.LIGANDS)
           if (lig.ngl === nglChainSelection) return;
-      // If the chain is already in the interfaces selection list we expand the selection
-      for (const sel of nglInterfaceSelections)
+      // If the chain is already in the interactions selection list we expand the selection
+      for (const sel of nglinterfaceSelection)
         if (sel.chain === chain) {
           sel.selection += ' or ' + nglSelection;
           return;
         }
       // If not, we add a new interface selection
-      nglInterfaceSelections.push({ chain: chain, selection: nglSelection });
+      nglinterfaceSelection.push({ chain: chain, selection: nglSelection });
     });
 
     // Those chains with residues in the interface show their mentioned residues
     // This representation is in electrostatic surface
-    for (const selection of nglInterfaceSelections) {
+    for (const selection of nglinterfaceSelection) {
       reps.push({
         name:
           'Chain ' +
@@ -108,7 +120,7 @@ const Electrostatic = () => {
     }
 
     return reps;
-  }, [chains, metadata, pdbData]);
+  }, [chains, metadata, pdbData, selectedInteraction]);
 
   const initialFocus = useMemo(() => {
     if (!metadata || !metadata.LIGANDS) return;
@@ -122,7 +134,7 @@ const Electrostatic = () => {
 
   return (
     <>
-      <Card className={style.card} ref={nglRef}>
+      <Card>
         <Info
           reference={'electrostatic'}
           tooltip={
@@ -148,6 +160,15 @@ const Electrostatic = () => {
             </>
           }
         />
+        <CardContent>
+          <InteractionSelector
+            interactions={metadata.INTERACTIONS}
+            selectedInteraction={selectedInteraction}
+            setSelectedInteraction={setSelectedInteraction}
+          />
+        </CardContent>
+      </Card>
+      <Card className={style.card} ref={nglRef}>
         {/* Render the NGL viewer when it is on screen*/}
         {isNglVisible ? (
           <NGLViewerWithControls

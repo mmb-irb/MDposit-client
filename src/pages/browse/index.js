@@ -116,7 +116,7 @@ const Row = ({ project, highlight, index, setProject }) => {
   // Push the electrostatic surface analysis if we have metadata interface
   if (
     metadata &&
-    metadata.INTERFACES &&
+    metadata.INTERACTIONS &&
     analyses &&
     !analyses.includes('electrostatic')
   )
