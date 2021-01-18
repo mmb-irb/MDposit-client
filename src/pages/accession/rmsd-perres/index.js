@@ -158,13 +158,6 @@ const RmsdPerres = () => {
 
   if (!pdbData.file || !metadata) return <Loading />;
 
-  // Set which options will be available in the resiude selector
-  /*
-  const selectorOptions = [{ label: 'All', value: '' }];
-  if (metadata.INTERFACES && metadata.INTERFACES[0])
-    selectorOptions.push({ label: 'Interface', value: metadata.INTERFACES[0] });
-  */
-
   // Render
   return (
     <Suspense fallback={<Loading />}>
