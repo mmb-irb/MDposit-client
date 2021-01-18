@@ -48,18 +48,20 @@ import reducedMotion from '../../utils/reduced-motion';
 import standardPreview1 from '../../images/rbd-ace2_preview.png';
 import standardPreview2 from '../../images/rbd_preview.png';
 import standardPreview3 from '../../images/ace2_preview.png';
-
-import standardPreview5 from '../../images/spike_preview.png';
-import standardPreview6 from '../../images/3clpro_preview.png';
+import standardPreview4 from '../../images/spike_preview.png';
+import standardPreview5 from '../../images/3clpro_preview.png';
+import standardPreview6 from '../../images/plpro_preview.png';
+import standardPreview7 from '../../images/polymerase_preview.png';
 
 // Define the image to be shown depending on the unit name
 const unitPreview = unit => {
   if (unit === 'RBD-ACE2') return standardPreview1;
   if (unit === 'RBD') return standardPreview2;
   if (unit === 'ACE2') return standardPreview3;
-
-  if (unit === 'Spike') return standardPreview5;
-  if (unit === '3CLpro') return standardPreview6;
+  if (unit === 'Spike') return standardPreview4;
+  if (unit === '3CLpro') return standardPreview5;
+  if (unit === 'PLpro') return standardPreview6;
+  if (unit === 'Polymerase') return standardPreview7;
 };
 
 const DEFAULT_PAGE = 1;
@@ -303,9 +305,10 @@ const Browse = ({ location, history, setProject }) => {
                     <MenuItem value="RBD">RBD</MenuItem>
                     <MenuItem value="ACE2">ACE2</MenuItem>
                     <MenuItem value="RBD-ACE2">RBD-ACE2</MenuItem>
-                    <MenuItem value="RBD-ACE2-CD147">RBD-ACE2-CD147</MenuItem>
                     <MenuItem value="Spike">Spike</MenuItem>
                     <MenuItem value="3CLpro">3CLpro</MenuItem>
+                    <MenuItem value="PLpro">PLpro</MenuItem>
+                    <MenuItem value="Polymerase">Polymerase</MenuItem>
                   </Select>
                 </FormControl>
               </TableCell>
