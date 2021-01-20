@@ -22,6 +22,7 @@ import { AccessionCtx, ProjectCtx, PdbCtx } from '../../contexts';
 import {
   BASE_PATH,
   BASE_PATH_PROJECTS,
+  PATH_MAIN_TOPOLOGY,
   NICE_NAMES,
 } from '../../utils/constants';
 
@@ -107,7 +108,7 @@ const SummarySwitch = ({ setProject }) => {
 
   // Load the structure data form the API
   const pdbData = useNGLFile(
-    `${BASE_PATH_PROJECTS}${accession}/files/md.imaged.rot.dry.pdb`,
+    `${BASE_PATH_PROJECTS}${accession}${PATH_MAIN_TOPOLOGY}`,
     // This attribute was included before: defaultRepresentation: false
     { defaultRepresentation: false, ext: 'pdb' },
   );

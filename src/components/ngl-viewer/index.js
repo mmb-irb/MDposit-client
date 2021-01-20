@@ -226,6 +226,10 @@ const NGLViewer = memo(
           if (forcedURL) {
             url = forcedURL;
             // It must be 1, since loading multiple trajectories is not supported
+            // DANI: Esto solo es válido de momento
+            // DANI: Todas las trayectorias base son la trayectoria por defecto
+            // DANI: La única excepción es pockets, que puede cargar el average.xtc
+            // DANI: Pero casulmente el average.xtc solo tiene 1 frame osea que ya está bien
             frameCount = 1;
           }
           // If not, build the url

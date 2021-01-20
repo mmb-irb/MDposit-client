@@ -156,7 +156,7 @@ const NGLViewerWithControls = forwardRef(
     ref,
   ) => {
     // Get context data only for the default setup of components and representations
-    const { metadata, chains } = useContext(ProjectCtx);
+    const { metadata, chains, files } = useContext(ProjectCtx);
 
     // Use this hook to get the memoized NGL default representations
     const defaultRepresentations = useDefaultRepresentations(chains, metadata);
@@ -196,7 +196,7 @@ const NGLViewerWithControls = forwardRef(
       if (comps.length === 0) {
         comps = [{ representations: reps, frame: requestedFrame }];
       }
-      // Set all missing components 'representations' value whit the default representations
+      // Set all missing components 'representations' value with the default representations
       for (const comp of comps) {
         if (!comp.representations || comp.representations.length === 0)
           // Spread syntax here prevents the 'defaultRepresentations' to be overwritten
@@ -270,9 +270,24 @@ const NGLViewerWithControls = forwardRef(
       defaultRepresentations,
     ]);
 
-    // When there is only 1 frame to load or only topology in the main (first) component
+    // Get the total number of frames in the main trajectory
+    const mainComponent = allComponents[0];
+    const mainTrajectoryFilename = mainComponent.trajectoryURL
+      ? mainComponent.trajectoryURL.split('/').slice(-1)[0]
+      : 'trajectory.bin';
+    const trajectorySummary = files.find(file => {
+      return file.filename === mainTrajectoryFilename;
+    });
+    const totalTrajectoryFrames = trajectorySummary.metadata.frames;
+
+    // Set the variable 'noTrajectory' as true when:
+    // The flag 'onlyTopology' is passed
+    // there is a selected unique frame to load from the main trajectory
+    // The main trajectory only has 1 frame (e.g. average.xtc)
     const noTrajectory =
-      Number.isFinite(allComponents[0].frame) || allComponents[0].onlyTopology;
+      mainComponent.onlyTopology ||
+      Number.isFinite(mainComponent.frame) ||
+      totalTrajectoryFrames === 1;
 
     // Builtin states
     // They are always declared but only used when there is no forced state in the arguments

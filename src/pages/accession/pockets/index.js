@@ -14,7 +14,6 @@ import {
 
 import Card from '../../../components/animated-card';
 import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
-import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 
 import style from './style.module.css';
@@ -73,20 +72,88 @@ const Pockets = () => {
     `${BASE_PATH_PROJECTS}${accession}/analyses/pockets/`,
   );
 
+  const { data, currentPocket, frameStep } = useMemo(() => {
+    if (!payload) return {};
+    // Get the main data
+    const data = payload && payload.data;
+
+    // Get the selected pocket data
+    // There must be always 1 selected pocket
+    const currentPocket = data[selectedPocket];
+
+    // Get the frames step of the analysis
+    // If the step is missing guess it from the number of frames
+    const frameNumber = currentPocket.volumes.length;
+    const frameStep =
+      payload.step || Math.floor(metadata.SNAPSHOTS / (frameNumber - 1));
+
+    return { data, currentPocket, frameStep };
+  }, [payload, metadata, selectedPocket]);
+
   // Use this hook to get the memoized NGL default representations
   // We need to access the default representations from here to know the number of representations
   const defaultRepresentations = useDefaultRepresentations(chains, metadata);
 
-  // Set the components to be passed to NGL
-  const { data, components, representationsNumber } = useMemo(() => {
+  // Set the main component to be passed to NGL
+  const { mainComponent, representationsNumber } = useMemo(() => {
     // Wait for payload to be downloaded
-    if (!payload) return {};
+    if (!currentPocket) return {};
 
-    const data = payload.data;
+    // Use the average structure to reference the pockets (only backbone right now)
+    const averageURL = `${BASE_PATH_PROJECTS}${accession}/files/average.bin`;
+    // Set representations
+    // Default representations and, if there is a selected frame, the surface of the selected pocket
+    const representations = [...defaultRepresentations];
+    // Set the surface representation of the pocket
+    representations.push({
+      name: currentPocket.name + ' surface',
+      selection: '@' + currentPocket.atoms.join(','),
+      defaultDrawingMethod: 'surface',
+      defaultColoringMethod: 'electrostatic',
+    });
 
-    // Set a new NGL component for each pocket
-    const pocketComponents = [];
-    data.forEach(pocket => {
+    let frame = null;
+    if (selectedFrame !== null) {
+      // Calculate the "real" selected frame
+      frame = selectedFrame * frameStep;
+    }
+
+    const mainComponent = {
+      trajectoryURL: selectedFrame === null ? averageURL : undefined,
+      frame: frame,
+      representations: representations,
+    };
+
+    const representationsNumber = representations.length;
+
+    // Create an array of 'true' as long as the number of default representations
+    const showDefaultRepresentations = Array(representationsNumber).fill(true);
+    // Create an array of 'true' as long as the number of pockets
+    const pocketNumber = data.length;
+    const showPockets = Array(pocketNumber).fill(true);
+    setShowRepresentations([...showDefaultRepresentations, ...showPockets]);
+
+    return { mainComponent, representationsNumber };
+  }, [
+    accession,
+    data,
+    defaultRepresentations,
+    currentPocket,
+    selectedFrame,
+    frameStep,
+  ]);
+
+  // Set the 'showRepresentations' default value
+  /*
+  const mainRepresentationsNumber = mainComponent.representations.length;
+  useMemo = (() => {
+
+  });
+  */
+  // Components to represent the pockets
+  const pocketComponents = useMemo(() => {
+    if (!data) return;
+    return data.map(pocket => {
       // NGL
       const pocketName = pocket.name;
       const pocketComponent = {
@@ -103,36 +170,15 @@ const Pockets = () => {
         ],
         //chainLabels: [pocketName],
       };
-      pocketComponents.push(pocketComponent);
+      return pocketComponent;
     });
-    // Use the average structure to reference the pockets (only backbone right now)
-    const averageURL = `${BASE_PATH_PROJECTS}${accession}/files/average.bin`;
-    // Set first the default representations object
-    const components = [
-      {
-        trajectoryURL: averageURL,
-        //frame: 0,
-        //onlyTopology: true,
-        representations: defaultRepresentations,
-      },
-      ...pocketComponents,
-    ];
+  }, [accession, data]);
 
-    const representationsNumber = defaultRepresentations
-      ? defaultRepresentations.length
-      : undefined;
+  const components = mainComponent &&
+    pocketComponents && [mainComponent, ...pocketComponents];
 
-    // Create an array of 'true' as long as the number of default representations
-    const showDefaultRepresentations = Array(representationsNumber).fill(true);
-    // Create an array of 'true' as long as the number of pockets
-    const pocketNumber = data.length;
-    const showPockets = Array(pocketNumber).fill(true);
-    setShowRepresentations([...showDefaultRepresentations, ...showPockets]);
-
-    return { data, components, representationsNumber };
-  }, [accession, payload, defaultRepresentations]);
-
-  const { graphInputData, show, xAxisValues, currentPocket } = useMemo(() => {
+  // Set the graph parameters
+  const { graphInputData, show } = useMemo(() => {
     // Wait for data and metadata to be ready
     if (!data || !metadata) return {};
 
@@ -149,21 +195,18 @@ const Pockets = () => {
       show[pocketName] = p === selectedPocket;
     });
 
-    // Set the xAxis values: frame numbers
-    const currentPocket = data[selectedPocket];
-    const dataLength = currentPocket.volumes.length;
-    const xAxisStep = Math.floor(metadata.SNAPSHOTS / (dataLength - 1));
-    const xAxisValues = Array(dataLength)
-      .fill(undefined)
-      .map((v, i) => i * xAxisStep);
-
-    return { graphInputData, show, xAxisValues, currentPocket };
+    return { graphInputData, show };
   }, [data, metadata, selectedPocket]);
 
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
+
+  const handleFrameSelection = frame => {
+    if (frame === selectedFrame) setSelectedFrame(null);
+    else setSelectedFrame(frame);
+  };
 
   if (!metadata || !pdbData.file) return <Loading />;
 
@@ -277,9 +320,9 @@ const Pockets = () => {
       <Card className={style.graph}>
         <Graph2
           yData={graphInputData}
-          xAxisValues={xAxisValues}
+          step={frameStep}
           xUnit={'frame'}
-          xScaleFactor={0.001}
+          xScaleFactor={1}
           xAxisLabel={'Frames'}
           yAxisLabel={'Pocket volume'}
           show={show}
@@ -288,36 +331,10 @@ const Pockets = () => {
           roundcents={false}
           mean
           standardDeviation
-          onSelect={setSelectedFrame}
+          onSelect={handleFrameSelection}
+          selected={selectedFrame}
         />
       </Card>
-      {selectedFrame && (
-        <NGLViewerSpawner
-          // Set the new viewer or null if there is not a proper "selected" value
-          newViewer={
-            typeof selectedFrame === 'number'
-              ? {
-                  accession: accession,
-                  requestedFrame: selectedFrame,
-                  selectedAtoms: currentPocket.atoms,
-                }
-              : null
-          }
-          // If the nailed/closed viewer is the current viewer then reset the 'selected'
-          onNail={viewer =>
-            setSelectedFrame(previous => {
-              if (viewer.requestedFrame === previous) return null;
-              else return previous;
-            })
-          }
-          onClose={viewer =>
-            setSelectedFrame(previous => {
-              if (viewer.requestedFrame === previous) return null;
-              else return previous;
-            })
-          }
-        />
-      )}
     </>
   );
 };

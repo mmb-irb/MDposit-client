@@ -4,6 +4,10 @@ export const BASE_PATH_PROJECTS = BASE_PATH + 'current/projects/';
 
 export const BASE_PATH_TOPOREFS = BASE_PATH + 'current/toporefs/';
 
+export const PATH_MAIN_TOPOLOGY = '/files/md.imaged.rot.dry.pdb';
+
+export const PATH_MAIN_TRAJECTORY = 'current/toporefs/';
+
 // The name how this analysis is tagged in the webpage
 // If no name is provided, the webpage will tag it with the defalt name
 export const NICE_NAMES = new Map([
