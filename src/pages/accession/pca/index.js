@@ -86,7 +86,7 @@ const PCA = () => {
         topologyURL: hasBackbone
           ? `${BASE_PATH_PROJECTS}${accession}/files/md.backbone.pdb`
           : `${BASE_PATH_PROJECTS}${accession}/files/average.pdb`,
-        trajectoryURL: projectionURL,
+        trajectoryURLs: [projectionURL],
         representations: chainsNGL,
       },
     ];

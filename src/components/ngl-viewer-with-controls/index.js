@@ -136,7 +136,7 @@ const NGLViewerWithControls = forwardRef(
       // All values are optional since missing values will be set by default
       //  {
       //    topologyURL: string, (used in pockets analysis)
-      //    trajectoryURL: string, (used in pca analysis)
+      //    trajectoryURLs: [ string ], (used in pca analysis)
       //    frame: int, (used in rmsd pairwise analysis)
       //    onlyTopology: bool, (used in pockets analysis)
       //    representations: [...],
@@ -150,13 +150,15 @@ const NGLViewerWithControls = forwardRef(
       drawingMethodsForced,
       coloringMethodsForced,
       opacitiesForced,
+      // Set a special option to force the 'noTrajectory' condition
+      preventTrajectory = false,
       // The rest of properties
       ...props
     },
     ref,
   ) => {
     // Get context data only for the default setup of components and representations
-    const { metadata, chains, files } = useContext(ProjectCtx);
+    const { metadata, chains } = useContext(ProjectCtx);
 
     // Use this hook to get the memoized NGL default representations
     const defaultRepresentations = useDefaultRepresentations(chains, metadata);
@@ -165,7 +167,7 @@ const NGLViewerWithControls = forwardRef(
     // It is an array of objects with the following structure:
     // {
     //   topologyURL: string,
-    //   trajectoryURL: string,
+    //   trajectoryURLs: [ string ],
     //   frame: int,
     //   selection: ('all' by default) The NGL selection string to define the atom selection,
     //   name: ('representation' by default) The string label of this representation,
@@ -203,14 +205,14 @@ const NGLViewerWithControls = forwardRef(
           comp.representations = [...defaultRepresentations];
       }
       // Create a new component for each additional representation with different component parameters
-      // (i.e. topologyURL, trajectoryURL or frame)
+      // (i.e. topologyURL, trajectoryURLs or frame)
       for (const rep of additionalRepresentations) {
         // Set the component for this representation
         let comp;
         const search = comps.filter(
           c =>
             c.topologyURL === rep.topologyURL &&
-            c.trajectoryURL === rep.trajectoryURL &&
+            c.trajectoryURLs === rep.trajectoryURLs &&
             c.frame === rep.frame,
         );
         // Set the representation object without the component parameters
@@ -228,7 +230,7 @@ const NGLViewerWithControls = forwardRef(
           // Set the component object
           const component = {
             topologyURL: rep.topologyURL,
-            trajectoryURL: rep.trajectoryURL,
+            trajectoryURLs: rep.trajectoryURLs,
             frame: rep.frame,
             representations: [representation],
           };
@@ -270,24 +272,15 @@ const NGLViewerWithControls = forwardRef(
       defaultRepresentations,
     ]);
 
-    // Get the total number of frames in the main trajectory
-    const mainComponent = allComponents[0];
-    const mainTrajectoryFilename = mainComponent.trajectoryURL
-      ? mainComponent.trajectoryURL.split('/').slice(-1)[0]
-      : 'trajectory.bin';
-    const trajectorySummary = files.find(file => {
-      return file.filename === mainTrajectoryFilename;
-    });
-    const totalTrajectoryFrames = trajectorySummary.metadata.frames;
-
     // Set the variable 'noTrajectory' as true when:
     // The flag 'onlyTopology' is passed
     // there is a selected unique frame to load from the main trajectory
     // The main trajectory only has 1 frame (e.g. average.xtc)
+    const mainComponent = allComponents[0];
     const noTrajectory =
+      preventTrajectory ||
       mainComponent.onlyTopology ||
-      Number.isFinite(mainComponent.frame) ||
-      totalTrajectoryFrames === 1;
+      Number.isFinite(mainComponent.frame); // May be 0
 
     // Builtin states
     // They are always declared but only used when there is no forced state in the arguments

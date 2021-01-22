@@ -95,12 +95,15 @@ const Pockets = () => {
   const defaultRepresentations = useDefaultRepresentations(chains, metadata);
 
   // Set the main component to be passed to NGL
-  const { mainComponent, representationsNumber } = useMemo(() => {
+  const { components, mainComponent, representationsNumber } = useMemo(() => {
     // Wait for payload to be downloaded
-    if (!currentPocket) return {};
+    if (!data || !currentPocket) return {};
 
     // Use the average structure to reference the pockets (only backbone right now)
     const averageURL = `${BASE_PATH_PROJECTS}${accession}/files/average.bin`;
+    // Load the required frames from the main trajectory
+    const mainURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory?frames=1:${metadata.SNAPSHOTS}:${frameStep}`;
+    //console.log(mainURL);
     // Set representations
     // Default representations and, if there is a selected frame, the surface of the selected pocket
     const representations = [...defaultRepresentations];
@@ -119,12 +122,34 @@ const Pockets = () => {
     }
 
     const mainComponent = {
-      trajectoryURL: selectedFrame === null ? averageURL : undefined,
+      trajectoryURLs: [averageURL, mainURL],
       frame: frame,
       representations: representations,
     };
 
     const representationsNumber = representations.length;
+
+    const pocketComponents = data.map(pocket => {
+      // NGL
+      const pocketName = pocket.name;
+      const pocketComponent = {
+        topologyURL: `${BASE_PATH_PROJECTS}${accession}/files/${pocketName}.pdb`,
+        onlyTopology: true,
+        representations: [
+          {
+            name: pocketName,
+            defaultDrawingMethod: 'surface',
+            // Make the surface a transparent net
+            other: { contour: true },
+            label: pocketName,
+          },
+        ],
+        //chainLabels: [pocketName],
+      };
+      return pocketComponent;
+    });
+
+    const components = [mainComponent, ...pocketComponents];
 
     // Create an array of 'true' as long as the number of default representations
     const showDefaultRepresentations = Array(representationsNumber).fill(true);
@@ -133,15 +158,26 @@ const Pockets = () => {
     const showPockets = Array(pocketNumber).fill(true);
     setShowRepresentations([...showDefaultRepresentations, ...showPockets]);
 
-    return { mainComponent, representationsNumber };
+    return { components, mainComponent, representationsNumber };
   }, [
     accession,
+    metadata,
     data,
     defaultRepresentations,
     currentPocket,
-    selectedFrame,
+    //selectedFrame,
     frameStep,
   ]);
+
+  useMemo(() => {
+    if (!selectedFrame) return;
+    const frame = selectedFrame * frameStep;
+    mainComponent.trajectoryURL = undefined;
+    mainComponent.url = undefined;
+    mainComponent.frame = frame;
+  }, [mainComponent, selectedFrame, frameStep]);
+
+  //console.log(mainComponent);
 
   // Set the 'showRepresentations' default value
   /*
@@ -151,6 +187,7 @@ const Pockets = () => {
   });
   */
   // Components to represent the pockets
+  /*
   const pocketComponents = useMemo(() => {
     if (!data) return;
     return data.map(pocket => {
@@ -171,11 +208,10 @@ const Pockets = () => {
         //chainLabels: [pocketName],
       };
       return pocketComponent;
-    });
-  }, [accession, data]);
-
-  const components = mainComponent &&
-    pocketComponents && [mainComponent, ...pocketComponents];
+    })
+  }, [accession, data])
+  */
+  //const components = mainComponent && pocketComponents && [ mainComponent, ...pocketComponents ];
 
   // Set the graph parameters
   const { graphInputData, show } = useMemo(() => {
@@ -312,6 +348,7 @@ const Pockets = () => {
               showRepresentations,
               setShowRepresentations,
             ]}
+            //preventTrajectory
           />
         ) : (
           <div style={{ height: '50vh' }} />
