@@ -54,6 +54,26 @@ const yDataPlaceholder = { placeholder: { data: [0] } };
 //    dataset2:{...}
 // }
 
+// Set a function which returns just the average
+const getMean = data => {
+  if (!data) return;
+  const sum = data.reduce((pv, cv) => pv + cv, 0);
+  const n = data.length;
+  return sum / n;
+};
+
+// Set a function which returns the average and standard deviation from a numeric array
+const getStatistics = data => {
+  if (!data) return;
+  const sum = data.reduce((pv, cv) => pv + cv, 0);
+  const n = data.length;
+  const mean = sum / n;
+  const stdv = Math.sqrt(
+    data.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n,
+  );
+  return { mean, stdv };
+};
+
 const Graph2 = ({
   // The main data
   yData,
@@ -418,14 +438,6 @@ const Graph2 = ({
 
       // mean line
       if (mean) {
-        // Calculate the averages for each dataset
-        for (const [, dataset] of yEntries) {
-          const data = dataset.data;
-          if (!data) continue;
-          const sum = data.reduce((pv, cv) => pv + cv, 0);
-          const n = data.length;
-          dataset.average = sum / n;
-        }
         // Represent a line with this average value along the whole graph
         const meanLines = main.selectAll('line.mean').data(yKeys);
         meanLines
@@ -436,8 +448,8 @@ const Graph2 = ({
           .merge(meanLines)
           .attr('x1', x(xMin))
           .attr('x2', x(xMax))
-          .attr('y1', d => y(data[d].average))
-          .attr('y2', d => y(data[d].average))
+          .attr('y1', d => y(getMean(data[d].data)))
+          .attr('y2', d => y(getMean(data[d].data)))
           .transition()
           .attr('opacity', d => (labels[d] ? 0.5 : 0));
       }
@@ -462,13 +474,14 @@ const Graph2 = ({
           .merge(sdRects)
           .attr('x', x(xMin))
           .attr('width', x(xMax) - x(xMin))
-          .attr('y', d => y(data[d].average + data[d].stddev))
-          .attr(
-            'height',
-            d =>
-              y(data[d].average - data[d].stddev) -
-              y(data[d].average + data[d].stddev),
-          )
+          .attr('y', d => {
+            const { mean, stdv } = getStatistics(data[d].data);
+            return y(mean + stdv);
+          })
+          .attr('height', d => {
+            const { mean, stdv } = getStatistics(data[d].data);
+            return y(mean - stdv) - y(mean + stdv);
+          })
           .transition()
           .attr('opacity', d => (labels[d] ? 0.1 : 0));
       }
@@ -635,6 +648,7 @@ const Graph2 = ({
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Maybe might need to double-check that and remove the exception
 
+  // Handle when data changes or the selected x unit changes
   useEffect(() => {
     selectedRef.current = selected;
     pdbDataRef.current = pdbData || pdbDataRef.current;
