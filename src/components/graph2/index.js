@@ -102,22 +102,24 @@ const Graph2 = ({
   // Set a fake dataset to allow the grapgh to work when no data is passed
   if (!yData || Object.keys(yData).length === 0) yData = yDataPlaceholder;
 
-  const dataRef = JSON.stringify(yData);
-
   const pdbData = useContext(PdbCtx);
 
+  // Referenced document element where the ngl is rendered
   const containerRef = useRef(null);
-  // Save the previous chart reference so we can remove it before a new render
-  const previousCharts = useRef(null);
+  // Rferenced function which allows to update the cart without having to remake it
   const drawRef = useRef(noop);
   const selectedRef = useRef(new Set());
   const pdbDataRef = useRef({});
 
   // Get each dataset
-  let yEntries = Object.entries(yData);
+  const { yEntries, yKeys } = useMemo(() => {
+    const yEntries = Object.entries(yData);
+    const yKeys = yEntries.map(([key]) => key);
+    return { yEntries, yKeys };
+  }, [yData]);
 
   // Get each dataset name
-  const yKeys = yEntries.map(([key]) => key);
+  //const yKeys = yEntries.map(([key]) => key);
   let counter = 0;
   const activateKey = () => {
     if (startKeys === null || counter < startKeys) {
@@ -216,16 +218,9 @@ const Graph2 = ({
     [],
   );
 
-  // Updated when input data changes
+  // This useEffect must be run only once
+  // The graph content is updated through the 'drawRef' referenced function
   useEffect(() => {
-    // Reset the chart
-    // WARNING: For some reason, if this part is re-render the original render is not gone
-    // WARNING: We must reset the element manually or infinite elements are rendered and stacked
-    if (previousCharts.current)
-      previousCharts.current.forEach(chart => chart.remove());
-
-    const data = JSON.parse(dataRef);
-
     // Set the d3 base
     let canvas;
     const graph = select(containerRef.current).append('svg');
@@ -306,7 +301,9 @@ const Graph2 = ({
       });
     });
 
+    // This ref allows to update the graph without having to remake the whole graph
     drawRef.current = ({
+      data = yData,
       hovered,
       precision = prevPrecision.current,
       labels = prevLabels.current,
@@ -329,10 +326,16 @@ const Graph2 = ({
 
       maskEnd.attr('x', width - offset.right).attr('width', offset.right);
 
+      // Remove all previous text (title and axis labels)
+      //graph.selectAll('text').remove();
+
       // Draw the title over the graph
       if (title) {
+        // Remove the previous title
+        graph.select('#title').remove();
         axes.title = graph
           .append('text')
+          .attr('id', 'title')
           .attr('class', 'title')
           .style('text-anchor', 'middle')
           .attr('x', width / 2)
@@ -358,10 +361,13 @@ const Graph2 = ({
         );
       axes.x.call(xAxis);
 
-      // Set the x axis/axes label
+      // Set the x axis label
       if (xAxisLabel) {
+        // Remove the previous label
+        graph.select('#xlab').remove();
         axes.xAxisLabel = graph
           .append('text')
+          .attr('id', 'xlab')
           .attr('class', 'x label')
           .attr('text-anchor', 'middle')
           .attr('x', offset.left + bodyWidth / 2)
@@ -390,10 +396,12 @@ const Graph2 = ({
           .call(axisLeft(y).ticks(8, '.2f'));
       axes.y.call(yAxis);
 
-      // Set the y axis/axes label
+      // Set the y axis label
       if (yAxisLabel) {
+        graph.select('#ylab').remove();
         axes.yAxisLabel = graph
           .append('text')
+          .attr('id', 'ylab')
           .attr('class', 'y label')
           .attr('text-anchor', 'middle')
           .attr('x', -(offset.top + bodyHeight / 2))
@@ -564,13 +572,13 @@ const Graph2 = ({
               if (xUnit === 'ns') return +number.toFixed(2) + ' ns';
               if (xUnit === 'frame') return 'frame ' + +number.toFixed(2);
               if (xUnit === 'atom') {
-                if (!pdbDataRef.current.file) return +number.toFixed(2);
-                const atom = pdbDataRef.current.file.atomMap.get(
-                  pdbDataRef.current.file.atomStore.atomTypeId[number],
+                if (!pdbData.file) return +number.toFixed(2);
+                const atom = pdbData.file.atomMap.get(
+                  pdbData.file.atomStore.atomTypeId[number],
                 );
                 if (!atom) return +number.toFixed(2);
-                const residue = pdbDataRef.current.file.residueMap.get(
-                  pdbDataRef.current.file.atomStore.residueIndex[number],
+                const residue = pdbData.file.residueMap.get(
+                  pdbData.file.atomStore.residueIndex[number],
                 );
                 if (!residue) return +number.toFixed(2);
                 return `${residue.resname} - ${atom.atomname}`;
@@ -619,26 +627,21 @@ const Graph2 = ({
       prevLabels.current = labels;
       prevPrecision.current = precision;
       prevRescaleX.current = rescaleX;
-      previousCharts.current = [graph];
     };
 
     window.addEventListener('resize', drawRef.current);
 
     return () => window.removeEventListener('resize', drawRef.current);
-  }, [dataRef]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Maybe might need to double-check that and remove the exception
 
   useEffect(() => {
     selectedRef.current = selected;
     pdbDataRef.current = pdbData || pdbDataRef.current;
-    drawRef.current({ selected, pdbData });
-  }, [selected, pdbData, dataRef]);
+    drawRef.current({ data: yData, selected, pdbData });
+  }, [selected, pdbData, yData]);
 
-  useEffect(() => drawRef.current({ precision: pr, labels: lab }), [
-    pr,
-    lab,
-    dataRef,
-  ]);
+  useEffect(() => drawRef.current({ precision: pr, labels: lab }), [pr, lab]);
 
   // Handle when user clicks on legend checkboxes
   const handleChange = useCallback(({ target: { dataset: { key } } }) => {
