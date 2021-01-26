@@ -78,7 +78,6 @@ const defaultStartsPlaying = !reducedMotion() && window.innerWidth > 750;
 
 // Set the possible number of frames the user can request
 // DANI: Por algún motivo estos sliders parece que no pasan de 100
-// DANI: De todas formas esto no nos viene mal ya que si pides 500 frames entra el misterioso bug
 const frameNumbers = [
   {
     value: 10,
@@ -463,6 +462,12 @@ const NGLViewerWithControls = forwardRef(
       () => ({
         autoResize: viewerRef.current.autoResize,
         centerFocus: viewerRef.current.centerFocus,
+        get currentFrame() {
+          return viewerRef.current.currentFrame;
+        },
+        set currentFrame(value) {
+          viewerRef.current.currentFrame = value;
+        },
       }),
       [],
     );

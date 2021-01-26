@@ -1,4 +1,12 @@
-import React, { lazy, useContext, useState, useRef, useMemo } from 'react';
+import React, {
+  lazy,
+  useContext,
+  useState,
+  useRef,
+  useMemo,
+  useEffect,
+  useCallback,
+} from 'react';
 // A hook to track whenever some element is on screen
 import { useInView } from 'react-intersection-observer';
 
@@ -58,6 +66,9 @@ const Pockets = () => {
   // This blockRef is a workaround to avoid selecting a pocket row when clicking on the checkbox
   const blockRef = useRef(null);
 
+  // Set a ref to the ngl which allows access to the ngl viewer exposed methods
+  const viewerRef = useRef(null);
+
   // Set which pocket is selected by the user
   const [selectedPocket, setSelectedPocket] = useState(0);
 
@@ -95,7 +106,7 @@ const Pockets = () => {
   const defaultRepresentations = useDefaultRepresentations(chains, metadata);
 
   // Set the main component to be passed to NGL
-  const { components, mainComponent, representationsNumber } = useMemo(() => {
+  const { components, representationsNumber } = useMemo(() => {
     // Wait for payload to be downloaded
     if (!data || !currentPocket) return {};
 
@@ -115,15 +126,9 @@ const Pockets = () => {
       defaultColoringMethod: 'electrostatic',
     });
 
-    let frame = null;
-    if (selectedFrame !== null) {
-      // Calculate the "real" selected frame
-      frame = selectedFrame * frameStep;
-    }
-
+    // The first component, which includes everything but the pockets
     const mainComponent = {
       trajectoryURLs: [averageURL, mainURL],
-      frame: frame,
       representations: representations,
     };
 
@@ -158,60 +163,15 @@ const Pockets = () => {
     const showPockets = Array(pocketNumber).fill(true);
     setShowRepresentations([...showDefaultRepresentations, ...showPockets]);
 
-    return { components, mainComponent, representationsNumber };
+    return { components, representationsNumber };
   }, [
     accession,
     metadata,
     data,
     defaultRepresentations,
     currentPocket,
-    //selectedFrame,
     frameStep,
   ]);
-
-  useMemo(() => {
-    if (!selectedFrame) return;
-    const frame = selectedFrame * frameStep;
-    mainComponent.trajectoryURL = undefined;
-    mainComponent.url = undefined;
-    mainComponent.frame = frame;
-  }, [mainComponent, selectedFrame, frameStep]);
-
-  //console.log(mainComponent);
-
-  // Set the 'showRepresentations' default value
-  /*
-  const mainRepresentationsNumber = mainComponent.representations.length;
-  useMemo = (() => {
-
-  });
-  */
-  // Components to represent the pockets
-  /*
-  const pocketComponents = useMemo(() => {
-    if (!data) return;
-    return data.map(pocket => {
-      // NGL
-      const pocketName = pocket.name;
-      const pocketComponent = {
-        topologyURL: `${BASE_PATH_PROJECTS}${accession}/files/${pocketName}.pdb`,
-        onlyTopology: true,
-        representations: [
-          {
-            name: pocketName,
-            defaultDrawingMethod: 'surface',
-            // Make the surface a transparent net
-            other: { contour: true },
-            label: pocketName,
-          },
-        ],
-        //chainLabels: [pocketName],
-      };
-      return pocketComponent;
-    })
-  }, [accession, data])
-  */
-  //const components = mainComponent && pocketComponents && [ mainComponent, ...pocketComponents ];
 
   // Set the graph parameters
   const { graphInputData, show } = useMemo(() => {
@@ -234,15 +194,30 @@ const Pockets = () => {
     return { graphInputData, show };
   }, [data, metadata, selectedPocket]);
 
+  // Handle the change of frame
+  useEffect(() => {
+    if (!viewerRef.current) return;
+    // The first frame (0) is the average
+    if (selectedFrame === null) viewerRef.current.currentFrame = 0;
+    else viewerRef.current.currentFrame = selectedFrame + 1;
+  }, [selectedFrame]);
+
+  // Set a function to wrap the 'setSelectedFrame'
+  // Make the 'selectedFrame' null when the new frame is the already selected frame
+  const handleFrameSelection = useCallback(
+    frame => {
+      setSelectedFrame(previousFrame => {
+        if (frame === previousFrame) return null;
+        else return frame;
+      });
+    },
+    [setSelectedFrame],
+  );
+
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
-
-  const handleFrameSelection = frame => {
-    if (frame === selectedFrame) setSelectedFrame(null);
-    else setSelectedFrame(frame);
-  };
 
   if (!metadata || !pdbData.file) return <Loading />;
 
@@ -348,7 +323,8 @@ const Pockets = () => {
               showRepresentations,
               setShowRepresentations,
             ]}
-            //preventTrajectory
+            preventTrajectory
+            ref={viewerRef}
           />
         ) : (
           <div style={{ height: '50vh' }} />

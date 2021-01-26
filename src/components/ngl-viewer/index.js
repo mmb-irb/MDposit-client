@@ -146,32 +146,59 @@ const NGLViewer = memo(
       // If a topologyURL is provided, download data form the API
       // Otherwise, use the context pdbData (i.e. the 'md.imaged.rot.dry.pdb' file)
 
-      // Memoize the topolgy URLs into an array
-      const topologyURLs = useMemo(() => {
-        return comps.map(comp => comp.topologyURL);
-      }, [comps]);
+      const [topologies, setTopologies] = useState([]);
 
-      const [topologies, setTopologies] = useState(
-        topologyURLs.map(url => ({
-          loading: true,
-          file: null,
-          error: null,
-        })),
-      );
+      // Find if there are new topology to be requested in the components:
+      // Collect the topology on each component
+      // If the component has no topology specified use the main topology
+      useMemo(() => {
+        setTopologies(currentTopologies => {
+          const newTopologies = [];
+          comps.forEach(comp => {
+            const url = comp.topologyURL;
+            // Some urls may be missing
+            // This happens when the component wants the default topology from the pdbData
+            if (!url)
+              newTopologies.push({
+                loading: false,
+                file: pdbData.file,
+                error: null,
+              });
+            // Check if the url is new
+            // Else, skip this url since it is already downloaded
+            const current = currentTopologies.find(topology => {
+              return topology.url === url;
+            });
+            if (current) return;
+            // Add the topology to the list, so it will be requested to the API
+            newTopologies.push({
+              url: url,
+              loading: true,
+              file: null,
+              error: null,
+            });
+          });
+          return [...currentTopologies, ...newTopologies];
+        });
+      }, [comps, setTopologies, pdbData.file]);
 
       // Download all requested topologies from the API
       useEffect(() => {
-        if (!topologyURLs) return;
         let didCancel = false;
-        // Make an API request fro each url
-        topologyURLs.forEach((url, i) => {
+        // Make an API request from each url
+        topologies.forEach((topology, t) => {
+          // Check if the requested url has the data already downloaded
+          // If so, skip this request
+          if (topology && topology.file) return;
+          // get the topology URL
+          const url = topology.url;
           // If there is no URL load the context pdbData
           if (!url)
             // WARNING: The '[...previous]' is essential to make the array object change
             // This is important, since the 'topologies' object is used as a dependendy further
             // And if we do not change the array then the change is not detected
             setTopologies(previous => {
-              const current = previous[i];
+              const current = previous[t];
               current.loading = false;
               current.file = pdbData.file;
               return [...previous];
@@ -185,7 +212,7 @@ const NGLViewer = memo(
                 file =>
                   !didCancel &&
                   setTopologies(previous => {
-                    const current = previous[i];
+                    const current = previous[t];
                     current.loading = false;
                     current.file = file;
                     return [...previous];
@@ -196,7 +223,7 @@ const NGLViewer = memo(
                 error =>
                   !didCancel &&
                   setTopologies(previous => {
-                    const current = previous[i];
+                    const current = previous[t];
                     current.loading = false;
                     current.error = error;
                     return [...previous];
@@ -205,13 +232,16 @@ const NGLViewer = memo(
           }
         });
         return () => (didCancel = true);
-      }, [topologyURLs, pdbData]);
+      }, [topologies, pdbData]);
 
-      const loadingTopologies = topologies.some(t => t.loading);
-      const mainTopology = loadingTopologies
-        ? { loading: true, file: null }
-        : topologies[0];
-      const { loading: loadingPDB, file: pdbFile } = mainTopology;
+      const mainComponent = comps[0];
+      const mainTopology = topologies.find(topology => {
+        return topology.url === mainComponent.topologyURL;
+      });
+      const { loading: loadingPDB, file: pdbFile } = mainTopology || {
+        loading: false,
+        file: pdbData.file,
+      };
 
       // Download trajectories ------------------------------------------------------------------------------------------------
 
@@ -285,6 +315,8 @@ const NGLViewer = memo(
 
               // Set the number of frames to be requested from the whole trajectory
               let requestedFrames = nFrames;
+              if (nFrames > trajectoryFrames)
+                requestedFrames = trajectoryFrames;
               if (requestedFrame) requestedFrames = 1;
               else if (framed) requestedFrames = framed.frames;
               // Components which are not the principal must include a 'frame' value
@@ -525,22 +557,33 @@ const NGLViewer = memo(
           pdbFile.atomStore.occupancy.length,
         ).fill(1);
 
-        if (loadingTopologies) return;
+        // All topologies must be ready before we start loading the components to stage
+        // DANI: Esto es tentador quitarlo para que las topologías vayan cargando cuando llegan
+        // DANI: No obstante, es un percal, hay que hacerlo con tiempo
+        // DANI: Los components de stageRef.current.compList deben estar en orden
+        if (topologies.some(t => t.loading)) return;
 
         comps.forEach((comp, c) => {
           // Set the NGL component
           let stageComp = stageRef.current.compList[c];
           if (!stageComp) {
-            const topology = topologies[c];
-            if (!topology) {
-              throw new Error(`The component with index ${c} has no topology`);
-            }
-            if (!topology.file) {
-              console.error(
-                `The topology file (${comp.topologyURL}) is missing with error: ${topology.error}`,
+            // Find the topology which matches the component url
+            // If a component has no url it will match a topology with no url: the default topology
+            const topology = topologies.find(topology => {
+              return topology.url === comp.topologyURL;
+            });
+            if (!topology)
+              throw new Error(`Topology from '${comp.topologyURL}' is missing`);
+            // Stop here if it is not downloaded yet
+            if (topology.error)
+              throw new Error(
+                `Topology from '${comp.topologyURL}' returned error ${topology.error}`,
               );
-              return;
-            }
+            if (!topology.file)
+              throw new Error(
+                `Topology data from '${comp.topologyURL}' is missing`,
+              );
+            // Add the topology to the NGL
             stageRef.current.addComponentFromObject(topology.file);
             stageComp = stageRef.current.compList[c];
             stageComp.onlyTopology = comp.onlyTopology;
@@ -711,7 +754,6 @@ const NGLViewer = memo(
         drawingMethods,
         coloringMethods,
         opacities,
-        loadingTopologies,
         topologies,
         selectedRepresentation,
         showRepresentations,
@@ -1011,8 +1053,6 @@ const NGLViewer = memo(
             totalPayload = trajectoryPayloads.reduce((cb, nb) =>
               appendBuffer(cb, nb),
             );
-
-          // DANI: Aquí se asignaría el valor de trajectoryAtoms si fuese iterable
 
           // remove all possibly already existing trajectories
           // This return an error in console: "updateStructure: traj disposed"
