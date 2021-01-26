@@ -23,7 +23,10 @@ import Info from '../../../components/info';
 
 import reducedMotion from '../../../utils/reduced-motion';
 
-import { getMetadataChainname } from '../../../utils/topology-manager';
+import {
+  getMetadataChainname,
+  complexNumerationParser,
+} from '../../../utils/topology-manager';
 
 import style from './style.module.css';
 
@@ -531,6 +534,9 @@ const Trajectory = () => {
   //        {
   //          "name" : "Chain A",
   //          "selection" : ":A and 16-316",
+  //          "type": "ball+stick",
+  //          "color": "element",
+  //          "opacity": 0.5,
   //          ...
   //        },
   //        {
@@ -540,7 +546,45 @@ const Trajectory = () => {
   //      ]
   //    },
   // ]
-  const domains = metadata && metadata.DOMAINS;
+  const domains = useMemo(() => {
+    if (!metadata) return;
+    // Get custom domains in metadata
+    const metadataDomains = metadata.DOMAINS || [];
+    // Get domains constructed from interactions
+    const interactionDomains = [];
+    metadata.INTERACTIONS.forEach(interaction => {
+      // Add a new domain for each new agent and skip repeated agents
+      const agent1 = {
+        name: interaction.agent_1,
+        residues: interaction.residues_1,
+      };
+      const agent2 = {
+        name: interaction.agent_2,
+        residues: interaction.residues_2,
+      };
+      [agent1, agent2].forEach(agent => {
+        const current = interactionDomains.find(domain => {
+          return domain.name === agent.name;
+        });
+        if (current) return;
+        const nglSelection = agent.residues
+          .map(residue => complexNumerationParser(residue).nglSelection)
+          .join(' or ');
+        interactionDomains.push({
+          name: agent.name,
+          representations: [
+            {
+              name: agent.name,
+              selection: nglSelection,
+              type: 'ball+stick',
+              //color: 'element',
+            },
+          ],
+        });
+      });
+    });
+    return [...metadataDomains, ...interactionDomains];
+  }, [metadata]);
 
   const [selectedDomain, setSelectedDomain] = useState(null);
 
