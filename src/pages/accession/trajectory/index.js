@@ -552,37 +552,38 @@ const Trajectory = () => {
     const metadataDomains = metadata.DOMAINS || [];
     // Get domains constructed from interactions
     const interactionDomains = [];
-    metadata.INTERACTIONS.forEach(interaction => {
-      // Add a new domain for each new agent and skip repeated agents
-      const agent1 = {
-        name: interaction.agent_1,
-        residues: interaction.residues_1,
-      };
-      const agent2 = {
-        name: interaction.agent_2,
-        residues: interaction.residues_2,
-      };
-      [agent1, agent2].forEach(agent => {
-        const current = interactionDomains.find(domain => {
-          return domain.name === agent.name;
-        });
-        if (current) return;
-        const nglSelection = agent.residues
-          .map(residue => complexNumerationParser(residue).nglSelection)
-          .join(' or ');
-        interactionDomains.push({
-          name: agent.name,
-          representations: [
-            {
-              name: agent.name,
-              selection: nglSelection,
-              type: 'ball+stick',
-              //color: 'element',
-            },
-          ],
+    if (metadata.INTERACTIONS)
+      metadata.INTERACTIONS.forEach(interaction => {
+        // Add a new domain for each new agent and skip repeated agents
+        const agent1 = {
+          name: interaction.agent_1,
+          residues: interaction.residues_1,
+        };
+        const agent2 = {
+          name: interaction.agent_2,
+          residues: interaction.residues_2,
+        };
+        [agent1, agent2].forEach(agent => {
+          const current = interactionDomains.find(domain => {
+            return domain.name === agent.name;
+          });
+          if (current) return;
+          const nglSelection = agent.residues
+            .map(residue => complexNumerationParser(residue).nglSelection)
+            .join(' or ');
+          interactionDomains.push({
+            name: agent.name,
+            representations: [
+              {
+                name: agent.name,
+                selection: nglSelection,
+                type: 'ball+stick',
+                //color: 'element',
+              },
+            ],
+          });
         });
       });
-    });
     return [...metadataDomains, ...interactionDomains];
   }, [metadata]);
 
