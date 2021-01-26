@@ -718,7 +718,11 @@ const NGLViewer = memo(
           });
 
           // Delete all representations which are not required anymore
-          stageComp.reprList.forEach(rep => {
+          // WARNING: It is very important to save apart the stageComp.reprList
+          // WARNING: Do not iterate over stageComp.reprList while removing representations
+          // WARNING: If so, representations would jump of index in the list
+          const previousRepresentations = [...stageComp.reprList];
+          previousRepresentations.forEach(rep => {
             const name = rep.name;
             for (const registredName of registredNames) {
               if (name === registredName) return;
