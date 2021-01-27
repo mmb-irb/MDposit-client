@@ -86,7 +86,12 @@ const RepresentationsManager = memo(
   }) => {
     return (
       <>
-        <Table aria-label="simple table" stickyHeader>
+        <Table
+          aria-label="simple table"
+          size="small"
+          padding="checkbox"
+          stickyHeader
+        >
           <TableHead>
             <TableRow>
               <TableCell>Name</TableCell>
@@ -138,6 +143,8 @@ const RepresentationsManager = memo(
                         });
                       }}
                       disabled={!rep.custom}
+                      size="small"
+                      margin="dense"
                     />
                   }
                 </TableCell>
