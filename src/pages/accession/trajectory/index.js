@@ -658,7 +658,7 @@ const Trajectory = () => {
                 color={selectedDomain === d ? 'primary' : undefined}
                 onClick={() =>
                   setSelectedDomain(previous => {
-                    if (previous === dom) return 0;
+                    if (previous === d) return 0;
                     return d;
                   })
                 }
