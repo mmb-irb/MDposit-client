@@ -26,8 +26,9 @@ const useDefaultRepresentations = (chains, metadata) => {
             });
         */
     // Show also all ligands with licorice representations
-    if (metadata.LIGANDS) {
-      for (const ligand of metadata.LIGANDS) {
+    const ligands = metadata.LIGANDS;
+    if (ligands) {
+      for (const ligand of ligands) {
         reps.push({
           name: ligand.name,
           selection: ligand.ngl,
@@ -35,11 +36,17 @@ const useDefaultRepresentations = (chains, metadata) => {
         });
       }
     }
-    // Represent all chains which are not in the 'chains' list (i.e. not protein chains) in licorice
-    if (metadata.CHAINNAMES && !Array.isArray(metadata.CHAINNAMES)) {
-      const chainnames = Object.entries(metadata.CHAINNAMES);
-      chainnames.forEach(([chain, name]) => {
-        if (chains.indexOf(chain) !== -1) return;
+    // Represent all chains which are not in the 'chains' and 'ligands' list in licorice
+    const chainnames = metadata.CHAINNAMES;
+    if (chainnames && !Array.isArray(chainnames)) {
+      const chainsAndNames = Object.entries(chainnames);
+      chainsAndNames.forEach(([chain, name]) => {
+        // Check if the chain is in the protein chains
+        const isProtein = chains.indexOf(chain) !== -1;
+        // Check if the name matches any ligand name
+        const isLigand = ligands.find(ligand => ligand.name === name);
+        // If there is any coincidence then skip this chainname
+        if (isProtein || isLigand) return;
         reps.push({
           name: name,
           selection: ':' + chain,
