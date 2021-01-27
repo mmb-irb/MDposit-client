@@ -41,6 +41,10 @@ const availableDrawingMethods = [
     label: 'Surface',
     value: 'surface',
   },
+  {
+    label: 'Spacefill',
+    value: 'spacefill',
+  },
 ];
 
 const availableColoringMethods = [
