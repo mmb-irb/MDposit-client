@@ -125,6 +125,7 @@ const RepresentationsManager = memo(
                     <TextField
                       id="outlined-basic"
                       defaultValue={nglSelections[index]}
+                      title={nglSelections[index]}
                       variant="outlined"
                       onKeyPress={event => {
                         if (event.key !== 'Enter') return;
