@@ -122,8 +122,8 @@ const Pockets = () => {
     representations.push({
       name: currentPocket.name + ' surface',
       selection: '@' + currentPocket.atoms.join(','),
-      defaultDrawingMethod: 'surface',
-      defaultColoringMethod: 'electrostatic',
+      type: 'surface',
+      color: 'electrostatic',
     });
 
     // The first component, which includes everything but the pockets
@@ -143,7 +143,7 @@ const Pockets = () => {
         representations: [
           {
             name: pocketName,
-            defaultDrawingMethod: 'surface',
+            type: 'surface',
             // Make the surface a transparent net
             other: { contour: true },
             label: pocketName,

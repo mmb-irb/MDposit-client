@@ -124,9 +124,9 @@ const NGLViewerWithControls = forwardRef(
       //   selection: ('all' by default) The NGL selection string to define the atom selection,
       //   name: ('representation' by default) The string label of this representation,
       //   show: ('true' by default) Boolean to set if this representation is shown or not,
-      //   defaultDrawingMethod: ('cartoon' by default) The initial representation 'type',
-      //   defaultColoringMethod: ('chainid' by default) The initial representation 'colorScheme',
-      //   defaultOpacity: ('1' by default) The initial representation opacity
+      //   type: ('cartoon' by default) The initial representation 'type',
+      //   color: ('chainid' by default) The initial representation 'colorScheme',
+      //   opacity: ('1' by default) The initial representation opacity
       //   other: object with any other ngl options to be passed for the representation
       // }
       representations,
@@ -171,9 +171,9 @@ const NGLViewerWithControls = forwardRef(
     //   selection: ('all' by default) The NGL selection string to define the atom selection,
     //   name: ('representation' by default) The string label of this representation,
     //   show: ('true' by default) Boolean to set if this representation is shown or not,
-    //   defaultDrawingMethod: ('cartoon' by default) The initial representation 'type',
-    //   defaultColoringMethod: ('chainid' by default) The initial representation 'colorScheme',
-    //   defaultOpacity: ('1' by default) The initial representation opacity
+    //   type: ('cartoon' by default) The initial representation 'type',
+    //   color: ('chainid' by default) The initial representation 'colorScheme',
+    //   opacity: ('1' by default) The initial representation opacity
     // }
     const [additionalRepresentations, setAdditionalRepresentations] = useState(
       [],
@@ -219,9 +219,9 @@ const NGLViewerWithControls = forwardRef(
           selection: rep.selection,
           name: rep.name,
           show: rep.show,
-          defaultDrawingMethod: rep.defaultDrawingMethod,
-          defaultColoringMethod: rep.defaultColoringMethod,
-          defaultOpacity: rep.defaultOpacity,
+          type: rep.type,
+          color: rep.color,
+          opacity: rep.opacity,
           custom: true,
         };
         // If there is no result we create a new component
@@ -255,9 +255,9 @@ const NGLViewerWithControls = forwardRef(
           if (!rep.name) rep.name = 'Representation';
           if (!rep.selection) rep.selection = 'all';
           if (!rep.show) rep.show = true;
-          if (!rep.defaultDrawingMethod) rep.defaultDrawingMethod = 'cartoon';
-          if (!rep.defaultColoringMethod) rep.defaultColoringMethod = 'chainid';
-          if (!rep.defaultOpacity) rep.defaultOpacity = 1;
+          if (!rep.type) rep.type = 'cartoon';
+          if (!rep.color) rep.color = 'chainid';
+          if (!rep.opacity) rep.opacity = 1;
           allReps.push(rep);
         }
       }
@@ -292,13 +292,13 @@ const NGLViewerWithControls = forwardRef(
       allRepresentations.map(rep => rep.selection),
     );
     const [drawingMethodsBuiltin, setDrawingMethodsBuiltin] = useState(
-      allRepresentations.map(rep => rep.defaultDrawingMethod),
+      allRepresentations.map(rep => rep.type),
     );
     const [coloringMethodsBuiltin, setColoringMethodsBuiltin] = useState(
-      allRepresentations.map(rep => rep.defaultColoringMethod),
+      allRepresentations.map(rep => rep.color),
     );
     const [opacitieBuiltins, setOpacitiesBuiltin] = useState(
-      allRepresentations.map(rep => rep.defaultOpacity),
+      allRepresentations.map(rep => rep.opacity),
     );
 
     // Set a reference to check when input arguments (components and representations) change
@@ -328,30 +328,22 @@ const NGLViewerWithControls = forwardRef(
           ),
         );
         setDrawingMethodsBuiltin(previous =>
-          allRepresentations.map(
-            (rep, index) => previous[index] || rep.defaultDrawingMethod,
-          ),
+          allRepresentations.map((rep, index) => previous[index] || rep.type),
         );
         setColoringMethodsBuiltin(previous =>
-          allRepresentations.map(
-            (rep, index) => previous[index] || rep.defaultColoringMethod,
-          ),
+          allRepresentations.map((rep, index) => previous[index] || rep.color),
         );
         setOpacitiesBuiltin(previous =>
           allRepresentations.map(
-            (rep, index) => previous[index] || rep.defaultOpacity,
+            (rep, index) => previous[index] || rep.opacity,
           ),
         );
       } else {
         setShowRepresentationsBuiltin(allRepresentations.map(rep => rep.show));
         setNglSelectionsBuiltin(allRepresentations.map(rep => rep.selection));
-        setDrawingMethodsBuiltin(
-          allRepresentations.map(rep => rep.defaultDrawingMethod),
-        );
-        setColoringMethodsBuiltin(
-          allRepresentations.map(rep => rep.defaultColoringMethod),
-        );
-        setOpacitiesBuiltin(allRepresentations.map(rep => rep.defaultOpacity));
+        setDrawingMethodsBuiltin(allRepresentations.map(rep => rep.type));
+        setColoringMethodsBuiltin(allRepresentations.map(rep => rep.color));
+        setOpacitiesBuiltin(allRepresentations.map(rep => rep.opacity));
       }
       // Save a reference of components and representations to compare with future triggers
       inputs.current = { components, representations };

@@ -17,6 +17,7 @@ import { ProjectCtx, PdbCtx } from '../../../contexts';
 
 import Card from '../../../components/animated-card';
 import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
+import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 import ChainAnalyses from '../../../components/chain-analyses';
 
 import Info from '../../../components/info';
@@ -522,7 +523,12 @@ const Trajectory = () => {
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
   const [nightingaleRef, isNightingaleVisible] = useInView(useInViewOptions);
 
-  const { metadata } = useContext(ProjectCtx);
+  const { chains, metadata } = useContext(ProjectCtx);
+
+  const defaultRepresentations = useDefaultRepresentations(chains, metadata);
+
+  // Set the first domain (the overall) as the default selected domain
+  const [selectedDomain, setSelectedDomain] = useState(0);
 
   // Show floatting bubles with domain names
   // When a bubble is selected the domain is represented
@@ -548,6 +554,11 @@ const Trajectory = () => {
   // ]
   const domains = useMemo(() => {
     if (!metadata) return;
+    // Set the overall domain
+    const overallDomain = {
+      name: 'Overall',
+      representations: defaultRepresentations,
+    };
     // Get custom domains in metadata
     const metadataDomains = metadata.DOMAINS || [];
     // Get domains constructed from interactions
@@ -584,42 +595,42 @@ const Trajectory = () => {
           });
         });
       });
-    return [...metadataDomains, ...interactionDomains];
-  }, [metadata]);
+    const domains = [overallDomain, ...metadataDomains, ...interactionDomains];
+    // Reset the selected domain
+    setSelectedDomain(0);
+    return domains;
+  }, [metadata, defaultRepresentations]);
 
-  const [selectedDomain, setSelectedDomain] = useState(null);
-
-  const representations = useMemo(() => {
-    if (!selectedDomain) return;
+  const { representations, initialFocus } = useMemo(() => {
+    if (!domains) return {};
+    const currentDomain = domains[selectedDomain];
     // Set an NGL representation for each domain representation
-    const representations = selectedDomain.representations.map(rep => {
+    const representations = currentDomain.representations.map(rep => {
       return {
         name: rep.name,
         selection: rep.selection,
         show: rep.show,
-        defaultDrawingMethod: rep.type,
-        defaultColoringMethod: rep.color,
-        defaultOpacity: rep.opacity,
+        type: rep.type,
+        color: rep.color,
+        opacity: rep.opacity,
       };
     });
     // Add a representation with the whole strucutre in grey color and with the opacity reduced
-    representations.push({
-      name: 'Reference',
-      defaultColoringMethod: 'grey',
-      defaultOpacity: 0.1,
-    });
-    return representations;
-  }, [selectedDomain]);
+    if (currentDomain.name !== 'Overall')
+      representations.push({
+        name: 'Reference',
+        color: 'grey',
+        opacity: 0.1,
+      });
 
-  const initialFocus = useMemo(() => {
-    if (!selectedDomain) return;
     // Set the NGL selection for the focus
     const focusSelection =
       '(' +
-      selectedDomain.representations.map(rep => rep.selection).join(') or (') +
+      currentDomain.representations.map(rep => rep.selection).join(') or (') +
       ')';
-    return { comp: 0, sele: focusSelection };
-  }, [selectedDomain]);
+    const initialFocus = { comp: 0, sele: focusSelection };
+    return { representations, initialFocus };
+  }, [domains, selectedDomain]);
 
   return (
     <>
@@ -638,17 +649,17 @@ const Trajectory = () => {
           />
           <CardContent>
             {'Domains: '}
-            {domains.map(dom => (
+            {domains.map((dom, d) => (
               <Chip
                 key={dom.name}
                 className={style.chips}
                 label={dom.name}
-                variant={selectedDomain === dom ? undefined : 'outlined'}
-                color={selectedDomain === dom ? 'primary' : undefined}
+                variant={selectedDomain === d ? undefined : 'outlined'}
+                color={selectedDomain === d ? 'primary' : undefined}
                 onClick={() =>
                   setSelectedDomain(previous => {
-                    if (previous === dom) return null;
-                    return dom;
+                    if (previous === dom) return 0;
+                    return d;
                   })
                 }
               />

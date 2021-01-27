@@ -106,7 +106,7 @@ const Mutations = () => {
       };
     });
 
-    const reps = [{ defaultColoringMethod: 'mutations' }];
+    const reps = [{ color: 'mutations' }];
     return [reps, colorScheme];
   }, [payload, topology, metadata]);
 

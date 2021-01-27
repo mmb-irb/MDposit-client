@@ -93,7 +93,7 @@ const RmsdPairwise = () => {
         representations: [
           {
             name: 'Frame ' + frame,
-            defaultColoringMethod: index === 0 ? 'red' : 'blue',
+            color: index === 0 ? 'red' : 'blue',
           },
         ],
       });

@@ -57,7 +57,7 @@ const Electrostatic = () => {
           getMetadataChainname(c, metadata, pdbData.file) +
           ')',
         selection: ':' + c,
-        defaultDrawingMethod: 'cartoon',
+        type: 'cartoon',
       });
     }
 
@@ -102,8 +102,8 @@ const Electrostatic = () => {
           getMetadataChainname(selection.chain, metadata, pdbData.file) +
           ') interface',
         selection: selection.selection,
-        defaultDrawingMethod: 'surface',
-        defaultColoringMethod: 'electrostatic',
+        type: 'surface',
+        color: 'electrostatic',
       });
     }
 
@@ -113,8 +113,8 @@ const Electrostatic = () => {
         reps.push({
           name: ligand.name,
           selection: ligand.ngl,
-          defaultDrawingMethod: 'ball+stick',
-          defaultColoringMethod: 'element',
+          type: 'ball+stick',
+          color: 'element',
         });
       }
     }

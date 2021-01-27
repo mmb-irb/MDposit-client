@@ -21,8 +21,8 @@ const useDefaultRepresentations = (chains, metadata) => {
             reps.push({
             selection: '(not polymer or hetero) and not (water or ion)',
             name: metadata.MEMBRANE,
-            defaultDrawingMethod: 'licorice',
-            defaultOpacity: 0.5,
+            type: 'licorice',
+            opacity: 0.5,
             });
         */
     // Show also all ligands with licorice representations
@@ -32,7 +32,7 @@ const useDefaultRepresentations = (chains, metadata) => {
         reps.push({
           name: ligand.name,
           selection: ligand.ngl,
-          defaultDrawingMethod: 'licorice',
+          type: 'licorice',
         });
       }
     }
@@ -50,9 +50,9 @@ const useDefaultRepresentations = (chains, metadata) => {
         reps.push({
           name: name,
           selection: ':' + chain,
-          defaultDrawingMethod: 'licorice',
-          defaultColoringMethod: 'grey',
-          defaultOpacity: 0.3,
+          type: 'licorice',
+          color: 'grey',
+          opacity: 0.3,
         });
       });
     }
