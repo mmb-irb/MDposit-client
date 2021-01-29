@@ -112,13 +112,11 @@ const Graph2 = ({
   const drawRef = useRef(noop);
   const selectedRef = useRef(new Set());
   const pdbDataRef = useRef({});
+  const dataRef = useRef(yDataPlaceholder);
 
   // Get each dataset
-  const { yEntries, yKeys } = useMemo(() => {
-    const yEntries = Object.entries(yData);
-    const yKeys = yEntries.map(([key]) => key);
-    return { yEntries, yKeys };
-  }, [yData]);
+  const yEntries = Object.entries(yData);
+  const yKeys = yEntries.map(([key]) => key);
 
   // Get each dataset name
   //const yKeys = yEntries.map(([key]) => key);
@@ -305,7 +303,7 @@ const Graph2 = ({
 
     // This ref allows to update the graph without having to remake the whole graph
     drawRef.current = ({
-      data = yData,
+      data = dataRef.current,
       hovered,
       precision = prevPrecision.current,
       labels = prevLabels.current,
@@ -315,6 +313,12 @@ const Graph2 = ({
     } = {}) => {
       // container size
       const { clientWidth: width, clientHeight: height } = containerRef.current;
+
+      const dataEntries = Object.entries(data);
+      const dataKeys = dataEntries.map(([key]) => key);
+
+      //console.log(data);
+      //console.log(dataKeys);
 
       // DANI: Esto es mio (experimental)
       const bodyWidth = width - offset.left - offset.right;
@@ -327,9 +331,6 @@ const Graph2 = ({
       }
 
       maskEnd.attr('x', width - offset.right).attr('width', offset.right);
-
-      // Remove all previous text (title and axis labels)
-      //graph.selectAll('text').remove();
 
       // Draw the title over the graph
       if (title) {
@@ -346,7 +347,7 @@ const Graph2 = ({
       }
 
       const xMin = 0;
-      const xMax = yEntries[0][1].data.length * step;
+      const xMax = dataEntries[0][1].data.length * step;
 
       // x axis
       const x = rescaleX(
@@ -382,7 +383,7 @@ const Graph2 = ({
         .domain(
           extent(
             flatten(
-              yEntries
+              dataEntries
                 .filter(([key]) => labels[key])
                 .map(([, { data }]) => extent(data)),
             ),
@@ -421,23 +422,26 @@ const Graph2 = ({
       // mean line
       if (mean) {
         // Represent a line with this average value along the whole graph
-        const meanLines = main.selectAll('line.mean').data(yKeys);
+        const meanLines = main.selectAll('line.mean').data(dataKeys);
         meanLines
           .enter()
           .append('line')
           .attr('class', 'mean')
-          .attr('stroke', d => (data[d] && data[d].color) || 'black')
           .merge(meanLines)
+          .attr('stroke', d => (data[d] && data[d].color) || 'black')
           .attr('x1', x(xMin))
           .attr('x2', x(xMax))
           .attr('y1', d => y(getMean(data[d].data)))
           .attr('y2', d => y(getMean(data[d].data)))
           .transition()
           .attr('opacity', d => (labels[d] ? 0.5 : 0));
+        meanLines
+          .exit()
+          .remove()
       }
       // mean ± 1σ area
       if (standardDeviation) {
-        for (const [, dataset] of yEntries) {
+        for (const [, dataset] of dataEntries) {
           const data = dataset.data;
           if (!data) continue;
           const sum = data.reduce((pv, cv) => pv + cv, 0);
@@ -447,13 +451,13 @@ const Graph2 = ({
             data.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n,
           );
         }
-        const sdRects = main.selectAll('rect.sd').data(yKeys);
+        const sdRects = main.selectAll('rect.sd').data(dataKeys);
         sdRects
           .enter()
           .append('rect')
           .attr('class', 'sd')
-          .attr('fill', d => (data[d] && data[d].color) || 'black')
           .merge(sdRects)
+          .attr('fill', d => (data[d] && data[d].color) || 'black')
           .attr('x', x(xMin))
           .attr('width', x(xMax) - x(xMin))
           .attr('y', d => {
@@ -466,6 +470,9 @@ const Graph2 = ({
           })
           .transition()
           .attr('opacity', d => (labels[d] ? 0.1 : 0));
+        sdRects
+          .exit()
+          .remove()
       }
 
       const minIndex = Math.floor(x.invert(0) / step / precision);
@@ -478,22 +485,27 @@ const Graph2 = ({
         .y(d => y(d));
 
       // Draw the data lines
-      const lines = main.selectAll('path.line').data(yKeys);
-      lines
+      // First set the lines/data mapping
+      const linesData = main.selectAll('path.line').data(dataKeys);
+      // Add as many lines as required according to the mapped data
+      linesData
         .enter()
         .append('path')
         .attr('class', 'line')
         .attr('fill', 'none')
+        // Update existing lines with the mapped data
+        .merge(linesData)
         .attr('stroke', d => data[d].color || 'black')
         .attr('stroke-linejoin', 'round')
         .attr('stroke-linecap', 'round')
-        .merge(lines)
-        .attr('d', d =>
-          lineFn(data[d].data.filter((_, i) => i % precision === 0)),
-        )
+        .attr('d', d => lineFn(data[d].data.filter((_, i) => i % precision === 0)))
         .transition()
         .attr('opacity', d => (labels[d] ? 1 : 0))
         .attr('stroke-width', d => (hovered === d ? 3 : 1.5));
+      // Remove lines which are not required anymore according to the mapped data
+      linesData
+        .exit()
+        .remove()
 
       // Place the vertical line in the selected data point position
       if (selectedRect) {
@@ -507,9 +519,11 @@ const Graph2 = ({
       }
 
       // dots over the selected vertical line
+      // Here we just delete previous dots and start again instead of updating them
+      allDotGroups.selectAll('g.dot-group').remove();
       const dotGroups = allDotGroups
         .selectAll('g.dot-group')
-        .data([...yKeys, 'x'])
+        .data([...dataKeys, 'x'])
         .enter()
         .append('g')
         .attr('class', 'dot-group')
@@ -530,6 +544,7 @@ const Graph2 = ({
         .attr('stroke', 'rgba(255, 255, 255, 0.5)')
         .attr('stroke-width', 5)
         .attr('filter', textBackgroundURL);
+      
 
       // mouse move handler
       graph.on('mousemove', (_, index, nodes) => {
@@ -619,6 +634,7 @@ const Graph2 = ({
         if (onHover) onHover(null);
       });
 
+      dataRef.current = data;
       prevLabels.current = labels;
       prevPrecision.current = precision;
       prevRescaleX.current = rescaleX;
