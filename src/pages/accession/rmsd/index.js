@@ -2,12 +2,15 @@ import React, { lazy, Suspense, useState, useContext, useMemo } from 'react';
 
 import {
   CardContent,
-  Typography,
   Table,
   TableHead,
   TableBody,
   TableRow,
   TableCell,
+  FormControlLabel,
+  Checkbox,
+  Tabs,
+  Tab,
 } from '@material-ui/core';
 
 import Card from '../../../components/animated-card';
@@ -20,13 +23,17 @@ import { AccessionCtx, ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
+import { getMeanAndStdv } from '../../../utils/statistics';
+
 import Info from '../../../components/info';
 
 import style from './style.module.css';
 
-const Graph = lazy(() =>
-  import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
+const Graph2 = lazy(() =>
+  import(/* webpackChunkName: 'graph2' */ '../../../components/graph2'),
 );
+
+const colors = ['black', 'red', 'orange', 'yellow'];
 
 const Rmsd = () => {
   // Get the accession
@@ -36,19 +43,42 @@ const Rmsd = () => {
 
   // Send a request to the API with the url of the specific analysis
   const { loading, payload, error } = useAPI(
-    `${BASE_PATH_PROJECTS}${accession}/analyses/rmsd/`,
+    `${BASE_PATH_PROJECTS}${accession}/analyses/rmsds/`,
   );
 
-  // Rmsd analysis comes in nanometers (nm) and we want it in Ångstroms
-  useMemo(() => {
-    if (!payload) return;
-    const rmsd = payload.y['rmsd'];
-    rmsd.data = rmsd.data.map(v => v * 10);
-    rmsd.average = rmsd.average * 10;
-    rmsd.stddev = rmsd.stddev * 10;
-  }, [payload]);
+  // Set which reference rmsds must be displayed: first frame or average structure
+  const [reference, setReference] = useState('firstframe');
 
-  // React hooks
+  // Format the data
+  const rmsds = useMemo(() => {
+    if (!payload) return;
+    const rmsds = {};
+    let count = 0;
+    payload.data.forEach(rmsd => {
+      // Proceed only if this rmsd is from the set reference
+      if (rmsd.reference !== reference) return;
+      const dataset = {};
+      // Multiply by 10 since rmsd analysis comes in nanometers (nm) and we want it in Ångstroms
+      dataset.data = rmsd.values;
+      const { mean: average, stdv: stddev } = getMeanAndStdv(dataset.data);
+      dataset.average = average;
+      dataset.stddev = stddev;
+      dataset.color = colors[count];
+      count += 1;
+      const name = rmsd.group;
+      rmsds[name] = dataset;
+    });
+    return rmsds;
+  }, [payload, reference]);
+
+  // Set which rmsd is displayed
+  const [display, setDisplay] = useState({
+    protein: true,
+    'protein-h': true,
+    backbone: true,
+    'c-alpha': true,
+  });
+
   // Set when one point in the graph is selected
   const [selected, setSelected] = useState(null);
 
@@ -57,8 +87,8 @@ const Rmsd = () => {
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
 
-  const dataLength = payload.y['rmsd'].data.length;
-  const xAxesStep = (metadata.LENGTH / (dataLength - 1)) * 1000;
+  const dataLength = Object.values(rmsds)[0].data.length;
+  const xAxesStep = metadata.LENGTH / (dataLength - 1);
 
   const cents = num => Math.round(num * 100) / 100;
 
@@ -76,7 +106,21 @@ const Rmsd = () => {
           }
         />
         <CardContent>
-          <Table>
+          <Tabs
+            value={reference}
+            variant="fullWidth"
+            indicatorColor="secondary"
+            textColor="secondary"
+            onChange={(event, newValue) => {
+              setReference(newValue);
+            }}
+            className={style['margined-bottom']}
+          >
+            <Tab value={'firstframe'} label="First frame" />
+            <Tab value={'average'} label="Average structure" />
+            <Tab value={'tmscore'} label="TM score" disabled />
+          </Tabs>
+          <Table padding="checkbox">
             <TableHead>
               <TableRow>
                 <TableCell>name</TableCell>
@@ -85,11 +129,31 @@ const Rmsd = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              <TableRow>
-                <TableCell>{'RMSd'}</TableCell>
-                <TableCell>{cents(payload.y.rmsd.average)}</TableCell>
-                <TableCell>{cents(payload.y.rmsd.stddev)}</TableCell>
-              </TableRow>
+              {Object.entries(rmsds).map(([key, rmsd], i) => (
+                <TableRow key={key}>
+                  <TableCell>
+                    {
+                      <FormControlLabel
+                        onChange={() =>
+                          setDisplay(previous => {
+                            previous[key] = !previous[key];
+                            return { ...previous };
+                          })
+                        }
+                        control={
+                          <Checkbox
+                            checked={display[key]}
+                            style={{ color: colors[i] }}
+                          />
+                        }
+                        label={key}
+                      />
+                    }
+                  </TableCell>
+                  <TableCell>{cents(rmsd.average)}</TableCell>
+                  <TableCell>{cents(rmsd.stddev)}</TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </CardContent>
@@ -122,18 +186,19 @@ const Rmsd = () => {
           }
         />
         <CardContent>
-          <Typography variant="h6" />
-          <Graph
-            y={payload.y}
-            start={payload.start || 0}
-            step={xAxesStep}
-            xLabel={'Time (ns)'}
-            xScaleFactor={0.001}
-            yLabel={'RMSd (Å)'}
-            onSelect={setSelected}
-            selected={selected}
-            selfLegend={false}
-          />
+          <div className={style.graph}>
+            <Graph2
+              yData={rmsds}
+              step={xAxesStep}
+              xAxisLabel={'Time (ns)'}
+              xScaleFactor={1}
+              yAxisLabel={'RMSd (Å)'}
+              onSelect={setSelected}
+              selected={selected}
+              selfLegend={false}
+              show={display}
+            />
+          </div>
         </CardContent>
       </Card>
       <NGLViewerSpawner

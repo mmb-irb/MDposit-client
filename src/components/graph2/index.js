@@ -31,6 +31,8 @@ import addMasks from './add-masks';
 
 import { getTextWidth, getTextSizeDOM } from '../../utils/document-measurer';
 
+import { getMean, getMeanAndStdv } from '../../utils/statistics';
+
 import style from './style.module.css';
 
 const NUMBER_OF_DATA_POINTS_ON_SCREEN_AT_MAX_ZOOM = 100;
@@ -53,26 +55,6 @@ const yDataPlaceholder = { placeholder: { data: [0] } };
 //    }
 //    dataset2:{...}
 // }
-
-// Set a function which returns just the average
-const getMean = data => {
-  if (!data) return;
-  const sum = data.reduce((pv, cv) => pv + cv, 0);
-  const n = data.length;
-  return sum / n;
-};
-
-// Set a function which returns the average and standard deviation from a numeric array
-const getStatistics = data => {
-  if (!data) return;
-  const sum = data.reduce((pv, cv) => pv + cv, 0);
-  const n = data.length;
-  const mean = sum / n;
-  const stdv = Math.sqrt(
-    data.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n,
-  );
-  return { mean, stdv };
-};
 
 const Graph2 = ({
   // The main data
@@ -475,11 +457,11 @@ const Graph2 = ({
           .attr('x', x(xMin))
           .attr('width', x(xMax) - x(xMin))
           .attr('y', d => {
-            const { mean, stdv } = getStatistics(data[d].data);
+            const { mean, stdv } = getMeanAndStdv(data[d].data);
             return y(mean + stdv);
           })
           .attr('height', d => {
-            const { mean, stdv } = getStatistics(data[d].data);
+            const { mean, stdv } = getMeanAndStdv(data[d].data);
             return y(mean - stdv) - y(mean + stdv);
           })
           .transition()
