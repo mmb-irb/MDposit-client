@@ -3,7 +3,7 @@ import { useInView } from 'react-intersection-observer';
 
 import { CardContent } from '@material-ui/core';
 
-import { interpolateRgb } from 'd3';
+import { color as d3color, interpolateRgb } from 'd3';
 
 import Card from '../../../components/animated-card';
 import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
@@ -22,9 +22,12 @@ import style from './style.module.css';
 import {
   complexNumerationParser,
   source2modelResidue,
+  absolute2sourceResidue,
 } from '../../../utils/topology-manager';
 
 //import Selector from '../../../components/selector';
+
+import { ColormakerRegistry } from 'ngl';
 
 import ResidueSelector from '../../../components/residue-selector';
 
@@ -32,7 +35,7 @@ const Graph2 = lazy(() =>
   import(/* webpackChunkName: 'graph2' */ '../../../components/graph2'),
 );
 
-const firstFrameComponent = [{ frame: 0 }];
+const firstFrameComponent = [{ frame: 0, representations: [{ color: 'mutations' }] }];
 
 // Define permanent options for the "useInView"
 const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
@@ -73,7 +76,7 @@ const RmsdPerres = () => {
   const [selectedResidues, setSelectedResidues] = useState([]);
 
   // Get the residues list in model notation
-  const { xAxesStep, sequences } = useMemo(() => {
+  const { xAxesStep, sequences, colorScheme } = useMemo(() => {
     if (!pdbData.file || !metadata || !payload) return {};
 
     const data = payload.data;
@@ -91,11 +94,39 @@ const RmsdPerres = () => {
     const min = Math.min(...means);
 
     // Set the color scale according to the maximum and minimum means
-    const lowerScale = interpolateRgb('white', 'yellow');
+    const greyLowerScale = interpolateRgb('grey', 'yellow');
     const higherScale = interpolateRgb('yellow', 'red');
-    const colorScale = value => {
+    const greyColorScale = value => {
       const normalizedValue = (value - min) * (1 / (max - min));
-      if (normalizedValue < 0.5) return lowerScale(normalizedValue * 2);
+      if (normalizedValue < 0.5) return greyLowerScale(normalizedValue * 2);
+      else return higherScale((normalizedValue - 0.5) * 2);
+    };
+    
+    // Set each residue color in the ngl representation according to the color cale
+    // WARNING: Grey looks better than white because the background is white and the structure is easier to see
+    const colorScheme = ColormakerRegistry.addScheme(function(params) {
+      this.atomColor = atom => {
+        // Find the residue index and then the entropy for this residue
+        const residue = atom.residueIndex;
+        const modelResiude = absolute2sourceResidue(residue, pdbData.file, metadata).numeration;
+        //const entropy = normalizedEntropies[modelResiude];
+        const mean = data.find(residue => residue.name === modelResiude).mean;
+        // Calculate the interpolated rgb for this value
+        // The interpolated color comes in rbg format
+        const hexColor = d3color(greyColorScale(mean)).formatHex();
+        // The color interpolation returns a string like '#000000'
+        // We remove the first character ('#') and parse it to integer from hexadecimal
+        const color = parseInt(hexColor.substring(1), 16);
+        return color;
+      };
+    });
+
+    // Set the color of each residue letter in the residue selector
+    // WARNING: White looks better than grey because the background is white and the contrast would be notable
+    const whiteLowerScale = interpolateRgb('white', 'yellow');
+    const whiteColorScale = value => {
+      const normalizedValue = (value - min) * (1 / (max - min));
+      if (normalizedValue < 0.5) return whiteLowerScale(normalizedValue * 2);
       else return higherScale((normalizedValue - 0.5) * 2);
     };
 
@@ -121,7 +152,7 @@ const RmsdPerres = () => {
         letter: residue.letter,
         value: residueData,
         tooltip: `Mean: ${residueData.mean}\nStandard deviation: ${residueData.stdv}`,
-        color: colorScale(residueData.mean),
+        color: whiteColorScale(residueData.mean),
       };
       const chain = residue.chain;
       const current = chains[chain];
@@ -135,7 +166,7 @@ const RmsdPerres = () => {
       };
     });
 
-    return { xAxesStep, sequences };
+    return { xAxesStep, sequences, colorScheme };
   }, [payload, pdbData, metadata]);
 
   // Get the residues list in model notation
@@ -206,6 +237,7 @@ const RmsdPerres = () => {
             className={style.container}
             components={firstFrameComponent}
             selectedResidues={selectedResidues.map(residue => residue.name)}
+            customColorSchemes={{ mutations: colorScheme }}
           />
         ) : (
           <div style={{ height: '50vh' }} />
