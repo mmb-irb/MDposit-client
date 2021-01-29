@@ -4,6 +4,8 @@ import { Select, MenuItem } from '@material-ui/core';
 
 import Loading from '../loading';
 
+import style from './style.module.css';
+
 //import style from './style.module.css';
 
 // Render a panel which allows to select the desired ligand
@@ -19,7 +21,11 @@ const LigandSelector = ({ ligands, selectedLigand, setSelectedLigand }) => {
   // Render
   return (
     <Suspense fallback={<Loading />}>
-      <Select value={selectedLigand} onChange={changeLigand}>
+      <Select
+        value={selectedLigand}
+        onChange={changeLigand}
+        className={style['horizontal-margined']}
+      >
         {ligands.map((ligand, i) => (
           <MenuItem key={i} value={i}>
             {ligand.label || ligand.name}

@@ -44,7 +44,11 @@ const InteractionSelector = ({
   // Render
   return (
     <Suspense fallback={<Loading />}>
-      <Select value={selectedInteraction} onChange={changeInteraction}>
+      <Select
+        value={selectedInteraction}
+        onChange={changeInteraction}
+        className={style['horizontal-margined']}
+      >
         {interactions.map((interaction, i) => (
           <MenuItem key={i} value={i}>
             {interaction.label || interaction.name}

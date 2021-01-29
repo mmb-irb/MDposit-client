@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useState, useContext, useMemo } from 'react';
 
-import { CardContent } from '@material-ui/core';
+import { CardContent, Typography } from '@material-ui/core';
 
 import Card from '../../../components/animated-card';
 import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
@@ -116,7 +116,8 @@ const Energies = () => {
             </>
           }
         />
-        <CardContent>
+        <CardContent className={style.horizontal}>
+          <Typography variant="h6">Ligand:</Typography>
           <LigandSelector
             ligands={ligands}
             selectedLigand={selectedLigand}

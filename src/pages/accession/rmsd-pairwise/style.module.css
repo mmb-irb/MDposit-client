@@ -10,3 +10,9 @@
 .margined-bottom {
   margin-bottom: 1em;
 }
+
+.horizontal {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+}

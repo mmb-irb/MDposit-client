@@ -1,6 +1,6 @@
 import React, { useContext, useState, useMemo } from 'react';
 
-import { CardContent, Tabs, Tab } from '@material-ui/core';
+import { CardContent, Tabs, Tab, Typography } from '@material-ui/core';
 
 import useAPI from '../../../hooks/use-api';
 
@@ -165,7 +165,8 @@ const DistPerres = () => {
             </>
           }
         />
-        <CardContent>
+        <CardContent className={style.horizontal}>
+          <Typography variant="h6">Residues selection:</Typography>
           <InteractionSelector
             interactions={metadata.INTERACTIONS}
             selectedInteraction={selectedInteraction}

@@ -1,6 +1,6 @@
 import React, { useContext, useState, useMemo } from 'react';
 
-import { CardContent } from '@material-ui/core';
+import { CardContent, Typography } from '@material-ui/core';
 
 import useAPI from '../../../hooks/use-api';
 
@@ -136,7 +136,8 @@ const RmsdPairwise = () => {
             </>
           }
         />
-        <CardContent>
+        <CardContent className={style.horizontal}>
+          <Typography variant="h6">Residues selection:</Typography>
           <InteractionSelector
             interactions={interactions}
             selectedInteraction={selectedInteraction}

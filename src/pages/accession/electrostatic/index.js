@@ -3,7 +3,7 @@ import React, { useContext, useMemo, useState } from 'react';
 import { useInView } from 'react-intersection-observer';
 
 import Card from '../../../components/animated-card';
-import { CardContent } from '@material-ui/core';
+import { CardContent, Typography } from '@material-ui/core';
 
 import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
 
@@ -160,7 +160,8 @@ const Electrostatic = () => {
             </>
           }
         />
-        <CardContent>
+        <CardContent className={style.horizontal}>
+          <Typography variant="h6">Interaction:</Typography>
           <InteractionSelector
             interactions={metadata.INTERACTIONS}
             selectedInteraction={selectedInteraction}

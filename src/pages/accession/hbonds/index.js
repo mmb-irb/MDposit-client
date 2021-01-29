@@ -156,7 +156,8 @@ const Hbonds = () => {
   return (
     <Suspense fallback={<Loading />}>
       <Card>
-        <CardContent>
+        <CardContent className={style.horizontal}>
+          <Typography variant="h6">Interaction:</Typography>
           <InteractionSelector
             interactions={interactions}
             selectedInteraction={selectedInteraction}
