@@ -1,4 +1,12 @@
-import React, { lazy, Suspense, useState, useContext, useMemo } from 'react';
+import React, {
+  lazy,
+  Suspense,
+  useState,
+  useContext,
+  useMemo,
+  useCallback,
+  useRef,
+} from 'react';
 import { useInView } from 'react-intersection-observer';
 
 import { CardContent } from '@material-ui/core';
@@ -7,7 +15,6 @@ import { color as d3color, interpolateRgb } from 'd3';
 
 import Card from '../../../components/animated-card';
 import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
-import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 import Loading from '../../../components/loading';
 import Info from '../../../components/info';
 
@@ -34,8 +41,6 @@ import ResidueSelector from '../../../components/residue-selector';
 const Graph2 = lazy(() =>
   import(/* webpackChunkName: 'graph2' */ '../../../components/graph2'),
 );
-
-const firstFrameComponent = [{ frame: 0, representations: [{ color: 'mutations' }] }];
 
 // Define permanent options for the "useInView"
 const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
@@ -64,6 +69,9 @@ const RmsdPerres = () => {
   // Get the current topology, including the residue names
   const pdbData = useContext(PdbCtx);
 
+  // Set a ref to the ngl which allows access to the ngl viewer exposed methods
+  const viewerRef = useRef(null);
+
   // Send a request to the API with the url of the specific analysis
   const { loading, payload, error } = useAPI(
     `${BASE_PATH_PROJECTS}${accession}/analyses/rmsd-perres/`,
@@ -76,7 +84,13 @@ const RmsdPerres = () => {
   const [selectedResidues, setSelectedResidues] = useState([]);
 
   // Get the residues list in model notation
-  const { xAxesStep, sequences, colorScheme } = useMemo(() => {
+  const {
+    mainComponent,
+    framesNumber,
+    timeStep,
+    sequences,
+    colorScheme,
+  } = useMemo(() => {
     if (!pdbData.file || !metadata || !payload) return {};
 
     const data = payload.data;
@@ -101,14 +115,18 @@ const RmsdPerres = () => {
       if (normalizedValue < 0.5) return greyLowerScale(normalizedValue * 2);
       else return higherScale((normalizedValue - 0.5) * 2);
     };
-    
+
     // Set each residue color in the ngl representation according to the color cale
     // WARNING: Grey looks better than white because the background is white and the structure is easier to see
     const colorScheme = ColormakerRegistry.addScheme(function(params) {
       this.atomColor = atom => {
         // Find the residue index and then the entropy for this residue
         const residue = atom.residueIndex;
-        const modelResiude = absolute2sourceResidue(residue, pdbData.file, metadata).numeration;
+        const modelResiude = absolute2sourceResidue(
+          residue,
+          pdbData.file,
+          metadata,
+        ).numeration;
         //const entropy = normalizedEntropies[modelResiude];
         const mean = data.find(residue => residue.name === modelResiude).mean;
         // Calculate the interpolated rgb for this value
@@ -131,8 +149,19 @@ const RmsdPerres = () => {
     };
 
     const firstResidue = data[0];
-    const dataLength = firstResidue.rmsds.length;
-    const xAxesStep = metadata.LENGTH / (dataLength - 1);
+    const framesNumber = firstResidue.rmsds.length;
+
+    // Guess the time step of the analysis from the number of frames
+    const timeStep = metadata.LENGTH / (framesNumber - 1);
+
+    // Guess the frames step of the analysis from the number of frames
+    const frameStep = Math.floor(metadata.SNAPSHOTS / (framesNumber - 1));
+
+    // Load the required frames from the main trajectory
+    const mainURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory?frames=1:${metadata.SNAPSHOTS}:${frameStep}`;
+    const mainComponent = [
+      { trajectoryURLs: [mainURL], representations: [{ color: 'mutations' }] },
+    ];
 
     // Parse the selection string into a numeric array
     const availableResidues = data;
@@ -166,11 +195,11 @@ const RmsdPerres = () => {
       };
     });
 
-    return { xAxesStep, sequences, colorScheme };
-  }, [payload, pdbData, metadata]);
+    return { mainComponent, framesNumber, timeStep, sequences, colorScheme };
+  }, [payload, pdbData, metadata, accession]);
 
   // Get the residues list in model notation
-  const selectedData = useMemo(() => {
+  const { selectedData, selectedResidueNames } = useMemo(() => {
     // Now get only the selected keys from the payload
     const selectedData = {};
     // Color the first selected residues in the graph
@@ -179,8 +208,29 @@ const RmsdPerres = () => {
       newData.color = residue.color;
       selectedData[i] = newData;
     });
-    return selectedData;
+    const selectedResidueNames = selectedResidues.map(residue => residue.name);
+    return { selectedData, selectedResidueNames };
   }, [selectedResidues]);
+
+  // When the user clicks on the graph
+  const handleFrameSelection = useCallback(frame => {
+    viewerRef.current.togglePlaying(false);
+    viewerRef.current.currentFrame = frame;
+    //setSelectedFrame(frame);
+  }, []);
+
+  // When the ngl is playing
+  const handleFrameProgress = useCallback(
+    progress => {
+      // Process is a float number which ranges from 0 to 1
+      // Guess the frame number which belongs to the process
+      // WARNING: The follwoing multiplication must return always a whole number
+      // WARNING: This 'round' is only for the float problem (e.g. 57 = 56.9999...)
+      const frame = Math.round(progress * (framesNumber - 1));
+      setSelectedFrame(frame);
+    },
+    [framesNumber, setSelectedFrame],
+  );
 
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
@@ -204,10 +254,10 @@ const RmsdPerres = () => {
       <Card className={style['graph']}>
         <Graph2
           yData={selectedData}
-          step={xAxesStep}
+          step={timeStep}
           xAxisLabel={'Time (ns)'}
           yAxisLabel={'RMSd (Å)'}
-          onSelect={setSelectedFrame}
+          onSelect={handleFrameSelection}
           selected={selectedFrame}
         />
       </Card>
@@ -235,39 +285,16 @@ const RmsdPerres = () => {
         {isNglVisible ? (
           <NGLViewerWithControls
             className={style.container}
-            components={firstFrameComponent}
-            selectedResidues={selectedResidues.map(residue => residue.name)}
+            components={mainComponent}
+            selectedResidues={selectedResidueNames}
             customColorSchemes={{ mutations: colorScheme }}
+            onProgress={handleFrameProgress}
+            ref={viewerRef}
           />
         ) : (
           <div style={{ height: '50vh' }} />
         )}
       </Card>
-      <NGLViewerSpawner
-        // Set the new viewer or null if there is not a proper "selected" value
-        newViewer={
-          typeof selectedFrame === 'number'
-            ? {
-                accession: accession,
-                requestedFrame: selectedFrame,
-                selectedResidues: selectedResidues.map(residue => residue.name),
-              }
-            : null
-        }
-        // If the nailed/closed viewer is the current viewer then reset the 'selected'
-        onNail={viewer =>
-          setSelectedFrame(previous => {
-            if (viewer.requestedFrame === previous) return null;
-            else return previous;
-          })
-        }
-        onClose={viewer =>
-          setSelectedFrame(previous => {
-            if (viewer.requestedFrame === previous) return null;
-            else return previous;
-          })
-        }
-      />
     </Suspense>
   );
 };

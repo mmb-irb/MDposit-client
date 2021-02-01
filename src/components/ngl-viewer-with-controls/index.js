@@ -151,6 +151,8 @@ const NGLViewerWithControls = forwardRef(
       opacitiesForced,
       // Set a special option to force the 'noTrajectory' condition
       preventTrajectory = false,
+      // Set a state setter to handle the frame progress
+      onProgress,
       // The rest of properties
       ...props
     },
@@ -414,6 +416,16 @@ const NGLViewerWithControls = forwardRef(
     const [settings, openSettings] = useState(false);
 
     // handlers
+
+    // Handle the automatic progress
+    const handleProgress = useCallback(
+      prog => {
+        if (onProgress) onProgress(prog);
+        setProgress(prog);
+      },
+      [setProgress, onProgress],
+    );
+
     // handle click or click & drag progress bar
     const handleManualProgress = useCallback(
       ({ buttons, clientX, currentTarget, type }) => {
@@ -421,7 +433,10 @@ const NGLViewerWithControls = forwardRef(
         // if mousemove event, but the main button is not pressed, bail
         if (type === 'mousemove' && buttons !== 1) return;
         const { x, width } = currentTarget.getBoundingClientRect();
+        // Set pause
         togglePlaying(false);
+        // Change the ngl viewer current ref from its exposed setter
+        // Then the ngl itself will update the 'progress' state
         viewerRef.current.currentFrame = Math.floor(
           ((clientX - x) / width) * viewerRef.current.totalFrames,
         );
@@ -460,8 +475,9 @@ const NGLViewerWithControls = forwardRef(
         set currentFrame(value) {
           viewerRef.current.currentFrame = value;
         },
+        togglePlaying: togglePlaying,
       }),
-      [],
+      [togglePlaying],
     );
 
     // Return loading if the context is not loaded yet
@@ -501,7 +517,7 @@ const NGLViewerWithControls = forwardRef(
                 playing={playing}
                 spinning={spinning}
                 smooth={smooth}
-                onProgress={setProgress}
+                onProgress={handleProgress}
                 ref={viewerRef}
                 noTrajectory={noTrajectory}
                 nFrames={nFrames}
