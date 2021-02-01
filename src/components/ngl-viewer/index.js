@@ -505,6 +505,7 @@ const NGLViewer = memo(
       }, [perspective]);
 
       // frames
+      // Update the controls progress
       const handleFrameChange = useCallback(
         frame => {
           if (noTrajectory) return; // En pruebas
@@ -724,6 +725,9 @@ const NGLViewer = memo(
           const previousRepresentations = [...stageComp.reprList];
           previousRepresentations.forEach(rep => {
             const name = rep.name;
+            // Representations with name starting with '*' are never removed by this way
+            // Those representations are automatic highlights
+            if (name.charAt(0) === '*') return;
             for (const registredName of registredNames) {
               if (name === registredName) return;
             }
@@ -775,7 +779,7 @@ const NGLViewer = memo(
 
         // Set a representation name
         // This is useful to find previous representations in further renders
-        const nameHighlight = 'highlighted';
+        const nameHighlight = '*highlightedAtoms';
         const previousHighlightRepresentation = stageRef.current.compList[0].reprList.find(
           representation => representation.name === nameHighlight,
         );
@@ -852,7 +856,7 @@ const NGLViewer = memo(
           return;
         }
         // Set a representation name. This is useful to find this representation further
-        const nameHighlight = 'highlightedResidues';
+        const nameHighlight = '*highlightedResidues';
         const previousHighlightRepresentation = stageRef.current.compList[0].reprList.find(
           representation => representation.name === nameHighlight,
         );
@@ -874,6 +878,7 @@ const NGLViewer = memo(
           sele: nglSelection,
           name: nameHighlight,
         });
+
         // Focus the highlighted zone with the camera
         setFocus({ comp: 0, sele: nglSelection });
       }, [pdbFile, selectedResidues]);
@@ -885,7 +890,7 @@ const NGLViewer = memo(
           return;
         }
         // Set a representation name. This is useful to find this representation further
-        const nameHighlight = 'highlightedChains';
+        const nameHighlight = '*highlightedChains';
         const previousHighlightRepresentation = stageRef.current.compList[0].reprList.find(
           representation => representation.name === nameHighlight,
         );
@@ -915,7 +920,7 @@ const NGLViewer = memo(
           return;
         }
         // Set a representation name. This is useful to find this representation further
-        const nameHighlight = 'highlightedCustom';
+        const nameHighlight = '*highlightedCustom';
         const previousHighlightRepresentation = stageRef.current.compList[0].reprList.find(
           representation => representation.name === nameHighlight,
         );
