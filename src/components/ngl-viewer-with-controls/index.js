@@ -476,8 +476,20 @@ const NGLViewerWithControls = forwardRef(
           viewerRef.current.currentFrame = value;
         },
         togglePlaying: togglePlaying,
+        setShowRepresentations: setShowRepresentations,
+        setNglSelections: setNglSelections,
+        setDrawingMethods: setDrawingMethods,
+        setColoringMethods: setColoringMethods,
+        setOpacities: setOpacities,
       }),
-      [togglePlaying],
+      [
+        togglePlaying,
+        setShowRepresentations,
+        setNglSelections,
+        setDrawingMethods,
+        setColoringMethods,
+        setOpacities,
+      ],
     );
 
     // Return loading if the context is not loaded yet

@@ -6,7 +6,12 @@ import {
   RadioGroup,
   Select,
   MenuItem,
+  TextField,
+  IconButton,
 } from '@material-ui/core';
+
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faExchangeAlt } from '@fortawesome/free-solid-svg-icons';
 
 import Loading from '../loading';
 
@@ -32,6 +37,8 @@ const InteractionSelector = ({
   setSelectedInteraction,
   selectedResidues,
   setSelectedResidues,
+  selectedOrder,
+  setSelectedOrder,
 }) => {
   const changeInteraction = event => {
     setSelectedInteraction(event.target.value);
@@ -40,6 +47,12 @@ const InteractionSelector = ({
   const changeResidues = event => {
     setSelectedResidues(event.target.value);
   };
+
+  const changeOrder = () => {
+    setSelectedOrder(previous => !previous);
+  };
+
+  const currentInteraction = interactions[selectedInteraction];
 
   // Render
   return (
@@ -70,6 +83,36 @@ const InteractionSelector = ({
             />
           ))}
         </RadioGroup>
+      )}
+      {selectedOrder !== undefined && (
+        <>
+          <TextField
+            //margin="dense"
+            label="Surfaced interface"
+            title="Interface residues to be represented in electorstatic surface mode"
+            value={
+              selectedOrder
+                ? currentInteraction.agent_1
+                : currentInteraction.agent_2
+            }
+          />
+          <IconButton
+            title="Toggle interface representations"
+            onClick={changeOrder}
+          >
+            <FontAwesomeIcon icon={faExchangeAlt} />
+          </IconButton>
+          <TextField
+            //margin="dense"
+            label="Sticked interface"
+            title="Interface residues to be represented in balls and sticks mode"
+            value={
+              selectedOrder
+                ? currentInteraction.agent_2
+                : currentInteraction.agent_1
+            }
+          />
+        </>
       )}
     </Suspense>
   );

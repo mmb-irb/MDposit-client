@@ -1,4 +1,4 @@
-import React, { useContext, useMemo, useState } from 'react';
+import React, { useContext, useMemo, useState, useRef, useEffect } from 'react';
 // A hook to track whenever some element is on screen
 import { useInView } from 'react-intersection-observer';
 
@@ -17,10 +17,9 @@ import Loading from '../../../components/loading';
 
 import InteractionSelector from '../../../components/interaction-selector';
 
-import {
-  complexNumerationParser,
-  getMetadataChainname,
-} from '../../../utils/topology-manager';
+import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
+
+import { complexNumerationParser } from '../../../utils/topology-manager';
 
 //import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
@@ -32,6 +31,9 @@ const Electrostatic = () => {
   // The status isNglVisible is returned true/false when the element is in/out the screen respectively
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
 
+  // Set a ref to the ngl which allows access to the ngl viewer exposed methods
+  const viewerRef = useRef(null);
+
   // Get the accession
   //const accession = useContext(AccessionCtx);
   // Get the current project chains
@@ -42,93 +44,81 @@ const Electrostatic = () => {
   // The interaction to be displayed
   const [selectedInteraction, setSelectedInteraction] = useState(0);
 
-  // Set the representations for the NGL viewer
-  const representations = useMemo(() => {
-    if (!chains || !metadata || !pdbData.file) return;
+  // This is a toggle state for which interface is the 'surfaced' and which is the 'sticked'
+  const [selectedOrder, setSelectedOrder] = useState(true);
 
-    const reps = [];
-    // Represent all protein chains in cartoon
-    for (const c of chains) {
-      reps.push({
-        name:
-          'Chain ' +
-          c +
-          ' (' +
-          getMetadataChainname(c, metadata, pdbData.file) +
-          ')',
-        selection: ':' + c,
-        type: 'cartoon',
-      });
-    }
+  // Get the default representations
+  const defaultRepresentations = useDefaultRepresentations(chains, metadata);
+
+  // Set the representations for the NGL viewer
+  const { representations, initialFocus } = useMemo(() => {
+    if (!chains || !metadata || !pdbData.file) return;
 
     const interaction = metadata.INTERACTIONS[selectedInteraction];
 
-    // Get the interface selection string
-    const interfaceSelection = [
-      ...interaction.interface_1,
-      ...interaction.interface_2,
+    // Parse the interface selections to the NGL format
+    const [nglInterface1, nglInterface2] = [
+      interaction.interface_1,
+      interaction.interface_2,
+    ].map(interf =>
+      interf.map(res => complexNumerationParser(res).nglSelection),
+    );
+
+    // Create a new representation for each interface
+    // By default the interface 1 is the surfaced and the interface 2 is the sticked
+
+    // Set the surfaced representation
+    const surfacedInterface = nglInterface1;
+    const surfacedRepresentation = {
+      name: interaction.agent_1 + ' interface',
+      selection: surfacedInterface.join(' or '),
+      type: 'surface',
+      color: 'electrostatic',
+    };
+
+    // Set the sticked representation
+    const stickedInterface = nglInterface2;
+    const stickedRepresentation = {
+      name: interaction.agent_2 + ' interface',
+      selection: stickedInterface.join(' or '),
+      type: 'ball+stick',
+      color: 'element',
+    };
+
+    // Make the default representations transparent
+    defaultRepresentations.forEach(rep => (rep.opacity = 0.1));
+
+    // Join all representations
+    const representations = [
+      ...defaultRepresentations,
+      surfacedRepresentation,
+      stickedRepresentation,
     ];
 
-    // Set the NGL selection for each chain interface
-    const nglinterfaceSelection = [];
-    interfaceSelection.forEach(res => {
-      const {
-        chain,
-        nglSelection,
-        nglChainSelection,
-      } = complexNumerationParser(res);
-      // Exclude ligands. We don't want their surfaces to be represented
-      if (metadata.LIGANDS)
-        for (const lig of metadata.LIGANDS)
-          if (lig.ngl === nglChainSelection) return;
-      // If the chain is already in the interactions selection list we expand the selection
-      for (const sel of nglinterfaceSelection)
-        if (sel.chain === chain) {
-          sel.selection += ' or ' + nglSelection;
-          return;
-        }
-      // If not, we add a new interface selection
-      nglinterfaceSelection.push({ chain: chain, selection: nglSelection });
+    // Set the focus to the whole interface
+    const wholeInterface = [...surfacedInterface, ...stickedInterface];
+    const initialFocus = { comp: 0, sele: wholeInterface.join(' or ') };
+
+    return { representations, initialFocus };
+  }, [chains, metadata, pdbData, defaultRepresentations, selectedInteraction]);
+
+  // Update representations type and color when the selected order changes
+  useEffect(() => {
+    if (!viewerRef.current) return;
+    // Interface representations are the 2 last representations
+    const interface1Index = representations.length - 2;
+    const interface2Index = representations.length - 1;
+    viewerRef.current.setDrawingMethods(previous => {
+      previous[interface1Index] = selectedOrder ? 'surface' : 'ball+stick';
+      previous[interface2Index] = selectedOrder ? 'ball+stick' : 'surface';
+      return [...previous];
     });
-
-    // Those chains with residues in the interface show their mentioned residues
-    // This representation is in electrostatic surface
-    for (const selection of nglinterfaceSelection) {
-      reps.push({
-        name:
-          'Chain ' +
-          selection.chain +
-          ' (' +
-          getMetadataChainname(selection.chain, metadata, pdbData.file) +
-          ') interface',
-        selection: selection.selection,
-        type: 'surface',
-        color: 'electrostatic',
-      });
-    }
-
-    // Represent the ligand
-    if (metadata.LIGANDS) {
-      for (const ligand of metadata.LIGANDS) {
-        reps.push({
-          name: ligand.name,
-          selection: ligand.ngl,
-          type: 'ball+stick',
-          color: 'element',
-        });
-      }
-    }
-
-    return reps;
-  }, [chains, metadata, pdbData, selectedInteraction]);
-
-  const initialFocus = useMemo(() => {
-    if (!metadata || !metadata.LIGANDS) return;
-    // Set the NGL selection for the focus
-    const focusSelection =
-      '(' + metadata.LIGANDS.map(ligand => ligand.ngl).join(') or (') + ')';
-    return { comp: 0, sele: focusSelection };
-  }, [metadata]);
+    viewerRef.current.setColoringMethods(previous => {
+      previous[interface1Index] = selectedOrder ? 'electrostatic' : 'element';
+      previous[interface2Index] = selectedOrder ? 'element' : 'electrostatic';
+      return [...previous];
+    });
+  }, [representations, selectedOrder]);
 
   if (!metadata || !pdbData.file) return <Loading />;
 
@@ -166,6 +156,8 @@ const Electrostatic = () => {
             interactions={metadata.INTERACTIONS}
             selectedInteraction={selectedInteraction}
             setSelectedInteraction={setSelectedInteraction}
+            selectedOrder={selectedOrder}
+            setSelectedOrder={setSelectedOrder}
           />
         </CardContent>
       </Card>
@@ -177,6 +169,7 @@ const Electrostatic = () => {
             representations={representations}
             requestedFrame={1}
             initialFocus={initialFocus}
+            ref={viewerRef}
           />
         ) : (
           <div style={{ height: '50vh' }} />
