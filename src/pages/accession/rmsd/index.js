@@ -113,9 +113,9 @@ const Rmsd = () => {
   else if (tmscoresError) return tmscoresError.toString();
   else if (!rmsdsPayload || !tmscoresPayload) return 'Something bad happened';
 
-  // Calculate the step from trajectory frames and data length
-  //const dataLength = Object.values(rmsds)[0].data.length;
-  //const xAxesStep = metadata.LENGTH / (dataLength - 1);
+  // Set the y axis label according to if it is an RMSd or a TM score
+  let yAxisLabel = 'RMSd (Å)';
+  if (selectedTab.type === 'tmscore') yAxisLabel = 'TM score';
 
   const cents = num => Math.round(num * 100) / 100;
 
@@ -219,7 +219,7 @@ const Rmsd = () => {
               step={xAxesStep}
               xAxisLabel={'Time (ns)'}
               xScaleFactor={1}
-              yAxisLabel={'RMSd (Å)'}
+              yAxisLabel={yAxisLabel}
               onSelect={setSelected}
               selected={selected}
               selfLegend={false}
