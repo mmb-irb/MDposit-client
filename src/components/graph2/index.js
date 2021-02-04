@@ -207,6 +207,7 @@ const Graph2 = ({
   const prevLabels = useRef(lab);
   const prevPrecision = useRef(pr);
   const prevRescaleX = useRef(scale => scale);
+  const prevStep = useRef(step);
 
   useEffect(() => {
     drawRef.current && pdbData && pdbData.file && drawRef.current();
@@ -310,6 +311,7 @@ const Graph2 = ({
       rescaleX = prevRescaleX.current,
       selected = selectedRef.current,
       pdbData = pdbDataRef.current,
+      xStep = prevStep.current,
     } = {}) => {
       // container size
       const { clientWidth: width, clientHeight: height } = containerRef.current;
@@ -347,7 +349,7 @@ const Graph2 = ({
       }
 
       const xMin = 0;
-      const xMax = dataEntries[0][1].data.length * step;
+      const xMax = dataEntries[0][1].data.length * xStep;
 
       // x axis
       const x = rescaleX(
@@ -435,9 +437,7 @@ const Graph2 = ({
           .attr('y2', d => y(getMean(data[d].data)))
           .transition()
           .attr('opacity', d => (labels[d] ? 0.5 : 0));
-        meanLines
-          .exit()
-          .remove()
+        meanLines.exit().remove();
       }
       // mean ± 1σ area
       if (standardDeviation) {
@@ -470,18 +470,16 @@ const Graph2 = ({
           })
           .transition()
           .attr('opacity', d => (labels[d] ? 0.1 : 0));
-        sdRects
-          .exit()
-          .remove()
+        sdRects.exit().remove();
       }
 
-      const minIndex = Math.floor(x.invert(0) / step / precision);
-      const maxIndex = Math.ceil(x.invert(width) / step / precision);
+      const minIndex = Math.floor(x.invert(0) / xStep / precision);
+      const maxIndex = Math.ceil(x.invert(width) / xStep / precision);
 
       // Define the data line positions
       const lineFn = line()
         .defined((_, i) => i >= minIndex && i <= maxIndex)
-        .x((_, i) => x(i * step * precision))
+        .x((_, i) => x(i * xStep * precision))
         .y(d => y(d));
 
       // Draw the data lines
@@ -498,22 +496,22 @@ const Graph2 = ({
         .attr('stroke', d => data[d].color || 'black')
         .attr('stroke-linejoin', 'round')
         .attr('stroke-linecap', 'round')
-        .attr('d', d => lineFn(data[d].data.filter((_, i) => i % precision === 0)))
+        .attr('d', d =>
+          lineFn(data[d].data.filter((_, i) => i % precision === 0)),
+        )
         .transition()
         .attr('opacity', d => (labels[d] ? 1 : 0))
         .attr('stroke-width', d => (hovered === d ? 3 : 1.5));
       // Remove lines which are not required anymore according to the mapped data
-      linesData
-        .exit()
-        .remove()
+      linesData.exit().remove();
 
       // Place the vertical line in the selected data point position
       if (selectedRect) {
-        const width = Math.max(1, x(precision * step) - x(0));
+        const width = Math.max(1, x(precision * xStep) - x(0));
         selectedRect
           .attr('width', () => width)
           .attr('x', () =>
-            Number.isInteger(selected) ? x(selected * step) - width / 2 : 0,
+            Number.isInteger(selected) ? x(selected * xStep) - width / 2 : 0,
           )
           .attr('opacity', selected === null ? 0 : 1);
       }
@@ -544,7 +542,6 @@ const Graph2 = ({
         .attr('stroke', 'rgba(255, 255, 255, 0.5)')
         .attr('stroke-width', 5)
         .attr('filter', textBackgroundURL);
-      
 
       // mouse move handler
       graph.on('mousemove', (_, index, nodes) => {
@@ -553,13 +550,13 @@ const Graph2 = ({
         const [xValue] = mouse(nodes[index]);
         // Get the closest x axis index to the current mouse position
         const closestIndex =
-          Math.round(x.invert(xValue) / precision / step) * precision;
+          Math.round(x.invert(xValue) / precision / xStep) * precision;
         allDotGroups
-          .attr('transform', `translate(${x(closestIndex * step)}, 0)`)
+          .attr('transform', `translate(${x(closestIndex * xStep)}, 0)`)
           .attr(
             'opacity',
             // Dots become invisible if the closest index is not between the minimum and the maximum
-            closestIndex * step >= xMin && closestIndex * step < xMax ? 1 : 0,
+            closestIndex * xStep >= xMin && closestIndex * xStep < xMax ? 1 : 0,
           );
         allDotGroups
           .selectAll('g.dot-group')
@@ -578,7 +575,7 @@ const Graph2 = ({
           .text(d => {
             // Dot in x axes
             if (d === 'x') {
-              const number = closestIndex * step * xScaleFactor;
+              const number = closestIndex * xStep * xScaleFactor;
               if (xUnit === 'ns') return +number.toFixed(2) + ' ns';
               if (xUnit === 'frame') return 'frame ' + +number.toFixed(2);
               if (xUnit === 'atom') {
@@ -607,7 +604,7 @@ const Graph2 = ({
           });
         if (onHover) {
           onHover(
-            closestIndex * step >= xMin && closestIndex * step < xMax
+            closestIndex * xStep >= xMin && closestIndex * xStep < xMax
               ? closestIndex
               : null,
           );
@@ -618,8 +615,8 @@ const Graph2 = ({
         graph.on('click', (_, index, nodes) => {
           const [xValue] = mouse(nodes[index]);
           const closestIndex =
-            Math.round(x.invert(xValue) / precision / step) * precision;
-          if (closestIndex * step < xMin || closestIndex * step >= xMax) {
+            Math.round(x.invert(xValue) / precision / xStep) * precision;
+          if (closestIndex * xStep < xMin || closestIndex * xStep >= xMax) {
             return;
           }
           onSelect(
@@ -638,6 +635,7 @@ const Graph2 = ({
       prevLabels.current = labels;
       prevPrecision.current = precision;
       prevRescaleX.current = rescaleX;
+      prevStep.current = xStep;
     };
 
     window.addEventListener('resize', drawRef.current);
@@ -650,8 +648,8 @@ const Graph2 = ({
   useEffect(() => {
     selectedRef.current = selected;
     pdbDataRef.current = pdbData || pdbDataRef.current;
-    drawRef.current({ data: yData, selected, pdbData });
-  }, [selected, pdbData, yData]);
+    drawRef.current({ data: yData, selected, pdbData, xStep: step });
+  }, [selected, pdbData, yData, step]);
 
   useEffect(() => drawRef.current({ precision: pr, labels: lab }), [pr, lab]);
 
