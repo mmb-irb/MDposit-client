@@ -44,7 +44,8 @@ const useDefaultRepresentations = (chains, metadata) => {
         // Check if the chain is in the protein chains
         const isProtein = chains.indexOf(chain) !== -1;
         // Check if the name matches any ligand name
-        const isLigand = ligands.find(ligand => ligand.name === name);
+        const isLigand =
+          ligands && ligands.find(ligand => ligand.name === name);
         // If there is any coincidence then skip this chainname
         if (isProtein || isLigand) return;
         reps.push({
