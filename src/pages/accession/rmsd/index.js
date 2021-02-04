@@ -19,7 +19,7 @@ import Loading from '../../../components/loading';
 
 import useAPI from '../../../hooks/use-api';
 
-import { AccessionCtx, ProjectCtx } from '../../../contexts';
+import { AccessionCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
@@ -33,25 +33,44 @@ const Graph2 = lazy(() =>
   import(/* webpackChunkName: 'graph2' */ '../../../components/graph2'),
 );
 
+const tabs = [
+  { reference: 'firstframe', type: 'rmsd', label: 'First frame RMSd' },
+  { reference: 'average', type: 'rmsd', label: 'Average RMSd' },
+  { reference: 'firstframe', type: 'tmscore', label: 'First frame TM score' },
+  { reference: 'average', type: 'tmscore', label: 'Average TM score' },
+];
+
 const colors = ['black', 'red', 'orange', 'yellow'];
 
 const Rmsd = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
-  // Get the current project metadata
-  const { metadata } = useContext(ProjectCtx);
 
   // Send a request to the API with the url of the specific analysis
-  const { loading, payload, error } = useAPI(
-    `${BASE_PATH_PROJECTS}${accession}/analyses/rmsds/`,
-  );
+  const {
+    loading: rmsdsLoading,
+    payload: rmsdsPayload,
+    error: rmsdsError,
+  } = useAPI(`${BASE_PATH_PROJECTS}${accession}/analyses/rmsds/`);
 
-  // Set which reference rmsds must be displayed: first frame or average structure
-  const [reference, setReference] = useState('firstframe');
+  // Send a request to the API with the url of the specific analysis
+  const {
+    loading: tmscoresLoading,
+    payload: tmscoresPayload,
+    error: tmscoresError,
+  } = useAPI(`${BASE_PATH_PROJECTS}${accession}/analyses/tmscores/`);
+
+  // Set which tab is selected
+  const [selectedTab, setSelectedTab] = useState(tabs[0]);
 
   // Format the data
-  const rmsds = useMemo(() => {
-    if (!payload) return;
+  const { rmsds, xAxesStep } = useMemo(() => {
+    let payload;
+    const type = selectedTab.type;
+    const reference = selectedTab.reference;
+    if (type === 'rmsd') payload = rmsdsPayload;
+    if (type === 'tmscore') payload = tmscoresPayload;
+    if (!payload) return {};
     const rmsds = {};
     let count = 0;
     payload.data.forEach(rmsd => {
@@ -68,8 +87,10 @@ const Rmsd = () => {
       const name = rmsd.group;
       rmsds[name] = dataset;
     });
-    return rmsds;
-  }, [payload, reference]);
+    // Get the frames step
+    const xAxesStep = payload.step;
+    return { rmsds, xAxesStep };
+  }, [rmsdsPayload, tmscoresPayload, selectedTab]);
 
   // Set which rmsd is displayed
   const [display, setDisplay] = useState({
@@ -83,12 +104,14 @@ const Rmsd = () => {
   const [selected, setSelected] = useState(null);
 
   // Render loading or error messages according with the API response
-  if (loading) return <Loading />;
-  else if (error) return error.toString();
-  else if (!payload) return 'Something bad happened';
+  if (rmsdsLoading || tmscoresLoading) return <Loading />;
+  else if (rmsdsError) return rmsdsError.toString();
+  else if (tmscoresError) return tmscoresError.toString();
+  else if (!rmsdsPayload || !tmscoresPayload) return 'Something bad happened';
 
-  const dataLength = Object.values(rmsds)[0].data.length;
-  const xAxesStep = metadata.LENGTH / (dataLength - 1);
+  // Calculate the step from trajectory frames and data length
+  //const dataLength = Object.values(rmsds)[0].data.length;
+  //const xAxesStep = metadata.LENGTH / (dataLength - 1);
 
   const cents = num => Math.round(num * 100) / 100;
 
@@ -107,18 +130,18 @@ const Rmsd = () => {
         />
         <CardContent>
           <Tabs
-            value={reference}
+            value={selectedTab}
             variant="fullWidth"
             indicatorColor="secondary"
             textColor="secondary"
-            onChange={(event, newValue) => {
-              setReference(newValue);
+            onChange={(event, value) => {
+              setSelectedTab(value);
             }}
             className={style['margined-bottom']}
           >
-            <Tab value={'firstframe'} label="First frame" />
-            <Tab value={'average'} label="Average structure" />
-            <Tab value={'tmscore'} label="TM score" disabled />
+            {tabs.map((tab, t) => (
+              <Tab key={t} value={tab} label={tab.label} />
+            ))}
           </Tabs>
           <Table padding="checkbox">
             <TableHead>
