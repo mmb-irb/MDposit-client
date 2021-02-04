@@ -208,6 +208,8 @@ const Graph2 = ({
   const prevPrecision = useRef(pr);
   const prevRescaleX = useRef(scale => scale);
   const prevStep = useRef(step);
+  const prevXAxisLabel = useRef(xAxisLabel);
+  const prevYAxisLabel = useRef(yAxisLabel);
 
   useEffect(() => {
     drawRef.current && pdbData && pdbData.file && drawRef.current();
@@ -311,7 +313,9 @@ const Graph2 = ({
       rescaleX = prevRescaleX.current,
       selected = selectedRef.current,
       pdbData = pdbDataRef.current,
-      xStep = prevStep.current,
+      step = prevStep.current,
+      xAxisLabel = prevXAxisLabel.current,
+      yAxisLabel = prevYAxisLabel.current,
     } = {}) => {
       // container size
       const { clientWidth: width, clientHeight: height } = containerRef.current;
@@ -349,7 +353,7 @@ const Graph2 = ({
       }
 
       const xMin = 0;
-      const xMax = dataEntries[0][1].data.length * xStep;
+      const xMax = dataEntries[0][1].data.length * step;
 
       // x axis
       const x = rescaleX(
@@ -473,13 +477,13 @@ const Graph2 = ({
         sdRects.exit().remove();
       }
 
-      const minIndex = Math.floor(x.invert(0) / xStep / precision);
-      const maxIndex = Math.ceil(x.invert(width) / xStep / precision);
+      const minIndex = Math.floor(x.invert(0) / step / precision);
+      const maxIndex = Math.ceil(x.invert(width) / step / precision);
 
       // Define the data line positions
       const lineFn = line()
         .defined((_, i) => i >= minIndex && i <= maxIndex)
-        .x((_, i) => x(i * xStep * precision))
+        .x((_, i) => x(i * step * precision))
         .y(d => y(d));
 
       // Draw the data lines
@@ -507,11 +511,11 @@ const Graph2 = ({
 
       // Place the vertical line in the selected data point position
       if (selectedRect) {
-        const width = Math.max(1, x(precision * xStep) - x(0));
+        const width = Math.max(1, x(precision * step) - x(0));
         selectedRect
           .attr('width', () => width)
           .attr('x', () =>
-            Number.isInteger(selected) ? x(selected * xStep) - width / 2 : 0,
+            Number.isInteger(selected) ? x(selected * step) - width / 2 : 0,
           )
           .attr('opacity', selected === null ? 0 : 1);
       }
@@ -550,13 +554,13 @@ const Graph2 = ({
         const [xValue] = mouse(nodes[index]);
         // Get the closest x axis index to the current mouse position
         const closestIndex =
-          Math.round(x.invert(xValue) / precision / xStep) * precision;
+          Math.round(x.invert(xValue) / precision / step) * precision;
         allDotGroups
-          .attr('transform', `translate(${x(closestIndex * xStep)}, 0)`)
+          .attr('transform', `translate(${x(closestIndex * step)}, 0)`)
           .attr(
             'opacity',
             // Dots become invisible if the closest index is not between the minimum and the maximum
-            closestIndex * xStep >= xMin && closestIndex * xStep < xMax ? 1 : 0,
+            closestIndex * step >= xMin && closestIndex * step < xMax ? 1 : 0,
           );
         allDotGroups
           .selectAll('g.dot-group')
@@ -575,7 +579,7 @@ const Graph2 = ({
           .text(d => {
             // Dot in x axes
             if (d === 'x') {
-              const number = closestIndex * xStep * xScaleFactor;
+              const number = closestIndex * step * xScaleFactor;
               if (xUnit === 'ns') return +number.toFixed(2) + ' ns';
               if (xUnit === 'frame') return 'frame ' + +number.toFixed(2);
               if (xUnit === 'atom') {
@@ -604,7 +608,7 @@ const Graph2 = ({
           });
         if (onHover) {
           onHover(
-            closestIndex * xStep >= xMin && closestIndex * xStep < xMax
+            closestIndex * step >= xMin && closestIndex * step < xMax
               ? closestIndex
               : null,
           );
@@ -615,8 +619,8 @@ const Graph2 = ({
         graph.on('click', (_, index, nodes) => {
           const [xValue] = mouse(nodes[index]);
           const closestIndex =
-            Math.round(x.invert(xValue) / precision / xStep) * precision;
-          if (closestIndex * xStep < xMin || closestIndex * xStep >= xMax) {
+            Math.round(x.invert(xValue) / precision / step) * precision;
+          if (closestIndex * step < xMin || closestIndex * step >= xMax) {
             return;
           }
           onSelect(
@@ -635,7 +639,9 @@ const Graph2 = ({
       prevLabels.current = labels;
       prevPrecision.current = precision;
       prevRescaleX.current = rescaleX;
-      prevStep.current = xStep;
+      prevStep.current = step;
+      prevXAxisLabel.current = xAxisLabel;
+      prevYAxisLabel.current = yAxisLabel;
     };
 
     window.addEventListener('resize', drawRef.current);
@@ -648,8 +654,15 @@ const Graph2 = ({
   useEffect(() => {
     selectedRef.current = selected;
     pdbDataRef.current = pdbData || pdbDataRef.current;
-    drawRef.current({ data: yData, selected, pdbData, xStep: step });
-  }, [selected, pdbData, yData, step]);
+    drawRef.current({
+      data: yData,
+      selected,
+      pdbData,
+      step,
+      xAxisLabel,
+      yAxisLabel,
+    });
+  }, [selected, pdbData, yData, step, xAxisLabel, yAxisLabel]);
 
   useEffect(() => drawRef.current({ precision: pr, labels: lab }), [pr, lab]);
 
