@@ -19,7 +19,7 @@ import Loading from '../../../components/loading';
 
 import useAPI from '../../../hooks/use-api';
 
-import { AccessionCtx } from '../../../contexts';
+import { AccessionCtx, ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
@@ -45,6 +45,8 @@ const colors = ['black', 'red', 'orange', 'yellow'];
 const Rmsd = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
+  // Get the metadata
+  const { metadata } = useContext(ProjectCtx);
 
   // Send a request to the API with the url of the specific analysis
   const {
@@ -88,9 +90,11 @@ const Rmsd = () => {
       rmsds[name] = dataset;
     });
     // Get the frames step
-    const xAxesStep = payload.step;
+    // WARNING: We want the time step in nanoseconds (ns)
+    // WARNING: Frequency is divided by 1000 since it is in picoseconds (ps)
+    const xAxesStep = payload.step * (metadata.FREQUENCY / 1000);
     return { rmsds, xAxesStep };
-  }, [rmsdsPayload, tmscoresPayload, selectedTab]);
+  }, [metadata, rmsdsPayload, tmscoresPayload, selectedTab]);
 
   // Set which rmsd is displayed
   const [display, setDisplay] = useState({
