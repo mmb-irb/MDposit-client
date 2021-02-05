@@ -17,7 +17,7 @@ import { ProjectCtx, PdbCtx } from '../../../contexts';
 import Info from '../../../components/info';
 import Loading from '../../../components/loading';
 
-import { absolute2modelResidue } from '../../../utils/topology-manager';
+import { absolute2sourceResidue } from '../../../utils/topology-manager';
 
 import useAPI from '../../../hooks/use-api';
 
@@ -93,8 +93,8 @@ const Mutations = () => {
       this.atomColor = atom => {
         // Find the residue index and then the entropy for this residue
         const residue = atom.residueIndex;
-        const modelResiude = absolute2modelResidue(residue, topology, metadata)
-          .chainResidue;
+        const modelResiude = absolute2sourceResidue(residue, topology, metadata)
+          .residueNumber;
         const entropy = normalizedEntropies[modelResiude];
         // Calculate the interpolated rgb for this value
         // The interpolated color comes in rbg format
