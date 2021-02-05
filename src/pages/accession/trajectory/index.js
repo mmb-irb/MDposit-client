@@ -588,8 +588,7 @@ const Trajectory = () => {
               {
                 name: agent.name,
                 selection: nglSelection,
-                type: 'ball+stick',
-                //color: 'element',
+                type: 'licorice',
               },
             ],
           });
