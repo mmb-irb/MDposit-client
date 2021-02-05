@@ -150,7 +150,7 @@ const Rmsd = () => {
           <Table padding="checkbox">
             <TableHead>
               <TableRow>
-                <TableCell>name</TableCell>
+                <TableCell>selected atoms</TableCell>
                 <TableCell>mean (Å)</TableCell>
                 <TableCell>standard deviation (Å)</TableCell>
               </TableRow>
