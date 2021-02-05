@@ -122,6 +122,15 @@ const Row = ({ project, highlight, index, setProject }) => {
   )
     analyses.push('electrostatic');
 
+  // Push the mutations analysis if we have metadata toporef
+  if (
+    metadata &&
+    metadata.TOPOREF &&
+    analyses &&
+    !analyses.includes('mutations')
+  )
+    analyses.push('mutations');
+
   // Returns a table with multiple rows
   // The 3 first rows: accession, PDB accession and name are searchable. Search text is highlighted when found
   return (
@@ -188,6 +197,7 @@ const Row = ({ project, highlight, index, setProject }) => {
                   'electrostatic',
                   'energies',
                   'pockets',
+                  'mutations',
                 ].includes(element),
               )
               // For each analysis create a clickable button which links to the analysis route

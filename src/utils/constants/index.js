@@ -30,6 +30,7 @@ export const NICE_NAMES = new Map([
   ['electrostatic', 'Electrostatic p. surface'],
   ['energies', 'Energies'],
   ['pockets', 'Pockets'],
+  ['mutations', 'Mutations'],
 ]);
 
 // The color of the graphics for this analysis
