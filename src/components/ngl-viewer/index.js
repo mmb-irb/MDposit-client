@@ -790,9 +790,9 @@ const NGLViewer = memo(
         }
 
         // Name for residues representation
-        const nameContext = 'context';
+        const nameContextHighlight = '*highlightedAtomResidues';
         const previousContextRepresentation = stageRef.current.compList[0].reprList.find(
-          representation => representation.name === nameContext,
+          representation => representation.name === nameContextHighlight,
         );
         if (previousContextRepresentation) {
           stageRef.current.compList[0].removeRepresentation(
@@ -843,7 +843,7 @@ const NGLViewer = memo(
 
         stageRef.current.compList[0].addRepresentation('ball+stick', {
           sele: seleContext,
-          name: nameContext,
+          name: nameContextHighlight,
         });
 
         // Focus the highlighted zone with the camera
@@ -952,7 +952,7 @@ const NGLViewer = memo(
         }
         //console.log(selectedDistances);
         // Set a representation name. This is useful to find this representation further
-        const name = 'distance';
+        const name = '*distance';
         const previousRepresentation = stageRef.current.compList[0].reprList.find(
           representation => representation.name === name,
         );
@@ -979,7 +979,7 @@ const NGLViewer = memo(
           return;
         }
         // Set a representation name. This is useful to find this representation further
-        const name = 'angles';
+        const name = '*angles';
         const previousRepresentation = stageRef.current.compList[0].reprList.find(
           representation => representation.name === name,
         );
