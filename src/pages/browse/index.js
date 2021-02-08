@@ -117,6 +117,7 @@ const Row = ({ project, highlight, index, setProject }) => {
   if (
     metadata &&
     metadata.INTERACTIONS &&
+    metadata.INTERACTIONS.length > 0 &&
     analyses &&
     !analyses.includes('electrostatic')
   )
