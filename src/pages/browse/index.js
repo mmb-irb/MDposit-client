@@ -187,7 +187,7 @@ const Row = ({ project, highlight, index, setProject }) => {
               // Display only allowed analysis
               .filter(element =>
                 [
-                  'rmsd',
+                  'rmsds',
                   'rgyr',
                   'fluctuation',
                   'pca',

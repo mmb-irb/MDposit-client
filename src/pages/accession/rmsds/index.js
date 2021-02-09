@@ -42,7 +42,7 @@ const tabs = [
 
 const colors = ['black', 'red', 'orange', 'yellow'];
 
-const Rmsd = () => {
+const Rmsds = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
   // Get the metadata
@@ -256,4 +256,4 @@ const Rmsd = () => {
   );
 };
 
-export default Rmsd;
+export default Rmsds;

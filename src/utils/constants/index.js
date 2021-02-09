@@ -16,6 +16,7 @@ export const NICE_NAMES = new Map([
   ['files', 'Downloads'],
   ['dist', 'DIST'],
   ['rmsd', 'RMSd'],
+  ['rmsds', 'RMSds'],
   ['rgyr', 'Rgyr'],
   ['rgyrx', 'RgyrX'],
   ['rgyry', 'RgyrY'],

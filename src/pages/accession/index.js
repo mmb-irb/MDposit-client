@@ -41,7 +41,7 @@ const GenericAnalysisPage = lazy(() =>
     /* webpackChunkName: 'generic-analysis-page' */ './generic-analysis-page'
   ),
 );
-const Rmsd = lazy(() => import(/* webpackChunkName: 'rmsd' */ './rmsd'));
+const Rmsds = lazy(() => import(/* webpackChunkName: 'rmsds' */ './rmsds'));
 const Rgyr = lazy(() => import(/* webpackChunkName: 'rgyr' */ './rgyr'));
 const Fluctuation = lazy(() =>
   import(/* webpackChunkName: 'fluctuation' */ './fluctuation'),
@@ -208,11 +208,11 @@ const SummarySwitch = ({ setProject }) => {
               )}
             />
             <Route
-              path="/browse/:accession/rmsd"
+              path="/browse/:accession/rmsds"
               exact
               render={() => (
                 <Suspense fallback={<Loading />}>
-                  <Rmsd />
+                  <Rmsds />
                 </Suspense>
               )}
             />

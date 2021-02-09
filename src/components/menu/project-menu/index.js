@@ -84,7 +84,7 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
     {
       name: 'quality control analyses',
       drops: [
-        { name: 'RMSD', dir: 'rmsd', cond: analyses.includes('rmsd') },
+        { name: 'RMSDs', dir: 'rmsds', cond: analyses.includes('rmsds') },
         {
           name: 'RMSD per residue',
           dir: 'rmsd-perres',
