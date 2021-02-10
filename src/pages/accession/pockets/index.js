@@ -76,7 +76,7 @@ const Pockets = () => {
   const [showRepresentations, setShowRepresentations] = useState([]);
 
   // Set when one point in the graph is selected
-  const [selectedFrame, setSelectedFrame] = useState(null);
+  const [selectedFrame, setSelectedFrame] = useState(0);
 
   // Send a request to the API with the url of the rgyr analysis
   const { loading, payload, error } = useAPI(
@@ -110,8 +110,9 @@ const Pockets = () => {
     // Wait for payload to be downloaded
     if (!data || !currentPocket) return {};
 
-    // Use the average structure to reference the pockets (only backbone right now)
-    const averageURL = `${BASE_PATH_PROJECTS}${accession}/files/average.bin`;
+    // DANI: Temporalmente se suspende el average
+    // Use the average structure to reference the pockets
+    //const averageURL = `${BASE_PATH_PROJECTS}${accession}/files/average.bin`;
     // Load the required frames from the main trajectory
     const mainURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory?frames=1:${metadata.SNAPSHOTS}:${frameStep}`;
     //console.log(mainURL);
@@ -128,7 +129,9 @@ const Pockets = () => {
 
     // The first component, which includes everything but the pockets
     const mainComponent = {
-      trajectoryURLs: [averageURL, mainURL],
+      trajectoryURLs: [mainURL],
+      // DANI: Temporalmente se suspende el average
+      //trajectoryURLs: [averageURL, mainURL],
       representations: representations,
     };
 
@@ -197,9 +200,11 @@ const Pockets = () => {
   // Handle the change of frame
   useEffect(() => {
     if (!viewerRef.current) return;
+    viewerRef.current.currentFrame = selectedFrame;
+    // DANI: Temporalmente se suspende el average
     // The first frame (0) is the average
-    if (selectedFrame === null) viewerRef.current.currentFrame = 0;
-    else viewerRef.current.currentFrame = selectedFrame + 1;
+    //if (selectedFrame === null) viewerRef.current.currentFrame = 0;
+    //else viewerRef.current.currentFrame = selectedFrame + 1;
   }, [selectedFrame]);
 
   // Set a function to wrap the 'setSelectedFrame'
@@ -207,8 +212,10 @@ const Pockets = () => {
   const handleFrameSelection = useCallback(
     frame => {
       setSelectedFrame(previousFrame => {
-        if (frame === previousFrame) return null;
-        else return frame;
+        return frame;
+        // DANI: Temporalmente se suspende el average
+        //if (frame === previousFrame) return null;
+        //else return frame;
       });
     },
     [setSelectedFrame],
