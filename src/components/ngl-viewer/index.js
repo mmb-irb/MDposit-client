@@ -1279,6 +1279,8 @@ const NGLViewer = memo(
             Residue ${model.chainResidue} (${atom.resname})`;
         };
 
+        const hideTooltip = () => (tooltip.style.display = 'none');
+
         // Show our tooltip with the corresponding values when the mouse hovers an atom/bond
         stageRef.current.signals.hovered.add(function(pickingProxy) {
           // When we hover a bond
@@ -1303,11 +1305,18 @@ const NGLViewer = memo(
             tooltip.style.left = mp.x + 3 + 'px';
             tooltip.style.display = 'block';
           } else {
-            tooltip.style.display = 'none';
+            hideTooltip();
           }
         });
+
+        // Remove the tooltip when the mouse is out of the NGL viewer container
+        containerRef.current.addEventListener('mouseleave', hideTooltip, false);
+
         // Cleaning function
-        return () => tooltip.remove();
+        return () => {
+          tooltip.remove();
+          containerRef.current.removeEventListener('mouseleave', hideTooltip);
+        };
       }, [pdbFile, metadata]);
 
       // Track when the first focus has been performed, since first focus is instantaneous
