@@ -1244,14 +1244,13 @@ const NGLViewer = memo(
         Object.assign(tooltip.style, {
           display: 'none',
           position: 'fixed',
-          zIndex: 10,
           pointerEvents: 'none',
           backgroundColor: 'rgba( 0, 0, 0, 0.6 )',
           color: 'lightgrey',
           padding: '8px',
           fontFamily: 'sans-serif',
         });
-        document.body.appendChild(tooltip);
+        containerRef.current.appendChild(tooltip);
 
         // Remove the original tooltip
         stageRef.current.mouseControls.remove('hoverPick');
