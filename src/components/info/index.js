@@ -31,6 +31,7 @@ const Info = ({
       position: 'absolute',
       right: 0,
       'z-index': 10000,
+      cursor: 'help',
     },
   }));
   const classes = useStyles();
