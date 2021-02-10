@@ -289,6 +289,7 @@ const D3HeatmapGrid = memo(
         .attr('width', x.bandwidth()) // This * 1.05 is to remove the small gap between cells
         .attr('height', y.bandwidth()) // Padding is 0 but it is still there
         .style('fill', (d, i) => myColor(d.v))
+        .style('cursor', onClick ? 'pointer' : undefined)
         .on('mouseover', mouseover)
         .on('mousemove', mousemove)
         .on('mouseleave', mouseleave)
