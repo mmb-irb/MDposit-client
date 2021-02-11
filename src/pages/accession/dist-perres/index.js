@@ -252,7 +252,11 @@ const DistPerres = () => {
             ? {
                 accession: accession,
                 selectedResidues: selected.residues,
-                selectedDistances: selected.distance,
+                // DANI: Las representación de las distancias queda suspendida temporalmente
+                // DANI: Es un percal. Solo se puede hacer con átomos, no con residuos.
+                // DANI: Tal y como está ahora solo funcionaría para distancias entre 2 proteínas
+                // DANI: Y posiblemente ni eso. Depende de la topología.
+                //selectedDistances: selected.distance,
               }
             : null
         }
