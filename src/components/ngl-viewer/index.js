@@ -30,6 +30,8 @@ import {
   model2sourceResidue,
 } from '../../utils/topology-manager';
 
+import { setTooltipPosition } from '../../utils/tooltip-position-manager';
+
 import style from './style.module.css';
 
 // To get frames
@@ -1299,10 +1301,17 @@ const NGLViewer = memo(
             }
             tooltip.innerText = description;
             // Handle tooltip position
-            const mp = pickingProxy.mouse.position;
-            tooltip.style.bottom = window.innerHeight - mp.y + 3 + 'px';
-            tooltip.style.left = mp.x + 3 + 'px';
+            // WARNING: It is important to make the display block before calculating the position
+            // This is because the position is calculated from the tooltip size, which would be 0 otherwise
             tooltip.style.display = 'block';
+            const { x, y } = setTooltipPosition(
+              containerRef.current,
+              tooltip,
+              pickingProxy.mouse.position,
+              3,
+            );
+            tooltip.style.top = y + 'px';
+            tooltip.style.left = x + 'px';
           } else {
             hideTooltip();
           }

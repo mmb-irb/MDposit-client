@@ -4,14 +4,9 @@ import Loading from '../loading';
 
 import { getTextWidth, getTextSizeDOM } from '../../utils/document-measurer';
 
-import {
-  axisBottom,
-  select,
-  scaleLinear,
-  scaleBand,
-  axisLeft,
-  mouse,
-} from 'd3';
+import { axisBottom, select, scaleLinear, scaleBand, axisLeft } from 'd3';
+
+import { setTooltipPosition } from '../../utils/tooltip-position-manager';
 
 // According to d3 documentation
 const defaultD3font = 'normal 10px sans-serif';
@@ -68,7 +63,7 @@ const D3HeatmapGrid = memo(
       fdata.push({ v: values[i], x: xlabs[i], y: ylabs[i] });
     }
 
-    // Set the reference to the element where the graph will be allocated
+    // Set the reference to the element where the heatmap will be allocated
     const containerRef = useRef(null);
     // Save the previous chart reference so we can remove it before a new render
     const previousCharts = useRef(null);
@@ -149,9 +144,12 @@ const D3HeatmapGrid = memo(
       if (previousCharts.current)
         previousCharts.current.forEach(chart => chart.remove());
 
+      const container = containerRef.current;
+
       // append the svg object to the body of the page
-      const svg = select(containerRef.current)
+      const svg = select(container)
         .append('svg')
+        .attr('id', 'svg')
         .attr('viewBox', [0, 0, width, height]);
 
       // Build X scales and axis:
@@ -235,51 +233,12 @@ const D3HeatmapGrid = memo(
         .range([minColor, midColor, maxColor])
         .domain([minv, (minv + maxv) / 2, maxv]);
 
-      // Create a tooltip
-      var tooltip = select(containerRef.current)
-        .append('div')
-        .style('opacity', 0)
-        .attr('class', 'tooltip')
-        .style('background-color', 'white')
-        .style('border', 'solid')
-        .style('border-width', '2px')
-        .style('border-radius', '5px')
-        .style('padding', '5px')
-        .style('position', 'absolute');
-
-      // Three functions that change the tooltip when user hover / move / leave a cell
-      const mouseover = () => {
-        tooltip.style('opacity', 1);
-      };
-      // WARNING: Arrow function here makes it crash. I dont know why
-      const mousemove = function(d) {
-        tooltip
-          .html(
-            onTooltip
-              ? onTooltip(d)
-              : d.x + ' - ' + d.y + '<br>' + Math.round(d.v * 100) / 100,
-          )
-          .style('left', () => {
-            return mouse(this)[0] > offset.left + bodyWidth / 2
-              ? mouse(this)[0] - 150 + 'px'
-              : mouse(this)[0] + 50 + 'px';
-          })
-          .style('top', () => {
-            return mouse(this)[1] > offset.top + bodyHeight / 2
-              ? mouse(this)[1] + 'px'
-              : mouse(this)[1] + 150 + 'px';
-          });
-        //.style("top", (mouse(this)[1]) + "px")
-      };
-      const mouseleave = () => {
-        tooltip.style('opacity', 0);
-      };
-      const mouseclick = d => {
-        if (onClick) onClick(d);
-      };
-
       // Draw the heatmap cells
-      svg
+      const cellsContainer = svg.append('g').attr('id', 'cells-container');
+
+      const cellsContainerElement = document.getElementById('cells-container');
+
+      const cells = cellsContainer
         .selectAll()
         .data(fdata)
         .enter()
@@ -289,19 +248,95 @@ const D3HeatmapGrid = memo(
         .attr('width', x.bandwidth()) // This * 1.05 is to remove the small gap between cells
         .attr('height', y.bandwidth()) // Padding is 0 but it is still there
         .style('fill', (d, i) => myColor(d.v))
-        .style('cursor', onClick ? 'pointer' : undefined)
-        .on('mouseover', mouseover)
-        .on('mousemove', mousemove)
-        .on('mouseleave', mouseleave)
-        .on('click', mouseclick);
+        .style('cursor', onClick ? 'pointer' : undefined);
+
+      // Create a tooltip
+      const tooltip = document.createElement('div');
+      Object.assign(tooltip.style, {
+        display: 'none',
+        position: 'absolute',
+        pointerEvents: 'none',
+        backgroundColor: 'rgba( 0, 0, 0, 0.6 )',
+        color: 'lightgrey',
+        padding: '8px',
+        fontFamily: 'sans-serif',
+      });
+      container.appendChild(tooltip);
+
+      // Handle tooltip text when it moves
+      // WARNING: Arrow function here makes it crash. I dont know why
+      const mousemove = function(d) {
+        tooltip.innerText = onTooltip
+          ? onTooltip(d)
+          : d.x + ' - ' + d.y + '\n' + Math.round(d.v * 100) / 100;
+      };
+
+      // Handle when a cell is clicked
+      const mouseclick = d => {
+        if (onClick) onClick(d);
+      };
+
+      // Add events to cells
+      cells.on('mousemove', mousemove).on('click', mouseclick);
+
+      // Set the tooltip position when it is inside the heatmap
+      const handleMouseOver = event => {
+        tooltip.style.display = 'inline-block';
+        const mpx = event.clientX;
+        const mpy = event.clientY;
+        const { x, y } = setTooltipPosition(
+          container,
+          tooltip,
+          { x: mpx, y: mpy },
+          3,
+        );
+        tooltip.style.left = x + 'px';
+        tooltip.style.top = y + 'px';
+      };
+
+      // Hide the tooltip
+      const handleMouseOut = event => {
+        //tooltip.style('display', 'none')
+        tooltip.style.display = 'none';
+      };
 
       previousCharts.current = [svg, tooltip];
+
+      // Add the handlers for tooltip position
+      cellsContainerElement.addEventListener(
+        'mouseover',
+        handleMouseOver,
+        true,
+      );
+      cellsContainerElement.addEventListener(
+        'mouseleave',
+        handleMouseOut,
+        true,
+      );
+
+      // Cleaning function
+      return () => {
+        cellsContainerElement.removeEventListener(
+          'mouseover',
+          handleMouseOver,
+          true,
+        );
+        cellsContainerElement.removeEventListener(
+          'mouseleave',
+          handleMouseOut,
+          true,
+        );
+      };
     }); // This useEffect has no dependencies
 
     // Finally, render the heatmap
     return (
       <Suspense fallback={<Loading />}>
-        <div ref={containerRef} id={'container'} />
+        <div
+          ref={containerRef}
+          id={'container'}
+          style={{ position: 'relative' }}
+        />
       </Suspense>
     );
   },
