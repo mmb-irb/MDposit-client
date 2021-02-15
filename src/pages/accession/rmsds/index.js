@@ -140,8 +140,12 @@ const Rmsds = () => {
             <TableHead>
               <TableRow>
                 <TableCell>selected atoms</TableCell>
-                <TableCell>mean (Å)</TableCell>
-                <TableCell>standard deviation (Å)</TableCell>
+                <TableCell>{`mean${
+                  selectedTab.type === 'rmsd' ? ' (Å)' : ''
+                }`}</TableCell>
+                <TableCell>{`standard deviation${
+                  selectedTab.type === 'rmsd' ? ' (Å)' : ''
+                }`}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
