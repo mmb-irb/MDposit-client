@@ -25,8 +25,6 @@ import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 import { getMeanAndStdv } from '../../../utils/statistics';
 
-import Info from '../../../components/info';
-
 import style from './style.module.css';
 
 const Graph2 = lazy(() =>
@@ -123,15 +121,6 @@ const Rmsds = () => {
   return (
     <Suspense fallback={<Loading />}>
       <Card className={style.card}>
-        <Info
-          reference={'rmsd-statistics'}
-          tooltip={
-            <>
-              Statistics table including RMSd data label, mean and standard
-              deviation. Values are in namometers.
-            </>
-          }
-        />
         <CardContent>
           <Tabs
             value={selectedTab}
@@ -186,32 +175,6 @@ const Rmsds = () => {
         </CardContent>
       </Card>
       <Card className={style.card}>
-        <Info
-          reference={'rmsd-graph'}
-          tooltip={
-            <>
-              This graph represents the RMSd in the average atom positions along
-              the trajectory compared to the original position (frame 0). Data
-              is displayed (more opaque lines) alongside corresponding mean
-              value (light horizontal line) and mean ± 1 standard deviation
-              (lighter horizontal bands).
-              <br />
-              <br />
-              The horizontal edge stands for the trajectory time in nanoseconds.
-              <br />
-              The vertical edge stands for the RMSd in nanometers.
-              <br />
-              <br />
-              The graph is{' '}
-              <span style={{ color: 'lightGreen' }}>interactive</span>. Use the
-              mouse to move along data by holding the click button and dragging
-              left or right. Use the mouse wheel to zoom in a specific region.
-              <span style={{ color: 'lightGreen' }}> Click any point </span>
-              on the graph to open an interactive window to display the
-              strucutre at the corresponding frame.
-            </>
-          }
-        />
         <CardContent>
           <div className={style.graph}>
             <Graph2

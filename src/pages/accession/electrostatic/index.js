@@ -12,7 +12,6 @@ import style from './style.module.css';
 //import { AccessionCtx } from '../../../contexts';
 import { ProjectCtx, PdbCtx } from '../../../contexts';
 
-import Info from '../../../components/info';
 import Loading from '../../../components/loading';
 
 import InteractionSelector from '../../../components/interaction-selector';
@@ -125,31 +124,6 @@ const Electrostatic = () => {
   return (
     <>
       <Card>
-        <Info
-          reference={'electrostatic'}
-          tooltip={
-            <>
-              This is the electrostatic potencial surface representation.
-              <br />
-              <br />
-              The{' '}
-              <a
-                href="http://nglviewer.org/"
-                target="_blank"
-                rel="noreferrer noopener"
-              >
-                NGL viewer
-              </a>{' '}
-              represents the main structures and the interface surfaces between
-              two interacting proteins. Surfaces are painted according the
-              electrostatic potencial.
-              <br />
-              <br />
-              Trajectory is not loaded in this context because the surface
-              representation is too heavy to be updated dinamically.
-            </>
-          }
-        />
         <CardContent className={style.horizontal}>
           <Typography variant="h6">Interaction:</Typography>
           <InteractionSelector

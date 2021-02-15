@@ -20,8 +20,6 @@ import { AccessionCtx, ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
-import Info from '../../../components/info';
-
 import style from './style.module.css';
 
 const Graph = lazy(() =>
@@ -78,16 +76,6 @@ const Rgyr = () => {
   return (
     <Suspense fallback={<Loading />}>
       <Card className={style.card}>
-        <Info
-          reference={'rgyr-statistics'}
-          tooltip={
-            <>
-              Statistics table including data label, mean and standard deviation
-              values for the overall Rgyr and each dimension. Values are in
-              namometers.
-            </>
-          }
-        />
         <CardContent>
           <Table>
             <TableHead>
@@ -126,33 +114,6 @@ const Rgyr = () => {
         </CardContent>
       </Card>
       <Card className={style.card}>
-        <Info
-          reference={'rgyr-graph'}
-          tooltip={
-            <>
-              This graph represents the radius of gyration (Rgyr). There are
-              four data sets: One three-dimensional (blue) and three
-              single-dimensional radius. These are RgyrX (yellow), RgyrY (green)
-              and RgyrZ (red). Data is displayed (more opaque lines) alongside
-              corresponding mean value (light horizontal line) and mean ± 1
-              standard deviation (lighter horizontal bands)
-              <br />
-              <br />
-              The horizontal edge stands for the trajectory time in nanoseconds.
-              <br />
-              The vertical edge stands for the Rgyr in nanometers.
-              <br />
-              <br />
-              The graph is{' '}
-              <span style={{ color: 'lightGreen' }}>interactive</span>. Use the
-              mouse to move along data by holding the click button and dragging
-              left or right. Use the mouse wheel to zoom in a specific region.
-              <span style={{ color: 'lightGreen' }}> Click any point </span>
-              on the graph to open an interactive window to display the
-              strucutre at the corresponding frame.
-            </>
-          }
-        />
         <CardContent>
           <Typography variant="h6" />
           <Graph

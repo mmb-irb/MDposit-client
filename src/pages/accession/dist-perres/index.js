@@ -19,7 +19,6 @@ import {
   model2sourceResidue,
 } from '../../../utils/topology-manager';
 
-import Info from '../../../components/info';
 //import Selector from '../../../components/selector';
 import InteractionSelector from '../../../components/interaction-selector';
 import Heatmap from '../../../components/heatmap';
@@ -139,6 +138,7 @@ const DistPerres = () => {
 
   // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
   // Also retrieve the absolute residue number, since it is used to ask for the distance representation
+  // http://nglviewer.org/ngl/api/class/src/representation/distance-representation.js~DistanceRepresentation.html
   const parseLabel = label => {
     const num = nglNumerationParser(label);
     const source = model2sourceResidue(num, pdbData.file);
@@ -152,19 +152,6 @@ const DistPerres = () => {
   return (
     <>
       <Card>
-        <Info
-          reference={'dist-perres-selector'}
-          tooltip={
-            <>
-              This is the residues selector.
-              <br />
-              <br />
-              Use this panel to select which residues are displayed in the
-              heatmap below. Some default residue groups are provided by the
-              authors (e.g. interface residues between two proteins).
-            </>
-          }
-        />
         <CardContent className={style.horizontal}>
           <Typography variant="h6">Residues selection:</Typography>
           <InteractionSelector
@@ -177,30 +164,6 @@ const DistPerres = () => {
         </CardContent>
       </Card>
       <Card className={style.margined} id="heatmap">
-        <Info
-          reference={'dist-perres-heatmap'}
-          tooltip={
-            <>
-              This is the distance per residue representation.
-              <br />
-              <br />
-              This heatmap represents the distance between the geometric center
-              of selected residues from different molecules. Both horizontal and
-              vertical edges stand for residue numbers. The color stands for the
-              distance and it ranges from blue (far) to red (close). The legend
-              below shows the corresponding values in Ångstroms.
-              <br />
-              <br />
-              Use tabs over the heatmap to switch between mean and standard
-              deviation.
-              <br />
-              <br />
-              <span style={{ color: 'lightGreen' }}> Click any cell </span>
-              on the heatmap to open an interactive window displaying the
-              trajectory with the corresponding highlighted residues.
-            </>
-          }
-        />
         <CardContent>
           <Tabs
             value={display}

@@ -6,7 +6,6 @@ import Card from '../../../components/animated-card';
 import Loading from '../../../components/loading';
 import D3HeatmapGrid from '../../../components/d3-heatmap-grid';
 import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
-import Info from '../../../components/info';
 import ChainsLegend from '../../../components/chains-legend';
 
 import useAPI from '../../../hooks/use-api';
@@ -174,31 +173,6 @@ const Hbonds = () => {
       )}
       {typeof filteredData === 'object' && (
         <Card className={style.margined}>
-          <Info
-            reference={'hbonds-graph'}
-            tooltip={
-              <>
-                This is the hydrogen bonds analysis representation.
-                <br />
-                <br />
-                All pairs of hydrogen bridging atoms are listed in order of
-                probability. Left edge labels describe the acceptor and donor
-                atoms respectively. Chain names are listed in the legend above.
-                The horizontal bars stand for the percent of frames along the
-                trajectory in which the specified pair of atoms may form an
-                hydrogen bond. Two atoms are considered to form an hydrogen bond
-                when the distance between them is inferior to 3 Ångstroms and
-                the 'acceptor atom - hydrogen - donor atom' angle is superior to
-                15 degrees.
-                <br />
-                <br />
-                <span style={{ color: 'lightGreen' }}> Click any bar </span>
-                in the graph to open an interactive window displaying the
-                trajectory with the corresponding highlighted atoms and the
-                distance between them.
-              </>
-            }
-          />
           <CardContent>
             <ChainsLegend />
             <D3HeatmapGrid

@@ -14,7 +14,6 @@ import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 import style from './style.module.css';
 
-import Info from '../../../components/info';
 import InteractionSelector from '../../../components/interaction-selector';
 import Heatmap from '../../../components/heatmap';
 
@@ -110,32 +109,6 @@ const RmsdPairwise = () => {
   return (
     <>
       <Card>
-        <Info
-          reference={'rmsd-pairwise-heatmap'}
-          tooltip={
-            <>
-              This is the RMSd pairwise representation.
-              <br />
-              <br />
-              This heatmap represents the RMSd in the average atom positions
-              between each frame along the trajectory. Both horizontal and
-              vertical edges stand for frame numbers. The color stands for the
-              RMSd value and it ranges from blue (low) to red (high). The legend
-              below shows the corresponding values in Ångstroms.
-              <br />
-              <br />
-              Use the selector over the heatmap to switch between different RMSd
-              pairwise analyses. Each analysis is calculated with a different
-              selection of atoms/residues which have been suggested to be
-              relevant by the authors.
-              <br />
-              <br />
-              <span style={{ color: 'lightGreen' }}> Click any cell </span>
-              on the heatmap to open an interactive window displaying both
-              corresponding frames overlapped.
-            </>
-          }
-        />
         <CardContent className={style.horizontal}>
           <Typography variant="h6">Residues selection:</Typography>
           <InteractionSelector

@@ -15,6 +15,8 @@ const Info = ({
   tooltip,
   // Link to be linked when the the icon is clicked
   reference,
+  // Set if the info button must be placed in a corner
+  corner = true,
 }) => {
   const [open, setOpen] = useState(false);
 
@@ -26,13 +28,17 @@ const Info = ({
       maxWidth: '100%',
       margin: '1em',
     },
-    button: {
-      margin: theme.spacing(1),
-      position: 'absolute',
-      right: 0,
-      'z-index': 10000,
-      cursor: 'help',
-    },
+    button: corner
+      ? {
+          margin: theme.spacing(1),
+          position: 'absolute',
+          right: 0,
+          'z-index': 10000,
+          cursor: 'help',
+        }
+      : {
+          cursor: 'help',
+        },
   }));
   const classes = useStyles();
 

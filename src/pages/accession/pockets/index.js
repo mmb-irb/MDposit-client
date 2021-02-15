@@ -28,7 +28,6 @@ import style from './style.module.css';
 
 import { AccessionCtx, ProjectCtx, PdbCtx } from '../../../contexts';
 
-import Info from '../../../components/info';
 import Loading from '../../../components/loading';
 
 import useAPI from '../../../hooks/use-api';
@@ -235,7 +234,7 @@ const Pockets = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                {['Pocket', 'Average volume'].map(name => (
+                {['Pocket', 'Average volume (Å³)'].map(name => (
                   <TableCell key={name}>{name}</TableCell>
                 ))}
               </TableRow>
@@ -298,28 +297,6 @@ const Pockets = () => {
         </div>
       </Card>
       <Card className={style.nglcard} ref={nglRef}>
-        <Info
-          reference={'electrostatic'}
-          tooltip={
-            <>
-              This is the pockets representation.
-              <br />
-              <br />
-              The{' '}
-              <a
-                href="http://nglviewer.org/"
-                target="_blank"
-                rel="noreferrer noopener"
-              >
-                NGL viewer
-              </a>{' '}
-              represents the most important pockets.
-              <br />
-              <br />
-              Click any pocket to get extra data.
-            </>
-          }
-        />
         {/* Render the NGL viewer when it is on screen*/}
         {isNglVisible ? (
           <NGLViewerWithControls
@@ -344,7 +321,7 @@ const Pockets = () => {
           xUnit={'frame'}
           xScaleFactor={1}
           xAxisLabel={'Frames'}
-          yAxisLabel={'Pocket volume'}
+          yAxisLabel={`Pocket volume (Å³)`}
           show={show}
           showPrecisionSlider={false}
           blockMaxPrecision={true}

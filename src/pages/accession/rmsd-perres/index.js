@@ -16,7 +16,6 @@ import { color as d3color, interpolateRgb } from 'd3';
 import Card from '../../../components/animated-card';
 import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
 import Loading from '../../../components/loading';
-import Info from '../../../components/info';
 
 import useAPI from '../../../hooks/use-api';
 
@@ -262,25 +261,6 @@ const RmsdPerres = () => {
         />
       </Card>
       <Card className={style.nglcard} ref={nglRef}>
-        <Info
-          reference={'rmsd-perres-table'}
-          tooltip={
-            <>
-              This data table shows the selected residues list. First column
-              contains residue name, which is composed by the union of the
-              residue type abbreviation (e.g. ASN, ASP, CYS...) and the topology
-              numeration. Next two columns provide the RMSD mean and standard
-              deviation for each residue respectively. Both measures are in
-              Ångstroms.
-              <br />
-              <br />
-              Use this data table to navigate through all selected resiudes and
-              set which of them must be displayed in the graph below. To do so,
-              click in the first column checkbox of the residue to be
-              shown/hidden.
-            </>
-          }
-        />
         {/* Render the NGL viewer when it is on screen*/}
         {isNglVisible ? (
           <NGLViewerWithControls

@@ -12,7 +12,6 @@ import { AccessionCtx, PdbCtx, ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
-import Info from '../../../components/info';
 import Legend from '../../../components/legend';
 
 import LigandSelector from '../../../components/ligand-selector';
@@ -86,36 +85,6 @@ const Energies = () => {
   return (
     <Suspense fallback={<Loading />}>
       <Card className={style.card}>
-        <Info
-          reference={'energies'}
-          tooltip={
-            <>
-              This graph represents from top to bottom the electrostatic
-              charges, the Van der Waals forces and the sum of both values per
-              each residue respectively. Energies are calculated for each atom
-              individually and then added by residues. Averages are calculated
-              from 100 selected frames along the trajectory. In addition, two
-              more averages are calculated: the average for the frist 20 frames
-              of the 100 selected frames and the average for the last 20 frames.
-              These averages are represented in red and blue colors
-              respectively.
-              <br />
-              <br />
-              The horizontal edge stands for the main protein residues numbers.
-              <br />
-              The vertical edge stands for the residue charges in kcal/mol.
-              <br />
-              <br />
-              The graph is{' '}
-              <span style={{ color: 'lightGreen' }}>interactive</span>. Use the
-              mouse to move along data by holding the click button and dragging
-              left or right. Use the mouse wheel to zoom in a specific region.
-              <span style={{ color: 'lightGreen' }}> Click any point </span>
-              on the graph to open an interactive window to display the
-              strucutre with the corresponding highlighted residue.
-            </>
-          }
-        />
         <CardContent className={style.horizontal}>
           <Typography variant="h6">Ligand:</Typography>
           <LigandSelector

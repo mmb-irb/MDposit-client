@@ -14,6 +14,9 @@ import useNGLFile from '../../hooks/use-ngl-file';
 // Additional components
 import ErrorBoundary from '../../components/error-boundary'; // Catch errors in React components
 import Loading from '../../components/loading'; // Displays an animated "loading" circle
+import Info from '../../components/info';
+
+import documentation from '../help/documentation';
 
 // Load the 3 contexts
 import { AccessionCtx, ProjectCtx, PdbCtx } from '../../contexts';
@@ -351,6 +354,8 @@ const LinkSwitch = ({ accession, subPage }) => {
 };
 
 export default ({ match, setProject }) => {
+  const page = match.params.subPage;
+  const docs = documentation.find(doc => doc.id === page);
   //console.log(match);
   return (
     // Set the accession context, which is used by different scripts including this
@@ -358,14 +363,13 @@ export default ({ match, setProject }) => {
       <span className={style.container}>
         {/* Render the accession */}
         <Typography variant="h6" className={style.title}>
-          {match.params.accession} -{' '}
-          {NICE_NAMES.get(match.params.subPage) || match.params.subPage}
+          {match.params.accession} - {NICE_NAMES.get(page) || page}
+          {docs && docs.page && (
+            <Info reference={page} tooltip={docs.page} corner={false} />
+          )}
         </Typography>
         {/* Render a button which links to the API */}
-        <LinkSwitch
-          accession={match.params.accession}
-          subPage={match.params.subPage}
-        />
+        <LinkSwitch accession={match.params.accession} subPage={page} />
       </span>
       {/* Load the main data summary */}
       <SummarySwitch setProject={setProject} />
