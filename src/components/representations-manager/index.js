@@ -74,6 +74,7 @@ const availableColoringMethods = [
 // In addition the user can manage the way these representatios are shown
 const RepresentationsManager = memo(
   ({
+    components, // Array with all components
     representations, // Array with all representations
     setAdditionalRepresentations,
     showRepresentations,
@@ -232,9 +233,16 @@ const RepresentationsManager = memo(
                     variant="outlined"
                     onClick={() =>
                       setAdditionalRepresentations(previous => {
+                        // Use the first components a reference and copy its parameters
+                        // This way, the new representation will use the principal component
+                        // Otherwise it would may create a new component with no trajectory
+                        const principalComponent = components[0];
                         const newRepresentation = {
                           selection: 'None',
                           name: 'Custom',
+                          topologyURL: principalComponent.topologyURL,
+                          trajectoryURLs: principalComponent.trajectoryURLs,
+                          frame: principalComponent.frame,
                         };
                         const current = [newRepresentation, ...previous];
                         return current;

@@ -658,6 +658,7 @@ const NGLViewerWithControls = forwardRef(
             {settings && (
               <div className={style['settings-right']}>
                 <RepresentationsManager
+                  components={allComponents}
                   representations={allRepresentations}
                   setAdditionalRepresentations={setAdditionalRepresentations}
                   title="Change representation parameters"

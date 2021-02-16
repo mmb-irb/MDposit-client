@@ -282,7 +282,7 @@ const NGLViewer = memo(
             if (comp.onlyTopology) return;
 
             // Set the first component as the 'principal' component
-            const isPrincipal = c > 0;
+            const isPrincipal = c === 0;
             const requestedFrame = comp.frame;
 
             // Get the trajectory urls
@@ -324,7 +324,7 @@ const NGLViewer = memo(
               if (requestedFrame) requestedFrames = 1;
               else if (framed) requestedFrames = framed.frames;
               // Components which are not the principal must include a 'frame' value
-              else if (isPrincipal && trajectoryFrames > 1)
+              else if (!isPrincipal && trajectoryFrames > 1)
                 throw new Error(
                   `Only the main component is allowed to load multiple frames`,
                 );
