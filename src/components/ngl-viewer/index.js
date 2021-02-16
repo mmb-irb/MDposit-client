@@ -192,6 +192,8 @@ const NGLViewer = memo(
           // Check if the requested url has the data already downloaded
           // If so, skip this request
           if (topology && topology.file) return;
+          // If the topology failed to load do not try it again
+          if (topology && topology.error) return;
           // get the topology URL
           const url = topology.url;
           // If there is no URL load the context pdbData
@@ -383,6 +385,9 @@ const NGLViewer = memo(
           // Check if the requested url has the data already downloaded
           // If so, skip this request
           if (trajectory && trajectory.payload) return;
+
+          // If the trajectory failed to load do not try it again
+          if (trajectory && trajectory.error) return;
 
           // Set the loading status as true
           trajectory.loading = true;
