@@ -21,6 +21,20 @@ import processStats from './process-stats';
 import style from './style.module.css';
 import Info from '../../../components/info';
 
+// Set the selection of backbone atoms, since the default NGL 'backbone' is not suitable for us
+// DANI: Aquí pasa algo raro. Si cargas el backbone no hay problema, pero hay átomos sin coordenadas
+// DANI: Si cargas la topología base da error porque el número de átomos y el de coordenadas no coincide
+// DANI: LA única estructura que coincide en átomos es el 'average.pdb' que devuelve el propio PCA
+const backboneSelection = 'backbone and not .H and not .HA and not .O';
+
+// Set all possible topologies for the PCA projections in order of priority
+// If none is available then the anlysis will throw an error
+const backboneFilenames = [
+  'backbone.pdb',
+  'md.backbone.pdb',
+  'backboneBase.pdb',
+];
+
 const NGLViewerWithControls = lazy(() =>
   import(
     /* webpackChunkName: 'ngl-viewer-with-controls' */ '../../../components/ngl-viewer-with-controls'
@@ -59,16 +73,18 @@ const PCA = () => {
   }, [payload, projections]);
 
   // Set the component to be passed to the NGL
-  const [nglChains, nglComponent] = useMemo(() => {
+  const [representations, component] = useMemo(() => {
     if (!payload || !files) return [undefined, undefined];
 
     // Set the chains to be represented in the NGL viewer
-    const chainsNGL = chains.map(chain => {
-      return {
-        name: 'Chain ' + chain,
-        selection: ':' + chain,
-      };
-    });
+    const representations = chains
+      ? chains.map(chain => {
+          return {
+            name: 'Chain ' + chain + ' backbone',
+            selection: ':' + chain + ' and ' + backboneSelection,
+          };
+        })
+      : [{ name: 'Backbone', selection: backboneSelection }];
 
     // Get the API URL to the requested projection trajectory
     let projectionURL;
@@ -77,21 +93,27 @@ const PCA = () => {
       projectionURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory.pca-${projections[0] +
         1}.bin`;
 
-    // Use the backbone if possible
-    const hasBackbone = files.some(f => f.filename === 'md.backbone.pdb');
+    // Select the most suitable file according to the 'backboneFilenames' priority order
+    let backboneFilename;
+    for (const filename of backboneFilenames) {
+      if (files.some(f => f.filename === filename)) {
+        backboneFilename = filename;
+        break;
+      }
+    }
+    // If none of the 'backboneFilenames' is available then throw an error
+    if (!backboneFilename) throw new Error('No available backbone structure');
 
     // Set the NGL component
-    const componentNGL = [
+    const component = [
       {
-        topologyURL: hasBackbone
-          ? `${BASE_PATH_PROJECTS}${accession}/files/md.backbone.pdb`
-          : `${BASE_PATH_PROJECTS}${accession}/files/average.pdb`,
+        topologyURL: `${BASE_PATH_PROJECTS}${accession}/files/${backboneFilename}`,
         trajectoryURLs: [projectionURL],
-        representations: chainsNGL,
+        representations: representations,
       },
     ];
 
-    return [chainsNGL, componentNGL];
+    return [representations, component];
   }, [payload, chains, files, projections, accession]);
 
   if (loading) {
@@ -214,7 +236,7 @@ const PCA = () => {
                   projection={projections[0]}
                   framesSelect={false}
                   // Projections are backbone trajectories, same as the average.pdb topology
-                  components={nglComponent}
+                  components={component}
                 />
               </CardContent>
             </Suspense>
@@ -244,7 +266,7 @@ const PCA = () => {
             ? {
                 accession: accession,
                 requestedFrame: requestedFrame,
-                representations: nglChains,
+                representations: representations,
               }
             : null
         }
