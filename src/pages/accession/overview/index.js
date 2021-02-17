@@ -207,22 +207,24 @@ export default React.memo(() => {
       {metadata && metadata.LIGANDS && (
         <Card className={style.card}>
           <CardContent className={style['card-content']}>
-            <Typography variant="h6">Ligands information</Typography>
+            <Typography variant="h6">Ligands</Typography>
             {metadata.LIGANDS.map(ligand => (
               <div key={ligand.name} className={style['summary-list']}>
-                <LazyImg
-                  src={
-                    ligand.chembl
-                      ? `https://www.ebi.ac.uk/chembl/api/data/image/${ligand.chembl}.svg`
-                      : ligand.accession
-                      ? `https://www.drugbank.ca/structures/${ligand.accession}/image.svg`
-                      : null
-                  }
-                  width="200"
-                  height="200"
-                  loading="lazy"
-                  alt={`3D view of the ${ligand.name} structure`}
-                />
+                {(ligand.chembl || ligand.accession) && (
+                  <LazyImg
+                    src={
+                      ligand.chembl
+                        ? `https://www.ebi.ac.uk/chembl/api/data/image/${ligand.chembl}.svg`
+                        : ligand.accession
+                        ? `https://www.drugbank.ca/structures/${ligand.accession}/image.svg`
+                        : null
+                    }
+                    width="200"
+                    height="200"
+                    loading="lazy"
+                    alt={`3D view of the ${ligand.name} structure`}
+                  />
+                )}
                 <div>- {ligand.name || 'Not available'}</div>
                 {ligand.accession && (
                   <div>
