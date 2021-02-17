@@ -536,7 +536,10 @@ const NGLViewer = memo(
         debounce(() => {
           if (!stageRef.current) return;
           const canvas = containerRef.current.querySelector('canvas');
-          if (canvas) canvas.style.height = '';
+          if (canvas) {
+            canvas.style.height = '';
+            canvas.style.cursor = 'default';
+          }
           stageRef.current.handleResize();
         }, 500),
         [],
