@@ -21,20 +21,6 @@ import processStats from './process-stats';
 import style from './style.module.css';
 import Info from '../../../components/info';
 
-// Set the selection of backbone atoms, since the default NGL 'backbone' is not suitable for us
-// DANI: Aquí pasa algo raro. Si cargas el backbone no hay problema, pero hay átomos sin coordenadas
-// DANI: Si cargas la topología base da error porque el número de átomos y el de coordenadas no coincide
-// DANI: LA única estructura que coincide en átomos es el 'average.pdb' que devuelve el propio PCA
-const backboneSelection = 'backbone and not .H and not .HA and not .O';
-
-// Set all possible topologies for the PCA projections in order of priority
-// If none is available then the anlysis will throw an error
-const backboneFilenames = [
-  'backbone.pdb',
-  'md.backbone.pdb',
-  'backboneBase.pdb',
-];
-
 const NGLViewerWithControls = lazy(() =>
   import(
     /* webpackChunkName: 'ngl-viewer-with-controls' */ '../../../components/ngl-viewer-with-controls'
@@ -56,8 +42,8 @@ const nglPlaceholder = (
 const PCA = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
-  // Get the current project chains
-  const { metadata, chains, files } = useContext(ProjectCtx);
+  // Get the current project metadata
+  const { metadata, files } = useContext(ProjectCtx);
 
   // Load the main data from the API
   const { loading, payload, error } = useAPI(
@@ -77,14 +63,20 @@ const PCA = () => {
     if (!payload || !files) return [undefined, undefined];
 
     // Set the chains to be represented in the NGL viewer
+    /*
     const representations = chains
       ? chains.map(chain => {
           return {
             name: 'Chain ' + chain + ' backbone',
-            selection: ':' + chain + ' and ' + backboneSelection,
+            selection: ':' + chain,
           };
         })
-      : [{ name: 'Backbone', selection: backboneSelection }];
+      : [{ name: 'Backbone' }];
+    */
+    // DANI: Muchos 'pca.average.pdb' no tienen chains
+    // DANI: El NGL las asigna automáticamente y no cuadran
+    // DANI: Hasta que esto esté arreglado nos olbidamos de las chains
+    const representations = [{ name: 'Backbone' }];
 
     // Get the API URL to the requested projection trajectory
     let projectionURL;
@@ -93,28 +85,23 @@ const PCA = () => {
       projectionURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory.pca-${projections[0] +
         1}.bin`;
 
-    // Select the most suitable file according to the 'backboneFilenames' priority order
-    let backboneFilename;
-    for (const filename of backboneFilenames) {
-      if (files.some(f => f.filename === filename)) {
-        backboneFilename = filename;
-        break;
-      }
-    }
-    // If none of the 'backboneFilenames' is available then throw an error
-    if (!backboneFilename) throw new Error('No available backbone structure');
+    // In order to represent the pca projection use a specific structure with only backbone atoms
+    const pcaStructureFilename = 'pca.average.pdb';
+    // If none of the 'pcaStructureFilenames' is available then throw an error
+    if (!pcaStructureFilename)
+      throw new Error('No available backbone structure');
 
     // Set the NGL component
     const component = [
       {
-        topologyURL: `${BASE_PATH_PROJECTS}${accession}/files/${backboneFilename}`,
+        topologyURL: `${BASE_PATH_PROJECTS}${accession}/files/${pcaStructureFilename}`,
         trajectoryURLs: [projectionURL],
         representations: representations,
       },
     ];
 
     return [representations, component];
-  }, [payload, chains, files, projections, accession]);
+  }, [payload, files, projections, accession]);
 
   if (loading) {
     return <Loading />;
