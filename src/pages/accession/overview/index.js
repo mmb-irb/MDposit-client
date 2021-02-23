@@ -204,7 +204,7 @@ export default React.memo(() => {
           </CardActions>
         </Card>
       )}
-      {metadata && metadata.LIGANDS && (
+      {metadata && metadata.LIGANDS && metadata.LIGANDS.length > 0 && (
         <Card className={style.card}>
           <CardContent className={style['card-content']}>
             <Typography variant="h6">Ligands</Typography>
