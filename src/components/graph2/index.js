@@ -46,6 +46,18 @@ const titlesD3font = 'normal 14px sans-serif';
 
 const yDataPlaceholder = { placeholder: { data: [0] } };
 
+// This function is a workaround to calculate maximum values from an array without spread syntax
+// Some browsers (e.g. Chrome) do not support large amount of arguments in a function
+// For this reason, Math.max(...values) will fail if the 'values' array is long enough
+// The returned error is “RangeError: Maximum call stack size exceeded”
+const steppedMax = values => {
+  let max = Number.NEGATIVE_INFINITY;
+  values.forEach(value => {
+    max = Math.max(value, max);
+  });
+  return max;
+};
+
 // The expected input data (y) is:
 // {
 //    dataset1:{
@@ -158,13 +170,12 @@ const Graph2 = ({
   // In addition, add a small offset between labels and the axis which is added further
   // This offset is only in x axes, which are rotated 90 degrees and end too much close to the axis
   const maxXAxisWidth = xAxisValues
-    ? Math.max(
-        ...xAxisValues.map(label => getTextWidth(label, defaultD3font)),
-      ) + roatatedTextOffset
+    ? steppedMax(xAxisValues.map(label => getTextWidth(label, defaultD3font))) +
+      roatatedTextOffset
     : 10;
   // Get the calculated widths of all y labels and select the maximum
-  const maxYAxisWidth = Math.max(
-    ...yAxisValues.map(label => getTextWidth(label, defaultD3font)),
+  const maxYAxisWidth = steppedMax(
+    yAxisValues.map(label => getTextWidth(label, defaultD3font)),
   );
 
   // In addition, add a small offset between labels and the axis which is added further
