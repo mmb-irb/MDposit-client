@@ -1,7 +1,6 @@
 import React, {
   useState,
   useCallback,
-  useMemo,
   useRef,
   useEffect,
   useContext,
@@ -19,9 +18,8 @@ import {
   zoom,
   event,
 } from 'd3';
-import cn from 'classnames';
 
-import { FormControlLabel, Checkbox, Slider } from '@material-ui/core';
+import { FormControlLabel, Checkbox } from '@material-ui/core';
 
 import { PdbCtx } from '../../contexts';
 import { NICE_NAMES } from '../../utils/constants';
@@ -35,7 +33,16 @@ import { getMean, getMeanAndStdv } from '../../utils/statistics';
 
 import style from './style.module.css';
 
-const NUMBER_OF_DATA_POINTS_ON_SCREEN_AT_MAX_ZOOM = 100;
+// Number of data points to be represented at the same time FOR EACH dataset
+// WARNING: The component would support quite more points with good performace
+// WARNING: However, more points would make the visualization less 'comfortable'
+// This is the minimum number of data points to be shown at maximum zoom (i.e. maximum precision)
+// Thus it limits how much the graph can be zoomed
+// At the same time, it is the maximum number of points to be shown at minimum zoom
+// Thus it limits the precision at minimum zoom
+// DANI: Hay algunas escalas del d3 que no llegué a comprender bien
+// DANI: Puede que el número no se respete del todo
+const NUMBER_OF_DATA_POINTS_ON_SCREEN = 100; // i.e. minimum number of points in screen
 
 const dPR = window.devicePixelRatio || 1;
 
@@ -75,8 +82,6 @@ const Graph2 = ({
   xAxisValues,
   // The difference beyween x values
   step = 1,
-  //
-  defaultPrecision = 1,
   // Graph title
   title,
   // The x axis label text
@@ -99,10 +104,6 @@ const Graph2 = ({
   selfLegend = false,
   // Object with each dataset name and a value of true/false to set which data is displayed
   show,
-  // Set if the precision slider must be shown
-  showPrecisionSlider = false,
-  // Set if precision may be changed with the mouse wheel or is always the maximum available
-  blockMaxPrecision = true,
   // Display the mean line in the graph
   mean = false,
   // Display the standard deviation area in the graph
@@ -213,11 +214,8 @@ const Graph2 = ({
     setLab(Array(yKeys.length).fill(true));
   if (show && lab !== show) setLab(show);
 
-  const [pr, setPrecision] = useState(defaultPrecision);
-
   const prevLabels = useRef(lab);
-  const prevPrecision = useRef(pr);
-  const prevRescaleX = useRef(scale => scale);
+  const prevZoom = useRef({ k: 1, x: 0, rescaleX: scale => scale });
   const prevStep = useRef(step);
   const prevXAxisLabel = useRef(xAxisLabel);
   const prevYAxisLabel = useRef(yAxisLabel);
@@ -225,12 +223,6 @@ const Graph2 = ({
   useEffect(() => {
     drawRef.current && pdbData && pdbData.file && drawRef.current();
   }, [pdbData]);
-
-  // Set the number of points to be represented
-  const precisionScale = useMemo(
-    () => scaleLog().range([NUMBER_OF_DATA_POINTS_ON_SCREEN_AT_MAX_ZOOM, 1]),
-    [],
-  );
 
   // This useEffect must be run only once
   // The graph content is updated through the 'drawRef' referenced function
@@ -285,48 +277,17 @@ const Graph2 = ({
       y: graph.append('g'),
     };
 
-    // zoom
-    //   make zoom extent dynamic depending on number of data points
-    //   ↳ results in similar precision at maximum zoom regardless of data size
-    const maxZoomExtent =
-      yEntries[0][1].data.length / NUMBER_OF_DATA_POINTS_ON_SCREEN_AT_MAX_ZOOM;
-
-    precisionScale.domain([1, maxZoomExtent]);
-
-    const graphZoom = zoom().scaleExtent([1, maxZoomExtent]);
-    graph.call(graphZoom);
-    graphZoom.on('zoom', () => {
-      allDotGroups.selectAll('g.dot-group').attr('opacity', 0);
-
-      let precision;
-      if (
-        event.sourceEvent &&
-        event.sourceEvent.type === 'wheel' &&
-        !blockMaxPrecision
-      ) {
-        precision =
-          2 ** Math.floor(Math.log2(precisionScale(event.transform.k)));
-        setPrecision(precision);
-      }
-
-      drawRef.current({
-        rescaleX: event.transform.rescaleX.bind(event.transform),
-        precision,
-      });
-    });
-
     // This ref allows to update the graph without having to remake the whole graph
     drawRef.current = ({
       data = dataRef.current,
       hovered,
-      precision = prevPrecision.current,
       labels = prevLabels.current,
-      rescaleX = prevRescaleX.current,
       selected = selectedRef.current,
       pdbData = pdbDataRef.current,
       step = prevStep.current,
       xAxisLabel = prevXAxisLabel.current,
       yAxisLabel = prevYAxisLabel.current,
+      currentZoom = prevZoom.current,
     } = {}) => {
       // container size
       const { clientWidth: width, clientHeight: height } = containerRef.current;
@@ -336,6 +297,51 @@ const Graph2 = ({
 
       //console.log(data);
       //console.log(dataKeys);
+
+      // ----------------------------------------------------------------------------
+
+      // ZOOM
+
+      // The minimum and default zoom value is 1
+      const minZoomExtent = 1;
+
+      //   make zoom extent dynamic depending on number of data points
+      //   ↳ results in similar precision at maximum zoom regardless of data size
+      const maxZoomExtent =
+        dataEntries[0][1].data.length / NUMBER_OF_DATA_POINTS_ON_SCREEN;
+
+      // Set the number of points to be represented
+      // The maximum precision is always 1
+      // i.e. When zoom is at maximum value all points in the window range must be shown
+      const precisionScale = scaleLog().range([Math.ceil(maxZoomExtent), 1]);
+
+      precisionScale.domain([1, maxZoomExtent]);
+
+      // Get the precision to be used according to the zoom value
+      // The zoom value is a numeric value which ranges from minZoomExtent (default) to maxZoomExtent
+      const getZoomPrecision = k =>
+        2 ** Math.floor(Math.log2(precisionScale(k)));
+
+      const graphZoom = zoom().scaleExtent([minZoomExtent, maxZoomExtent]);
+      // By default, the zoom in/out event of d3 prevents the verticall scroll on mouse wheel
+      // However, when zoom has reached the maximum or minimum limit, the scroll is re-established
+      // The 'on wheel' eventdown here prevents that furtive scroll
+      graph.call(graphZoom).on('wheel', () => event.preventDefault());
+      // Update precision and rescaleX on zoom (i.e. on mouse wheel)
+      graphZoom.on('zoom', () => {
+        drawRef.current({
+          currentZoom: event.transform,
+        });
+      });
+
+      // Get the the urrent zoom 'k' value
+      // If it is bigger thant the maximum extent then use the maximum extent instead
+      // This may happen when the dataset is changed while the zoom is in the maximum
+      const k = Math.min(currentZoom.k, maxZoomExtent);
+      const precision = getZoomPrecision(k);
+      const rescaleX = currentZoom.rescaleX.bind(currentZoom);
+
+      // ----------------------------------------------------------------------------
 
       // DANI: Esto es mio (experimental)
       const bodyWidth = width - offset.left - offset.right;
@@ -648,11 +654,10 @@ const Graph2 = ({
 
       dataRef.current = data;
       prevLabels.current = labels;
-      prevPrecision.current = precision;
-      prevRescaleX.current = rescaleX;
       prevStep.current = step;
       prevXAxisLabel.current = xAxisLabel;
       prevYAxisLabel.current = yAxisLabel;
+      prevZoom.current = currentZoom;
     };
 
     window.addEventListener('resize', drawRef.current);
@@ -675,7 +680,7 @@ const Graph2 = ({
     });
   }, [selected, pdbData, yData, step, xAxisLabel, yAxisLabel]);
 
-  useEffect(() => drawRef.current({ precision: pr, labels: lab }), [pr, lab]);
+  useEffect(() => drawRef.current({ labels: lab }), [lab]);
 
   // Handle when user clicks on legend checkboxes
   const handleChange = useCallback(({ target: { dataset: { key } } }) => {
@@ -698,9 +703,9 @@ const Graph2 = ({
       },
     }) => {
       if (!key || !lab[key]) return;
-      drawRef.current({ hovered: key, precision: pr, labels: lab });
+      drawRef.current({ hovered: key, labels: lab });
     },
-    [pr, lab],
+    [lab],
   );
 
   const handleMouseOut = useCallback(
@@ -710,14 +715,9 @@ const Graph2 = ({
       },
     }) => {
       if (!key || !lab[key]) return;
-      drawRef.current({ precision: pr, labels: lab });
+      drawRef.current({ labels: lab });
     },
-    [pr, lab],
-  );
-
-  const handlePrecisionChange = useCallback(
-    (_, value) => setPrecision(2 ** (9 - value)),
-    [setPrecision],
+    [lab],
   );
 
   return (
@@ -743,21 +743,6 @@ const Graph2 = ({
             />
           ))}
       </div>
-      {showPrecisionSlider && defaultPrecision && (
-        <div
-          className={cn(style['graph-legend'], style['precision'])}
-          title={`Showing ${pr === 1 ? 'all' : `1 out of ${pr}`} data points`}
-        >
-          <span>Precision:</span>
-          <Slider
-            value={9 - Math.log2(pr)}
-            min={0}
-            max={9}
-            step={1}
-            onChange={handlePrecisionChange}
-          />
-        </div>
-      )}
     </>
   );
 };
