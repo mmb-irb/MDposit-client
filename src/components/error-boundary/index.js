@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import { Link } from 'react-router-dom';
 
 // This is like the JavaScript catch{} block but for React components
 class ErrorBoundary extends Component {
@@ -18,7 +17,10 @@ class ErrorBoundary extends Component {
       return (
         <h1>
           An error happened. Try to reload the page. If the error persists
-          please <Link to="/contact">get in touch and report it</Link>
+          please{' '}
+          <a href="http://mmb.irbbarcelona.org/www/locationmap">
+            get in touch and report it
+          </a>
         </h1>
       );
     }
