@@ -58,6 +58,17 @@ const useDefaultRepresentations = (chains, metadata) => {
       });
     }
 
+    // DANI: Hardcodeado para trayectorias de Rebecca Wade
+    if (metadata.PDBID === '6ACC') {
+      reps.push({
+        name: 'Other',
+        selection: 'not Protein',
+        type: 'licorice',
+        color: 'grey',
+        opacity: 0.3,
+      });
+    }
+
     return reps;
   }, [chains, metadata]);
 

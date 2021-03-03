@@ -58,7 +58,18 @@ const Mutations = () => {
 
     const mutations = payload && payload.mutations;
 
-    //getToporefMap(payload, topology)
+    // Build a residues map from the topology reference
+    let toporefMap;
+    // DANI: Hardcodeado para trayectorias de Rebecca Wade
+    if (metadata.PDBID === '6ACC') {
+      toporefMap = residue => {
+        // Primera cadena 1-1287
+        if (residue >= 1 && residue <= 1287) return residue + 13;
+        if (residue >= 1288 && residue <= 2572) return residue - 1274;
+        if (residue >= 2573 && residue <= 3857) return residue - 2559;
+        console.log('MEEECK!! ' + residue);
+      };
+    }
 
     // Get a list with all residues converted from source to model format
     /*
@@ -93,9 +104,15 @@ const Mutations = () => {
       this.atomColor = atom => {
         // Find the residue index and then the entropy for this residue
         const residue = atom.residueIndex;
-        const modelResiude = absolute2sourceResidue(residue, topology, metadata)
-          .residueNumber;
-        const entropy = normalizedEntropies[modelResiude];
+        const sourceResidue = absolute2sourceResidue(
+          residue,
+          topology,
+          metadata,
+        ).residueNumber;
+        const mapedResidue = toporefMap
+          ? toporefMap(sourceResidue)
+          : sourceResidue;
+        const entropy = normalizedEntropies[mapedResidue];
         // Calculate the interpolated rgb for this value
         // The interpolated color comes in rbg format
         const hexColor = d3color(colorScale(entropy)).formatHex();
