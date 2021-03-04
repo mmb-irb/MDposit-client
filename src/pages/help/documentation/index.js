@@ -566,6 +566,38 @@ const documentation = [
       </>
     ),
   },
+  {
+    id: 'mutations',
+    header: 'Mutations',
+    page: (
+      <>
+        This is the mutations analysis.
+        <br />
+        <br />
+        Entropies of each residue were obtained from the{' '}
+        <a
+          href="https://www.gisaid.org/collaborations/enabled-by-hcov-19-data-from-gisaid/"
+          target="_blank"
+          rel="noreferrer noopener"
+        >
+          GISAID
+        </a>{' '}
+        database.
+        <br />
+        <br />
+        The{' '}
+        <a
+          href="/help#/help#ngl-viewer"
+          target="_blank"
+          rel="noreferrer noopener"
+        >
+          viewer
+        </a>{' '}
+        below represents the entropy of each residue in a logarithmic color
+        scale which ranges from grey (low entropy) to red (high entropy).
+      </>
+    ),
+  },
   // The following blocks are temporal
   {
     id: 'pca-eigen-graph',

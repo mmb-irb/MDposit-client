@@ -14,7 +14,6 @@ import style from './style.module.css';
 
 import { ProjectCtx, PdbCtx } from '../../../contexts';
 
-import Info from '../../../components/info';
 import Loading from '../../../components/loading';
 
 import { absolute2sourceResidue } from '../../../utils/topology-manager';
@@ -132,31 +131,11 @@ const Mutations = () => {
   else if (!payload) return 'Something bad happened';
 
   return (
-    /*<>
-      <Card className={style.card} ref={nglRef}>
-        <Info
-          reference={'mutations'}
-          tooltip={
-            <>
-              This is the mutations representation.
-              <br />
-              <br />
-              The{' '}
-              <a
-                href="http://nglviewer.org/"
-                target="_blank"
-                rel="noreferrer noopener"
-              >
-                NGL viewer
-              </a>{' '}
-              represents the entropy of each residue.
-            </>
-          }
-        />
-      </Card>
-    </>*/
     <Suspense fallback={<Loading />}>
-      {/*<Card>
+      {
+        // DANI: Esto habría que implementarlo un día
+        // DANI: No es tan facil como copiar el de rmsd-perres, porque aquel usa los residuos del payload
+        /*<Card>
         <CardContent className={style.paper}>
           
           <ResidueSelector
@@ -165,25 +144,9 @@ const Mutations = () => {
           />
           
         </CardContent>
-      </Card>*/}
+      </Card>*/
+      }
       <Card className={style.nglcard} ref={nglRef}>
-        <Info
-          reference={'mutations'}
-          tooltip={
-            <>
-              This data table shows the residues list ordered by entropy. First
-              column contains residue name, which is composed by the union of
-              the residue type abbreviation (e.g. ASN, ASP, CYS...) and the
-              topology numeration. Next column provides the entropy value.
-              <br />
-              <br />
-              Use this data table to navigate through all selected resiudes and
-              set which of them must be displayed in the graph below. To do so,
-              click in the first column checkbox of the residue to be
-              shown/hidden.
-            </>
-          }
-        />
         {/* Render the NGL viewer when it is on screen*/}
         {isNglVisible ? (
           <NGLViewerWithControls
