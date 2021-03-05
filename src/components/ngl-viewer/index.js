@@ -321,7 +321,7 @@ const NGLViewer = memo(
               let requestedFrames = nFrames;
               if (nFrames > trajectoryFrames)
                 requestedFrames = trajectoryFrames;
-              if (requestedFrame) requestedFrames = 1;
+              if (Number.isFinite(requestedFrame)) requestedFrames = 1;
               else if (framed) requestedFrames = framed.frames;
               // Components which are not the principal must include a 'frame' value
               else if (!isPrincipal && trajectoryFrames > 1)
