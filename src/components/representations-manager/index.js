@@ -110,9 +110,11 @@ const RepresentationsManager = memo(
           <TableBody>
             {representations.map((rep, index) => (
               <TableRow key={rep.name + index + nglSelections[index]}>
+                {/* Name */}
                 <TableCell component="th" scope="row">
                   {rep.name}
                 </TableCell>
+                {/* Show */}
                 <TableCell align="right">
                   {
                     <Checkbox
@@ -130,6 +132,7 @@ const RepresentationsManager = memo(
                     />
                   }
                 </TableCell>
+                {/* Selection */}
                 <TableCell align="right">
                   {
                     <TextField
@@ -153,6 +156,7 @@ const RepresentationsManager = memo(
                     />
                   }
                 </TableCell>
+                {/* Drawing method */}
                 <TableCell align="right">
                   {
                     <Select
@@ -180,6 +184,7 @@ const RepresentationsManager = memo(
                     </Select>
                   }
                 </TableCell>
+                {/* Coloring method */}
                 <TableCell align="right">
                   {
                     <Select
@@ -207,6 +212,7 @@ const RepresentationsManager = memo(
                     </Select>
                   }
                 </TableCell>
+                {/* Opacity */}
                 <TableCell align="right">
                   {
                     <Slider

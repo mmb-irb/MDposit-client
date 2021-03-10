@@ -185,10 +185,14 @@ const NGLViewerWithControls = forwardRef(
     // Set also all representations mined from each component
     // These representations will have stated parameters which may be changed by the user
     const [allComponents, allRepresentations] = useMemo(() => {
-      // WARNING!! Do not modify the original value of 'components'
+      // WARNING: Do not modify the original value of 'components'
+      // WARNING: The object must be copied deeply. Otherwise representations list would be the same
+      // WARNING: This would results in a disaster when there is more than 1 component
+      // WARNING: (e.g. adding custom representations in rmsd pairwise)
       let comps;
       if (!components) comps = [];
-      else comps = [...components];
+      else
+        comps = [...components.map(comp => JSON.parse(JSON.stringify(comp)))];
       // WARNING!! Do not modify the original value of 'representations'
       let reps;
       if (!representations) reps = [];
@@ -199,11 +203,18 @@ const NGLViewerWithControls = forwardRef(
       if (comps.length === 0) {
         comps = [{ representations: reps, frame: requestedFrame }];
       }
+      // Save all representations mined from each component together with the additional ones
+      const allReps = [];
       // Set all missing components 'representations' value with the default representations
       for (const comp of comps) {
+        // DANI: Estoy modificando el componente de input añadiendole mas representations
+        // DANI: lo que copio es la lista original que lo contiene, pero no el componente!!
         if (!comp.representations || comp.representations.length === 0)
           // Spread syntax here prevents the 'defaultRepresentations' to be overwritten
           comp.representations = [...defaultRepresentations];
+        //console.log(components)
+        //console.log(comps)
+        allReps.push(...comp.representations);
       }
       // Create a new component for each additional representation with different component parameters
       // (i.e. topologyURL, trajectoryURLs or frame)
@@ -246,24 +257,19 @@ const NGLViewerWithControls = forwardRef(
         else {
           throw new Error(`There is a duplicated NGL component`);
         }
+        allReps.push(representation);
       }
 
-      // Save all representations mined from each component
-      // These representations will have stated parameters which may be changed by the user
-      const allReps = [];
-      for (const comp of comps) {
-        // Fill the missing 'representations' values with some default values
-        for (const rep of comp.representations) {
-          if (!rep.name) rep.name = 'Representation';
-          if (!rep.selection) rep.selection = 'all';
-          if (!rep.show) rep.show = true;
-          if (!rep.type) rep.type = 'cartoon';
-          if (!rep.color) rep.color = 'chainid';
-          if (!rep.opacity) rep.opacity = 1;
-          allReps.push(rep);
-        }
-      }
-
+      // Fill the missing 'representations' values with some default values
+      allReps.forEach((rep, r) => {
+        rep.index = r; // Numerate all representations to be matched by the NGL
+        if (!rep.name) rep.name = 'Representation';
+        if (!rep.selection) rep.selection = 'all';
+        if (!rep.show) rep.show = true;
+        if (!rep.type) rep.type = 'cartoon';
+        if (!rep.color) rep.color = 'chainid';
+        if (!rep.opacity) rep.opacity = 1;
+      });
       return [comps, allReps];
     }, [
       components,

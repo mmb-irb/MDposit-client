@@ -36,10 +36,15 @@ import style from './style.module.css';
 
 // To get frames
 import { BASE_PATH_PROJECTS } from '../../utils/constants';
+
 // This function extracts the atom and frame counts from the content-range header
-// DEPRECATED: This data know is extracted from the 'files' metadata in the project context
+// DEPRECATED: This data now is extracted from the 'files' metadata in the project context
 //import extractCounts from './extract-counts';
+
 import axios from 'axios';
+
+// Make a deep copy of an object even with cyclic references
+import { cloneDeep } from 'lodash-es';
 
 const DEFAULT_NUMBER_OF_FRAMES = 25;
 const DEFAULT_ORIENTATION_TRANSITION_DURATION = 750; // 750 ms
@@ -556,10 +561,6 @@ const NGLViewer = memo(
       // PDB file, base structure
       // Set the representations in each component
       useEffect(() => {
-        // Keep the count of each representation in each component
-        // It is not the same that any iteration index
-        let repCounter = 0;
-
         if (!pdbFile) return;
         // Atom occupancy is a field which is not used anywhere but in the electrostatic representation
         // The electrostatic surface scheme color does not work if the occupancy is 0 (ngl code, not ours)
@@ -595,7 +596,11 @@ const NGLViewer = memo(
                 `Topology data from '${comp.topologyURL}' is missing`,
               );
             // Add the topology to the NGL
-            stageRef.current.addComponentFromObject(topology.file);
+            // Make a deep copy of the topology object to prevent NGL internal bugs
+            // This object will store data which is component exclusive
+            const componentObject = cloneDeep(topology.file);
+            //const componentObject = topology.file;
+            stageRef.current.addComponentFromObject(componentObject);
             stageComp = stageRef.current.compList[c];
             stageComp.onlyTopology = comp.onlyTopology;
             setIsFirstCompStaged(true);
@@ -610,13 +615,13 @@ const NGLViewer = memo(
             registredNames.push(name);
 
             // Adapt a few representation values to the context
+            const index = rep.index;
 
-            const show =
-              !showRepresentations || showRepresentations[repCounter];
+            const show = !showRepresentations || showRepresentations[index];
 
-            const sele = nglSelections[repCounter];
+            const sele = nglSelections[index];
 
-            const type = drawingMethods[repCounter];
+            const type = drawingMethods[index];
 
             const colorScheme =
               rep.name === selectedRepresentation
@@ -626,23 +631,22 @@ const NGLViewer = memo(
                     'custom label',
                   )
                 : // If the colorScheme is in the passed custom schemes use it
-                customColorSchemes &&
-                  customColorSchemes[coloringMethods[repCounter]]
-                ? customColorSchemes[coloringMethods[repCounter]]
+                customColorSchemes && customColorSchemes[coloringMethods[index]]
+                ? customColorSchemes[coloringMethods[index]]
                 : // If the colorScheme is a defined color, create a custom colorScheme for this color
-                isValidColor(coloringMethods[repCounter])
+                isValidColor(coloringMethods[index])
                 ? ColormakerRegistry.addSelectionScheme(
-                    [[coloringMethods[repCounter], 'all']],
+                    [[coloringMethods[index], 'all']],
                     'custom label',
                   )
                 : // Otherwise let the color scheme as it is
-                  coloringMethods[repCounter];
+                  coloringMethods[index];
 
             const colorDomain = type === 'surface' ? [-200, 200] : undefined;
 
             const surfaceType = type === 'surface' ? 'av' : undefined;
 
-            const opacity = show ? opacities[repCounter] : 0;
+            const opacity = show ? opacities[index] : 0;
 
             // Join all parameters into a single input object
             const parameters = {
@@ -683,7 +687,7 @@ const NGLViewer = memo(
             // Add a floating label over the representation when it is specified
             const label = rep.label;
             if (label) {
-              const name = rep.label + '-' + repCounter;
+              const name = rep.label + '-' + index;
               // Find the equivalent previous label
               const previous = stageComp.annotationList.find(
                 annotation => annotation.name === name,
@@ -724,8 +728,6 @@ const NGLViewer = memo(
               setFocus({ comp: c, sele: rep.selection });
               //focused = true;
             }
-
-            repCounter += 1;
           });
 
           // Delete all representations which are not required anymore
@@ -1037,6 +1039,9 @@ const NGLViewer = memo(
 
           // Find the trajectory payload from the component urls and join them
           const trajectoryPayloads = [];
+          // Save the combined urls of all trajectories
+          // This is used in further renders to know if current trajectory is new or the same
+          let combinedURL = '';
           // Record also the atoms for each trajectory and check that they match
           let atoms;
           // Record also the frames for each trajectory and add them
@@ -1062,7 +1067,16 @@ const NGLViewer = memo(
 
             // Add the main data to the array of payloads
             trajectoryPayloads.push(trajectory.payload);
+            combinedURL += url;
           }
+
+          // If both URL are matching then exit here
+          if (stageComp.combinedURL === combinedURL) {
+            return;
+          }
+
+          // Save current URL in the staged component
+          stageComp.combinedURL = combinedURL;
 
           let totalPayload;
           if (trajectoryPayloads.length === 1)
@@ -1077,7 +1091,6 @@ const NGLViewer = memo(
           // This return an error in console: "updateStructure: traj disposed"
           // This may be a bug but it is actually working
           // See https://github.com/arose/ngl/issues/680
-          // DANI: Hay que revisar esto porque alomejor se puede ahorrar este paso si la trayectoria coincide
           stageComp.trajList.forEach(
             stageComp.removeTrajectory.bind(stageComp),
           );
@@ -1093,16 +1106,23 @@ const NGLViewer = memo(
 
           if (file) {
             const trajectoryFrames = stageComp.addTrajectory(file);
-            trajectoryFrames.signals.frameChanged.add(handleFrameChange);
+            // Add the frame change handler only if it is the main component
+            if (c === 0)
+              trajectoryFrames.signals.frameChanged.add(handleFrameChange);
             trajectoryFrames.trajectory.setFrame(0);
             frames.push(trajectoryFrames);
           }
         });
 
+        // DANI: No las tengo todas de que haber quitado esto sea seguro
+        // DANI: En principio las trayectorias a las que esto les quita el handler
+        // DANI: son eliminadas en el siguiente render, pero habría que chequear
+        /*
         return () =>
           frames.forEach(frame =>
             frame.signals.frameChanged.remove(handleFrameChange),
           );
+        */
       }, [pdbFile, trajectories, handleFrameChange, isProjection, comps]);
 
       // play/pause
