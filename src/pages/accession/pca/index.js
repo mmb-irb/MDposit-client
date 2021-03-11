@@ -224,6 +224,7 @@ const PCA = () => {
                   framesSelect={false}
                   // Projections are backbone trajectories, same as the average.pdb topology
                   components={component}
+                  bounce={true}
                 />
               </CardContent>
             </Suspense>

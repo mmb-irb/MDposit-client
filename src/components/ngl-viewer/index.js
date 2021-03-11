@@ -90,6 +90,7 @@ const NGLViewer = memo(
         smooth,
         onProgress,
         projection,
+        bounce = false, // Set if the animation, when finished, starts again (false) or goes back (true)
         nFrames = DEFAULT_NUMBER_OF_FRAMES,
         selectedAtoms, // Atom index of the atom and residue to be represented
         selectedResidues, // Residue complex numerations from residues to be represented
@@ -1133,12 +1134,14 @@ const NGLViewer = memo(
       useEffect(() => {
         if (!(pdbFile && mainTraj)) return;
         const { player } = stageRef.current.compList[0].trajList[0].trajectory;
+        // Set the animation to go forward and then backward instead of restart
+        if (bounce) player.setParameters({ direction: 'bounce' });
         // WARNING: Pausing the player when there is no trajectory may seem redundant
         // However, if not paused, the surface representations never stop to be calculated
         if (noTrajectory) player.pause();
         else player[playing && isInView ? 'play' : 'pause']();
         return () => player.pause();
-      }, [pdbFile, mainTraj, playing, isInView, noTrajectory]);
+      }, [pdbFile, mainTraj, playing, isInView, noTrajectory, bounce]);
 
       // speed
       useEffect(() => {
