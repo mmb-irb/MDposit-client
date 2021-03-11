@@ -15,6 +15,7 @@ import { AccessionCtx, PdbCtx, ProjectCtx } from '../../../contexts';
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 import {
+  getAtom,
   getAtomResidue,
   absolute2modelResidue,
 } from '../../../utils/topology-manager';
@@ -115,6 +116,8 @@ const Hbonds = () => {
       filteredData.hydrogenAtomIndex.push(hydrogen);
 
       // Set a human readable lable for this bond
+      const acceptorElement = getAtom(acceptor).element;
+      const donorElement = getAtom(donor).element;
       const acceptorResidueIndex = getAtomResidue(acceptor).index;
       const donorResidueIndex = getAtomResidue(donor).index;
 
@@ -129,15 +132,15 @@ const Hbonds = () => {
       filteredData.ylabels.push(
         acceptorResidue.ngl +
           '.' +
-          acceptor +
+          acceptorElement +
           ' - ' +
           donorResidue.ngl +
           '.' +
-          donor,
+          donorElement,
       );
     }
 
-    // If data is empty it means no hydrgoen bonds where found for this interaction
+    // If data is empty it means no hydrogen bonds where found for this interaction
     if (!filteredData.hbonds[0])
       return 'No hydrogen bonds stable enough where found for this interaction';
 
