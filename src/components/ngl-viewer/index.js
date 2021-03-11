@@ -1134,8 +1134,12 @@ const NGLViewer = memo(
       useEffect(() => {
         if (!(pdbFile && mainTraj)) return;
         const { player } = stageRef.current.compList[0].trajList[0].trajectory;
-        // Set the animation to go forward and then backward instead of restart
-        if (bounce) player.setParameters({ direction: 'bounce' });
+        player.setParameters({
+          // Set the interpolate step according to the total number of frames to show 1 by 1
+          interpolateStep: 100 / mainTraj.trajectory.frameCount,
+          // Set the animation to go forward and then backward instead of restart if required
+          direction: bounce ? 'bounce' : 'forward',
+        });
         // WARNING: Pausing the player when there is no trajectory may seem redundant
         // However, if not paused, the surface representations never stop to be calculated
         if (noTrajectory) player.pause();
