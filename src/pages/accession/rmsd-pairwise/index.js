@@ -17,6 +17,8 @@ import style from './style.module.css';
 import InteractionSelector from '../../../components/interaction-selector';
 import Heatmap from '../../../components/heatmap';
 
+import { complexNumerationParser } from '../../../utils/topology-manager';
+
 const RmsdPairwise = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
@@ -85,20 +87,52 @@ const RmsdPairwise = () => {
   // Set the frames to be represented in the NGL viewer
   const components = useMemo(() => {
     if (!selected) return;
+
+    // Get the selected interaction
+    const interaction = interactions[selectedInteraction];
+    // Get the interaction interface, if it exists, in NGL format
+    // The default interaction (Overall) has no interface
+    const interactionInterface =
+      interaction.interface_1 &&
+      interaction.interface_2 &&
+      [...interaction.interface_1, ...interaction.interface_2]
+        .map(res => complexNumerationParser(res).nglSelection)
+        .join(' or ');
+
     const components = [];
-    selected.forEach((frame, index) => {
-      components.push({
-        frame: frame,
-        representations: [
-          {
-            name: 'Frame ' + frame,
-            color: index === 0 ? 'red' : 'blue',
-          },
-        ],
+    if (interactionInterface) {
+      selected.forEach((frame, index) => {
+        components.push({
+          frame: frame,
+          representations: [
+            {
+              name: 'Frame ' + frame + ' interaction interface',
+              color: index === 0 ? 'red' : 'blue',
+              selection: interactionInterface,
+            },
+            {
+              name: 'Frame ' + frame + ' reference',
+              color: index === 0 ? 'red' : 'blue',
+              opacity: 0.1,
+            },
+          ],
+        });
       });
-    });
+    } else {
+      selected.forEach((frame, index) => {
+        components.push({
+          frame: frame,
+          representations: [
+            {
+              name: 'Frame ' + frame,
+              color: index === 0 ? 'red' : 'blue',
+            },
+          ],
+        });
+      });
+    }
     return components;
-  }, [selected]);
+  }, [selected, interactions, selectedInteraction]);
 
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
