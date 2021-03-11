@@ -119,6 +119,32 @@ export const getResidueFirstAtom = (
   return atom;
 };
 
+// Return all atom absolute numbers from resiude absolute number
+export const getResidueAtoms = (
+  residue,
+  topology = PdbCtx._currentValue.file,
+) => {
+  const firstAtom = topology.residueStore.atomOffset[residue];
+  const atomCount = topology.residueStore.atomCount[residue];
+  const atoms = [];
+  for (let a = 0; a < atomCount; a++) atoms.push(firstAtom + a);
+  //console.log(residue + ' => ' + atoms);
+  return atoms;
+};
+
+export const residueHasCAlpha = (
+  residue,
+  topology = PdbCtx._currentValue.file,
+) => {
+  const atoms = getResidueAtoms(residue, topology);
+  for (const atom of atoms) {
+    const name = getAtom(atom, topology).name;
+    //console.log(residue + ' => ' + name);
+    if (name === 'CA') return true;
+  }
+  return false;
+};
+
 // This function finds the residue type (e.g. TYR) from a residue absolute number
 export const getResidueType = (
   residue,

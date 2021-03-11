@@ -16,7 +16,9 @@ import {
   complexNumerationParser,
   nglNumerationParser,
   source2modelResidue,
-  model2sourceResidue,
+  model2absoluteResidue,
+  absolute2sourceResidue,
+  residueHasCAlpha,
 } from '../../../utils/topology-manager';
 
 //import Selector from '../../../components/selector';
@@ -140,11 +142,15 @@ const DistPerres = () => {
   // Also retrieve the absolute residue number, since it is used to ask for the distance representation
   // http://nglviewer.org/ngl/api/class/src/representation/distance-representation.js~DistanceRepresentation.html
   const parseLabel = label => {
-    const num = nglNumerationParser(label);
-    const source = model2sourceResidue(num, pdbData.file);
+    const model = nglNumerationParser(label);
+    const absolute = model2absoluteResidue(model, pdbData.file);
+    const source = absolute2sourceResidue(absolute, pdbData.file);
+    // We must check the residue has an alpha carbon
+    // If not, there is no atom to use a distance reference, so return null
+    const hasCA = residueHasCAlpha(absolute, pdbData.file);
     return {
       forResidue: source.numeration,
-      forDistance: source.residueNumber.toString() + '.CA',
+      forDistance: hasCA ? source.residueNumber.toString() + '.CA' : null,
     };
   };
 
@@ -191,7 +197,9 @@ const DistPerres = () => {
               const py = parseLabel(y);
               setSelected({
                 residues: [px.forResidue, py.forResidue],
-                distance: [[px.forDistance, py.forDistance]],
+                // There is no values "for distance" when any residues has no alpha carbon
+                distance: px.forDistance &&
+                  py.forDistance && [[px.forDistance, py.forDistance]],
               });
             }}
             legendTitle={
@@ -215,11 +223,10 @@ const DistPerres = () => {
             ? {
                 accession: accession,
                 selectedResidues: selected.residues,
-                // DANI: Las representación de las distancias queda suspendida temporalmente
-                // DANI: Es un percal. Solo se puede hacer con átomos, no con residuos.
-                // DANI: Tal y como está ahora solo funcionaría para distancias entre 2 proteínas
-                // DANI: Y posiblemente ni eso. Depende de la topología.
-                //selectedDistances: selected.distance,
+                // WARNING: Distance is not always available
+                // This only works when both residues have alpha carbon
+                // (i.e. both are protein residues)
+                selectedDistances: selected.distance,
               }
             : null
         }
