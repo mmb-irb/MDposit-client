@@ -522,6 +522,8 @@ const NGLViewerWithControls = forwardRef(
                 : style['ngl-without-settings']
             }
             style={{ border: 'none', boxShadow: 'none' }}
+            // This id prevents the mouse to drag or resize the Rnd when it is over this element
+            id={'preventDragSize'}
           >
             <Card
               className={
