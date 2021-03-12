@@ -649,6 +649,8 @@ const NGLViewer = memo(
 
             const opacity = show ? opacities[index] : 0;
 
+            const background = type === 'surface' && opacity < 1 ? true : false;
+
             // Join all parameters into a single input object
             const parameters = {
               sele,
@@ -657,6 +659,10 @@ const NGLViewer = memo(
               colorScheme,
               colorDomain,
               surfaceType,
+              side: 'front',
+              background,
+              //opaqueBack: true,
+              //forceTransparent: true,
               ...rep.other,
             };
 
