@@ -317,7 +317,7 @@ const NGLViewerWithControls = forwardRef(
 
     // Reset builtin states when inputs change
     // Set missing values in builtin states when additional representations are added by the user
-    useMemo(() => {
+    const defaults = useMemo(() => {
       if (
         inputs.current.components === components &&
         inputs.current.representations === representations
@@ -355,6 +355,14 @@ const NGLViewerWithControls = forwardRef(
       }
       // Save a reference of components and representations to compare with future triggers
       inputs.current = { components, representations };
+      // Save the default values
+      return {
+        showRepresentations: allRepresentations.map(rep => rep.show),
+        nglSelections: allRepresentations.map(rep => rep.selection),
+        drawingMethods: allRepresentations.map(rep => rep.type),
+        coloringMethods: allRepresentations.map(rep => rep.color),
+        opacities: allRepresentations.map(rep => rep.opacity),
+      };
     }, [allRepresentations, components, representations]);
 
     // Real states. They get the forced state value if exist. If not, they get the builtin state value
@@ -378,13 +386,18 @@ const NGLViewerWithControls = forwardRef(
       : [opacitieBuiltins, setOpacitiesBuiltin];
 
     // Remember the default drawing methods, coloring methods and opacity values
-    const defaults = useRef({
-      showRepresentations: [...showRepresentations],
-      nglSelections: [...nglSelections],
-      drawingMethods: [...drawingMethods],
-      coloringMethods: [...coloringMethods],
-      opacities: [...opacities],
-    });
+    /*
+    const defaults = useMemo(() => {
+      console.log('updated defaults');
+      console.log(coloringMethods);
+      return {
+        showRepresentations: [...showRepresentations],
+        nglSelections: [...nglSelections],
+        drawingMethods: [...drawingMethods],
+        coloringMethods: [...coloringMethods],
+        opacities: [...opacities],
+      }
+    }, [allRepresentations]);*/
 
     // references
     const containerRef = useRef(null);
@@ -680,7 +693,7 @@ const NGLViewerWithControls = forwardRef(
                   setColoringMethods={setColoringMethods}
                   opacities={opacities}
                   setOpacities={setOpacities}
-                  defaults={defaults.current}
+                  defaults={defaults}
                 />
               </div>
             )}

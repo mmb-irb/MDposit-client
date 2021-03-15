@@ -17,7 +17,8 @@ import { faPlusCircle } from '@fortawesome/free-solid-svg-icons';
 
 import style from './style.module.css';
 
-const valueExist = (value, source) => {
+// Check if a value exists inside the available values
+const valueExists = (value, source) => {
   for (const opt of source) {
     if (opt.value === value) return true;
   }
@@ -89,6 +90,7 @@ const RepresentationsManager = memo(
     setOpacities,
     defaults, // Original values
   }) => {
+    console.log(defaults);
     return (
       <>
         <Table
@@ -168,7 +170,7 @@ const RepresentationsManager = memo(
                         setDrawingMethods([...changed]);
                       }}
                     >
-                      {!valueExist(
+                      {!valueExists(
                         defaults.drawingMethods[index],
                         availableDrawingMethods,
                       ) && (
@@ -196,7 +198,7 @@ const RepresentationsManager = memo(
                         setColoringMethods([...changed]);
                       }}
                     >
-                      {!valueExist(
+                      {!valueExists(
                         defaults.coloringMethods[index],
                         availableColoringMethods,
                       ) && (
