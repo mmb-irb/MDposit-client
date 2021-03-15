@@ -72,6 +72,8 @@ export default React.memo(() => {
     citation = compiled;
   }
 
+  const thanks = metadata.THANKS;
+
   return (
     <>
       <Card className={style.card}>
@@ -273,19 +275,31 @@ export default React.memo(() => {
           </div>
         </CardContent>
       </Card>
-      <Card className={style.card}>
-        <CardContent className={style['card-content']}>
-          <Typography variant="h6">Citation</Typography>
-          <div>
-            The use of any trajectory data in any reports or publications of
-            results obtained with the trajectory data should be acknowledged by
-            including a citation to:
-          </div>
-          <div className={style['summary-list']}>
-            <div>{citation || 'Not available'}</div>
-          </div>
-        </CardContent>
-      </Card>
+      {citation && (
+        <Card className={style.card}>
+          <CardContent className={style['card-content']}>
+            <Typography variant="h6">Citation</Typography>
+            <div>
+              The use of any trajectory data in any reports or publications of
+              results obtained with the trajectory data should be acknowledged
+              by including a citation to:
+            </div>
+            <div className={style['summary-list']}>
+              <div>{citation}</div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      {thanks && (
+        <Card className={style.card}>
+          <CardContent className={style['card-content']}>
+            <Typography variant="h6">Acknowledgements</Typography>
+            <div className={style['summary-list']}>
+              <div>{thanks}</div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       <Card className={style.card}>
         <CardContent className={style['card-content']}>
           <Typography variant="h6">Project information</Typography>
