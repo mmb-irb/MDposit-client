@@ -96,7 +96,7 @@ const RmsdPairwise = () => {
       interaction.interface_1 &&
       interaction.interface_2 &&
       [...interaction.interface_1, ...interaction.interface_2]
-        .map(res => complexNumerationParser(res).nglSelection)
+        .map(res => '(' + complexNumerationParser(res).nglSelection + ')')
         .join(' or ');
 
     const components = [];
@@ -109,6 +109,7 @@ const RmsdPairwise = () => {
               name: 'Frame ' + frame + ' interaction interface',
               color: index === 0 ? 'red' : 'blue',
               selection: interactionInterface,
+              type: 'licorice',
             },
             {
               name: 'Frame ' + frame + ' reference',
