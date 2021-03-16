@@ -86,6 +86,9 @@ export default React.memo(() => {
             <div>
               Groups: {(metadata && metadata.GROUPS) || 'Not available'}
             </div>
+            {metadata && metadata.CONTACT && (
+              <div>Contact: {metadata.CONTACT}</div>
+            )}
             <div>
               Program: {(metadata && metadata.PROGRAM) || 'Not available'}
             </div>
