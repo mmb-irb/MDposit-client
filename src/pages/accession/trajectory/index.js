@@ -268,6 +268,7 @@ export const TrajectoryMetadata = memo(() => {
             value={metadata.ENSEMBLE === null ? na : metadata.ENSEMBLE}
             disabled={metadata.ENSEMBLE === null}
           />
+          {/*
           <TextField
             className={style['text-field']}
             label="Pressure coupling"
@@ -281,7 +282,7 @@ export const TrajectoryMetadata = memo(() => {
             title="Membrane type"
             value={metadata.MEMBRANE === null ? na : metadata.MEMBRANE}
             disabled={metadata.MEMBRANE === null}
-          />
+          />*/}
         </fieldset>
       </>
     );
