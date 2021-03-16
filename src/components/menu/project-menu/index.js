@@ -1,6 +1,7 @@
 import React, { useState, useContext, useCallback } from 'react';
 
 import {
+  CardContent,
   Popper,
   Grow,
   Paper,
@@ -9,6 +10,7 @@ import {
   MenuItem,
   Tab,
   Tabs,
+  Typography,
 } from '@material-ui/core';
 import { Link } from 'react-router-dom';
 
@@ -82,64 +84,93 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
       dir: 'trajectory',
     },
     {
-      name: 'quality control analyses',
-      drops: [
-        { name: 'RMSDs', dir: 'rmsds', cond: analyses.includes('rmsds') },
-        {
-          name: 'RMSD per residue',
-          dir: 'rmsd-perres',
-          cond: analyses.includes('rmsd-perres'),
-        },
-        {
-          name: 'RMSD pairwise',
-          dir: 'rmsd-pairwise',
-          cond: analyses.includes('rmsd-pairwise'),
-        },
-        {
-          name: 'Radius of gyration',
-          dir: 'rgyr',
-          cond: analyses.includes('rgyr'),
-        },
-        {
-          name: 'Fluctuation',
-          dir: 'fluctuation',
-          cond: analyses.includes('fluctuation'),
-        },
-        { name: 'PCA', dir: 'pca', cond: analyses.includes('pca') },
-      ],
-    },
-    {
-      name: 'interface analyses',
+      name: 'Analyses',
       drops: [
         {
-          name: 'Distance per residue',
-          dir: 'dist-perres',
-          cond: analyses.includes('dist-perres'),
+          name: 'Quality control',
+          analyses: [
+            {
+              name: 'RMSDs',
+              dir: 'rmsds',
+              cond: analyses.includes('rmsds'),
+            },
+            {
+              name: 'RMSD per residue',
+              dir: 'rmsd-perres',
+              cond: analyses.includes('rmsd-perres'),
+            },
+            {
+              name: 'RMSD pairwise',
+              dir: 'rmsd-pairwise',
+              cond: analyses.includes('rmsd-pairwise'),
+            },
+            {
+              name: 'Radius of gyration',
+              dir: 'rgyr',
+              cond: analyses.includes('rgyr'),
+            },
+            {
+              name: 'Fluctuation',
+              dir: 'fluctuation',
+              cond: analyses.includes('fluctuation'),
+            },
+            { name: 'PCA', dir: 'pca', cond: analyses.includes('pca') },
+            {
+              name: 'Solvent Accessible Surface',
+              //dir: 'sasa',
+              cond: false,
+            },
+          ],
         },
         {
-          name: 'Electrostatic potencial surface',
-          dir: 'electrostatic',
-          cond: metadata.INTERACTIONS && metadata.INTERACTIONS.length > 0,
+          name: 'Interactions',
+          analyses: [
+            {
+              name: 'Distance per residue',
+              dir: 'dist-perres',
+              cond: analyses.includes('dist-perres'),
+            },
+            {
+              name: 'Electrostatic potencial surface',
+              dir: 'electrostatic',
+              cond: metadata.INTERACTIONS && metadata.INTERACTIONS.length > 0,
+            },
+            {
+              name: 'Hydrogen bonds',
+              dir: 'hbonds',
+              cond: analyses.includes('hbonds'),
+            },
+            {
+              name: 'Energies',
+              dir: 'energies',
+              cond: analyses.includes('energies'),
+            },
+          ],
         },
         {
-          name: 'Hydrogen bonds',
-          dir: 'hbonds',
-          cond: analyses.includes('hbonds'),
+          name: 'Bibliography',
+          analyses: [
+            {
+              name: 'Epitopes',
+              //dir: 'epitopes',
+              cond: false,
+            },
+            {
+              name: 'Mutations',
+              dir: 'mutations',
+              cond: metadata.TOPOREF,
+            },
+          ],
         },
         {
-          name: 'Energies',
-          dir: 'energies',
-          cond: analyses.includes('energies'),
-        },
-        {
-          name: 'Pockets',
-          dir: 'pockets',
-          cond: analyses.includes('pockets'),
-        },
-        {
-          name: 'Mutations',
-          dir: 'mutations',
-          cond: metadata.TOPOREF,
+          name: 'Other',
+          analyses: [
+            {
+              name: 'Pockets',
+              dir: 'pockets',
+              cond: analyses.includes('pockets'),
+            },
+          ],
         },
       ],
     },
@@ -152,7 +183,8 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
   // Check if a string is found in the specified (by the 'index') dropTab links
   // If it is, return the same string. If it is not, return undefined
   const inDrop = (value, index) => {
-    for (const drop of tabs[index].drops) if (drop.dir === value) return value;
+    for (const drop of tabs[index].drops)
+      if (drop.analyses.find(analysis => analysis.dir === value)) return value;
     return undefined;
   };
 
@@ -211,32 +243,41 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
                 >
                   <Paper className={style['tab-drop']}>
                     <ClickAwayListener onClickAway={() => handleClose(index)}>
-                      <MenuList
-                        autoFocusItem={openMenu === index}
-                        onKeyDown={handleListKeyDown}
-                      >
-                        {tab.drops.map((drop, d) =>
-                          drop.cond ? (
-                            <MenuItem
-                              key={d}
-                              onClick={() => handleClose(index)}
-                              component={Link}
-                              to={`/browse/${accession}/${drop.dir}`}
-                              className={
-                                isCurrent(`/browse/${accession}/${drop.dir}`)
-                                  ? style.current
-                                  : undefined
-                              }
+                      <CardContent className={style.analyses}>
+                        {tab.drops.map((drop, d) => (
+                          <div key={d}>
+                            <Typography variant="h6">{drop.name}</Typography>
+                            <MenuList
+                              autoFocusItem={openMenu === index}
+                              onKeyDown={handleListKeyDown}
                             >
-                              {drop.name}
-                            </MenuItem>
-                          ) : (
-                            <MenuItem key={d} className={style.disabled}>
-                              {drop.name}
-                            </MenuItem>
-                          ),
-                        )}
-                      </MenuList>
+                              {drop.analyses.map((analysis, a) =>
+                                analysis.cond ? (
+                                  <MenuItem
+                                    key={a}
+                                    onClick={() => handleClose(index)}
+                                    component={Link}
+                                    to={`/browse/${accession}/${analysis.dir}`}
+                                    className={
+                                      isCurrent(
+                                        `/browse/${accession}/${analysis.dir}`,
+                                      )
+                                        ? style.current
+                                        : undefined
+                                    }
+                                  >
+                                    {analysis.name}
+                                  </MenuItem>
+                                ) : (
+                                  <MenuItem key={a} className={style.disabled}>
+                                    {analysis.name}
+                                  </MenuItem>
+                                ),
+                              )}
+                            </MenuList>
+                          </div>
+                        ))}
+                      </CardContent>
                     </ClickAwayListener>
                   </Paper>
                 </Grow>

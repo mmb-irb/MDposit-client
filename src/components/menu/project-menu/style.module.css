@@ -4,7 +4,15 @@
 
 .tab-drop {
   padding-top: 1ch;
-  background-color: #a0e650;
+  background-color: #f1f1f1;
+}
+
+.analyses {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  height: 75vh;
+  width: 75vw;
 }
 
 .current {
