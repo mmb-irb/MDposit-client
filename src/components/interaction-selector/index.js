@@ -39,6 +39,11 @@ const InteractionSelector = ({
   setSelectedResidues,
   selectedOrder,
   setSelectedOrder,
+  firstOrderLabel, // The label to be represented over the first order rectangle
+  firstOrderTooltip, // The tooltip to be shown for the first order rectangle
+  secondOrderLabel, // The label to be represented over the second order rectangle
+  secondOrderTooltip, // The tooltip to be shown for the second order rectangle
+  toggleOrderTooltip, // The tooltip to be shown for the toggle order button
 }) => {
   const changeInteraction = event => {
     setSelectedInteraction(event.target.value);
@@ -88,24 +93,21 @@ const InteractionSelector = ({
         <>
           <TextField
             //margin="dense"
-            label="Surfaced interface"
-            title="Interface residues to be represented in electorstatic surface mode"
+            label={firstOrderLabel}
+            title={firstOrderTooltip}
             value={
               selectedOrder
                 ? currentInteraction.agent_1
                 : currentInteraction.agent_2
             }
           />
-          <IconButton
-            title="Toggle interface representations"
-            onClick={changeOrder}
-          >
+          <IconButton title={toggleOrderTooltip} onClick={changeOrder}>
             <FontAwesomeIcon icon={faExchangeAlt} />
           </IconButton>
           <TextField
             //margin="dense"
-            label="Sticked interface"
-            title="Interface residues to be represented in balls and sticks mode"
+            label={secondOrderLabel}
+            title={secondOrderTooltip}
             value={
               selectedOrder
                 ? currentInteraction.agent_2

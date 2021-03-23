@@ -132,6 +132,15 @@ const Electrostatic = () => {
             setSelectedInteraction={setSelectedInteraction}
             selectedOrder={selectedOrder}
             setSelectedOrder={setSelectedOrder}
+            firstOrderLabel={'Surfaced interface'}
+            firstOrderTooltip={
+              'Interface residues to be represented in electorstatic surface mode'
+            }
+            secondOrderLabel={'Sticked interface'}
+            secondOrderTooltip={
+              'Interface residues to be represented in balls and sticks mode'
+            }
+            toggleOrderTooltip={'Toggle interface representations'}
           />
         </CardContent>
       </Card>

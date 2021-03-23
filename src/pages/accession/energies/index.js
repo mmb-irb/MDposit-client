@@ -14,6 +14,7 @@ import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 import Legend from '../../../components/legend';
 
+import InteractionSelector from '../../../components/interaction-selector';
 import LigandSelector from '../../../components/ligand-selector';
 
 import style from './style.module.css';
@@ -42,8 +43,14 @@ const Energies = () => {
     `${BASE_PATH_PROJECTS}${accession}/analyses/energies/`,
   );
 
-  // The ligand to be displayed
-  const [selectedLigand, setSelectedLigand] = useState(0);
+  // The interaction to be displayed
+  const [
+    selectedInteractionOrLigand,
+    setSelectedInteractionOrLigand,
+  ] = useState(0);
+
+  // This is a toggle state for which agent data is shown
+  const [selectedOrder, setSelectedOrder] = useState(true);
 
   // Set when one point in the graph is selected
   const [selected, setSelected] = useState(null);
@@ -52,19 +59,41 @@ const Energies = () => {
   const [display, setDisplay] = useState({ all: true, start: true, end: true });
 
   const ligands = metadata && metadata.LIGANDS;
+  const interactions = metadata && metadata.INTERACTIONS;
 
-  const data = useMemo(() => {
+  const { data, isOld } = useMemo(() => {
     // Return if the payload is not ready
-    if (!payload) return;
+    if (!payload) return {};
 
-    // Get the selected ligand
-    const ligand = ligands[selectedLigand];
+    let data;
 
-    // Get the data whose name matches the ligand name
-    const data = payload.data.find(dataset => {
-      return dataset.name === ligand.name;
-    });
-    if (!data) return `Dataset for the ligand "${ligand.name}" not found`;
+    // DANI: hardcodeado para que pueda soportar ambos formatos de energies: el viejo y el nuevo
+    const isOld = payload.data[0].agent1 ? false : true;
+
+    if (isOld) {
+      // Get the selected ligand
+      const ligand = ligands[selectedInteractionOrLigand];
+
+      // Get the data whose name matches the ligand name
+      data = payload.data.find(dataset => {
+        return dataset.name === ligand.name;
+      });
+      if (!data) return `Dataset for the ligand "${ligand.name}" not found`;
+    } else {
+      // Get the selected interaction
+      const interaction = interactions[selectedInteractionOrLigand];
+
+      const agent = selectedOrder ? 'agent1' : 'agent2';
+
+      // Get the data whose name matches the interaction name
+      data = payload.data.find(dataset => {
+        return dataset.name === interaction.name;
+      })[agent];
+      if (!data)
+        throw new Error(
+          `Dataset for the interaction "${interaction.name}" not found`,
+        );
+    }
 
     data.xTags = [];
     for (const residue of data.labels) {
@@ -73,8 +102,15 @@ const Energies = () => {
       data.xTags.push(mod.ngl);
     }
 
-    return data;
-  }, [payload, ligands, selectedLigand, pdbData]);
+    return { data, isOld };
+  }, [
+    payload,
+    interactions,
+    ligands,
+    selectedInteractionOrLigand,
+    selectedOrder,
+    pdbData,
+  ]);
 
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
@@ -85,14 +121,32 @@ const Energies = () => {
   return (
     <Suspense fallback={<Loading />}>
       <Card className={style.card}>
-        <CardContent className={style.horizontal}>
-          <Typography variant="h6">Ligand:</Typography>
-          <LigandSelector
-            ligands={ligands}
-            selectedLigand={selectedLigand}
-            setSelectedLigand={setSelectedLigand}
-          />
-        </CardContent>
+        {isOld ? (
+          <CardContent className={style.horizontal}>
+            <Typography variant="h6">Ligand:</Typography>
+            <LigandSelector
+              ligands={ligands}
+              selectedLigand={selectedInteractionOrLigand}
+              setSelectedLigand={setSelectedInteractionOrLigand}
+            />
+          </CardContent>
+        ) : (
+          <CardContent className={style.horizontal}>
+            <Typography variant="h6">Interaction:</Typography>
+            <InteractionSelector
+              interactions={interactions}
+              selectedInteraction={selectedInteractionOrLigand}
+              setSelectedInteraction={setSelectedInteractionOrLigand}
+              selectedOrder={selectedOrder}
+              setSelectedOrder={setSelectedOrder}
+              firstOrderLabel={'Host'}
+              firstOrderTooltip={'Interactor whose energies are to be shown'}
+              secondOrderLabel={'Guest'}
+              secondOrderTooltip={'Interactor with the opposite energies'}
+              toggleOrderTooltip={'Toggle interactors'}
+            />
+          </CardContent>
+        )}
         <CardContent>
           <div className={style.graph}>
             <Graph2
