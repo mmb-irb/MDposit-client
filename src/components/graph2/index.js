@@ -146,6 +146,9 @@ const Graph2 = ({
 
   // OFFSETS: Estimate the space needed for all the labels and titles to not overlap
 
+  // DANI: Toda esta parte no se actualiza en caso de que los valores de las labels cambien
+  // DANI: De momento no da problemas pero algún día habrá que arreglarlo
+
   // Set the yAxisValues by adding all dataset 'data' values
   let yAxisValues = yEntries
     .map(([, dataset]) => dataset.data)
@@ -219,6 +222,7 @@ const Graph2 = ({
   const prevStep = useRef(step);
   const prevXAxisLabel = useRef(xAxisLabel);
   const prevYAxisLabel = useRef(yAxisLabel);
+  const prevXAxisValues = useRef(xAxisValues);
 
   useEffect(() => {
     drawRef.current && pdbData && pdbData.file && drawRef.current();
@@ -288,6 +292,7 @@ const Graph2 = ({
       xAxisLabel = prevXAxisLabel.current,
       yAxisLabel = prevYAxisLabel.current,
       currentZoom = prevZoom.current,
+      xAxisValues = prevXAxisValues.current,
     } = {}) => {
       // container size
       const { clientWidth: width, clientHeight: height } = containerRef.current;
@@ -658,6 +663,7 @@ const Graph2 = ({
       prevXAxisLabel.current = xAxisLabel;
       prevYAxisLabel.current = yAxisLabel;
       prevZoom.current = currentZoom;
+      prevXAxisValues.current = xAxisValues;
     };
 
     window.addEventListener('resize', drawRef.current);
@@ -677,8 +683,9 @@ const Graph2 = ({
       step,
       xAxisLabel,
       yAxisLabel,
+      xAxisValues,
     });
-  }, [selected, pdbData, yData, step, xAxisLabel, yAxisLabel]);
+  }, [selected, pdbData, yData, step, xAxisLabel, yAxisLabel, xAxisValues]);
 
   useEffect(() => drawRef.current({ labels: lab }), [lab]);
 
