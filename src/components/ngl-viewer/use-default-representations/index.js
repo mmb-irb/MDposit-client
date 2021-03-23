@@ -7,11 +7,13 @@ const useDefaultRepresentations = (chains, metadata) => {
   // WARNING: This is experimental and may have some bugs
   const defaultRepresentations = useMemo(() => {
     if (!metadata || !chains) return [{ name: 'Structure' }];
+    const chainnames = metadata.CHAINNAMES;
     // Represent each protein chain
     const reps = [];
     for (const chain of chains) {
+      const name = chainnames[chain];
       reps.push({
-        name: 'Chain ' + chain,
+        name: name ? name + ' (Chain ' + chain + ')' : 'Chain ' + chain,
         selection: ':' + chain,
       });
     }
@@ -37,7 +39,6 @@ const useDefaultRepresentations = (chains, metadata) => {
       }
     }
     // Represent all chains which are not in the 'chains' and 'ligands' list in licorice
-    const chainnames = metadata.CHAINNAMES;
     if (chainnames && !Array.isArray(chainnames)) {
       const chainsAndNames = Object.entries(chainnames);
       chainsAndNames.forEach(([chain, name]) => {
