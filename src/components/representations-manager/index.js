@@ -90,7 +90,6 @@ const RepresentationsManager = memo(
     setOpacities,
     defaults, // Original values
   }) => {
-    console.log(defaults);
     return (
       <>
         <Table
