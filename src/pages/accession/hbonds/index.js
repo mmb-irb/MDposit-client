@@ -61,7 +61,7 @@ const Hbonds = () => {
     if (!data)
       return `Dataset for the interaction "${interaction.name}" not found`;
 
-    // If data is empty it means no hydrgoen bonds where found for this interaction
+    // If data is empty it means no hydrogen bonds where found for this interaction
     if (!data.hbonds[0])
       return 'No hydrogen bonds where found for this interaction';
 
@@ -115,11 +115,12 @@ const Hbonds = () => {
       const hydrogen = data.hydrogens[hb];
       filteredData.hydrogenAtomIndex.push(hydrogen);
 
-      // Set a human readable lable for this bond
-      const acceptorElement = getAtom(acceptor).element;
-      const donorElement = getAtom(donor).element;
+      // Set a human readable label for this bond
+      const acceptorName = getAtom(acceptor).name;
+      const donorName = getAtom(donor).name;
       const acceptorResidueIndex = getAtomResidue(acceptor).index;
       const donorResidueIndex = getAtomResidue(donor).index;
+      const hydrogenName = getAtom(hydrogen).name;
 
       const acceptorResidue = absolute2modelResidue(
         acceptorResidueIndex,
@@ -132,11 +133,14 @@ const Hbonds = () => {
       filteredData.ylabels.push(
         acceptorResidue.ngl +
           '.' +
-          acceptorElement +
+          acceptorName +
           ' - ' +
           donorResidue.ngl +
           '.' +
-          donorElement,
+          donorName +
+          ' (' +
+          hydrogenName +
+          ')',
       );
     }
 
