@@ -38,6 +38,17 @@ const D3HeatmapGrid = memo(
       throw new Error(
         `Data is missing. Data is mandatory for the heatmap representation`,
       );
+    // Check that there are no duplicates in both x and y axes values
+    // WARNING: Duplicates would not make the heatmap fail, but they will result in overlaps
+    if (xAxisValues.length !== new Set(xAxisValues).size) {
+      console.log(xAxisValues);
+      throw new Error(`Duplicated values in the X axis`);
+    }
+    if (yAxisValues.length !== new Set(yAxisValues).size) {
+      console.log(yAxisValues);
+      throw new Error(`Duplicated values in the X axis`);
+    }
+
     // If any label is empty, fill it with 1-n numbers
     if (xAxisValues.length === 0)
       xAxisValues = Array.from(Array(data[0].length).keys());
