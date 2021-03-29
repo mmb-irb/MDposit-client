@@ -32,6 +32,7 @@ export const NICE_NAMES = new Map([
   ['energies', 'Energies'],
   ['pockets', 'Pockets'],
   ['mutations', 'Mutations'],
+  ['sasa', 'Solvent accessible surface'],
 ]);
 
 // The color of the graphics for this analysis

@@ -199,6 +199,7 @@ const Row = ({ project, highlight, index, setProject }) => {
                   'energies',
                   'pockets',
                   'mutations',
+                  'sasa',
                 ].includes(element),
               )
               // For each analysis create a clickable button which links to the analysis route

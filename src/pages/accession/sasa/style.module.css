@@ -1,0 +1,20 @@
+.paper {
+  max-height: 300px;
+  overflow-y: scroll;
+}
+
+.graph {
+  display: inline-block;
+  width: 55%;
+  height: 300px;
+}
+
+.nglcard {
+  display: inline-block;
+  width: 45%;
+  height: 300px;
+}
+
+.container {
+  height: 100%;
+}

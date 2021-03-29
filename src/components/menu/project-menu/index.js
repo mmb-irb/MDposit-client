@@ -116,9 +116,9 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
             },
             { name: 'PCA', dir: 'pca', cond: analyses.includes('pca') },
             {
-              name: 'Solvent Accessible Surface',
-              //dir: 'sasa',
-              cond: false,
+              name: 'Solvent accessible surface',
+              dir: 'sasa',
+              cond: analyses.includes('sasa'),
             },
           ],
         },
