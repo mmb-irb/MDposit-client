@@ -52,15 +52,26 @@ const Mutations = () => {
   const { loading, payload, error } = useAPI(url);
 
   // Set the representations for the NGL viewer
-  const [representations, mutationsScheme] = useMemo(() => {
+  const [representations, entropiesColorScheme] = useMemo(() => {
     if (!payload) return [];
 
-    const mutations = payload && payload.mutations;
+    const entropies = payload && payload.entropies;
 
     // Build a residues map from the topology reference
     let toporefMap;
+    const toporefs = metadata.TOPOREFS;
+    if (toporefs && toporefs.length > 0) {
+      toporefMap = residue => {
+        for (const toporef of toporefs) {
+          const equivalent = toporef.map[residue];
+          if (equivalent) return equivalent;
+        }
+        return null;
+      };
+    }
+
     // DANI: Hardcodeado para trayectorias de Rebecca Wade
-    if (metadata.PDBID === '6ACC') {
+    if (!toporefMap && metadata.PDBID === '6ACC') {
       toporefMap = residue => {
         // Primera cadena 1-1287
         if (residue >= 1 && residue <= 1287) return residue + 13;
@@ -80,14 +91,13 @@ const Mutations = () => {
     */
 
     // We add a small extra value to avoid having 0s, which would return a negative infinity
-    const logaritmicEntropy = mutations.map(entropy =>
+    const logaritmicEntropies = entropies.map(entropy =>
       Math.log(entropy + 0.0001),
     );
-    const entropies = logaritmicEntropy;
-    const maxEntropy = Math.max(...entropies);
-    const minEntropy = Math.min(...entropies);
+    const maxEntropy = Math.max(...logaritmicEntropies);
+    const minEntropy = Math.min(...logaritmicEntropies);
     // Normalize entropies
-    const normalizedEntropies = entropies.map(
+    const normalizedEntropies = logaritmicEntropies.map(
       entropy => (entropy - minEntropy) * (1 / (maxEntropy - minEntropy)),
     );
 
@@ -102,15 +112,17 @@ const Mutations = () => {
     const colorScheme = ColormakerRegistry.addScheme(function(params) {
       this.atomColor = atom => {
         // Find the residue index and then the entropy for this residue
+        // WARNING: atom.residueIndex starts the count at 0 although it may seem that starts at 1
+        // WARNING: It may happen that the first residue is a capping terminal and it is skipped
+        // WARNING: The cartoon representation would skip the non-standard residue and start by 1
         const residue = atom.residueIndex;
-        const sourceResidue = absolute2sourceResidue(
-          residue,
-          topology,
-          metadata,
-        ).residueNumber;
         const mapedResidue = toporefMap
-          ? toporefMap(sourceResidue)
-          : sourceResidue;
+          ? toporefMap(residue)
+          : absolute2sourceResidue(residue, topology, metadata).residueNumber -
+            1; // -1 because the residue 'x' would be the index 'x-1' in the array
+        //console.log(residue + ' -> ' + mapedResidue);
+        // If no residue was found then paint it white
+        if (mapedResidue === null) return parseInt('ffffff', 16);
         const entropy = normalizedEntropies[mapedResidue];
         // Calculate the interpolated rgb for this value
         // The interpolated color comes in rbg format
@@ -122,7 +134,7 @@ const Mutations = () => {
       };
     });
 
-    const reps = [{ color: 'mutations' }];
+    const reps = [{ color: 'entropies' }];
     return [reps, colorScheme];
   }, [payload, topology, metadata]);
 
@@ -152,7 +164,7 @@ const Mutations = () => {
           <NGLViewerWithControls
             className={style.container}
             representations={representations}
-            customColorSchemes={{ mutations: mutationsScheme }}
+            customColorSchemes={{ entropies: entropiesColorScheme }}
             //selectedResidues={selectedResidues}
           />
         ) : (
