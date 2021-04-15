@@ -576,11 +576,11 @@ const documentation = [
         <br />
         Entropies of each residue were obtained from the{' '}
         <a
-          href="https://www.gisaid.org/collaborations/enabled-by-hcov-19-data-from-gisaid/"
+          href="https://nextstrain.org/ncov/global"
           target="_blank"
           rel="noreferrer noopener"
         >
-          GISAID
+          Nextstrain
         </a>{' '}
         database.
         <br />
