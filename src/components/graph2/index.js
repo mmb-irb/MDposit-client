@@ -193,7 +193,7 @@ const Graph2 = ({
     ? maxXAxisWidth + xAxisLabelHegiht
     : textHeight + xAxisLabelHegiht;
   const requiredLeftOffset =
-    yAxisValues.length === 1
+    yAxisValues.length === 1 && yData !== yDataPlaceholder
       ? Math.max(maxYAxisWidth, getTextWidth(yAxisLabel, titlesD3font))
       : maxYAxisWidth + yAxisLabelHegiht;
 
@@ -578,14 +578,16 @@ const Graph2 = ({
         const closestIndex =
           Math.round(x.invert(xValue) / precision / step) * precision;
         allDotGroups
+          // Set the x position of the dot
           .attr('transform', `translate(${x(closestIndex * step)}, 0)`)
+          // Dots become invisible if the closest index is not between the minimum and the maximum
           .attr(
             'opacity',
-            // Dots become invisible if the closest index is not between the minimum and the maximum
             closestIndex * step >= xMin && closestIndex * step < xMax ? 1 : 0,
           );
         allDotGroups
           .selectAll('g.dot-group')
+          // Set the y position of the dot
           .attr(
             'transform',
             d =>
@@ -636,10 +638,11 @@ const Graph2 = ({
           );
         }
       });
-
+      // When click in the graph
       if (onSelect) {
         graph.on('click', (_, index, nodes) => {
           const [xValue] = mouse(nodes[index]);
+          // Get the closest x axis index to the current mouse position
           const closestIndex =
             Math.round(x.invert(xValue) / precision / step) * precision;
           if (closestIndex * step < xMin || closestIndex * step >= xMax) {
