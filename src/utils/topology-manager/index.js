@@ -54,16 +54,53 @@ const rangedSyntax = /^([0-9]*)-([0-9]*)$/;
 export const rangedSelectionParser = selection => {
   // Filter data
   const units = selection.split(', ');
-  const curatedSelection = [];
+  const parsedSelection = [];
   for (const u of units) {
     // If the ranged syntax is found, get all numbers in between
     if (u.match(rangedSyntax)) {
       const matches = rangedSyntax.exec(u);
       const rangedUnits = range(+matches[1], +matches[2] + 1);
-      curatedSelection.push(...rangedUnits);
-    } else curatedSelection.push(+u);
+      parsedSelection.push(...rangedUnits);
+    } else parsedSelection.push(+u);
   }
-  return curatedSelection;
+  return parsedSelection;
+};
+
+// Do the opposite that the previous function
+// e.g. [1, 3, 5, 6, 7, 8] => "1, 3, 5-8"
+export const parsedSelectionRanger = selection => {
+  let rangedSelection = '';
+  selection.sort((a, b) => a - b); // Sort numbers numerically
+  for (let i = 0; i < selection.length; i++) {
+    const num = selection[i];
+    rangedSelection += ', ' + num;
+    for (let j = i + 1; j < selection.length; j++) {
+      const nextNum = selection[j];
+      let diff = j - i;
+      if (nextNum - num !== diff) {
+        // End of the serie
+        // The diff here is the difference which broke the serie
+        // i.e. if the diff here is 2 the actual serie diff is 1
+        diff -= 1;
+        // If the length of the serie is <= 1 then no worth making a range here
+        if (diff > 1) {
+          const prevNum = selection[j - 1];
+          rangedSelection += '-' + prevNum;
+          i = j - 1;
+        }
+        break;
+      }
+      if (j === selection.length - 1) {
+        // End of the selection
+        if (diff > 1) {
+          rangedSelection += '-' + nextNum;
+          i = j;
+        }
+      }
+    }
+  }
+  rangedSelection = rangedSelection.substring(2); // Remove the first ', '
+  return rangedSelection;
 };
 
 // Transform a 'chain:residue' string into the chain letter string and the residue number values

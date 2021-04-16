@@ -13,11 +13,15 @@ import Loading from '../loading';
 
 import Info from '../info';
 
-import { complexNumerationParser } from '../../utils/topology-manager';
+import {
+  complexNumerationParser,
+  rangedSelectionParser,
+  parsedSelectionRanger,
+} from '../../utils/topology-manager';
 
-//import useAPI from '../../hooks/use-api';
+import useAPI from '../../hooks/use-api';
 
-//import { BASE_PATH_TOPOREFS } from '../../utils/constants';
+import { BASE_PATH_TOPOREFS } from '../../utils/constants';
 
 // Show floatting bubles with domain names
 // When a bubble is selected the domain is represented
@@ -26,13 +30,16 @@ const Domains = ({ setter }) => {
 
   // Set the first domain (the overall) as the default selected domain
   const [selectedDomain, setSelectedDomain] = useState(0);
-  /*
+
   // Set the API url for the toporef data
   const toporefId = metadata && metadata.TOPOREF;
   const url = `${BASE_PATH_TOPOREFS}${toporefId}/`;
 
   const { loading, payload, error } = useAPI(url);
-  */
+
+  if (!loading && error)
+    console.error('The load of topology references has failed: ' + error);
+
   const defaultRepresentations = useDefaultRepresentations(chains, metadata);
 
   // The domains strucutre is:
@@ -62,21 +69,49 @@ const Domains = ({ setter }) => {
       name: 'Overall',
       representations: defaultRepresentations,
     };
-    const customDomains = metadata.DOMAINS || [];
-    /*
     // Get custom domains in metadata
     const customDomains = metadata.CUSTOMS || [];
-    if (payload){
-      // Get domains from topology references
+    // Get domains from topology references
+    const referenceDomains = [];
+    const toporefs = metadata.TOPOREFS;
+    if (payload && toporefs) {
+      // DANI: Esto hay que rehacerlo cuando haya más de un toporef -----------------------------
+      const toporefName = payload.name;
       const toporefDomains = payload.domains;
+      const metadataToporef = toporefs.find(
+        toporef => toporef.name === toporefName,
+      );
+      const metadataToporefMap = metadataToporef.map;
+      // ----------------------------------------------------------------------------------------
       // These domains are only specified for the reference sequence
-      // Residue selections must be mapped back to the current topology
-      const referenceDomains = [];
+      // Residue selections must be mapped back to the current topology for each representation
       toporefDomains.forEach(domain => {
-        referenceDomains.push(domain);
+        const mappedDomain = {
+          name: domain.name,
+          representations: domain.representations,
+        };
+        mappedDomain.representations.forEach(representation => {
+          const selection = representation.selection;
+          const parsedSelection = rangedSelectionParser(selection);
+          // WARNING: A single reference residue may correspond to multiple topology residues
+          const mappedSelection = [].concat.apply(
+            [],
+            parsedSelection.map(residue =>
+              metadataToporefMap.reduce((a, res, r) => {
+                if (res === residue) a.push(r);
+                return a;
+              }, []),
+            ),
+          );
+          const rangedSelection =
+            mappedSelection.length > 0
+              ? parsedSelectionRanger(mappedSelection)
+              : 'None';
+          representation.selection = rangedSelection;
+        });
+        referenceDomains.push(mappedDomain);
       });
     }
-    */
     // Get domains constructed from interactions
     const interactionDomains = [];
     if (metadata.INTERACTIONS)
@@ -110,11 +145,16 @@ const Domains = ({ setter }) => {
           });
         });
       });
-    const domains = [overallDomain, ...customDomains, ...interactionDomains];
+    const domains = [
+      overallDomain,
+      ...customDomains,
+      ...referenceDomains,
+      ...interactionDomains,
+    ];
     // Reset the selected domain
     setSelectedDomain(0);
     return domains;
-  }, [metadata, defaultRepresentations]);
+  }, [metadata, defaultRepresentations, payload]);
 
   useMemo(() => {
     if (!domains) return {};
