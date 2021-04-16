@@ -1,10 +1,9 @@
-import React, { memo, useContext, useEffect, useMemo, useState } from 'react';
+import React, { memo, useContext, useEffect, useState } from 'react';
 // A hook to track whenever some element is on screen
 import { useInView } from 'react-intersection-observer';
 
 import {
   CardContent,
-  Chip,
   Typography,
   TextField,
   InputAdornment,
@@ -17,17 +16,15 @@ import { ProjectCtx, PdbCtx } from '../../../contexts';
 
 import Card from '../../../components/animated-card';
 import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
-import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 import ChainAnalyses from '../../../components/chain-analyses';
 
 import Info from '../../../components/info';
 
 import reducedMotion from '../../../utils/reduced-motion';
 
-import {
-  getMetadataChainname,
-  complexNumerationParser,
-} from '../../../utils/topology-manager';
+import { getMetadataChainname } from '../../../utils/topology-manager';
+
+import Domains from '../../../components/domains';
 
 import style from './style.module.css';
 
@@ -524,149 +521,14 @@ const Trajectory = () => {
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
   const [nightingaleRef, isNightingaleVisible] = useInView(useInViewOptions);
 
-  const { chains, metadata } = useContext(ProjectCtx);
-
-  const defaultRepresentations = useDefaultRepresentations(chains, metadata);
-
-  // Set the first domain (the overall) as the default selected domain
-  const [selectedDomain, setSelectedDomain] = useState(0);
-
-  // Show floatting bubles with domain names
-  // When a bubble is selected the domain is represented
-  // The domains strucutre is:
-  // DOMAINS: [
-  //    {
-  //      "name" : "Example domain",
-  //      "representations" : [
-  //        {
-  //          "name" : "Chain A",
-  //          "selection" : ":A and 16-316",
-  //          "type": "ball+stick",
-  //          "color": "element",
-  //          "opacity": 0.5,
-  //          ...
-  //        },
-  //        {
-  //          "name" : "Chain B",
-  //          "selection" : ":B and 16-316"
-  //        }
-  //      ]
-  //    },
-  // ]
-  const domains = useMemo(() => {
-    if (!metadata) return;
-    // Set the overall domain
-    const overallDomain = {
-      name: 'Overall',
-      representations: defaultRepresentations,
-    };
-    // Get custom domains in metadata
-    const metadataDomains = metadata.DOMAINS || [];
-    // Get domains constructed from interactions
-    const interactionDomains = [];
-    if (metadata.INTERACTIONS)
-      metadata.INTERACTIONS.forEach(interaction => {
-        // Add a new domain for each new agent and skip repeated agents
-        const agent1 = {
-          name: interaction.agent_1,
-          residues: interaction.residues_1,
-        };
-        const agent2 = {
-          name: interaction.agent_2,
-          residues: interaction.residues_2,
-        };
-        [agent1, agent2].forEach(agent => {
-          const current = interactionDomains.find(domain => {
-            return domain.name === agent.name;
-          });
-          if (current) return;
-          const nglSelection = agent.residues
-            .map(residue => complexNumerationParser(residue).nglSelection)
-            .join(' or ');
-          interactionDomains.push({
-            name: agent.name,
-            representations: [
-              {
-                name: agent.name,
-                selection: nglSelection,
-                type: 'licorice',
-              },
-            ],
-          });
-        });
-      });
-    const domains = [overallDomain, ...metadataDomains, ...interactionDomains];
-    // Reset the selected domain
-    setSelectedDomain(0);
-    return domains;
-  }, [metadata, defaultRepresentations]);
-
-  const { representations, initialFocus } = useMemo(() => {
-    if (!domains) return {};
-    const currentDomain = domains[selectedDomain];
-    // Set an NGL representation for each domain representation
-    const representations = currentDomain.representations.map(rep => {
-      return {
-        name: rep.name,
-        selection: rep.selection,
-        show: rep.show,
-        type: rep.type,
-        color: rep.color,
-        opacity: rep.opacity,
-      };
-    });
-    // Add a representation with the whole strucutre in grey color and with the opacity reduced
-    if (currentDomain.name !== 'Overall')
-      representations.push({
-        name: 'Reference',
-        color: 'grey',
-        opacity: 0.1,
-      });
-
-    // Set the NGL selection for the focus
-    const focusSelection =
-      '(' +
-      currentDomain.representations.map(rep => rep.selection).join(') or (') +
-      ')';
-    const initialFocus = { comp: 0, sele: focusSelection };
-    return { representations, initialFocus };
-  }, [domains, selectedDomain]);
+  const [nglConfiguration, setNglConfiguration] = useState({
+    representations: null,
+    initialFocus: null,
+  });
 
   return (
     <>
-      {domains && domains.length > 0 && (
-        <Card className={style.card}>
-          <Info
-            reference={'domain-selection'}
-            tooltip={
-              <>
-                Suggested interesting domains
-                <br />
-                <br />
-                Click any domain to highlight it in the NGL viewer.
-              </>
-            }
-          />
-          <CardContent>
-            {'Domains: '}
-            {domains.map((dom, d) => (
-              <Chip
-                key={dom.name}
-                className={style.chips}
-                label={dom.name}
-                variant={selectedDomain === d ? undefined : 'outlined'}
-                color={selectedDomain === d ? 'primary' : undefined}
-                onClick={() =>
-                  setSelectedDomain(previous => {
-                    if (previous === d) return 0;
-                    return d;
-                  })
-                }
-              />
-            ))}
-          </CardContent>
-        </Card>
-      )}
+      <Domains setter={setNglConfiguration} />
       <Card className={style['ngl-card']} ref={nglRef}>
         <Info
           reference={'trajectory-ngl'}
@@ -706,8 +568,8 @@ const Trajectory = () => {
         {isNglVisible ? (
           <NGLViewerWithControls
             className={style.container}
-            representations={representations}
-            initialFocus={initialFocus}
+            representations={nglConfiguration.representations}
+            initialFocus={nglConfiguration.initialFocus}
           />
         ) : (
           <div style={{ height: '50vh' }} />
