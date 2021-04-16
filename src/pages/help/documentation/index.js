@@ -239,7 +239,7 @@ const documentation = [
         <br />
         First panel is the residue selector. Residues are divided by chains.
         Chains are delimited by their titles and residues may be drop or hidden
-        for each chain independently. Each residue is reprsented by a single
+        for each chain independently. Each residue is represented by a single
         letter. The 'X' letter represents non-standard residues (i.e. not
         natural aminoacids). Residues sequence is splitted and numerated every
         10 resiudes. Each residue is coloured according to its RMSD value. The
@@ -595,6 +595,50 @@ const documentation = [
         </a>{' '}
         below represents the entropy of each residue in a logarithmic color
         scale which ranges from grey (low entropy) to red (high entropy).
+      </>
+    ),
+  },
+  {
+    id: 'sasa',
+    header: 'Solvent accessible surface',
+    page: (
+      <>
+        This is the Solvent accessible surface analysis.
+        <br />
+        <br />
+        First panel is the residue selector. Residues are divided by chains.
+        Chains are delimited by their titles and residues may be drop or hidden
+        for each chain independently. Each residue is represented by a single
+        letter. The 'X' letter represents non-standard residues (i.e. not
+        natural aminoacids). Residues sequence is splitted and numerated every
+        10 resiudes. Each residue is coloured according to its SAS value. The
+        color scale ranges from white (lowest values) to red (highest values).
+        <span style={{ color: 'lightGreen' }}> Click any residue </span> to
+        display its SAS along the trajectory and highlight its atoms on the NGL
+        viewer. Multiple resdiues may be selected at the same time. In this
+        case, each selected residue is tagged with a different color.
+        <br />
+        <br />
+        Graph at bottom left displays the SAS of selected residues. Y axis
+        represents the surface in squared nanometers (nm<sup>{2}</sup>) while X
+        axis represents the simulation time in nanoseconds (ns). The graph is{' '}
+        <span style={{ color: 'lightGreen' }}>interactive</span>. Use the mouse
+        wheel to zoom in a specific region. Click and hold at any point in the
+        graph to drag it left or right. Hover any point in the graph to show the
+        corresponding SAS and time values. Click any point in the graph to make
+        the NGL viewer represent the corresponding time frame.
+        <br />
+        <br />
+        <a
+          href="/help#/help#ngl-viewer"
+          target="_blank"
+          rel="noreferrer noopener"
+        >
+          viewer
+        </a>{' '}
+        at the right bottom shows the trajectory. The structure is coloured
+        accoridng to residue SAS values. The color scale ranges from white
+        (lowest values) to red (highest values).
       </>
     ),
   },

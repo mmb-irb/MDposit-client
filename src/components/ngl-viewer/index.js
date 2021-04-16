@@ -80,6 +80,13 @@ function appendBuffer(buffer1, buffer2) {
   return tmp.buffer;
 }
 
+const defaulthighlightTypes = {
+  atoms: 'spacefill',
+  residues: 'ball+stick',
+  chains: 'ball+stick',
+  selections: 'ball+stick',
+};
+
 const NGLViewer = memo(
   forwardRef(
     (
@@ -91,7 +98,8 @@ const NGLViewer = memo(
         onProgress,
         projection,
         bounce = false, // Set if the animation, when finished, starts again (false) or goes back (true)
-        nFrames = DEFAULT_NUMBER_OF_FRAMES,
+        nFrames = DEFAULT_NUMBER_OF_FRAMES, // The number of frames to be represented
+        setNFrames, // The setter for the number of frames to be represented
         selectedAtoms, // Atom index of the atom and residue to be represented
         selectedResidues, // Residue complex numerations from residues to be represented
         selectedChains, // Chain letters from chains to be represented
@@ -113,6 +121,8 @@ const NGLViewer = memo(
         nglSelections,
         // Customized ngl representation coloring methods
         customColorSchemes,
+        // Set the highlight representations types
+        highlightTypes = defaulthighlightTypes,
       },
       ref,
     ) => {
@@ -524,13 +534,10 @@ const NGLViewer = memo(
           if (noTrajectory) return; // En pruebas
           if (!stageRef.current.compList[0].trajList[0]) return;
           if (!onProgress) return;
-          const progress = clamp(
-            frame /
-              (stageRef.current.compList[0].trajList[0].trajectory.frameCount -
-                1),
-            0,
-            1,
-          );
+          const frameCount =
+            stageRef.current.compList[0].trajList[0].trajectory.frameCount;
+          //console.log('NGL frameCount: ' + frameCount);
+          const progress = clamp(frame / (frameCount - 1), 0, 1);
           onProgress(progress);
         },
         [noTrajectory, onProgress],
@@ -827,7 +834,7 @@ const NGLViewer = memo(
           .map(atomNumber => atomNumber)
           .join(',')}`;
 
-        stageRef.current.compList[0].addRepresentation('spacefill', {
+        stageRef.current.compList[0].addRepresentation(highlightTypes.atoms, {
           sele: seleHighlight,
           opacity: 0.5,
           scale: 1.5,
@@ -860,14 +867,17 @@ const NGLViewer = memo(
           ),
         ).join(' or ');
 
-        stageRef.current.compList[0].addRepresentation('ball+stick', {
-          sele: seleContext,
-          name: nameContextHighlight,
-        });
+        stageRef.current.compList[0].addRepresentation(
+          highlightTypes.residues,
+          {
+            sele: seleContext,
+            name: nameContextHighlight,
+          },
+        );
 
         // Focus the highlighted zone with the camera
         setFocus({ comp: 0, sele: seleContext });
-      }, [pdbFile, selectedAtoms, darkBackground]);
+      }, [pdbFile, selectedAtoms, darkBackground, highlightTypes]);
 
       // Highlight specific residues
       useEffect(() => {
@@ -893,14 +903,17 @@ const NGLViewer = memo(
         const nglSelection = Array.from(new Set(residues)).join(' or ');
 
         // Represent the previous selection in ball+sticks drawing method
-        stageRef.current.compList[0].addRepresentation('ball+stick', {
-          sele: nglSelection,
-          name: nameHighlight,
-        });
+        stageRef.current.compList[0].addRepresentation(
+          highlightTypes.residues,
+          {
+            sele: nglSelection,
+            name: nameHighlight,
+          },
+        );
 
         // Focus the highlighted zone with the camera
         setFocus({ comp: 0, sele: nglSelection });
-      }, [pdbFile, selectedResidues]);
+      }, [pdbFile, selectedResidues, highlightTypes]);
 
       // Highlight specific chains
       // DANI: NO Probado
@@ -925,13 +938,13 @@ const NGLViewer = memo(
         const nglSelection = Array.from(new Set(chains)).join(' or ');
 
         // Represent the previous selection in ball+sticks drawing method
-        stageRef.current.compList[0].addRepresentation('ball+stick', {
+        stageRef.current.compList[0].addRepresentation(highlightTypes.chains, {
           sele: nglSelection,
           name: nameHighlight,
         });
         // Focus the highlighted zone with the camera
         setFocus({ comp: 0, sele: nglSelection });
-      }, [pdbFile, selectedChains]);
+      }, [pdbFile, selectedChains, highlightTypes]);
 
       // Highlight specific free NGL selections
       useEffect(() => {
@@ -953,13 +966,16 @@ const NGLViewer = memo(
         const nglSelection = Array.from(new Set(selectedCustom)).join(' or ');
 
         // Represent the previous selection in ball+sticks drawing method
-        stageRef.current.compList[0].addRepresentation('ball+stick', {
-          sele: nglSelection,
-          name: nameHighlight,
-        });
+        stageRef.current.compList[0].addRepresentation(
+          highlightTypes.selections,
+          {
+            sele: nglSelection,
+            name: nameHighlight,
+          },
+        );
         // Focus the highlighted zone with the camera
         setFocus({ comp: 0, sele: nglSelection });
-      }, [pdbFile, selectedCustom]);
+      }, [pdbFile, selectedCustom, highlightTypes]);
 
       // Highlight specific distances
       // When 'selectedDistances' is numeric it is taken as atoms
@@ -1113,6 +1129,11 @@ const NGLViewer = memo(
 
           if (file) {
             const trajectoryFrames = stageComp.addTrajectory(file);
+            // Count the real numer of frames in the current trajectory and reset the 'nFrames'
+            if (setNFrames && c === 0) {
+              const frameCount = trajectoryFrames.trajectory.frameCount;
+              setNFrames(frameCount);
+            }
             // Add the frame change handler only if it is the main component
             if (c === 0)
               trajectoryFrames.signals.frameChanged.add(handleFrameChange);
@@ -1130,7 +1151,14 @@ const NGLViewer = memo(
             frame.signals.frameChanged.remove(handleFrameChange),
           );
         */
-      }, [pdbFile, trajectories, handleFrameChange, isProjection, comps]);
+      }, [
+        pdbFile,
+        trajectories,
+        handleFrameChange,
+        isProjection,
+        comps,
+        setNFrames,
+      ]);
 
       // play/pause
       const mainTraj =

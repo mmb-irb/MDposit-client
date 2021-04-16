@@ -118,6 +118,10 @@ const SummarySwitch = ({ setProject }) => {
     { defaultRepresentation: false, ext: 'pdb' },
   );
 
+  // DANI: El topology manager debería ir aquí y añadir toda su lógica al 'pdbData'
+  //console.log(pdbData);
+  //console.log(project);
+
   if (pdbData.loading) return <Loading />;
   else if (pdbData.error) return pdbData.error.toString();
   else if (!pdbData.file) return 'Something bad happened with the topology';

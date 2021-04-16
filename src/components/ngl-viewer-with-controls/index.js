@@ -554,6 +554,7 @@ const NGLViewerWithControls = forwardRef(
                 ref={viewerRef}
                 noTrajectory={noTrajectory}
                 nFrames={nFrames}
+                setNFrames={framesSelect ? undefined : setNFrames}
                 darkBackground={darkBackground}
                 perspective={perspective}
                 speed={speed}

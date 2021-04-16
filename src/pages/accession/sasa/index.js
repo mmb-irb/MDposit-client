@@ -1,5 +1,4 @@
 import React, {
-  lazy,
   Suspense,
   useState,
   useContext,
@@ -9,7 +8,7 @@ import React, {
 } from 'react';
 import { useInView } from 'react-intersection-observer';
 
-import { CardContent } from '@material-ui/core';
+import { CardContent, Typography } from '@material-ui/core';
 
 import { color as d3color, interpolateRgb } from 'd3';
 
@@ -37,9 +36,7 @@ import { ColormakerRegistry } from 'ngl';
 
 import ResidueSelector from '../../../components/residue-selector';
 
-const Graph2 = lazy(() =>
-  import(/* webpackChunkName: 'graph2' */ '../../../components/graph2'),
-);
+import Graph2 from '../../../components/graph2';
 
 // Define permanent options for the "useInView"
 const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
@@ -141,7 +138,10 @@ const Sasa = () => {
     // Load the required frames from the main trajectory
     const mainURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory?frames=1:${metadata.SNAPSHOTS}:${frameStep}`;
     const mainComponent = [
-      { trajectoryURLs: [mainURL], representations: [{ color: 'mutations' }] },
+      {
+        trajectoryURLs: [mainURL],
+        representations: [{ color: 'sasa', type: 'spacefill' }],
+      },
     ];
 
     // Parse the selection string into a numeric array
@@ -207,6 +207,7 @@ const Sasa = () => {
       // Guess the frame number which belongs to the process
       // WARNING: The follwoing multiplication must return always a whole number
       // WARNING: This 'round' is only for the float problem (e.g. 57 = 56.9999...)
+      //console.log('SASA frameCount: ' + framesNumber);
       const frame = Math.round(progress * (framesNumber - 1));
       setSelectedFrame(frame);
     },
@@ -233,14 +234,20 @@ const Sasa = () => {
         </CardContent>
       </Card>
       <Card className={style['graph']}>
-        <Graph2
-          yData={selectedData}
-          step={timeStep}
-          xAxisLabel={'Time (ns)'}
-          yAxisLabel={'RMSd (Å)'}
-          onSelect={handleFrameSelection}
-          selected={selectedFrame}
-        />
+        {selectedResidues.length > 0 ? (
+          <Graph2
+            yData={selectedData}
+            step={timeStep}
+            xAxisLabel={'Time (ns)'}
+            yAxisLabel={'Surface (nm²)'}
+            onSelect={handleFrameSelection}
+            selected={selectedFrame}
+          />
+        ) : (
+          <div className={style['graph-placeholder']}>
+            <Typography variant="h6">No residue selected</Typography>
+          </div>
+        )}
       </Card>
       <Card className={style.nglcard} ref={nglRef}>
         {/* Render the NGL viewer when it is on screen*/}
@@ -249,9 +256,16 @@ const Sasa = () => {
             className={style.container}
             components={mainComponent}
             selectedResidues={selectedResidueNames}
-            customColorSchemes={{ mutations: colorScheme }}
+            customColorSchemes={{ sasa: colorScheme }}
             onProgress={handleFrameProgress}
             ref={viewerRef}
+            framesSelect={false}
+            highlightTypes={{
+              atoms: 'spacefill',
+              residues: 'spacefill',
+              chains: 'spacefill',
+              selections: 'spacefill',
+            }}
           />
         ) : (
           <div style={{ height: '50vh' }} />

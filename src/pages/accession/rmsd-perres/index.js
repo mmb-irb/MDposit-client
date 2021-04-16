@@ -1,5 +1,4 @@
 import React, {
-  lazy,
   Suspense,
   useState,
   useContext,
@@ -9,7 +8,7 @@ import React, {
 } from 'react';
 import { useInView } from 'react-intersection-observer';
 
-import { CardContent } from '@material-ui/core';
+import { CardContent, Typography } from '@material-ui/core';
 
 import { color as d3color, interpolateRgb } from 'd3';
 
@@ -37,9 +36,7 @@ import { ColormakerRegistry } from 'ngl';
 
 import ResidueSelector from '../../../components/residue-selector';
 
-const Graph2 = lazy(() =>
-  import(/* webpackChunkName: 'graph2' */ '../../../components/graph2'),
-);
+import Graph2 from '../../../components/graph2';
 
 // Define permanent options for the "useInView"
 const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
@@ -159,7 +156,7 @@ const RmsdPerres = () => {
     // Load the required frames from the main trajectory
     const mainURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory?frames=1:${metadata.SNAPSHOTS}:${frameStep}`;
     const mainComponent = [
-      { trajectoryURLs: [mainURL], representations: [{ color: 'mutations' }] },
+      { trajectoryURLs: [mainURL], representations: [{ color: 'rmsds' }] },
     ];
 
     // Parse the selection string into a numeric array
@@ -251,14 +248,20 @@ const RmsdPerres = () => {
         </CardContent>
       </Card>
       <Card className={style['graph']}>
-        <Graph2
-          yData={selectedData}
-          step={timeStep}
-          xAxisLabel={'Time (ns)'}
-          yAxisLabel={'RMSd (Å)'}
-          onSelect={handleFrameSelection}
-          selected={selectedFrame}
-        />
+        {selectedResidues.length > 0 ? (
+          <Graph2
+            yData={selectedData}
+            step={timeStep}
+            xAxisLabel={'Time (ns)'}
+            yAxisLabel={'RMSd (Å)'}
+            onSelect={handleFrameSelection}
+            selected={selectedFrame}
+          />
+        ) : (
+          <div className={style['graph-placeholder']}>
+            <Typography variant="h6">No residue selected</Typography>
+          </div>
+        )}
       </Card>
       <Card className={style.nglcard} ref={nglRef}>
         {/* Render the NGL viewer when it is on screen*/}
@@ -267,9 +270,10 @@ const RmsdPerres = () => {
             className={style.container}
             components={mainComponent}
             selectedResidues={selectedResidueNames}
-            customColorSchemes={{ mutations: colorScheme }}
+            customColorSchemes={{ rmsds: colorScheme }}
             onProgress={handleFrameProgress}
             ref={viewerRef}
+            framesSelect={false}
           />
         ) : (
           <div style={{ height: '50vh' }} />
