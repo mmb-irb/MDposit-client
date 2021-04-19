@@ -2,8 +2,6 @@ export const BASE_PATH = process.env.REACT_APP_REST_ROOT;
 
 export const BASE_PATH_PROJECTS = BASE_PATH + 'current/projects/';
 
-export const BASE_PATH_TOPOREFS = BASE_PATH + 'current/toporefs/';
-
 export const PATH_MAIN_TOPOLOGY = '/files/md.imaged.rot.dry.pdb';
 
 export const PATH_MAIN_TRAJECTORY = 'current/toporefs/';

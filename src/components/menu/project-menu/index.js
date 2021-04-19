@@ -158,7 +158,7 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
             {
               name: 'Mutations',
               dir: 'mutations',
-              cond: metadata.TOPOREF,
+              cond: metadata.TOPOREFS,
             },
           ],
         },

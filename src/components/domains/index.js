@@ -3,7 +3,7 @@ import React, { useContext, useState, useMemo, Suspense } from 'react';
 import Card from '../animated-card';
 import { CardContent, Chip } from '@material-ui/core';
 
-import { ProjectCtx } from '../../contexts';
+import { AccessionCtx, ProjectCtx } from '../../contexts';
 
 import useDefaultRepresentations from '../ngl-viewer/use-default-representations';
 
@@ -21,21 +21,21 @@ import {
 
 import useAPI from '../../hooks/use-api';
 
-import { BASE_PATH_TOPOREFS } from '../../utils/constants';
+import { BASE_PATH_PROJECTS } from '../../utils/constants';
 
 // Show floatting bubles with domain names
 // When a bubble is selected the domain is represented
 const Domains = ({ setter }) => {
+  const accession = useContext(AccessionCtx);
   const { chains, metadata } = useContext(ProjectCtx);
 
   // Set the first domain (the overall) as the default selected domain
   const [selectedDomain, setSelectedDomain] = useState(0);
 
-  // Set the API url for the toporef data
-  const toporefId = metadata && metadata.TOPOREF;
-  const url = `${BASE_PATH_TOPOREFS}${toporefId}/`;
-
-  const { loading, payload, error } = useAPI(url);
+  // Request to API the toporef data
+  const { loading, payload, error } = useAPI(
+    `${BASE_PATH_PROJECTS}${accession}/toporefs`,
+  );
 
   if (!loading && error)
     console.error('The load of topology references has failed: ' + error);
@@ -76,8 +76,9 @@ const Domains = ({ setter }) => {
     const toporefs = metadata.TOPOREFS;
     if (payload && toporefs) {
       // DANI: Esto hay que rehacerlo cuando haya más de un toporef -----------------------------
-      const toporefName = payload.name;
-      const toporefDomains = payload.domains;
+      const firstAndUniqueToporef = payload[0];
+      const toporefName = firstAndUniqueToporef.name;
+      const toporefDomains = firstAndUniqueToporef.domains;
       const metadataToporef = toporefs.find(
         toporef => toporef.name === toporefName,
       );

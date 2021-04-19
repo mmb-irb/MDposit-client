@@ -126,7 +126,7 @@ const Row = ({ project, highlight, index, setProject }) => {
   // Push the mutations analysis if we have metadata toporef
   if (
     metadata &&
-    metadata.TOPOREF &&
+    metadata.TOPOREFS &&
     analyses &&
     !analyses.includes('mutations')
   )

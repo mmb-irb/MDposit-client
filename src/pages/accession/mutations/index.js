@@ -12,7 +12,7 @@ import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls'
 
 import style from './style.module.css';
 
-import { ProjectCtx, PdbCtx } from '../../../contexts';
+import { AccessionCtx, ProjectCtx, PdbCtx } from '../../../contexts';
 
 import Loading from '../../../components/loading';
 
@@ -20,7 +20,7 @@ import { absolute2sourceResidue } from '../../../utils/topology-manager';
 
 import useAPI from '../../../hooks/use-api';
 
-import { BASE_PATH_TOPOREFS } from '../../../utils/constants';
+import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 import { ColormakerRegistry } from 'ngl';
 
@@ -39,23 +39,24 @@ const Mutations = () => {
   // Set when one point in the graph is selected
   //const [selectedResidues, setSelectedResidues] = useState([]);
 
-  // Get the current project chains
+  // Get the current project accession and metadata
+  const accession = useContext(AccessionCtx);
   const { metadata } = useContext(ProjectCtx);
   // Get the current topology
   const pdbData = useContext(PdbCtx);
   const topology = pdbData.file;
 
-  // Set the API url for the toporef data
-  const toporefId = metadata && metadata.TOPOREF;
-  const url = `${BASE_PATH_TOPOREFS}${toporefId}/`;
-
-  const { loading, payload, error } = useAPI(url);
+  // Request to API the toporef data
+  const { loading, payload, error } = useAPI(
+    `${BASE_PATH_PROJECTS}${accession}/toporefs`,
+  );
 
   // Set the representations for the NGL viewer
   const [representations, entropiesColorScheme] = useMemo(() => {
     if (!payload) return [];
 
-    const entropies = payload && payload.entropies;
+    const firstAndUniqueToporef = payload && payload[0];
+    const entropies = firstAndUniqueToporef.entropies;
 
     // Build a residues map from the topology reference
     let toporefMap;
@@ -80,15 +81,6 @@ const Mutations = () => {
         console.log('MEEECK!! ' + residue);
       };
     }
-
-    // Get a list with all residues converted from source to model format
-    /*
-    const modelResidues = availableResidues.map(residue => {
-      const numeration = complexNumerationParser(residue.name);
-      const model = source2modelResidue(numeration, pdbData.file, metadata);
-      return model;
-    });
-    */
 
     // We add a small extra value to avoid having 0s, which would return a negative infinity
     const logaritmicEntropies = entropies.map(entropy =>
