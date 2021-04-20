@@ -14,7 +14,6 @@ import Loading from '../loading';
 import Info from '../info';
 
 import {
-  complexNumerationParser,
   rangedSelectionParser,
   absolute2sourceResidue,
   complexSelectionRanger,
@@ -150,9 +149,9 @@ const Domains = ({ setter }) => {
             return domain.name === agent.name;
           });
           if (current) return;
-          const nglSelection = agent.residues
-            .map(residue => complexNumerationParser(residue).nglSelection)
-            .join(' or ');
+          const { rangedSelection: nglSelection } = complexSelectionRanger(
+            agent.residues,
+          );
           interactionDomains.push({
             name: agent.name,
             representations: [
