@@ -105,15 +105,17 @@ const Domains = ({ setter }) => {
               }, []),
             ),
           );
-          const rangedSelection =
-            mappedSelection.length > 0
-              ? parsedSelectionRanger(mappedSelection)
-              : 'None';
           // Representations with a selection not present in topology are discarded
-          if (rangedSelection !== 'None') {
-            representation.selection = rangedSelection;
-            mappedDomain.representations.push(representation);
-          }
+          if (mappedSelection.length === 0) return;
+          const { rangedSelection, small } = parsedSelectionRanger(
+            mappedSelection,
+          );
+          representation.selection = rangedSelection;
+          // parsedSelectionRanger returns 'small' = true when there are series of 3 residues or less
+          // These small residue selections will be not represented in cartoon due to an NGL bug
+          // https://github.com/nglviewer/ngl/issues/223
+          if (small) representation.type = 'licorice';
+          mappedDomain.representations.push(representation);
         });
         // Domains whose representatios have been all discarded are also discarded
         if (mappedDomain.representations.length > 0)

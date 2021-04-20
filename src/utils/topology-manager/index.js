@@ -68,22 +68,28 @@ export const rangedSelectionParser = selection => {
 
 // Do the opposite that the previous function
 // e.g. [1, 3, 5, 6, 7, 8] => "1, 3, 5-8"
+// In addition track the minimum serie length
+// Return 'small' = true when there are series of 3 residues or less
+// These small residue selections will be not represented in cartoon due to an NGL bug
+// https://github.com/nglviewer/ngl/issues/223
 export const parsedSelectionRanger = selection => {
   let rangedSelection = '';
+  let minimumSerieLength = Number.POSITIVE_INFINITY;
   selection.sort((a, b) => a - b); // Sort numbers numerically
   for (let i = 0; i < selection.length; i++) {
     const num = selection[i];
     rangedSelection += ', ' + num;
     for (let j = i + 1; j < selection.length; j++) {
       const nextNum = selection[j];
-      let diff = j - i;
-      if (nextNum - num !== diff) {
+      let length = j - i; // The serie length
+      if (nextNum - num !== length) {
         // End of the serie
-        // The diff here is the difference which broke the serie
-        // i.e. if the diff here is 2 the actual serie diff is 1
-        diff -= 1;
+        // The length here is the length which broke the serie
+        // i.e. if the length here is 2 the actual serie length is 1
+        length -= 1;
+        minimumSerieLength = Math.min(length, minimumSerieLength);
         // If the length of the serie is <= 1 then no worth making a range here
-        if (diff > 1) {
+        if (length > 1) {
           const prevNum = selection[j - 1];
           rangedSelection += '-' + prevNum;
           i = j - 1;
@@ -92,15 +98,17 @@ export const parsedSelectionRanger = selection => {
       }
       if (j === selection.length - 1) {
         // End of the selection
-        if (diff > 1) {
+        minimumSerieLength = Math.min(length, minimumSerieLength);
+        if (length > 1) {
           rangedSelection += '-' + nextNum;
           i = j;
         }
       }
     }
   }
+  const small = minimumSerieLength <= 3;
   rangedSelection = rangedSelection.substring(2); // Remove the first ', '
-  return rangedSelection;
+  return { rangedSelection, small };
 };
 
 // Transform a 'chain:residue' string into the chain letter string and the residue number values
