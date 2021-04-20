@@ -111,6 +111,36 @@ export const parsedSelectionRanger = selection => {
   return { rangedSelection, small };
 };
 
+// Do the same that the previous function but for complex selection residues
+// e.g. ['A:1', 'A:3', 'A:4', 'A:5', 'B:1'] => nglSelection = "(A: and 1, 3-5) or (B: and 1)"
+// In addition track if there is any small serie (i.e. 3 residues or less)
+export const complexSelectionRanger = selection => {
+  let small = false;
+  let rangedSelection = '';
+  // Parse each residue in complex notation
+  const parsedResidues = selection.map(residue =>
+    complexNumerationParser(residue),
+  );
+  // Get unique chains
+  const chains = parsedResidues
+    .map(r => r.chain)
+    .filter((v, i, a) => a.indexOf(v) === i);
+  // For each chain, get all residues and "range" them
+  chains.forEach(chain => {
+    const chainResidues = parsedResidues
+      .filter(v => v.chain === chain)
+      .map(r => r.residue);
+    const {
+      rangedSelection: ranged,
+      small: smallChain,
+    } = parsedSelectionRanger(chainResidues);
+    rangedSelection += ' or (:' + chain + ' and (' + ranged + '))'; // Al parenthesis are mandatory
+    if (smallChain) small = true; // If any chain small is true then the overall small is true
+  });
+  rangedSelection = rangedSelection.substring(4); // Remove the first ' or '
+  return { rangedSelection, small };
+};
+
 // Transform a 'chain:residue' string into the chain letter string and the residue number values
 const numerationFormat = /^([A-Z]):([0-9]*)([A-Z]?)$/;
 export const complexNumerationParser = numeration => {

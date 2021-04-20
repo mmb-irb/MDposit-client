@@ -110,8 +110,7 @@ const Mutations = () => {
         const residue = atom.residueIndex;
         const mapedResidue = toporefMap
           ? toporefMap(residue)
-          : absolute2sourceResidue(residue, topology, metadata).residueNumber -
-            1; // -1 because the residue 'x' would be the index 'x-1' in the array
+          : absolute2sourceResidue(residue, topology).residueNumber - 1; // -1 because the residue 'x' would be the index 'x-1' in the array
         //console.log(residue + ' -> ' + mapedResidue);
         // If no residue was found then paint it white
         if (mapedResidue === null) return parseInt('ffffff', 16);

@@ -3,7 +3,7 @@ import React, { useContext, useState, useMemo, Suspense } from 'react';
 import Card from '../animated-card';
 import { CardContent, Chip } from '@material-ui/core';
 
-import { AccessionCtx, ProjectCtx } from '../../contexts';
+import { AccessionCtx, ProjectCtx, PdbCtx } from '../../contexts';
 
 import useDefaultRepresentations from '../ngl-viewer/use-default-representations';
 
@@ -16,7 +16,8 @@ import Info from '../info';
 import {
   complexNumerationParser,
   rangedSelectionParser,
-  parsedSelectionRanger,
+  absolute2sourceResidue,
+  complexSelectionRanger,
 } from '../../utils/topology-manager';
 
 import useAPI from '../../hooks/use-api';
@@ -28,6 +29,9 @@ import { BASE_PATH_PROJECTS } from '../../utils/constants';
 const Domains = ({ setter }) => {
   const accession = useContext(AccessionCtx);
   const { chains, metadata } = useContext(ProjectCtx);
+  // Get the current topology
+  const pdbData = useContext(PdbCtx);
+  const topology = pdbData.file;
 
   // Set the first domain (the overall) as the default selected domain
   const [selectedDomain, setSelectedDomain] = useState(0);
@@ -100,15 +104,21 @@ const Domains = ({ setter }) => {
             [],
             parsedSelection.map(residue =>
               metadataToporefMap.reduce((a, res, r) => {
-                if (res === residue) a.push(r);
+                // We substract 1 since the reference numeration is from 1 to n and we want it from 0
+                if (res === residue) a.push(r - 1);
                 return a;
               }, []),
             ),
           );
           // Representations with a selection not present in topology are discarded
           if (mappedSelection.length === 0) return;
-          const { rangedSelection, small } = parsedSelectionRanger(
-            mappedSelection,
+          // Transform the mapped selection, which comes in absolute numeration, to the source format
+          // The source numeration is compatible with NGL once parsed
+          const sourceSelection = mappedSelection.map(
+            residue => absolute2sourceResidue(residue, topology).numeration,
+          );
+          const { rangedSelection, small } = complexSelectionRanger(
+            sourceSelection,
           );
           representation.selection = rangedSelection;
           // parsedSelectionRanger returns 'small' = true when there are series of 3 residues or less
@@ -164,7 +174,7 @@ const Domains = ({ setter }) => {
     // Reset the selected domain
     setSelectedDomain(0);
     return domains;
-  }, [metadata, defaultRepresentations, payload]);
+  }, [metadata, defaultRepresentations, payload, topology]);
 
   useMemo(() => {
     if (!domains) return {};
