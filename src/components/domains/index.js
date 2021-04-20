@@ -89,6 +89,7 @@ const Domains = ({ setter }) => {
       toporefDomains.forEach(domain => {
         const mappedDomain = {
           name: domain.name,
+          description: domain.description,
           representations: domain.representations,
         };
         mappedDomain.representations.forEach(representation => {
@@ -208,6 +209,7 @@ const Domains = ({ setter }) => {
             {domains.map((dom, d) => (
               <Chip
                 key={dom.name}
+                title={dom.description}
                 className={style.chips}
                 label={dom.name}
                 variant={selectedDomain === d ? undefined : 'outlined'}
