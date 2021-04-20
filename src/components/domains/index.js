@@ -90,9 +90,9 @@ const Domains = ({ setter }) => {
         const mappedDomain = {
           name: domain.name,
           description: domain.description,
-          representations: domain.representations,
+          representations: [],
         };
-        mappedDomain.representations.forEach(representation => {
+        domain.representations.forEach(representation => {
           const selection = representation.selection;
           const parsedSelection = rangedSelectionParser(selection);
           // WARNING: A single reference residue may correspond to multiple topology residues
@@ -109,9 +109,15 @@ const Domains = ({ setter }) => {
             mappedSelection.length > 0
               ? parsedSelectionRanger(mappedSelection)
               : 'None';
-          representation.selection = rangedSelection;
+          // Representations with a selection not present in topology are discarded
+          if (rangedSelection !== 'None') {
+            representation.selection = rangedSelection;
+            mappedDomain.representations.push(representation);
+          }
         });
-        referenceDomains.push(mappedDomain);
+        // Domains whose representatios have been all discarded are also discarded
+        if (mappedDomain.representations.length > 0)
+          referenceDomains.push(mappedDomain);
       });
     }
     // Get domains constructed from interactions
