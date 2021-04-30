@@ -51,8 +51,7 @@ const Electrostatic = () => {
 
   // Set the representations for the NGL viewer
   const { representations, initialFocus } = useMemo(() => {
-    if (!chains || !metadata || !pdbData.file) return {};
-
+    if (!metadata || !pdbData.file) return {};
     const interaction = metadata.INTERACTIONS[selectedInteraction];
 
     // Parse the interface selections to the NGL format
@@ -99,7 +98,7 @@ const Electrostatic = () => {
     const initialFocus = { comp: 0, sele: wholeInterface.join(' or ') };
 
     return { representations, initialFocus };
-  }, [chains, metadata, pdbData, defaultRepresentations, selectedInteraction]);
+  }, [metadata, pdbData, defaultRepresentations, selectedInteraction]);
 
   // Update representations type and color when the selected order changes
   useEffect(() => {
