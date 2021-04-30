@@ -104,7 +104,7 @@ const Domains = ({ setter }) => {
             parsedSelection.map(residue =>
               metadataToporefMap.reduce((a, res, r) => {
                 // We substract 1 since the reference numeration is from 1 to n and we want it from 0
-                if (res === residue) a.push(r - 1);
+                if (res === residue - 1) a.push(r);
                 return a;
               }, []),
             ),
@@ -119,12 +119,13 @@ const Domains = ({ setter }) => {
           const { rangedSelection, small } = complexSelectionRanger(
             sourceSelection,
           );
-          representation.selection = rangedSelection;
+          const newRepresentation = { ...representation };
+          newRepresentation.selection = rangedSelection;
           // parsedSelectionRanger returns 'small' = true when there are series of 3 residues or less
           // These small residue selections will be not represented in cartoon due to an NGL bug
           // https://github.com/nglviewer/ngl/issues/223
-          if (small) representation.type = 'licorice';
-          mappedDomain.representations.push(representation);
+          if (small) newRepresentation.type = 'licorice';
+          mappedDomain.representations.push(newRepresentation);
         });
         // Domains whose representatios have been all discarded are also discarded
         if (mappedDomain.representations.length > 0)
