@@ -51,7 +51,7 @@ const Electrostatic = () => {
 
   // Set the representations for the NGL viewer
   const { representations, initialFocus } = useMemo(() => {
-    if (!chains || !metadata || !pdbData.file) return;
+    if (!chains || !metadata || !pdbData.file) return {};
 
     const interaction = metadata.INTERACTIONS[selectedInteraction];
 
