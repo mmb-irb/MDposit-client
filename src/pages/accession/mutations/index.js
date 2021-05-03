@@ -110,11 +110,13 @@ const Mutations = () => {
         const residue = atom.residueIndex;
         const mapedResidue = toporefMap
           ? toporefMap(residue)
-          : absolute2sourceResidue(residue, topology).residueNumber - 1; // -1 because the residue 'x' would be the index 'x-1' in the array
+          : absolute2sourceResidue(residue, topology).residueNumber;
         //console.log(residue + ' -> ' + mapedResidue);
         // If no residue was found then paint it white
         if (mapedResidue === null) return parseInt('ffffff', 16);
-        const entropy = normalizedEntropies[mapedResidue];
+        // get the corresponding entropy
+        // -1 because the residue 'x' would be the index 'x-1' in the array
+        const entropy = normalizedEntropies[mapedResidue - 1];
         // Calculate the interpolated rgb for this value
         // The interpolated color comes in rbg format
         const hexColor = d3color(colorScale(entropy)).formatHex();
