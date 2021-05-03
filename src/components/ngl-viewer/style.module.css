@@ -43,3 +43,14 @@
 .container > canvas {
   height: 0;
 }
+
+.tooltip {
+  display: none;
+  position: fixed;
+  pointer-events: none;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: lightgrey;
+  padding: 8px;
+  font-family: sans-serif;
+  white-space: pre-line;
+}

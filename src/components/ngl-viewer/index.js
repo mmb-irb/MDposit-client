@@ -28,6 +28,7 @@ import {
   complexNumerationParser,
   source2modelResidue,
   model2sourceResidue,
+  absolute2reference,
 } from '../../utils/topology-manager';
 
 import { setTooltipPosition } from '../../utils/tooltip-position-manager';
@@ -148,6 +149,7 @@ const NGLViewer = memo(
       // references
       const containerRef = useRef(null);
       const stageRef = useRef(null);
+      const tooltipRef = useRef(null);
       const firstTime = useRef(true);
       // curatedOrientation might be null
       const originalOritentationRef = useRef(
@@ -156,6 +158,9 @@ const NGLViewer = memo(
 
       // in-view hook
       const [inViewRef, isInView] = useInView();
+
+      // Set the content of the tooltip in JSX format
+      const [tooltipContent, setTooltipContent] = useState(null);
 
       // Download topologies ----------------------------------------------------------------------
 
@@ -1311,16 +1316,7 @@ const NGLViewer = memo(
       useEffect(() => {
         if (!pdbFile) return;
         // Set a new tooltip
-        const tooltip = document.createElement('div');
-        Object.assign(tooltip.style, {
-          display: 'none',
-          position: 'fixed',
-          pointerEvents: 'none',
-          backgroundColor: 'rgba( 0, 0, 0, 0.6 )',
-          color: 'lightgrey',
-          padding: '8px',
-          fontFamily: 'sans-serif',
-        });
+        const tooltip = tooltipRef.current;
         containerRef.current.appendChild(tooltip);
 
         // Remove the original tooltip
@@ -1328,6 +1324,7 @@ const NGLViewer = memo(
 
         // Set a function which is used further to write a formatted output message to refer an atom
         const formatOutput = atom => {
+          // a.residueIndex starts at 0
           // WARNING: a.residueIndex is correct but we must convert it to source first
           // In some cases 1 residue can have multiple absolute residue indexes
           // (e.g. hydrogens at the end)
@@ -1344,9 +1341,29 @@ const NGLViewer = memo(
             pdbFile,
             metadata,
           );
+          const reference = absolute2reference(atom.residueIndex, metadata);
+          return (
+            <>
+              {`Atom ${atom.index} (${atom.atomname})
+            Chain ${sourceResidue.chain} ${
+                model ? '(' + model.chainName + ')' : ''
+              }
+            Residue ${sourceResidue.residueNumber} (${atom.resname})`}
+              {reference ? (
+                <div>
+                  <div style={{ color: 'lightGreen' }}>{reference.name}</div>
+                  <div>{`- Residue ${reference.index}`}</div>
+                </div>
+              ) : (
+                <div style={{ color: 'salmon' }}>{'No reference'}</div>
+              )}
+            </>
+          );
+          /*
           return `Atom ${atom.index} (${atom.atomname})
             Chain ${model.chain} ${model ? '(' + model.chainName + ')' : ''}
             Residue ${model.chainResidue} (${atom.resname})`;
+          */
         };
 
         const hideTooltip = () => (tooltip.style.display = 'none');
@@ -1362,13 +1379,19 @@ const NGLViewer = memo(
             if (bond) {
               const atom1 = bond.atom1;
               const atom2 = bond.atom2;
-              const bondLabel = `Bond ${atom1.index} - ${atom2.index}\n-----\n`;
-              description =
-                bondLabel + [atom1, atom2].map(formatOutput).join('\n-----\n');
+              description = (
+                <>
+                  <div>{`Bond ${atom1.index} - ${atom2.index}`}</div>
+                  <hr style={{ color: 'lightGrey' }} />
+                  {formatOutput(atom1)}
+                  <hr style={{ color: 'lightGrey' }} />
+                  {formatOutput(atom2)}
+                </>
+              );
             } else if (atom) {
               description = formatOutput(atom);
             }
-            tooltip.innerText = description;
+            setTooltipContent(description);
             // Handle tooltip position
             // WARNING: It is important to make the display block before calculating the position
             // This is because the position is calculated from the tooltip size, which would be 0 otherwise
@@ -1394,7 +1417,7 @@ const NGLViewer = memo(
           tooltip.remove();
           containerRef.current.removeEventListener('mouseleave', hideTooltip);
         };
-      }, [pdbFile, metadata]);
+      }, [pdbFile, metadata, setTooltipContent]);
 
       // Track when the first focus has been performed, since first focus is instantaneous
       const firstFocus = useRef(true);
@@ -1499,6 +1522,9 @@ const NGLViewer = memo(
                 : undefined // Show nothing when everything was finished and fine
             }
           />
+          <div ref={tooltipRef} className={style.tooltip}>
+            {tooltipContent}
+          </div>
         </>
       );
     },

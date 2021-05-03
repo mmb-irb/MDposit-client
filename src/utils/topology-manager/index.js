@@ -454,6 +454,24 @@ export const absolute2sourceResidue = (
   return { chain, residueNumber, icode, numeration, nglSelection };
 };
 
+// This function converts absolute residue numbers to topology reference residue numbers
+// If the residue is not mapped for whatever the reason then return null
+// e.g. the topology map may be missing or the residue may be not protein
+export const absolute2reference = (
+  residue,
+  metadata = ProjectCtx._currentValue.metadata,
+) => {
+  const toporefs = metadata.TOPOREFS;
+  for (const toporef of toporefs) {
+    const mapping = toporef.map;
+    if (!mapping) continue;
+    const reference = mapping[residue];
+    if (!reference) continue;
+    return { name: toporef.name, index: reference };
+  }
+  return null;
+};
+
 // This function converts model residue numbers to absolute residue numbers
 export const model2absoluteResidue = (
   { chain, residue },
