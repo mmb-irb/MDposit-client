@@ -104,7 +104,7 @@ const Domains = ({ setter }) => {
             parsedSelection.map(residue =>
               metadataToporefMap.reduce((a, res, r) => {
                 // We substract 1 since the reference numeration is from 1 to n and we want it from 0
-                if (res === residue - 1) a.push(r);
+                if (res === residue) a.push(r);
                 return a;
               }, []),
             ),
