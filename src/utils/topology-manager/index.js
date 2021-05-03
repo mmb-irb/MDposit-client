@@ -462,6 +462,7 @@ export const absolute2reference = (
   metadata = ProjectCtx._currentValue.metadata,
 ) => {
   const toporefs = metadata.TOPOREFS;
+  if (!toporefs) return null;
   for (const toporef of toporefs) {
     const mapping = toporef.map;
     if (!mapping) continue;
@@ -511,30 +512,3 @@ export const getAtom = (index, topology = PdbCtx._currentValue.file) => {
   } = topology.atomMap.get(typeId);
   return { serial, residue, residueAtomNumber, name, element };
 };
-/*
-// Align the topology with a toporef residues sequence
-// If the align is successful then return a map to get equivalent residues
-// The align is successfull when the percent of matching residues is over the cutoff
-// - Some topologies may be mutated regarding the original reference
-const alignCutoff = 0.95;
-// WARNING: The sequences may have different length and be correct anyway
-// NEVER FORGET:
-// Topology sequence may be smaller than toporef sequence:
-// - It is usual that simulated proteins do not start at the first residue
-// Topology sequence may be bigger than toporef sequence:
-// - There are some topologies with the hydrogens at the end in repeated residues
-// - There are some topologies with repeated chains
-export const getToporefMap = (toporef, topology = PdbCtx._currentValue.file) => {
-  // Get the toporef residue sequence
-  const sequence1 = toporef.sequence;
-  // Get the topology residue sequence
-  let sequence2 = '';
-  const store = topology.residueStore;
-  for (let r = 0; r < store.count; r++) {
-    const residueLetter = getResidueLetter(getResidueType(r));
-    sequence2 += residueLetter;
-  }
-  console.log(sequence1);
-  console.log(sequence2);
-};
-*/
