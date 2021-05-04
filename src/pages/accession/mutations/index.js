@@ -64,6 +64,7 @@ const Mutations = () => {
     if (toporefs && toporefs.length > 0) {
       toporefMap = residue => {
         for (const toporef of toporefs) {
+          if (!toporef.map) return null;
           const equivalent = toporef.map[residue];
           if (equivalent) return equivalent;
         }

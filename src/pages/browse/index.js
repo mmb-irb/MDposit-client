@@ -123,13 +123,11 @@ const Row = ({ project, highlight, index, setProject }) => {
   )
     analyses.push('electrostatic');
 
-  // Push the mutations analysis if we have metadata toporef
-  if (
-    metadata &&
-    metadata.TOPOREFS &&
-    analyses &&
-    !analyses.includes('mutations')
-  )
+  // Check if any metadata toporef has a map
+  const toporefs = metadata && metadata.TOPOREFS;
+  const anyMappedToporef = toporefs && toporefs.some(toporef => !!toporef.map);
+  // Push the mutations analysis if so
+  if (anyMappedToporef && analyses && !analyses.includes('mutations'))
     analyses.push('mutations');
 
   // Returns a table with multiple rows

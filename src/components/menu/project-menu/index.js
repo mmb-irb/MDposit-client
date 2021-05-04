@@ -23,8 +23,12 @@ import style from './style.module.css';
 // It only appears when the user is inside a project
 const ProjectMenu = ({ params: { accession, subPage } }) => {
   // Get the current project metadata
-  const project = useContext(ProjectCtx);
-  //console.log(project);
+  // WARNING: context may be missing in the first renders
+  const { metadata, analyses } = useContext(ProjectCtx) || {
+    metadata: {},
+    analyses: [],
+  };
+
   // Set which menu is opened
   const [openMenu, setOpenMenu] = useState(-1);
   // Set a standarized format state for the popover to work properly
@@ -35,14 +39,6 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
   const isCurrent = useCallback(url => '#' + url === currentLocation, [
     currentLocation,
   ]);
-
-  // Get data from the project context if it is available
-  let analyses = [];
-  let metadata = {};
-  if (project && project.analyses) {
-    analyses = project.analyses;
-    metadata = project.metadata;
-  }
 
   // Open the specified menu
   // If the specified menu is the already open menu, then close it
@@ -67,6 +63,10 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
       setOpenMenu(-1);
     }
   }
+
+  // Check if any metadata toporef has a map
+  const toporefs = metadata && metadata.TOPOREFS;
+  const anyMappedToporef = toporefs && toporefs.some(toporef => !!toporef.map);
 
   // Set the tabs to be displayed
   // Each tab must have 'dir' or 'drops'. Never both, never none.
@@ -158,7 +158,7 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
             {
               name: 'Mutations',
               dir: 'mutations',
-              cond: metadata.TOPOREFS,
+              cond: anyMappedToporef,
             },
           ],
         },
