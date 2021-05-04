@@ -78,58 +78,60 @@ const Domains = ({ setter }) => {
     const referenceDomains = [];
     const toporefs = metadata.TOPOREFS;
     if (payload && toporefs) {
-      // DANI: Esto hay que rehacerlo cuando haya más de un toporef -----------------------------
-      const firstAndUniqueToporef = payload[0];
-      const toporefName = firstAndUniqueToporef.name;
-      const toporefDomains = firstAndUniqueToporef.domains;
-      const metadataToporef = toporefs.find(
-        toporef => toporef.name === toporefName,
-      );
-      const metadataToporefMap = metadataToporef.map;
-      // ----------------------------------------------------------------------------------------
-      // These domains are only specified for the reference sequence
-      // Residue selections must be mapped back to the current topology for each representation
-      toporefDomains.forEach(domain => {
-        const mappedDomain = {
-          name: domain.name,
-          description: domain.description,
-          representations: [],
-        };
-        domain.representations.forEach(representation => {
-          const selection = representation.selection;
-          const parsedSelection = rangedSelectionParser(selection);
-          // WARNING: A single reference residue may correspond to multiple topology residues
-          const mappedSelection = [].concat.apply(
-            [],
-            parsedSelection.map(residue =>
-              metadataToporefMap.reduce((a, res, r) => {
-                // We substract 1 since the reference numeration is from 1 to n and we want it from 0
-                if (res === residue) a.push(r);
-                return a;
-              }, []),
-            ),
-          );
-          // Representations with a selection not present in topology are discarded
-          if (mappedSelection.length === 0) return;
-          // Transform the mapped selection, which comes in absolute numeration, to the source format
-          // The source numeration is compatible with NGL once parsed
-          const sourceSelection = mappedSelection.map(
-            residue => absolute2sourceResidue(residue, topology).numeration,
-          );
-          const { rangedSelection, small } = complexSelectionRanger(
-            sourceSelection,
-          );
-          const newRepresentation = { ...representation };
-          newRepresentation.selection = rangedSelection;
-          // parsedSelectionRanger returns 'small' = true when there are series of 3 residues or less
-          // These small residue selections will be not represented in cartoon due to an NGL bug
-          // https://github.com/nglviewer/ngl/issues/223
-          if (small) newRepresentation.type = 'licorice';
-          mappedDomain.representations.push(newRepresentation);
+      payload.forEach(toporef => {
+        const toporefName = toporef.name;
+        const toporefDomains = toporef.domains;
+        const metadataToporef = toporefs.find(
+          toporef => toporef.name === toporefName,
+        );
+        const metadataToporefMap = metadataToporef.map;
+        // If there is no map for the current toporef then return here
+        if (!metadataToporefMap) return;
+        // ----------------------------------------------------------------------------------------
+        // These domains are only specified for the reference sequence
+        // Residue selections must be mapped back to the current topology for each representation
+        toporefDomains.forEach(domain => {
+          const mappedDomain = {
+            name: domain.name,
+            description: domain.description,
+            representations: [],
+          };
+          domain.representations.forEach(representation => {
+            const selection = representation.selection;
+            const parsedSelection = rangedSelectionParser(selection);
+            // WARNING: A single reference residue may correspond to multiple topology residues
+            const mappedSelection = [].concat.apply(
+              [],
+              parsedSelection.map(residue =>
+                metadataToporefMap.reduce((a, res, r) => {
+                  // We substract 1 since the reference numeration is from 1 to n and we want it from 0
+                  if (res === residue) a.push(r);
+                  return a;
+                }, []),
+              ),
+            );
+            // Representations with a selection not present in topology are discarded
+            if (mappedSelection.length === 0) return;
+            // Transform the mapped selection, which comes in absolute numeration, to the source format
+            // The source numeration is compatible with NGL once parsed
+            const sourceSelection = mappedSelection.map(
+              residue => absolute2sourceResidue(residue, topology).numeration,
+            );
+            const { rangedSelection, small } = complexSelectionRanger(
+              sourceSelection,
+            );
+            const newRepresentation = { ...representation };
+            newRepresentation.selection = rangedSelection;
+            // parsedSelectionRanger returns 'small' = true when there are series of 3 residues or less
+            // These small residue selections will be not represented in cartoon due to an NGL bug
+            // https://github.com/nglviewer/ngl/issues/223
+            if (small) newRepresentation.type = 'licorice';
+            mappedDomain.representations.push(newRepresentation);
+          });
+          // Domains whose representatios have been all discarded are also discarded
+          if (mappedDomain.representations.length > 0)
+            referenceDomains.push(mappedDomain);
         });
-        // Domains whose representatios have been all discarded are also discarded
-        if (mappedDomain.representations.length > 0)
-          referenceDomains.push(mappedDomain);
       });
     }
     // Get domains constructed from interactions
