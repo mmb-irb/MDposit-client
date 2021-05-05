@@ -220,7 +220,11 @@ export const TrajectoryMetadata = memo(() => {
             className={style['text-field']}
             label="Frequency"
             title="Frequency of snapshots"
-            value={metadata.FREQUENCY === null ? na : metadata.FREQUENCY}
+            value={
+              metadata.FREQUENCY === null
+                ? na
+                : Math.round(metadata.FREQUENCY * 100) / 100
+            }
             disabled={metadata.FREQUENCY === null}
             InputProps={{
               endAdornment: (
