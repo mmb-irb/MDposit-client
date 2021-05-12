@@ -202,7 +202,7 @@ const Domains = ({ setter }) => {
             name: rep.name,
             selection: rep.selection,
             show: rep.show,
-            type: rep.type,
+            type: 'spacefill',
             color: rep.color,
             opacity: rep.opacity ? rep.opacity * 0.2 : 0.2,
           };
