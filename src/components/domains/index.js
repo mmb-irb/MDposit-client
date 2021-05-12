@@ -34,6 +34,7 @@ const Domains = ({ setter }) => {
 
   // Set the first domain (the overall) as the default selected domain
   const [selectedDomain, setSelectedDomain] = useState(0);
+  const [overlapedDomain, setOverlapedDomain] = useState(null);
 
   // Request to API the toporef data
   const { loading, payload, error } = useAPI(
@@ -180,20 +181,40 @@ const Domains = ({ setter }) => {
 
   useMemo(() => {
     if (!domains) return {};
-    const currentDomain = domains[selectedDomain];
+    const currentSelectedDomain = domains[selectedDomain];
+    const currentSelectedRepresentations = currentSelectedDomain.representations.map(
+      rep => {
+        return {
+          name: rep.name,
+          selection: rep.selection,
+          show: rep.show,
+          type: rep.type,
+          color: rep.color,
+          opacity: rep.opacity,
+        };
+      },
+    );
+    const currentOverlapedDomain =
+      overlapedDomain !== null && domains[overlapedDomain];
+    const currentOverlapedRepresentations = currentOverlapedDomain
+      ? currentOverlapedDomain.representations.map(rep => {
+          return {
+            name: rep.name,
+            selection: rep.selection,
+            show: rep.show,
+            type: rep.type,
+            color: rep.color,
+            opacity: rep.opacity ? rep.opacity * 0.2 : 0.2,
+          };
+        })
+      : [];
     // Set an NGL representation for each domain representation
-    const representations = currentDomain.representations.map(rep => {
-      return {
-        name: rep.name,
-        selection: rep.selection,
-        show: rep.show,
-        type: rep.type,
-        color: rep.color,
-        opacity: rep.opacity,
-      };
-    });
+    const representations = [
+      ...currentSelectedRepresentations,
+      ...currentOverlapedRepresentations,
+    ];
     // Add a representation with the whole strucutre in grey color and with the opacity reduced
-    if (currentDomain.name !== 'Overall')
+    if (currentSelectedDomain.name !== 'Overall')
       representations.push({
         name: 'Reference',
         color: 'grey',
@@ -203,11 +224,13 @@ const Domains = ({ setter }) => {
     // Set the NGL selection for the focus
     const focusSelection =
       '(' +
-      currentDomain.representations.map(rep => rep.selection).join(') or (') +
+      currentSelectedDomain.representations
+        .map(rep => rep.selection)
+        .join(') or (') +
       ')';
     const initialFocus = { comp: 0, sele: focusSelection };
     setter({ representations, initialFocus });
-  }, [domains, selectedDomain, setter]);
+  }, [domains, selectedDomain, overlapedDomain, setter]);
 
   return (
     <Suspense fallback={<Loading />}>
@@ -232,14 +255,35 @@ const Domains = ({ setter }) => {
                 title={dom.description}
                 className={style.chips}
                 label={dom.name}
-                variant={selectedDomain === d ? undefined : 'outlined'}
-                color={selectedDomain === d ? 'primary' : undefined}
-                onClick={() =>
-                  setSelectedDomain(previous => {
-                    if (previous === d) return 0;
-                    return d;
-                  })
+                variant={
+                  selectedDomain === d || overlapedDomain === d
+                    ? undefined
+                    : 'outlined'
                 }
+                color={
+                  selectedDomain === d
+                    ? 'primary'
+                    : overlapedDomain === d
+                    ? 'secondary'
+                    : undefined
+                }
+                onClick={event => {
+                  // When the keys control, shift or command (ios) are hold while clicking
+                  const overlap =
+                    event.shiftKey || event.ctrlKey || event.metaKey;
+                  if (overlap)
+                    return setOverlapedDomain(previous => {
+                      if (previous === d) return null;
+                      if (selectedDomain === d) return null;
+                      return d;
+                    });
+                  else
+                    return setSelectedDomain(previous => {
+                      if (previous === d) return 0;
+                      if (overlapedDomain === d) setOverlapedDomain(null);
+                      return d;
+                    });
+                }}
               />
             ))}
           </CardContent>
