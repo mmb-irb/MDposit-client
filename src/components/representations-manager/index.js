@@ -46,6 +46,14 @@ const availableDrawingMethods = [
     label: 'Spacefill',
     value: 'spacefill',
   },
+  {
+    label: 'Tube',
+    value: 'tube',
+  },
+  {
+    label: 'Trace',
+    value: 'trace',
+  },
 ];
 
 const availableColoringMethods = [
