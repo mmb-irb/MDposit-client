@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useState, useContext, useMemo } from 'react';
 
-import { CardContent, Typography } from '@material-ui/core';
+import { CardContent, Typography, TextField } from '@material-ui/core';
 
 import Card from '../../../components/animated-card';
 import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
@@ -29,6 +29,13 @@ import {
 const Graph2 = lazy(() =>
   import(/* webpackChunkName: 'graph2' */ '../../../components/graph2'),
 );
+
+// Return the rounded summatory
+const getSum = values => {
+  const sum = values.reduce((a, b) => a + b, 0);
+  const rounded = Math.round(sum * 10000) / 10000;
+  return rounded;
+};
 
 const Energies = () => {
   // Get the accession
@@ -117,6 +124,9 @@ const Energies = () => {
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
 
+  // Check if there is only 1 residue
+  const singleResidue = data && data.es.length === 1;
+
   // Render
   return (
     <Suspense fallback={<Loading />}>
@@ -148,100 +158,169 @@ const Energies = () => {
           </CardContent>
         )}
         <CardContent>
-          <div className={style.graph}>
-            <Graph2
-              yData={{
-                esi: { data: data.ies, color: 'red' },
-                esf: { data: data.fes, color: 'blue' },
-                es: { data: data.es, color: 'black' },
-              }}
-              xAxisValues={data.xTags}
-              xUnit={'residue'}
-              title={'Electrostatic'}
-              xScaleFactor={0.001}
-              yAxisLabel={'kcal/mol'}
-              onSelect={(xIndex, xValue) => {
-                // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
-                const num = nglNumerationParser(xValue);
-                const source = model2sourceResidue(num, pdbData.file);
-                setSelected([source.numeration]);
-              }}
-              show={{ esi: display.start, esf: display.end, es: display.all }}
-              selected={selected}
+          <legend>Overall energies summatory</legend>
+          <div>
+            <TextField
+              className={style['text-field']}
+              label="Electrostatic"
+              title="Sum electorstatic value along the whole trajectory"
+              value={getSum(data.es) + ' kcal/mol'}
+            />
+            <TextField
+              className={style['text-field']}
+              label="Electrostatic Initial"
+              title="Sum electorstatic value along the first 20% trajectory frames"
+              value={getSum(data.ies) + ' kcal/mol'}
+            />
+            <TextField
+              className={style['text-field']}
+              label="Electrostatic Final"
+              title="Sum electorstatic value along the last 20% trajectory frames"
+              value={getSum(data.fes) + ' kcal/mol'}
             />
           </div>
-          <div className={style.graph}>
-            <Graph2
-              yData={{
-                vdwi: { data: data.ivdw, color: 'red' },
-                vdwf: { data: data.fvdw, color: 'blue' },
-                vdw: { data: data.vdw, color: 'black' },
-              }}
-              title={'vdW'}
-              xAxisValues={data.xTags}
-              xUnit={'residue'}
-              yAxisLabel={'kcal/mol'}
-              onSelect={(xIndex, xValue) => {
-                // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
-                const num = nglNumerationParser(xValue);
-                const source = model2sourceResidue(num, pdbData.file);
-                setSelected([source.numeration]);
-              }}
-              show={{
-                vdwi: display.start,
-                vdwf: display.end,
-                vdw: display.all,
-              }}
-              selected={selected}
+          <div>
+            <TextField
+              className={style['text-field']}
+              label="Van der Waals"
+              title="Sum Van der Waals value along the whole trajectory"
+              value={getSum(data.vdw) + ' kcal/mol'}
+            />
+            <TextField
+              className={style['text-field']}
+              label="Van der Waals Initial"
+              title="Sum Van der Waals value along the first 20% trajectory frames"
+              value={getSum(data.ivdw) + ' kcal/mol'}
+            />
+            <TextField
+              className={style['text-field']}
+              label="Van der Waals Final"
+              title="Sum Van der Waals value along the last 20% trajectory frames"
+              value={getSum(data.fvdw) + ' kcal/mol'}
             />
           </div>
-          <div className={style.graph}>
-            <Graph2
-              yData={{
-                bothi: {
-                  data: data.iboth,
-                  color: 'red',
-                },
-                bothf: { data: data.fboth, color: 'blue' },
-                both: { data: data.both, color: 'black' },
-              }}
-              title={'Electrostatic+vdW'}
-              xAxisLabel={'Residue number'}
-              xAxisValues={data.xTags}
-              xUnit={'residue'}
-              yAxisLabel={'kcal/mol'}
-              onSelect={(xIndex, xValue) => {
-                // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
-                const num = nglNumerationParser(xValue);
-                const source = model2sourceResidue(num, pdbData.file);
-                setSelected([source.numeration]);
-              }}
-              show={{
-                bothi: display.start,
-                bothf: display.end,
-                both: display.all,
-              }}
-              selected={selected}
+          <div>
+            <TextField
+              className={style['text-field']}
+              label="Electrostatic + Van der Waals"
+              title="Sum electorstatic + Van der Waals value along the whole trajectory"
+              value={getSum(data.es) + ' kcal/mol'}
+            />
+            <TextField
+              className={style['text-field']}
+              label="Electrostatic + Van der Waals Initial"
+              title="Sum electorstatic + Van der Waals value along the first 20% trajectory frames"
+              value={getSum(data.ies) + ' kcal/mol'}
+            />
+            <TextField
+              className={style['text-field']}
+              label="Electrostatic + Van der Waals Final"
+              title="Sum electorstatic + Van der Waals value along the last 20% trajectory frames"
+              value={getSum(data.fes) + ' kcal/mol'}
             />
           </div>
-
-          <Legend
-            entries={[
-              { name: 'all', color: 'black', check: display.all },
-              { name: 'start', color: 'red', check: display.start },
-              { name: 'end', color: 'blue', check: display.end },
-            ]}
-            onChange={result =>
-              setDisplay(previous => {
-                // WARNING: Do not return the previous object modified
-                // It won't trigger the re-render since it is the same object
-                const newDisplay = { ...previous };
-                newDisplay[result] = !newDisplay[result];
-                return newDisplay;
-              })
-            }
-          />
         </CardContent>
+        {singleResidue ? (
+          <CardContent>
+            <Typography variant="h6">The host has only 1 residue</Typography>
+          </CardContent>
+        ) : (
+          <CardContent>
+            <div className={style.graph}>
+              <Graph2
+                yData={{
+                  esi: { data: data.ies, color: 'red' },
+                  esf: { data: data.fes, color: 'blue' },
+                  es: { data: data.es, color: 'black' },
+                }}
+                xAxisValues={data.xTags}
+                xUnit={'residue'}
+                title={'Electrostatic'}
+                xScaleFactor={0.001}
+                yAxisLabel={'kcal/mol'}
+                onSelect={(xIndex, xValue) => {
+                  // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
+                  const num = nglNumerationParser(xValue);
+                  const source = model2sourceResidue(num, pdbData.file);
+                  setSelected([source.numeration]);
+                }}
+                show={{ esi: display.start, esf: display.end, es: display.all }}
+                selected={selected}
+              />
+            </div>
+            <div className={style.graph}>
+              <Graph2
+                yData={{
+                  vdwi: { data: data.ivdw, color: 'red' },
+                  vdwf: { data: data.fvdw, color: 'blue' },
+                  vdw: { data: data.vdw, color: 'black' },
+                }}
+                title={'vdW'}
+                xAxisValues={data.xTags}
+                xUnit={'residue'}
+                yAxisLabel={'kcal/mol'}
+                onSelect={(xIndex, xValue) => {
+                  // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
+                  const num = nglNumerationParser(xValue);
+                  const source = model2sourceResidue(num, pdbData.file);
+                  setSelected([source.numeration]);
+                }}
+                show={{
+                  vdwi: display.start,
+                  vdwf: display.end,
+                  vdw: display.all,
+                }}
+                selected={selected}
+              />
+            </div>
+            <div className={style.graph}>
+              <Graph2
+                yData={{
+                  bothi: {
+                    data: data.iboth,
+                    color: 'red',
+                  },
+                  bothf: { data: data.fboth, color: 'blue' },
+                  both: { data: data.both, color: 'black' },
+                }}
+                title={'Electrostatic+vdW'}
+                xAxisLabel={'Residue number'}
+                xAxisValues={data.xTags}
+                xUnit={'residue'}
+                yAxisLabel={'kcal/mol'}
+                onSelect={(xIndex, xValue) => {
+                  // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
+                  const num = nglNumerationParser(xValue);
+                  const source = model2sourceResidue(num, pdbData.file);
+                  setSelected([source.numeration]);
+                }}
+                show={{
+                  bothi: display.start,
+                  bothf: display.end,
+                  both: display.all,
+                }}
+                selected={selected}
+              />
+            </div>
+
+            <Legend
+              entries={[
+                { name: 'all', color: 'black', check: display.all },
+                { name: 'start', color: 'red', check: display.start },
+                { name: 'end', color: 'blue', check: display.end },
+              ]}
+              onChange={result =>
+                setDisplay(previous => {
+                  // WARNING: Do not return the previous object modified
+                  // It won't trigger the re-render since it is the same object
+                  const newDisplay = { ...previous };
+                  newDisplay[result] = !newDisplay[result];
+                  return newDisplay;
+                })
+              }
+            />
+          </CardContent>
+        )}
       </Card>
       <NGLViewerSpawner
         // Set the new viewer or null if there is not a proper "selected" value

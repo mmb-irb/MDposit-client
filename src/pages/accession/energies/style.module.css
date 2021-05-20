@@ -11,3 +11,8 @@
   flex-direction: row;
   justify-content: flex-start;
 }
+
+.text-field {
+  width: 30ch;
+  margin: 0.6ch 2ch;
+}
