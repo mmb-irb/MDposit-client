@@ -661,7 +661,9 @@ const NGLViewer = memo(
 
             const opacity = show ? opacities[index] : 0;
 
-            const background = type === 'surface' && opacity < 1 ? true : false;
+            //const background = type === 'surface' && opacity < 1 ? true : false;
+
+            const depthWrite = type === 'surface' && opacity < 1 ? false : true;
 
             // Join all parameters into a single input object
             const parameters = {
@@ -672,7 +674,8 @@ const NGLViewer = memo(
               colorDomain,
               surfaceType,
               side: 'front',
-              background,
+              //background,
+              depthWrite,
               //opaqueBack: true,
               //forceTransparent: true,
               ...rep.other,
