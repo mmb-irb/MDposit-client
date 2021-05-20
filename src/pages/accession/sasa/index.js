@@ -68,13 +68,7 @@ const Sasa = () => {
   const [selectedResidues, setSelectedResidues] = useState([]);
 
   // Get the residues list in model notation
-  const {
-    mainComponent,
-    framesNumber,
-    timeStep,
-    sequences,
-    colorScheme,
-  } = useMemo(() => {
+  const { mainComponent, framesNumber, timeStep, sequences } = useMemo(() => {
     if (!pdbData.file || !metadata || !payload) return {};
 
     const data = payload.data;
@@ -140,7 +134,9 @@ const Sasa = () => {
     const mainComponent = [
       {
         trajectoryURLs: [mainURL],
-        representations: [{ color: 'sasa', type: 'spacefill' }],
+        representations: [
+          { color: 'custom', customScheme: colorScheme, type: 'spacefill' },
+        ],
       },
     ];
 
@@ -176,7 +172,7 @@ const Sasa = () => {
       };
     });
 
-    return { mainComponent, framesNumber, timeStep, sequences, colorScheme };
+    return { mainComponent, framesNumber, timeStep, sequences };
   }, [payload, pdbData, metadata, accession]);
 
   // Get the residues list in model notation
@@ -256,7 +252,6 @@ const Sasa = () => {
             className={style.container}
             components={mainComponent}
             selectedResidues={selectedResidueNames}
-            customColorSchemes={{ sasa: colorScheme }}
             onProgress={handleFrameProgress}
             ref={viewerRef}
             framesSelect={false}

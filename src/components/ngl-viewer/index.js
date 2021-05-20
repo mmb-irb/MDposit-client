@@ -120,8 +120,6 @@ const NGLViewer = memo(
         components,
         showRepresentations,
         nglSelections,
-        // Customized ngl representation coloring methods
-        customColorSchemes,
         // Set the highlight representations types
         highlightTypes = defaulthighlightTypes,
       },
@@ -636,6 +634,8 @@ const NGLViewer = memo(
 
             const type = drawingMethods[index];
 
+            const customColorScheme = rep.customScheme;
+
             const colorScheme =
               rep.name === selectedRepresentation
                 ? // If the representation is selected then the color is yellow
@@ -644,8 +644,8 @@ const NGLViewer = memo(
                     'custom label',
                   )
                 : // If the colorScheme is in the passed custom schemes use it
-                customColorSchemes && customColorSchemes[coloringMethods[index]]
-                ? customColorSchemes[coloringMethods[index]]
+                customColorScheme && coloringMethods[index] === 'custom'
+                ? customColorScheme
                 : // If the colorScheme is a defined color, create a custom colorScheme for this color
                 isValidColor(coloringMethods[index])
                 ? ColormakerRegistry.addSelectionScheme(
@@ -800,7 +800,6 @@ const NGLViewer = memo(
         selectedRepresentation,
         showRepresentations,
         nglSelections,
-        customColorSchemes,
       ]);
 
       // Highlight specific atoms

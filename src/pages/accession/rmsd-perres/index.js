@@ -80,13 +80,7 @@ const RmsdPerres = () => {
   const [selectedResidues, setSelectedResidues] = useState([]);
 
   // Get the residues list in model notation
-  const {
-    mainComponent,
-    framesNumber,
-    timeStep,
-    sequences,
-    colorScheme,
-  } = useMemo(() => {
+  const { mainComponent, framesNumber, timeStep, sequences } = useMemo(() => {
     if (!pdbData.file || !metadata || !payload) return {};
 
     const data = payload.data;
@@ -156,7 +150,10 @@ const RmsdPerres = () => {
     // Load the required frames from the main trajectory
     const mainURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory?frames=1:${metadata.SNAPSHOTS}:${frameStep}`;
     const mainComponent = [
-      { trajectoryURLs: [mainURL], representations: [{ color: 'rmsds' }] },
+      {
+        trajectoryURLs: [mainURL],
+        representations: [{ color: 'custom', customScheme: colorScheme }],
+      },
     ];
 
     // Parse the selection string into a numeric array
@@ -191,7 +188,7 @@ const RmsdPerres = () => {
       };
     });
 
-    return { mainComponent, framesNumber, timeStep, sequences, colorScheme };
+    return { mainComponent, framesNumber, timeStep, sequences };
   }, [payload, pdbData, metadata, accession]);
 
   // Get the residues list in model notation
@@ -270,7 +267,6 @@ const RmsdPerres = () => {
             className={style.container}
             components={mainComponent}
             selectedResidues={selectedResidueNames}
-            customColorSchemes={{ rmsds: colorScheme }}
             onProgress={handleFrameProgress}
             ref={viewerRef}
             framesSelect={false}

@@ -52,8 +52,8 @@ const Mutations = () => {
   );
 
   // Set the representations for the NGL viewer
-  const [representations, entropiesColorScheme] = useMemo(() => {
-    if (!payload) return [];
+  const representations = useMemo(() => {
+    if (!payload) return;
 
     const firstAndUniqueToporef = payload && payload[0];
     const entropies = firstAndUniqueToporef.entropies;
@@ -128,8 +128,8 @@ const Mutations = () => {
       };
     });
 
-    const reps = [{ color: 'entropies' }];
-    return [reps, colorScheme];
+    const reps = [{ color: 'custom', customScheme: colorScheme }];
+    return reps;
   }, [payload, topology, metadata]);
 
   if (loading) return <Loading />;
@@ -158,7 +158,6 @@ const Mutations = () => {
           <NGLViewerWithControls
             className={style.container}
             representations={representations}
-            customColorSchemes={{ entropies: entropiesColorScheme }}
             //selectedResidues={selectedResidues}
           />
         ) : (
