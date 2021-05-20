@@ -6,6 +6,7 @@ import { CardContent, Chip } from '@material-ui/core';
 import { AccessionCtx, ProjectCtx, PdbCtx } from '../../contexts';
 
 import useDefaultRepresentations from '../ngl-viewer/use-default-representations';
+import useMutationsRepresentations from '../ngl-viewer/use-mutations-representations';
 
 import style from './style.module.css';
 
@@ -45,6 +46,12 @@ const Domains = ({ setter }) => {
     console.error('The load of topology references has failed: ' + error);
 
   const defaultRepresentations = useDefaultRepresentations(chains, metadata);
+
+  const mutationsRepresentation = useMutationsRepresentations(
+    accession,
+    metadata,
+    pdbData,
+  );
 
   // The domains strucutre is:
   // domains: [
@@ -137,7 +144,7 @@ const Domains = ({ setter }) => {
     }
     // Get domains constructed from interactions
     const interactionDomains = [];
-    if (metadata.INTERACTIONS)
+    if (metadata.INTERACTIONS) {
       metadata.INTERACTIONS.forEach(interaction => {
         // Add a new domain for each new agent and skip repeated agents
         const agent1 = {
@@ -168,16 +175,31 @@ const Domains = ({ setter }) => {
           });
         });
       });
+    }
     const domains = [
       overallDomain,
       ...customDomains,
       ...referenceDomains,
       ...interactionDomains,
     ];
+    // Add the mutations domain if possible
+    if (mutationsRepresentation) {
+      const mutationsDomain = {
+        name: 'Mutations',
+        representations: mutationsRepresentation,
+      };
+      domains.push(mutationsDomain);
+    }
     // Reset the selected domain
     setSelectedDomain(0);
     return domains;
-  }, [metadata, defaultRepresentations, payload, topology]);
+  }, [
+    metadata,
+    defaultRepresentations,
+    mutationsRepresentation,
+    payload,
+    topology,
+  ]);
 
   useMemo(() => {
     if (!domains) return {};
@@ -191,6 +213,7 @@ const Domains = ({ setter }) => {
           type: rep.type,
           color: rep.color,
           opacity: rep.opacity,
+          customScheme: rep.customScheme,
         };
       },
     );
@@ -205,6 +228,7 @@ const Domains = ({ setter }) => {
             type: 'spacefill',
             color: rep.color,
             opacity: rep.opacity ? rep.opacity * 0.2 : 0.2,
+            customScheme: rep.customScheme,
           };
         })
       : [];
