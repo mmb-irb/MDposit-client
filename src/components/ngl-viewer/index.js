@@ -329,9 +329,14 @@ const NGLViewer = memo(
                 trajectoryFilename = 'trajectory.bin';
 
               // Get the 'files' summary of the required trajectory
-              const trajectoryMetadata = files.find(file => {
+              const trajectoryFile = files.find(file => {
                 return file.filename === trajectoryFilename;
-              }).metadata;
+              });
+              if (!trajectoryFile)
+                throw new Error(
+                  `Trajectory "${trajectoryFilename}" is missing`,
+                );
+              const trajectoryMetadata = trajectoryFile.metadata;
 
               // Get the number of frames in the whole trajectory
               const trajectoryFrames = trajectoryMetadata.frames;

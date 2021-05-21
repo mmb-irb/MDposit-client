@@ -12,7 +12,7 @@ const ChainsLegend = () => {
   // Number of chains must match
   if (chainTopology.count !== chainnames.length)
     throw new Error(
-      `The numbers of chains in metadata and topology does not match`,
+      `The numbers of chains in metadata (${chainnames.length}) and topology (${chainTopology.count}) does not match`,
     );
   // Harvest chains in topology
   // WARNING: Do not use project.chains since only protein chains are included
