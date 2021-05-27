@@ -64,13 +64,6 @@ export const TrajectoryMetadata = memo(() => {
           />
           <TextField
             className={style['text-field']}
-            label="Phospholipids"
-            title="Number of membrane molecules in the system"
-            value={metadata.DPPC === null ? na : metadata.DPPC}
-            disabled={metadata.DPPC === null}
-          />
-          <TextField
-            className={style['text-field']}
             label="Solvent molecules"
             title="Number of solvent molecules in the system"
             value={metadata.SOL === null ? na : metadata.SOL}
