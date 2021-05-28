@@ -16,6 +16,8 @@ const titlesD3font = 'normal 14px sans-serif';
 // DANI: Ni este 'memo' ni el 'useMemo' de dentro funcionan. Siempre se vuelve a calcular
 // Lo óptimo sería que funcionase, ya que cada vez que el ususario hace click todo se vuelve a cargar
 // Hay que construir una 'comparision function': https://reactjs.org/docs/react-api.html#reactmemo
+
+// Input 'data' is expected to be an array of arrays (i.e. a matrix)
 const D3HeatmapGrid = memo(
   ({
     data, // The main values
@@ -46,7 +48,7 @@ const D3HeatmapGrid = memo(
     }
     if (yAxisValues.length !== new Set(yAxisValues).size) {
       console.log(yAxisValues);
-      throw new Error(`Duplicated values in the X axis`);
+      throw new Error(`Duplicated values in the Y axis`);
     }
 
     // If any label is empty, fill it with 1-n numbers

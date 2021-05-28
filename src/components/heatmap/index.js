@@ -1,15 +1,12 @@
-import React, { lazy, Suspense, useRef, useMemo } from 'react';
+import React, { Suspense, useMemo } from 'react';
 
-import { Card, CardContent, Typography } from '@material-ui/core';
+import { CardContent } from '@material-ui/core';
 
 import style from './style.module.css';
 
 import D3HeatmapGrid from '../d3-heatmap-grid';
 
-// Heatmap moduel: https://www.npmjs.com/package/react-heatmap-grid
-const HeatmapGrid = lazy(() =>
-  import(/* webpackChunkName: 'react-heatmap-grid' */ 'react-heatmap-grid'),
-);
+import ColorLegend from '../color-legend';
 
 const Heatmap = ({
   // The API url to load the main data
@@ -23,20 +20,14 @@ const Heatmap = ({
   // Title to be rendered over the legend
   // No legend will be rendered if it is blank
   legendTitle = '',
-  legendLength = 11,
-  // Color to represent the maximum and minimum values in rgb format {r:r,g:g,b:b}
-  maxValueColor = { r: 255, g: 0, b: 0 },
-  minValueColor = { r: 0, g: 0, b: 255 },
   // New color systems
   maxColor,
   minColor,
   xTitle,
   yTitle,
 }) => {
-  const processedData = useRef({});
-
   // Data processing
-  useMemo(() => {
+  const { data, xLabels, yLabels, minValue, maxValue } = useMemo(() => {
     // Return if the payload is not ready
     if (!inputData || !inputData.data || inputData.data.length === 0) return;
 
@@ -119,67 +110,22 @@ const Heatmap = ({
     // Set the legend, which is another heatmap
     const minValue = Math.min(...data.map(values => Math.min(...values)));
     const maxValue = Math.max(...data.map(values => Math.max(...values)));
-    const values = [];
-    for (
-      let i = minValue;
-      i <= maxValue;
-      i += (maxValue - minValue) / legendLength
-    )
-      values.push(i);
-
-    let legendLabels;
-    // Round all values
-    legendLabels = values.map(val => Math.round(val));
-    // If are there repeated labels we round to decimals
-    if (new Set(legendLabels).size < legendLabels.length)
-      legendLabels = values.map(val => Math.round(val * 10) / 10);
-    // If are there repeated labels we round to centesimals
-    if (new Set(legendLabels).size < legendLabels.length)
-      legendLabels = values.map(val => Math.round(val * 100) / 100);
-    // If are there repeated labels you may consider what you are loading :)
-
-    // Data must be an array inside an array
-    const legendData = [values];
 
     // Save all processed data
-    processedData.current = {
+    return {
       data: data,
       xLabels: xLabels,
       yLabels: yLabels,
-      legendData: legendData,
-      legendLabels: legendLabels,
-      xstep: xstep,
-      ystep: ystep,
-      yLength: yLength,
+      minValue: minValue,
+      maxValue: maxValue,
     };
     // WARNING: Changes in 'inputData' may be not detected
-  }, [inputData, xMaxCells, yMaxCells, legendLength]);
+  }, [inputData, xMaxCells, yMaxCells]);
 
   // Render loading or error messages according with the API response
   if (!inputData) return 'Heatmap Error: No "inputData" was provided';
   if (!inputData.data || inputData.data.length === 0)
     return 'Heatmap Error: The data field is empty or non existent';
-
-  // Retrieve all processed data
-  const {
-    data,
-    xLabels,
-    yLabels,
-    legendData,
-    legendLabels,
-  } = processedData.current;
-
-  // Color interpolation from red (closest) to blue (farest)
-  const colorinter = (value, min, max) => {
-    const prop = 1 - (max - value) / (max - min);
-    if (prop < 0.5) {
-      const curved = 1 - (2 * prop * prop + prop);
-      return `rgba(${minValueColor.r}, ${minValueColor.g}, ${minValueColor.b}, ${curved})`;
-    } else {
-      const curved = 1 - (4 * prop * prop - 8 * prop + 4);
-      return `rgba(${maxValueColor.r}, ${maxValueColor.g}, ${maxValueColor.b}, ${curved})`;
-    }
-  };
 
   // Render
   return (
@@ -196,22 +142,15 @@ const Heatmap = ({
         onClick={onClick ? d => onClick(d.x, d.y) : undefined}
       />
       {legendTitle && (
-        <Card className={style.card}>
-          <CardContent>
-            <Typography variant="h6">{legendTitle}</Typography>
-            <HeatmapGrid
-              data={legendData}
-              xLabels={legendLabels}
-              yLabels={['']}
-              xLabelsLocation={'bottom'}
-              yLabelWidth={0}
-              cellStyle={(background, value, min, max, data, x, y) => ({
-                background: colorinter(value, min, max),
-                margin: '0px',
-              })}
-            />
-          </CardContent>
-        </Card>
+        <CardContent>
+          <ColorLegend
+            title={legendTitle}
+            minValue={minValue}
+            maxValue={maxValue}
+            maxColor={maxColor}
+            minColor={minColor}
+          />
+        </CardContent>
       )}
     </Suspense>
   );
