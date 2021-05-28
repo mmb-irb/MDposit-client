@@ -235,7 +235,7 @@ const Sasa = () => {
             yData={selectedData}
             step={timeStep}
             xAxisLabel={'Time (ns)'}
-            yAxisLabel={'Surface (nm²)'}
+            yAxisLabel={'SAS per atom (nm²)'}
             onSelect={handleFrameSelection}
             selected={selectedFrame}
           />
