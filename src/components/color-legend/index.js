@@ -30,12 +30,15 @@ const ColorLegend = ({
     // Round all values
     legendLabels = values.map(val => Math.round(val));
     // If are there repeated labels we round to decimals
-    if (new Set(legendLabels).size < legendLabels.length)
-      legendLabels = values.map(val => Math.round(val * 10) / 10);
-    // If are there repeated labels we round to centesimals
-    if (new Set(legendLabels).size < legendLabels.length)
-      legendLabels = values.map(val => Math.round(val * 100) / 100);
-    // If are there repeated labels you may consider what you are loading :)
+    for (
+      let decimal = 1;
+      new Set(legendLabels).size < legendLabels.length;
+      decimal++
+    ) {
+      legendLabels = values.map(
+        val => Math.round(val * 10 ** decimal) / 10 ** decimal,
+      );
+    }
 
     // Data must be an array inside an array
     const legendData = [values];
