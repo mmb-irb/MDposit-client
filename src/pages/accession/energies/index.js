@@ -204,19 +204,19 @@ const Energies = () => {
               className={style['text-field']}
               label="Electrostatic + Van der Waals"
               title="Sum electorstatic + Van der Waals value along the whole trajectory"
-              value={getSum(data.es) + ' kcal/mol'}
+              value={getSum(data.both) + ' kcal/mol'}
             />
             <TextField
               className={style['text-field']}
               label="Electrostatic + Van der Waals Initial"
               title="Sum electorstatic + Van der Waals value along the first 20% trajectory frames"
-              value={getSum(data.ies) + ' kcal/mol'}
+              value={getSum(data.iboth) + ' kcal/mol'}
             />
             <TextField
               className={style['text-field']}
               label="Electrostatic + Van der Waals Final"
               title="Sum electorstatic + Van der Waals value along the last 20% trajectory frames"
-              value={getSum(data.fes) + ' kcal/mol'}
+              value={getSum(data.fboth) + ' kcal/mol'}
             />
           </div>
         </CardContent>
