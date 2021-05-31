@@ -12,3 +12,8 @@
   flex-direction: row;
   justify-content: flex-start;
 }
+
+.heatmap {
+  height: 600px;
+  width: 100%;
+}

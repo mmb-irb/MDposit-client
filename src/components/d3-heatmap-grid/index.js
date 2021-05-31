@@ -1,4 +1,4 @@
-import React, { Suspense, useRef, useEffect, memo } from 'react';
+import React, { Suspense, useRef, useEffect, useState, memo } from 'react';
 
 import Loading from '../loading';
 
@@ -25,12 +25,9 @@ const D3HeatmapGrid = memo(
     yAxisValues = [], // String labels for the vertical axis
     xAxisLabel, // String title for the horizontal axis
     yAxisLabel, // String title for the vertical axis
-    width = 1000,
-    height = 600,
     verticalPadding = 0,
-    maxColor = 'blue',
-    midColor = 'white',
-    minColor = 'red',
+    colorPlan = ['red', 'white', 'blue'],
+    colorScale, // In case a color scale is passed it overrides the max, mid and min colors
     onTooltip, // Text to be rendered on the tooltip
     onClick, // Function to be called when clicking on the heatmap
     flippedXAxisValues = true, // Set if values in x axis is horizontal (false) or vertical (true)
@@ -81,6 +78,11 @@ const D3HeatmapGrid = memo(
     // Save the previous chart reference so we can remove it before a new render
     const previousCharts = useRef(null);
 
+    // Use a state as a workaround to force rerenders on window resize
+    const [currentWindow, setCurrentWindow] = useState(null);
+    if (currentWindow)
+      console.log(currentWindow.innerWidth + ' / ' + currentWindow.innerHeight);
+
     // ----------------------------------------------------------------------------------------
 
     // OFFSETS: Estimate the space needed for all the labels and titles to not overlap
@@ -127,26 +129,13 @@ const D3HeatmapGrid = memo(
 
     // Set the dimensions and offsets of the graph
     const offset = {
-        top: margin.top,
-        right: margin.right,
-        bottom: requiredXOffset + margin.bottom,
-        left: requiredYOffset + margin.left,
-      },
-      bodyWidth = width - offset.left - offset.right,
-      bodyHeight = height - offset.top - offset.bottom;
+      top: margin.top,
+      right: margin.right,
+      bottom: requiredXOffset + margin.bottom,
+      left: requiredYOffset + margin.left,
+    };
 
     // ----------------------------------------------------------------------------------------
-
-    // Calculate how many labels we can show in any axis while avoiding overlapping
-    // Take in count that bottom labels are rotated 90º, so it is their height that counts
-    // The '* 1.05' is to grant a small padding
-    const xSlots =
-      bodyWidth / ((flippedXAxisValues ? textHeight : maxXAxisWidth) * 1.05);
-    const ySlots = bodyHeight / (textHeight * 1.05);
-
-    // Estimate how many labels we must skip to reach the desired number
-    const xstep = Math.ceil(xAxisValues.length / xSlots);
-    const ystep = Math.ceil(yAxisValues.length / ySlots);
 
     // The chart is assigned to a referenced 'div' which must be rendered first
     // All this process is runned after the render
@@ -157,7 +146,29 @@ const D3HeatmapGrid = memo(
       if (previousCharts.current)
         previousCharts.current.forEach(chart => chart.remove());
 
+      // Get the current element where all this heatmap is placed
       const container = containerRef.current;
+      // The first render, when there is no reference to the current element yet, we skip the process
+      const {
+        clientWidth: width,
+        clientHeight: height,
+      } = container.parentElement;
+      console.log(height);
+
+      // Calculate the body width and height
+      const bodyWidth = width - offset.left - offset.right;
+      const bodyHeight = height - offset.top - offset.bottom;
+
+      // Calculate how many labels we can show in any axis while avoiding overlapping
+      // Take in count that bottom labels are rotated 90º, so it is their height that counts
+      // The '* 1.05' is to grant a small padding
+      const xSlots =
+        bodyWidth / ((flippedXAxisValues ? textHeight : maxXAxisWidth) * 1.05);
+      const ySlots = bodyHeight / (textHeight * 1.05);
+
+      // Estimate how many labels we must skip to reach the desired number
+      const xstep = Math.ceil(xAxisValues.length / xSlots);
+      const ystep = Math.ceil(yAxisValues.length / ySlots);
 
       // append the svg object to the body of the page
       const svg = select(container)
@@ -242,9 +253,11 @@ const D3HeatmapGrid = memo(
       }
 
       // Build color scale
-      const myColor = scaleLinear()
-        .range([minColor, midColor, maxColor])
-        .domain([minv, (minv + maxv) / 2, maxv]);
+      const myColor = colorScale
+        ? colorScale
+        : scaleLinear()
+            .range(colorPlan)
+            .domain([minv, (minv + maxv) / 2, maxv]);
 
       // Draw the heatmap cells
       const cellsContainer = svg.append('g').attr('id', 'cells-container');
@@ -264,81 +277,99 @@ const D3HeatmapGrid = memo(
         .style('cursor', onClick ? 'pointer' : undefined);
 
       // Create a tooltip
-      const tooltip = document.createElement('div');
-      Object.assign(tooltip.style, {
-        display: 'none',
-        position: 'absolute',
-        pointerEvents: 'none',
-        backgroundColor: 'rgba( 0, 0, 0, 0.6 )',
-        color: 'lightgrey',
-        padding: '8px',
-        fontFamily: 'sans-serif',
-      });
-      container.appendChild(tooltip);
+      let tooltip;
+      let handleMouseOver;
+      let handleMouseOut;
+      if (onTooltip) {
+        tooltip = document.createElement('div');
+        Object.assign(tooltip.style, {
+          display: 'none',
+          position: 'absolute',
+          pointerEvents: 'none',
+          backgroundColor: 'rgba( 0, 0, 0, 0.6 )',
+          color: 'lightgrey',
+          padding: '8px',
+          fontFamily: 'sans-serif',
+        });
+        container.appendChild(tooltip);
 
-      // Handle tooltip text when it moves
-      // WARNING: Arrow function here makes it crash. I dont know why
-      const mousemove = function(d) {
-        tooltip.innerText = onTooltip
-          ? onTooltip(d)
-          : d.x + ' - ' + d.y + '\n' + Math.round(d.v * 100) / 100;
-      };
+        // Handle tooltip text when it moves
+        // WARNING: Arrow function here makes it crash. I dont know why
+        const mousemove = function(d) {
+          tooltip.innerText = onTooltip(d);
+        };
 
-      // Handle when a cell is clicked
-      const mouseclick = d => {
-        if (onClick) onClick(d);
-      };
+        // Add events to cells
+        cells.on('mousemove', mousemove);
 
-      // Add events to cells
-      cells.on('mousemove', mousemove).on('click', mouseclick);
+        // Set the tooltip position when it is inside the heatmap
+        handleMouseOver = event => {
+          tooltip.style.display = 'inline-block';
+          const mpx = event.clientX;
+          const mpy = event.clientY;
+          const { x, y } = setTooltipPosition(
+            container,
+            tooltip,
+            { x: mpx, y: mpy },
+            3,
+          );
+          tooltip.style.left = x + 'px';
+          tooltip.style.top = y + 'px';
+        };
 
-      // Set the tooltip position when it is inside the heatmap
-      const handleMouseOver = event => {
-        tooltip.style.display = 'inline-block';
-        const mpx = event.clientX;
-        const mpy = event.clientY;
-        const { x, y } = setTooltipPosition(
-          container,
-          tooltip,
-          { x: mpx, y: mpy },
-          3,
-        );
-        tooltip.style.left = x + 'px';
-        tooltip.style.top = y + 'px';
-      };
+        // Hide the tooltip
+        handleMouseOut = () => {
+          tooltip.style.display = 'none';
+        };
 
-      // Hide the tooltip
-      const handleMouseOut = event => {
-        //tooltip.style('display', 'none')
-        tooltip.style.display = 'none';
-      };
-
-      previousCharts.current = [svg, tooltip];
-
-      // Add the handlers for tooltip position
-      cellsContainerElement.addEventListener(
-        'mouseover',
-        handleMouseOver,
-        true,
-      );
-      cellsContainerElement.addEventListener(
-        'mouseleave',
-        handleMouseOut,
-        true,
-      );
-
-      // Cleaning function
-      return () => {
-        cellsContainerElement.removeEventListener(
+        // Add the handlers for tooltip position
+        cellsContainerElement.addEventListener(
           'mouseover',
           handleMouseOver,
           true,
         );
-        cellsContainerElement.removeEventListener(
+        cellsContainerElement.addEventListener(
           'mouseleave',
           handleMouseOut,
           true,
         );
+      }
+
+      previousCharts.current = tooltip ? [svg, tooltip] : [svg];
+
+      // Handle when a cell is clicked
+      if (onClick) {
+        const mouseclick = d => {
+          onClick(d);
+        };
+
+        // Add events to cells
+        cells.on('click', mouseclick);
+      }
+
+      const handleResize = () => {
+        setCurrentWindow({
+          innerWidth: window.innerWidth,
+          innerHeight: window.innerHeight,
+        });
+      };
+      window.addEventListener('resize', handleResize);
+
+      // Cleaning function
+      return () => {
+        if (onTooltip) {
+          cellsContainerElement.removeEventListener(
+            'mouseover',
+            handleMouseOver,
+            true,
+          );
+          cellsContainerElement.removeEventListener(
+            'mouseleave',
+            handleMouseOut,
+            true,
+          );
+        }
+        window.removeEventListener('resize', handleResize);
       };
     }); // This useEffect has no dependencies
 

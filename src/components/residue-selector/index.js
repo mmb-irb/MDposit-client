@@ -2,6 +2,12 @@ import React, { useMemo, useEffect } from 'react';
 
 import style from './style.module.css';
 
+import { CardContent } from '@material-ui/core';
+
+import ColorLegend from '../color-legend';
+
+import { scaleLinear } from 'd3';
+
 // These colors are used to mark each selected residues
 // When all colors are used the next residues are marked in black
 const asignedColors = [
@@ -51,9 +57,9 @@ sequences = [
     residues: [
       {
         letter: string,
-        value: (whatever is to be 'set' on click)
+        data: (whatever is to be 'set' on click)
         tooltip: string,
-        color: string,
+        value: string, (used to color the residue and set the legend numbers)
       },
       ...
     ],
@@ -63,20 +69,43 @@ sequences = [
 */
 // Render a flexible sequence of numerated residues which is also interactive
 // WARNING: The color marks implementation requires de 'selectedResidues' state to be an array of objects
-const ResidueSelector = ({ sequences, selectedResiduesSetter }) => {
+const ResidueSelector = ({
+  sequences,
+  colorPlan,
+  selectedResiduesSetter,
+  legendTitle,
+}) => {
   // Save an array with all 'settable' values
-  const values = useMemo(() => {
-    const values = [];
+  const { residuesData, maxValue, minValue } = useMemo(() => {
+    // Collect all residues in all sequences
+    const residues = [];
     let count = 0;
     sequences.forEach(sequence => {
       sequence.residues.forEach(residue => {
         residue.index = count;
-        values.push(residue.value);
+        residues.push(residue);
         count += 1;
       });
     });
-    return values;
-  }, [sequences]);
+    // Get all residues data
+    const residuesData = residues.map(residue => residue.data);
+    const values = residues.map(residue => residue.value);
+    const maxValue = Math.max(...values);
+    const minValue = Math.min(...values);
+    // Set the color scale
+    if (colorPlan) {
+      // WARNING: It is recomended to use white as the majoritarian color for esthetic reasons
+      const colorScale = scaleLinear()
+        .range(colorPlan)
+        .domain([minValue, (minValue + maxValue) / 2, maxValue]);
+      // Set the color of each residue
+      residues.forEach(residue => {
+        residue.color = colorScale(residue.value);
+      });
+    }
+
+    return { residuesData, maxValue, minValue };
+  }, [sequences, colorPlan]);
 
   // Add events to manage when the mouse hovers / outs / clicks on residues
   useEffect(() => {
@@ -96,18 +125,18 @@ const ResidueSelector = ({ sequences, selectedResiduesSetter }) => {
       // WARNING: This method does not allow to get objects and there is no easy way to do it
       // Thats why it is done this work around with the residue index
       const residueIndex = event.target.getAttribute('residueindex');
-      const value = values[residueIndex];
+      const data = residuesData[residueIndex];
       let selected;
       let color;
       if (selectedResiduesSetter)
         selectedResiduesSetter(previous => {
           const newState = [...previous];
-          const index = newState.indexOf(value);
+          const index = newState.indexOf(data);
           if (index === -1) {
-            // Set an available color for this tag
+            // Set an available color for this
             color = getColor();
-            value.color = color;
-            newState.push(value);
+            data.color = color;
+            newState.push(data);
             selected = true;
           } else {
             newState.splice(index, 1);
@@ -145,48 +174,57 @@ const ResidueSelector = ({ sequences, selectedResiduesSetter }) => {
       manager.removeEventListener('mousedown', hadleMouseClick, true);
       asignedColors.forEach(ac => (ac.used = false));
     };
-  }, [sequences, selectedResiduesSetter, values]);
-
-  //console.log(chains);
+  }, [sequences, selectedResiduesSetter, residuesData]);
 
   // Render
   return (
-    <div id="manager">
-      {sequences.map(sequence => {
-        return (
-          <details open key={sequence.name}>
-            <summary>{sequence.name}</summary>
-            <span className={style.flexible}>
-              {sequence.residues.map((residue, index) => {
-                // isTen is true once every 10 residues
-                const isTen = (index + 1) % 10 === 0;
-                return [
-                  <span
-                    lang={'residue'}
-                    key={index}
-                    className={style['normal']}
-                    style={{ backgroundColor: residue.color }}
-                    title={residue.tooltip}
-                    residueindex={residue.index}
-                  >
-                    {residue.letter}
-                  </span>,
-                  isTen && (
+    <div className={style.horizontal}>
+      {colorPlan && (
+        <ColorLegend
+          title={legendTitle}
+          minValue={minValue}
+          maxValue={maxValue}
+          colorPlan={colorPlan}
+          vertical={true}
+        />
+      )}
+      <CardContent className={style.scroll} id="manager">
+        {sequences.map(sequence => {
+          return (
+            <details open key={sequence.name}>
+              <summary>{sequence.name}</summary>
+              <span className={style.flexible}>
+                {sequence.residues.map((residue, index) => {
+                  // isTen is true once every 10 residues
+                  const isTen = (index + 1) % 10 === 0;
+                  return [
                     <span
-                      key={index + '_'}
-                      className={style['extra-right-margin']}
+                      lang={'residue'}
+                      key={index}
+                      className={style['normal']}
+                      style={{ backgroundColor: residue.color }}
+                      title={residue.tooltip}
+                      residueindex={residue.index}
                     >
-                      <span className={style['small-up-number']}>
-                        {index + 1}
+                      {residue.letter}
+                    </span>,
+                    isTen && (
+                      <span
+                        key={index + '_'}
+                        className={style['extra-right-margin']}
+                      >
+                        <span className={style['small-up-number']}>
+                          {index + 1}
+                        </span>
                       </span>
-                    </span>
-                  ),
-                ];
-              })}
-            </span>
-          </details>
-        );
-      })}
+                    ),
+                  ];
+                })}
+              </span>
+            </details>
+          );
+        })}
+      </CardContent>
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { Suspense, useMemo } from 'react';
+import React, { useMemo } from 'react';
 
 import { CardContent } from '@material-ui/core';
 
@@ -13,11 +13,12 @@ const ColorLegend = ({
   // Maximum and minimum possible values
   maxValue = 1,
   minValue = 0,
-  // Color to represent the maximum and minimum values in rgb format {r:r,g:g,b:b}
-  maxColor = 'red',
-  minColor = 'blue',
+  // Colors to represent the values range from lower to higher (e.g. ['red', 'white', 'blue'])
+  colorPlan,
   // Number of cells in the legend heatmap (i.e. how many times we split the color bar)
   splits = 19,
+  // Set if the color bar must be veritcal
+  vertical = false,
 }) => {
   // Create a fake 'data' object for the heatmap
   const { legendData, legendLabels } = useMemo(() => {
@@ -41,26 +42,22 @@ const ColorLegend = ({
     }
 
     // Data must be an array inside an array
-    const legendData = [values];
+    const legendData = vertical ? values.map(v => [v]) : [values];
     return { legendData, legendLabels };
-  }, [maxValue, minValue, splits]);
+  }, [maxValue, minValue, splits, vertical]);
 
   // Render
   return (
-    <Suspense fallback={<div className={style.loading}>Loading...</div>}>
-      <CardContent className={style.horizontal}>
-        {title}
-        <D3HeatmapGrid
-          data={legendData}
-          xAxisValues={legendLabels}
-          yAxisValues={['']}
-          maxColor={maxColor}
-          minColor={minColor}
-          flippedXAxisValues={false}
-          height={80}
-        />
-      </CardContent>
-    </Suspense>
+    <CardContent className={vertical ? style.vertical : style.horizontal}>
+      {title}
+      <D3HeatmapGrid
+        data={legendData}
+        xAxisValues={vertical ? [''] : legendLabels}
+        yAxisValues={vertical ? legendLabels : ['']}
+        colorPlan={colorPlan}
+        flippedXAxisValues={false}
+      />
+    </CardContent>
   );
 };
 

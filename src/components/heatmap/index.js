@@ -20,9 +20,9 @@ const Heatmap = ({
   // Title to be rendered over the legend
   // No legend will be rendered if it is blank
   legendTitle = '',
-  // New color systems
-  maxColor,
-  minColor,
+  // Colors to represent the values range from lower to higher (e.g. ['red', 'white', 'blue'])
+  colorPlan,
+  // Titles for x and y axes
   xTitle,
   yTitle,
 }) => {
@@ -130,25 +130,27 @@ const Heatmap = ({
   // Render
   return (
     <Suspense fallback={<div className={style.loading}>Loading...</div>}>
-      <D3HeatmapGrid
-        data={data}
-        xAxisValues={xLabels}
-        yAxisValues={yLabels}
-        maxColor={maxColor}
-        minColor={minColor}
-        xAxisLabel={xTitle}
-        yAxisLabel={yTitle}
-        height={yLabels.length === 1 ? 150 : undefined}
-        onClick={onClick ? d => onClick(d.x, d.y) : undefined}
-      />
+      <div className={style.heatmap}>
+        <D3HeatmapGrid
+          data={data}
+          xAxisValues={xLabels}
+          yAxisValues={yLabels}
+          colorPlan={colorPlan}
+          xAxisLabel={xTitle}
+          yAxisLabel={yTitle}
+          onClick={onClick ? d => onClick(d.x, d.y) : undefined}
+          onTooltip={d =>
+            d.x + ' - ' + d.y + '\n' + Math.round(d.v * 100) / 100
+          }
+        />
+      </div>
       {legendTitle && (
         <CardContent>
           <ColorLegend
             title={legendTitle}
             minValue={minValue}
             maxValue={maxValue}
-            maxColor={maxColor}
-            minColor={minColor}
+            colorPlan={colorPlan}
           />
         </CardContent>
       )}

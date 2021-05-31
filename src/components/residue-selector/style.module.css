@@ -1,3 +1,14 @@
+.horizontal {
+  display: flex;
+  flex-direction: row;
+  max-height: 300px;
+}
+
+.scroll {
+  overflow-y: scroll;
+  padding-left: 0px;
+}
+
 .flexible {
   display: flex;
   flex-wrap: wrap;
