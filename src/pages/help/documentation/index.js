@@ -621,13 +621,13 @@ const documentation = [
         <br />
         <br />
         Graph at bottom left displays the SAS per atom of selected residues. Y
-        axis represents the surface in squared nanometers (nm<sup>{2}</sup>)
-        while X axis represents the simulation time in nanoseconds (ns). The
-        graph is <span style={{ color: 'lightGreen' }}>interactive</span>. Use
-        the mouse wheel to zoom in a specific region. Click and hold at any
-        point in the graph to drag it left or right. Hover any point in the
-        graph to show the corresponding SAS and time values. Click any point in
-        the graph to make the NGL viewer represent the corresponding time frame.
+        axis represents the surface in squared Ångstroms (Å<sup>{2}</sup>) while
+        X axis represents the simulation time in nanoseconds (ns). The graph is{' '}
+        <span style={{ color: 'lightGreen' }}>interactive</span>. Use the mouse
+        wheel to zoom in a specific region. Click and hold at any point in the
+        graph to drag it left or right. Hover any point in the graph to show the
+        corresponding SAS and time values. Click any point in the graph to make
+        the NGL viewer represent the corresponding time frame.
         <br />
         <br />
         <a

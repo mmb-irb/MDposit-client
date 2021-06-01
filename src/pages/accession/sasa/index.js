@@ -223,7 +223,7 @@ const Sasa = () => {
           sequences={sequences}
           selectedResiduesSetter={setSelectedResidues}
           colorPlan={whiteColorPlan}
-          legendTitle={'Average SAS per atom (nm²)'}
+          legendTitle={'Average SAS per atom (Å²)'}
         />
       </Card>
       <Card className={style['graph']}>
@@ -232,7 +232,7 @@ const Sasa = () => {
             yData={selectedData}
             step={timeStep}
             xAxisLabel={'Time (ns)'}
-            yAxisLabel={'SAS per atom (nm²)'}
+            yAxisLabel={'SAS per atom (Å²)'}
             onSelect={handleFrameSelection}
             selected={selectedFrame}
           />
