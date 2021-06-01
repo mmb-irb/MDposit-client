@@ -153,7 +153,6 @@ const D3HeatmapGrid = memo(
         clientWidth: width,
         clientHeight: height,
       } = container.parentElement;
-      console.log(height);
 
       // Calculate the body width and height
       const bodyWidth = width - offset.left - offset.right;
@@ -379,7 +378,8 @@ const D3HeatmapGrid = memo(
         <div
           ref={containerRef}
           id={'container'}
-          style={{ position: 'relative' }}
+          // WARNING: This width 100% may seem redundant, but chrome needs it
+          style={{ position: 'relative', width: '100%', height: '100%' }}
         />
       </Suspense>
     );
