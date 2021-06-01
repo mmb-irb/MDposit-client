@@ -344,16 +344,27 @@ const LinkSwitch = ({ accession, subPage }) => {
       end = '';
       break;
     case 'rgyr':
-    case 'rmsd':
+    case 'rmsds':
+    case 'rmsd-perres':
+    case 'rmsd-pairwise':
     case 'pca':
     case 'fluctuation':
+    case 'sasa':
+    case 'dist-perres':
+    case 'hbonds':
+    case 'energies':
+    case 'pockets':
       end = `analyses/${subPage}`;
       break;
     case 'files':
       end = subPage;
       break;
+    case 'mutations':
+    case 'epitopes':
+      end = 'toporefs';
+      break;
     default:
-      end = '';
+      return null; // No button is rendered
   }
   return (
     <Button
