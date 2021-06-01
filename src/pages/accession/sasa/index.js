@@ -41,6 +41,14 @@ import Graph2 from '../../../components/graph2';
 // Define permanent options for the "useInView"
 const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
 
+// Set the color of each residue in the NGL representation
+// WARNING: Grey looks better than white because the background may be white and resdiues are hard to see
+const greyColorPlan = ['grey', 'yellow', 'red'];
+
+// Set the color of each residue letter in the residue selector
+// WARNING: White looks better than grey because the background is white and the contrast would be notable
+const whiteColorPlan = ['white', 'yellow', 'red'];
+
 const Sasa = () => {
   // Track if the NGL viewer
   // The status isNglVisible is returned true/false when the element is in/out the screen respectively
@@ -68,13 +76,7 @@ const Sasa = () => {
   const [selectedResidues, setSelectedResidues] = useState([]);
 
   // Get the residues list in model notation
-  const {
-    mainComponent,
-    framesNumber,
-    timeStep,
-    sequences,
-    whiteColorPlan,
-  } = useMemo(() => {
+  const { mainComponent, framesNumber, timeStep, sequences } = useMemo(() => {
     if (!pdbData.file || !metadata || !payload) return {};
 
     const data = payload.data;
@@ -86,7 +88,6 @@ const Sasa = () => {
     const min = Math.min(...means);
 
     // Set the color scale according to the maximum and minimum means
-    const greyColorPlan = ['grey', 'yellow', 'red'];
     const greyColorScale = scaleLinear()
       .range(greyColorPlan)
       .domain([min, (min + max) / 2, max]);
@@ -166,11 +167,7 @@ const Sasa = () => {
       };
     });
 
-    // Set the color of each residue letter in the residue selector
-    // WARNING: White looks better than grey because the background is white and the contrast would be notable
-    const whiteColorPlan = ['white', 'yellow', 'red'];
-
-    return { mainComponent, framesNumber, timeStep, sequences, whiteColorPlan };
+    return { mainComponent, framesNumber, timeStep, sequences };
   }, [payload, pdbData, metadata, accession]);
 
   // Get the residues list in model notation

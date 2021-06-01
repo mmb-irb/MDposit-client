@@ -8,9 +8,9 @@ import React, {
 } from 'react';
 import { useInView } from 'react-intersection-observer';
 
-import { CardContent, Typography } from '@material-ui/core';
+import { Typography } from '@material-ui/core';
 
-import { color as d3color, interpolateRgb } from 'd3';
+import { color as d3color, scaleLinear } from 'd3';
 
 import Card from '../../../components/animated-card';
 import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
@@ -30,8 +30,6 @@ import {
   absolute2sourceResidue,
 } from '../../../utils/topology-manager';
 
-//import Selector from '../../../components/selector';
-
 import { ColormakerRegistry } from 'ngl';
 
 import ResidueSelector from '../../../components/residue-selector';
@@ -40,6 +38,14 @@ import Graph2 from '../../../components/graph2';
 
 // Define permanent options for the "useInView"
 const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
+
+// Set the color of each residue in the NGL representation
+// WARNING: Grey looks better than white because the background may be white and resdiues are hard to see
+const greyColorPlan = ['grey', 'yellow', 'red'];
+
+// Set the color of each residue letter in the residue selector
+// WARNING: White looks better than grey because the background is white and the contrast would be notable
+const whiteColorPlan = ['white', 'yellow', 'red'];
 
 // Round to cents
 const nice = number => Math.round(number * 100) / 100;
@@ -98,13 +104,9 @@ const RmsdPerres = () => {
     const min = Math.min(...means);
 
     // Set the color scale according to the maximum and minimum means
-    const greyLowerScale = interpolateRgb('grey', 'yellow');
-    const higherScale = interpolateRgb('yellow', 'red');
-    const greyColorScale = value => {
-      const normalizedValue = (value - min) * (1 / (max - min));
-      if (normalizedValue < 0.5) return greyLowerScale(normalizedValue * 2);
-      else return higherScale((normalizedValue - 0.5) * 2);
-    };
+    const greyColorScale = scaleLinear()
+      .range(greyColorPlan)
+      .domain([min, (min + max) / 2, max]);
 
     // Set each residue color in the ngl representation according to the color cale
     // WARNING: Grey looks better than white because the background is white and the structure is easier to see
@@ -128,15 +130,6 @@ const RmsdPerres = () => {
         return color;
       };
     });
-
-    // Set the color of each residue letter in the residue selector
-    // WARNING: White looks better than grey because the background is white and the contrast would be notable
-    const whiteLowerScale = interpolateRgb('white', 'yellow');
-    const whiteColorScale = value => {
-      const normalizedValue = (value - min) * (1 / (max - min));
-      if (normalizedValue < 0.5) return whiteLowerScale(normalizedValue * 2);
-      else return higherScale((normalizedValue - 0.5) * 2);
-    };
 
     const firstResidue = data[0];
     const framesNumber = firstResidue.rmsds.length;
@@ -172,9 +165,9 @@ const RmsdPerres = () => {
       const residueData = availableResidues[index];
       const fResidue = {
         letter: residue.letter,
-        value: residueData,
+        data: residueData,
         tooltip: `Mean: ${residueData.mean}\nStandard deviation: ${residueData.stdv}`,
-        color: whiteColorScale(residueData.mean),
+        value: residueData.mean,
       };
       const chain = residue.chain;
       const current = chains[chain];
@@ -236,13 +229,12 @@ const RmsdPerres = () => {
   return (
     <Suspense fallback={<Loading />}>
       <Card>
-        <CardContent className={style.paper}>
-          <ResidueSelector
-            //modelResidues={modelResidues}
-            sequences={sequences}
-            selectedResiduesSetter={setSelectedResidues}
-          />
-        </CardContent>
+        <ResidueSelector
+          sequences={sequences}
+          selectedResiduesSetter={setSelectedResidues}
+          colorPlan={whiteColorPlan}
+          legendTitle={'Average RMSD (Å)'}
+        />
       </Card>
       <Card className={style['graph']}>
         {selectedResidues.length > 0 ? (
