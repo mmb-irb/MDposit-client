@@ -233,13 +233,15 @@ const DistPerres = () => {
         // If the nailed/closed viewer is the current viewer then reset the 'selected'
         onNail={viewer =>
           setSelected(previous => {
-            if (viewer.selectedResidues === previous.residues) return null;
+            if (previous && previous.residues === viewer.selectedResidues)
+              return null;
             else return previous;
           })
         }
         onClose={viewer =>
           setSelected(previous => {
-            if (viewer.selectedResidues === previous.residues) return null;
+            if (previous && previous.residues === viewer.selectedResidues)
+              return null;
             else return previous;
           })
         }

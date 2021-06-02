@@ -226,13 +226,15 @@ const Hbonds = () => {
         // If the nailed/closed viewer is the current viewer then reset the 'selected'
         onNail={viewer =>
           setSelectedHB(previous => {
-            if (viewer.selectedAtoms === previous.selectedAtoms) return null;
+            if (previous && previous.selectedAtoms === viewer.selectedAtoms)
+              return null;
             else return previous;
           })
         }
         onClose={viewer => {
           setSelectedHB(previous => {
-            if (viewer.selectedAtoms === previous.selectedAtoms) return null;
+            if (previous && previous.selectedAtoms === viewer.selectedAtoms)
+              return null;
             else return previous;
           });
         }}
