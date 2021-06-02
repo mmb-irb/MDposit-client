@@ -103,8 +103,10 @@ const Sasa = () => {
           pdbData.file,
           metadata,
         ).numeration;
-        //const entropy = normalizedEntropies[modelResiude];
-        const mean = data.find(residue => residue.name === modelResiude).mean;
+        const dataResidue = data.find(residue => residue.name === modelResiude);
+        // If there is no data for the current residue then paint it white
+        if (!dataResidue) return 16777215;
+        const mean = dataResidue.mean;
         // Calculate the interpolated rgb for this value
         // The interpolated color comes in rbg format
         const hexColor = d3color(greyColorScale(mean)).formatHex();
