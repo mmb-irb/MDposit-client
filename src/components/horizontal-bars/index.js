@@ -18,7 +18,7 @@ import style from './style.module.css';
 const HorizontalBars = ({
   // The main data array
   data,
-  // Y edge labels in string array format
+  // Y axis labels in string array format
   ylabels,
   // Set the maximum x engle value
   xMax,

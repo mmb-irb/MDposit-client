@@ -206,8 +206,8 @@ const documentation = [
         <br />
         <br />
         Graph displays the RMSD/TM score value in each frame along the
-        trajectory. The horizontal edge stands for the trajectory time in
-        nanoseconds. The vertical edge may stand for the RMSd in Ångstroms (Å)
+        trajectory. The horizontal axis stands for the trajectory time in
+        nanoseconds. The vertical axis may stand for the RMSd in Ångstroms (Å)
         or the TM score. The graph is{' '}
         <span style={{ color: 'lightGreen' }}>interactive</span>. Use the mouse
         wheel to zoom in a specific region. Click and hold at any point in the
@@ -238,15 +238,15 @@ const documentation = [
         <br />
         <br />
         First panel is the residue selector. Residues are divided by chains.
-        Chains are delimited by their titles and residues may be drop or hidden
-        for each chain independently. Each residue is represented by a single
-        letter. The 'X' letter represents non-standard residues (i.e. not
-        natural aminoacids). Residues sequence is splitted and numerated every
+        Chains are delimited by their titles and residues may be expanded or
+        compressed for each chain independently. Each residue is represented by
+        a single letter. The 'X' letter represents non-standard residues (i.e.
+        not natural aminoacids). Residues sequence is split and numerated every
         10 resiudes. Each residue is coloured according to its RMSD value. The
         color scale ranges from white (lowest values) to red (highest values).
         <span style={{ color: 'lightGreen' }}> Click any residue </span> to
         display its RMSD along the trajectory and highlight its atoms on the NGL
-        viewer. Multiple resdiues may be selected at the same time. In this
+        viewer. Multiple residues may be selected at the same time. In this
         case, each selected residue is tagged with a different color.
         <br />
         <br />
@@ -268,7 +268,7 @@ const documentation = [
           viewer
         </a>{' '}
         at the right bottom shows the trajectory. The structure is coloured
-        accoridng to residue RMSD values. The color scale ranges from white
+        according to residue RMSD values. The color scale ranges from white
         (lowest values) to red (highest values).
       </>
     ),
@@ -289,7 +289,7 @@ const documentation = [
         <br />
         <br />
         Heatmap represents the RMSd between each pair of frames along the
-        trajectory. Both horizontal and vertical edges stand for frame numbers.
+        trajectory. Both horizontal and vertical axes stand for frame numbers.
         The color stands for the RMSd value and it ranges from blue (low) to red
         (high). The legend below shows the corresponding values in Ångstroms
         (Å). The heatmap is{' '}
@@ -327,8 +327,8 @@ const documentation = [
         Graph displays the 4 Rgyr dataset values for each frame along the
         trajectory. Data is displayed (more opaque lines) alongside
         corresponding mean value (light horizontal line) and mean ± 1 standard
-        deviation (lighter horizontal bands). The horizontal edge stands for the
-        trajectory time in nanoseconds. The vertical edge stands for the Rgyr in
+        deviation (lighter horizontal bands). The horizontal axis stands for the
+        trajectory time in nanoseconds. The vertical axis stands for the Rgyr in
         Ångstroms (Å). The graph is{' '}
         <span style={{ color: 'lightGreen' }}>interactive</span>. Use the mouse
         wheel to zoom in a specific region. Click and hold at any point in the
@@ -361,7 +361,7 @@ const documentation = [
         Graph below represents the fluctuation of each atom. Data is displayed
         (more opaque lines) alongside corresponding mean value (light horizontal
         line) and mean ± 1 standard deviation (lighter horizontal bands). The
-        horizontal edge stands for the atoms numeration. The vertical edge
+        horizontal axis stands for the atoms numeration. The vertical axis
         stands for the flucutation in Ångstroms (Å). The graph is{' '}
         <span style={{ color: 'lightGreen' }}>interactive</span>. Use the mouse
         wheel to zoom in a specific region. Click and hold at any point in the
@@ -394,19 +394,19 @@ const documentation = [
         between each residue in each different interaction agent. Use this panel
         to select which interaction residues are displayed in the heatmap below.
         Only the interaction interface residues are shown by default, but also
-        all resdiues may be displayed (i.e. all residues of each interacting
+        all residues may be displayed (i.e. all residues of each interacting
         agent).
         <br />
         <br />
         Heatmap represents the mean distance between the geometric center of
         selected residues from different interacting agents along the
-        trajectory. Both horizontal and vertical edges stand for residue
-        numbers. The color stands for the distance and it ranges from blue (far)
-        to red (close). The legend below shows the corresponding values in
-        Ångstroms. Use tabs over the heatmap to switch between the mean distance
-        and the standard deviation. The heatmap is{' '}
+        trajectory. Both horizontal and vertical axes stand for residue numbers.
+        The color stands for the distance and it ranges from blue (far) to red
+        (close). The legend below shows the corresponding values in Ångstroms.
+        Use tabs over the heatmap to switch between the mean distance and the
+        standard deviation. The heatmap is{' '}
         <span style={{ color: 'lightGreen' }}>interactive</span>. Hover any cell
-        to show a tooltip with the pair of corresponding resdiues and the mean
+        to show a tooltip with the pair of corresponding residues and the mean
         distance / standard deviation value between them. Click any cell on the
         heatmap to open a{' '}
         <a
@@ -439,16 +439,17 @@ const documentation = [
         </a>{' '}
         below. By default, the interface residues from one of the interacting
         agents is represented in electrostatic surface mode and the interface
-        resdiues from the other agent is represented in balls and sticks
+        residues from the other agent is represented in balls and sticks
         coloured by element. The rest of the structure is represented in low
-        opacity grey cartoon. Both the 'surfaced' and the 'sicked' agent names
+        opacity grey cartoon. Both the 'surfaced' and the 'sticked' agent names
         are shown next to the interaction selector. The representation of both
         agent interfaces may be switched with the toogle button between their
         names.
         <br />
         <br />
         Note that trajectory is not loaded in this context because the surface
-        representation is too heavy to be updated dinamically.
+        representation is too heavy to be updated dinamically. The first frame
+        is loaded instead.
       </>
     ),
   },
@@ -491,7 +492,7 @@ const documentation = [
         residues highlighted. Also the distance between those atoms is
         represented. In addition, the hydrogen which is expected to form the
         hydrogen bond is also highlighted and the angle formed by the acceptor
-        atom, the bridging hydrogen and the donnor atom is represented.
+        atom, the bridging hydrogen and the donor atom is represented.
       </>
     ),
   },
@@ -500,16 +501,16 @@ const documentation = [
     header: 'Energies',
     page: (
       <>
-        Graphs represent from top to bottom the electrostatic charges, the Van
+        Graphs represent from top to bottom the electrostatic potential, the Van
         der Waals forces and the sum of both values per each residue
         respectively. Energies are calculated for each atom individually and
         then added by residues. Averages are calculated from 100 selected frames
         along the trajectory. In addition, two more averages are calculated: the
         average for the frist 20 frames of the 100 selected frames and the
         average for the last 20 frames. These averages are represented in red
-        and blue colors respectively. Horizontal edges stand for the main
-        protein residues numbers. Vertical edges stand for the residue charges
-        in kcal/mol.
+        and blue colors respectively. Horizontal axes stand for the main protein
+        residues numbers. Vertical axes stand for the residue potential in
+        kcal/mol.
         <br />
         <br />
         Graphs are <span style={{ color: 'lightGreen' }}>interactive</span>. Use
@@ -537,7 +538,7 @@ const documentation = [
         <br />
         Only the ten most stable pockets are analyzed. Left table lists these
         pockets and their average volume along the trajectory. Click any pocket
-        column in the table to highlight and focus this pockets in the viewer.
+        row in the table to highlight and focus this pockets in the viewer.
         Click any checkbox in the table to hide/show the corresponding pocket.
         <br />
         <br />
@@ -559,10 +560,10 @@ const documentation = [
         <br />
         <br />
         Graph below displays the selected pocket volume along the trajectory.
-        Left axis represents the pocket volume in Ångstroms to the third power
-        (Å<sup>{3}</sup>). Horizontal axis represents trajectory frames. The
-        graph is <span style={{ color: 'lightGreen' }}>interactive</span>. Click
-        any point to represent the corresponding frame in the viewer.
+        Left axis represents the pocket volume in cubic Ångstroms (Å
+        <sup>{3}</sup>). Horizontal axis represents trajectory frames. The graph
+        is <span style={{ color: 'lightGreen' }}>interactive</span>. Click any
+        point to represent the corresponding frame in the viewer.
       </>
     ),
   },
@@ -607,16 +608,16 @@ const documentation = [
         <br />
         <br />
         First panel is the residue selector. Residues are divided by chains.
-        Chains are delimited by their titles and residues may be drop or hidden
-        for each chain independently. Each residue is represented by a single
-        letter. The 'X' letter represents non-standard residues (i.e. not
-        natural aminoacids). Residues sequence is splitted and numerated every
+        Chains are delimited by their titles and residues may be expanded or
+        compressed for each chain independently. Each residue is represented by
+        a single letter. The 'X' letter represents non-standard residues (i.e.
+        not natural aminoacids). Residues sequence is split and numerated every
         10 resiudes. Each residue is coloured according to its SAS per atom
         value. The color scale ranges from white (lowest values) to red (highest
         values).
         <span style={{ color: 'lightGreen' }}> Click any residue </span> to
         display its SAS per atom along the trajectory and highlight its atoms on
-        the NGL viewer. Multiple resdiues may be selected at the same time. In
+        the NGL viewer. Multiple residues may be selected at the same time. In
         this case, each selected residue is tagged with a different color.
         <br />
         <br />
@@ -638,7 +639,7 @@ const documentation = [
           viewer
         </a>{' '}
         at the right bottom shows the trajectory. The structure is coloured
-        accoridng to residue SAS per atom values. The color scale ranges from
+        according to residue SAS per atom values. The color scale ranges from
         white (lowest values) to red (highest values).
       </>
     ),
@@ -652,10 +653,10 @@ const documentation = [
         This is the eigenvalues graph.
         <br />
         <br />
-        The blue bars stand for the eigenvalue, according to the left edge, and
-        the explained variance, according to the right edge, of any PCA
+        The blue bars stand for the eigenvalue, according to the left axis, and
+        the explained variance, according to the right axis, of any PCA
         projection. The yellow line stands for the accounting explained
-        variance, according to the right edge.
+        variance, according to the right axis.
         <br />
         <br />
         The graph is interactive. Hover any bar with the mouse to show the exact

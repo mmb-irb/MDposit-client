@@ -633,7 +633,7 @@ const Trajectory = () => {
               <br />
               <strong>Click on them</strong> to see the corresponding sequence
               highlighted in the interactive trajectory viewer above. Clicking
-              on an other entity within the same chain will change the highlight
+              on another entity within the same chain will change the highlight
               to that other entity.
               <br />
               <strong>Click on an empty space</strong> in this visualisation to

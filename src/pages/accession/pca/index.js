@@ -121,9 +121,9 @@ const PCA = () => {
               <br />
               <br />
               The blue bars stand for the eigenvalue, according to the left
-              edge, and the explained variance, according to the right edge, of
+              axis, and the explained variance, according to the right axis, of
               any PCA projection. The yellow line stands for the accounting
-              explained variance, according to the right edge.
+              explained variance, according to the right axis.
               <br />
               <br />
               The graph is{' '}
