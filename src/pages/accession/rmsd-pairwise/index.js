@@ -1,6 +1,6 @@
 import React, { useContext, useState, useMemo } from 'react';
 
-import { CardContent, Typography } from '@material-ui/core';
+import { CardContent, Chip, Typography } from '@material-ui/core';
 
 import useAPI from '../../../hooks/use-api';
 
@@ -92,23 +92,37 @@ const RmsdPairwise = () => {
     const interaction = interactions[selectedInteraction];
     // Get the interaction interface, if it exists, in NGL format
     // The default interaction (Overall) has no interface
-    const interactionInterface =
+    const interactionInterface1 =
       interaction.interface_1 &&
-      interaction.interface_2 &&
-      [...interaction.interface_1, ...interaction.interface_2]
+      interaction.interface_1
         .map(res => '(' + complexNumerationParser(res).nglSelection + ')')
         .join(' or ');
 
+    const interactionInterface2 =
+      interaction.interface_2 &&
+      interaction.interface_2
+        .map(res => '(' + complexNumerationParser(res).nglSelection + ')')
+        .join(' or ');
+    // Get also the number of the interacting agents
+    const agent1 = interaction.agent_1;
+    const agent2 = interaction.agent_2;
+
     const components = [];
-    if (interactionInterface) {
+    if (selectedInteraction > 0) {
       selected.forEach((frame, index) => {
         components.push({
           frame: frame,
           representations: [
             {
-              name: 'Frame ' + frame + ' interaction interface',
-              color: index === 0 ? 'red' : 'blue',
-              selection: interactionInterface,
+              name: 'Frame ' + frame + ' (' + agent1 + ' interface)',
+              color: index === 0 ? 'orange' : 'purple',
+              selection: interactionInterface1,
+              type: 'licorice',
+            },
+            {
+              name: 'Frame ' + frame + ' (' + agent2 + ' interface)',
+              color: index === 0 ? 'yellow' : 'green',
+              selection: interactionInterface2,
               type: 'licorice',
             },
             {
@@ -151,6 +165,22 @@ const RmsdPairwise = () => {
             selectedInteraction={selectedInteraction}
             setSelectedInteraction={setSelectedInteraction}
           />
+          {selected && (
+            <div>
+              {components.map(component =>
+                component.representations.map((representation, r) => (
+                  <Chip
+                    key={r}
+                    label={representation.name}
+                    style={{
+                      backgroundColor: representation.color,
+                      margin: '0.2em',
+                    }}
+                  />
+                )),
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
       <Card className={style.margined} id="heatmap">
