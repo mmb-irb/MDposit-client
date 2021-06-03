@@ -57,6 +57,7 @@ const Info = ({
       <IconButton
         component={reference ? Link : undefined}
         to={reference ? `/help#${reference}` : undefined}
+        target={reference ? '_blank' : undefined}
         className={classes.button}
         color={open ? 'secondary' : 'primary'}
       >
