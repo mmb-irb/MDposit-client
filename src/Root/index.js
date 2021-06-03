@@ -125,7 +125,11 @@ const Root = () => {
                   path="/browse/:accession/:subPage"
                   render={props => (
                     <Suspense fallback={null}>
-                      <Accession match={props.match} setProject={setProject} />
+                      <Accession
+                        location={props.location}
+                        match={props.match}
+                        setProject={setProject}
+                      />
                     </Suspense>
                   )}
                 />

@@ -1,11 +1,11 @@
 // React logic
 import React, { Suspense, lazy, useContext, useMemo } from 'react';
-import { Switch, Route, Redirect } from 'react-router-dom';
+import { Link, Switch, Route, Redirect } from 'react-router-dom';
 
 // Visual assets
 import { Typography, Button } from '@material-ui/core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLink } from '@fortawesome/free-solid-svg-icons';
+import { faLink, faBook } from '@fortawesome/free-solid-svg-icons';
 
 // Hooks
 import useAPI from '../../hooks/use-api'; // API acces
@@ -82,6 +82,44 @@ const Mutations = lazy(() =>
 
 const Sasa = lazy(() => import(/* webpackChunkName: 'sasa' */ './sasa'));
 
+const JsonViewer = lazy(() =>
+  import(/* webpackChunkName: 'sasa' */ './json-viewer'),
+);
+
+const getDataURL = (accession, subPage) => {
+  // First, few modifications muts be done over the client URL path to be compatible with the API
+  let end;
+  switch (subPage) {
+    case 'overview':
+    case 'trajectory':
+      end = '';
+      break;
+    case 'rgyr':
+    case 'rmsds':
+    case 'rmsd-perres':
+    case 'rmsd-pairwise':
+    case 'pca':
+    case 'fluctuation':
+    case 'sasa':
+    case 'dist-perres':
+    case 'hbonds':
+    case 'energies':
+    case 'pockets':
+      end = `analyses/${subPage}`;
+      break;
+    case 'files':
+      end = subPage;
+      break;
+    case 'mutations':
+    case 'epitopes':
+      end = 'toporefs';
+      break;
+    default:
+      return null; // No button is rendered
+  }
+  return `${BASE_PATH}current/projects/${accession}/${end}`;
+};
+
 // Return an error message and print the error in the console
 const Error = ({ error }) => {
   console.error(error);
@@ -90,7 +128,7 @@ const Error = ({ error }) => {
 };
 
 // Render the accession summary
-const SummarySwitch = ({ setProject }) => {
+const SummarySwitch = ({ setProject, subPage, dataUrl }) => {
   // Get the accession ID from the accession context
   const accession = useContext(AccessionCtx);
   // Load the project context and the function to update it
@@ -324,6 +362,15 @@ const SummarySwitch = ({ setProject }) => {
                 </Suspense>
               )}
             />
+            <Route
+              path={`/browse/:accession/${subPage}/json`}
+              exact
+              render={props => (
+                <Suspense fallback={<Loading />}>
+                  <JsonViewer {...props} url={dataUrl} />
+                </Suspense>
+              )}
+            />
             <Route render={() => 'This route is not defined in the client'} />
           </Switch>
         </PdbCtx.Provider>
@@ -336,69 +383,56 @@ const SummarySwitch = ({ setProject }) => {
 
 // Render a button which links to the API
 const LinkSwitch = ({ accession, subPage }) => {
-  // First, few modifications muts be done over the client URL path to be compatible with the API
-  let end;
-  switch (subPage) {
-    case 'overview':
-    case 'trajectory':
-      end = '';
-      break;
-    case 'rgyr':
-    case 'rmsds':
-    case 'rmsd-perres':
-    case 'rmsd-pairwise':
-    case 'pca':
-    case 'fluctuation':
-    case 'sasa':
-    case 'dist-perres':
-    case 'hbonds':
-    case 'energies':
-    case 'pockets':
-      end = `analyses/${subPage}`;
-      break;
-    case 'files':
-      end = subPage;
-      break;
-    case 'mutations':
-    case 'epitopes':
-      end = 'toporefs';
-      break;
-    default:
-      return null; // No button is rendered
-  }
+  const jsonURL = getDataURL(accession, subPage);
+  if (!jsonURL) return null;
   return (
     <Button
-      component="a"
+      component={Link}
       target="_blank"
-      href={`${BASE_PATH}current/projects/${accession}/${end}`}
+      to={`/browse/${accession}/${subPage}/json`}
       className={style['link-to-api']}
     >
-      <FontAwesomeIcon icon={faLink} />
-      &nbsp;data in this page
+      <FontAwesomeIcon icon={faBook} />
+      &nbsp;&nbsp;data in this page
     </Button>
   );
 };
 
-export default ({ match, setProject }) => {
+export default ({ location, match, setProject }) => {
+  const fullpath = location.pathname;
+  const isJson = fullpath.substr(fullpath.length - 5) === '/json';
+  const accession = match.params.accession;
   const page = match.params.subPage;
   const docs = documentation.find(doc => doc.id === page);
-  //console.log(match);
+  const dataUrl = getDataURL(accession, page);
   return (
     // Set the accession context, which is used by different scripts including this
-    <AccessionCtx.Provider value={match.params.accession}>
+    <AccessionCtx.Provider value={accession}>
       <span className={style.container}>
         {/* Render the accession */}
         <Typography variant="h6" className={style.title}>
-          {match.params.accession} - {NICE_NAMES.get(page) || page}
-          {docs && docs.page && (
+          {accession} - {NICE_NAMES.get(page) || page}
+          {isJson ? ' (raw data)' : ''}
+          {!isJson && docs && docs.page && (
             <Info reference={page} tooltip={docs.page} corner={false} />
           )}
         </Typography>
         {/* Render a button which links to the API */}
-        <LinkSwitch accession={match.params.accession} subPage={page} />
+        {isJson ? (
+          <Button
+            target="_blank"
+            href={dataUrl}
+            className={style['link-to-api']}
+          >
+            <FontAwesomeIcon icon={faLink} />
+            &nbsp;REST API
+          </Button>
+        ) : (
+          <LinkSwitch accession={accession} subPage={page} />
+        )}
       </span>
       {/* Load the main data summary */}
-      <SummarySwitch setProject={setProject} />
+      <SummarySwitch setProject={setProject} subPage={page} dataUrl={dataUrl} />
     </AccessionCtx.Provider>
   );
 };
