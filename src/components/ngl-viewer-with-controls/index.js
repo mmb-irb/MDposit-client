@@ -224,7 +224,8 @@ const NGLViewerWithControls = forwardRef(
         const search = comps.filter(
           c =>
             c.topologyURL === rep.topologyURL &&
-            c.trajectoryURLs.join() === rep.trajectoryURLs.join() &&
+            (c.trajectoryURLs && c.trajectoryURLs.join()) ===
+              (rep.trajectoryURLs && rep.trajectoryURLs.join()) &&
             c.frame === rep.frame,
         );
         // Set the representation object without the component parameters
