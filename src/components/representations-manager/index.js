@@ -145,7 +145,6 @@ const RepresentationsManager = memo(
                 <TableCell align="right">
                   {
                     <TextField
-                      id="outlined-basic"
                       defaultValue={nglSelections[index]}
                       title={nglSelections[index]}
                       variant="outlined"
