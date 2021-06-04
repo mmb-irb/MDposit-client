@@ -697,7 +697,13 @@ const NGLViewer = memo(
               const previousSelection =
                 previousRepresentation.repr.selection.string;
               // If the 'drawingMethod' has been changed we have to remake the whole representation
-              if (previousType !== type || previousSelection !== sele) {
+              // WARNING: Representations with 'trace' type must be remade always
+              // WARNING: Reseting their parameters returns a fatal error. It is an internal NGL bug.
+              if (
+                previousType !== type ||
+                previousSelection !== sele ||
+                previousType === 'trace'
+              ) {
                 stageComp.removeRepresentation(previousRepresentation);
                 stageComp.addRepresentation(type, parameters);
               }
