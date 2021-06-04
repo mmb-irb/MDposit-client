@@ -54,6 +54,10 @@ const availableDrawingMethods = [
     label: 'Trace',
     value: 'trace',
   },
+  {
+    label: 'Backbone',
+    value: 'backbone',
+  },
 ];
 
 const availableColoringMethods = [
@@ -76,6 +80,14 @@ const availableColoringMethods = [
   {
     label: 'Electrostatic',
     value: 'electrostatic',
+  },
+  {
+    label: 'Secondary structure',
+    value: 'sstruc',
+  },
+  {
+    label: 'Uniform',
+    value: 'uniform',
   },
 ];
 
