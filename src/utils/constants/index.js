@@ -2,9 +2,11 @@ export const BASE_PATH = process.env.REACT_APP_REST_ROOT;
 
 export const BASE_PATH_PROJECTS = BASE_PATH + 'current/projects/';
 
-export const PATH_MAIN_TOPOLOGY = '/files/md.imaged.rot.dry.pdb';
+export const MAIN_STRUCTURE_FILENAME = 'md.imaged.rot.dry.pdb';
 
-export const PATH_MAIN_TRAJECTORY = 'current/toporefs/';
+export const MAIN_TRAJECTORY_FILENAME = 'md.imaged.rot.xtc';
+
+export const PATH_MAIN_TOPOLOGY = '/files/md.imaged.rot.dry.pdb';
 
 // The name how this analysis is tagged in the webpage
 // If no name is provided, the webpage will tag it with the defalt name
