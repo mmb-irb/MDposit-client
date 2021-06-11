@@ -28,10 +28,18 @@ import { ProjectCtx } from '../../../contexts';
 
 import style from './style.module.css';
 
+// Classify files per groups according to their file format
 const groupPerTypeReducer = (group, file) => {
   let groupName;
   const name = file.filename.toLowerCase();
-  if (name.endsWith('.pdb') || name.endsWith('.gro')) {
+  if (
+    name.endsWith('.pdb') ||
+    name.endsWith('.gro') ||
+    name.endsWith('.top') ||
+    name.endsWith('.itp') ||
+    name.endsWith('.psf') ||
+    name.endsWith('.prmtop')
+  ) {
     groupName = 'Structure/topology';
   } else if (
     name.endsWith('.xtc') ||
@@ -39,10 +47,13 @@ const groupPerTypeReducer = (group, file) => {
     name.endsWith('.dcd')
   ) {
     groupName = 'Trajectory';
+    // Discard all .bin files although they are trajectories
+  } else if (name.endsWith('.bin')) {
+    groupName = null;
   } else {
     groupName = 'Other';
   }
-  group[groupName].add(file);
+  if (groupName) group[groupName].add(file);
   return group;
 };
 
