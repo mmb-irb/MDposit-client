@@ -20,10 +20,17 @@ import useDefaultRepresentations from '../../../components/ngl-viewer/use-defaul
 
 import { complexNumerationParser } from '../../../utils/topology-manager';
 
+import { ColormakerRegistry } from 'ngl';
+import { color as d3color, scaleLinear } from 'd3';
+
 //import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 // Define permanent options for the "useInView"
 const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
+
+// Set the color of each residue in the NGL representation
+// WARNING: Grey looks better than white because the background may be white and resdiues are hard to see
+const chargesColorPlan = ['blue', 'white', 'red'];
 
 const Electrostatic = () => {
   // Track if the NGL viewer
@@ -52,6 +59,34 @@ const Electrostatic = () => {
   // Set the representations for the NGL viewer
   const { representations, initialFocus } = useMemo(() => {
     if (!metadata || !pdbData.file) return {};
+    // In case there are charges us them create a color scale to pain the surface area
+    const charges = metadata.CHARGES;
+    let colorScheme;
+    if (charges) {
+      // Set the color scale according to the maximum and minimum means
+      const max = Math.max(...charges);
+      const min = Math.min(...charges);
+      // Set the color scale according to the maximum and minimum values
+      const colorScale = scaleLinear()
+        .range(chargesColorPlan)
+        .domain([min, (min + max) / 2, max]);
+      // Set the colorScheme to get each value corresponding color
+      colorScheme = ColormakerRegistry.addScheme(function(params) {
+        this.atomColor = atom => {
+          // Get the atom charge
+          const charge = charges[atom.index];
+          // Calculate the interpolated rgb for this value
+          // The interpolated color comes in rbg format
+          const hexColor = d3color(colorScale(charge)).formatHex();
+          // The color interpolation returns a string like '#000000'
+          // We remove the first character ('#') and parse it to integer from hexadecimal
+          const color = parseInt(hexColor.substring(1), 16);
+          return color;
+        };
+      });
+    }
+
+    // Proceed to make representations for the current interaction
     const interaction = metadata.INTERACTIONS[selectedInteraction];
 
     // Parse the interface selections to the NGL format
@@ -71,7 +106,8 @@ const Electrostatic = () => {
       name: interaction.agent_1 + ' interface',
       selection: surfacedInterface.join(' or '),
       type: 'surface',
-      color: 'electrostatic',
+      color: colorScheme ? 'custom' : 'electrostatic',
+      customScheme: colorScheme,
     };
 
     // Set the sticked representation
@@ -81,6 +117,7 @@ const Electrostatic = () => {
       selection: stickedInterface.join(' or '),
       type: 'ball+stick',
       color: 'element',
+      customScheme: colorScheme,
     };
 
     // Make the default representations transparent
@@ -111,9 +148,14 @@ const Electrostatic = () => {
       previous[interface2Index] = selectedOrder ? 'ball+stick' : 'surface';
       return [...previous];
     });
+    // Check if current representations have a custom color scheme
+    // If so, set the color as 'custom' instead of 'electrostatic'
+    const color = representations[interface1Index].customScheme
+      ? 'custom'
+      : 'electrostatic';
     viewerRef.current.setColoringMethods(previous => {
-      previous[interface1Index] = selectedOrder ? 'electrostatic' : 'element';
-      previous[interface2Index] = selectedOrder ? 'element' : 'electrostatic';
+      previous[interface1Index] = selectedOrder ? color : 'element';
+      previous[interface2Index] = selectedOrder ? 'element' : color;
       return [...previous];
     });
   }, [representations, selectedOrder]);
