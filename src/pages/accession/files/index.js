@@ -13,6 +13,7 @@ import {
   Button,
   Typography,
   Chip,
+  CardContent,
 } from '@material-ui/core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFile } from '@fortawesome/free-regular-svg-icons';
@@ -22,13 +23,19 @@ import Card from '../../../components/animated-card';
 
 import formatNumber from '../../../utils/number-formatter';
 import getEstimate from '../../../utils/get-download-time-estimate';
-import { BASE_PATH, BASE_PATH_PROJECTS } from '../../../utils/constants';
+import {
+  BASE_PATH,
+  BASE_PATH_PROJECTS,
+  MAIN_STRUCTURE_FILENAME,
+  MAIN_TRAJECTORY_FILENAME,
+} from '../../../utils/constants';
 
 import { ProjectCtx } from '../../../contexts';
 
 import style from './style.module.css';
 
 // Classify files per groups according to their file format
+/*
 const groupPerTypeReducer = (group, file) => {
   let groupName;
   const name = file.filename.toLowerCase();
@@ -64,6 +71,7 @@ const newGroup = () => ({
   Media: new Set(),
   Other: new Set(),
 });
+*/
 
 const api = [
   'Programmatic API',
@@ -80,14 +88,89 @@ const api = [
 export default React.memo(() => {
   const { identifier, files } = useContext(ProjectCtx);
 
-  const groupedFiles = Object.entries(
-    files.reduce(groupPerTypeReducer, newGroup()),
-  ).filter(([, set]) => set.size);
+  // const groupedFiles = Object.entries(
+  //   files.reduce(groupPerTypeReducer, newGroup()),
+  // ).filter(([, set]) => set.size);
+
+  const main_structure = files.find(
+    file => file.filename === MAIN_STRUCTURE_FILENAME,
+  );
+  const main_trajectory = files.find(
+    file => file.filename === MAIN_TRAJECTORY_FILENAME,
+  );
 
   return (
     <>
-      <Typography variant="h5">Files</Typography>
-      {[...groupedFiles, api].map(([key, set], i) => (
+      {/* Main structure */}
+      {main_structure && (
+        <Card className={style.title}>
+          <CardContent className={style.horizontal}>
+            <div className={style.horizontal}>
+              <Typography variant="h6">Main Structure</Typography>
+              <Icon className={style['main-icon']}>
+                <FontAwesomeIcon icon={faFile} />
+              </Icon>
+              <div>
+                <Typography variant="subtitle2">
+                  {main_structure.filename}
+                </Typography>
+                {main_structure.length && (
+                  <Typography color="textSecondary" variant="caption">
+                    {prettyBytes(main_structure.length)}
+                  </Typography>
+                )}
+              </div>
+            </div>
+
+            <Button
+              size="large"
+              color="primary"
+              component="a"
+              href={`${BASE_PATH_PROJECTS}${identifier}/files/${main_structure.filename}`}
+              download={main_structure.filename}
+              target="_blank"
+            >
+              Download
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+      {/* Main trajectory */}
+      {main_trajectory && (
+        <Card className={style.title}>
+          <CardContent className={style.horizontal}>
+            <div className={style.horizontal}>
+              <Typography variant="h6">Main Trajectory</Typography>
+              <Icon className={style['main-icon']}>
+                <FontAwesomeIcon icon={faFile} />
+              </Icon>
+              <div>
+                <Typography variant="subtitle2">
+                  {main_trajectory.filename}
+                </Typography>
+                {main_trajectory.length && (
+                  <Typography color="textSecondary" variant="caption">
+                    {prettyBytes(main_trajectory.length)}
+                  </Typography>
+                )}
+              </div>
+            </div>
+
+            <Button
+              size="large"
+              color="primary"
+              component="a"
+              href={`${BASE_PATH_PROJECTS}${identifier}/files/${main_trajectory.filename}`}
+              download={main_trajectory.filename}
+              target="_blank"
+            >
+              Download
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+      {/* This was [...groupedFiles, api] before */}
+      {[api].map(([key, set], i) => (
         <Card overrideComponent key={typeof key === 'string' ? key : i}>
           <Typography variant="h6" className={style.title}>
             &nbsp;⤷&nbsp;

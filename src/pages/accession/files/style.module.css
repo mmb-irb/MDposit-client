@@ -2,6 +2,23 @@
   margin-top: 1ch;
 }
 
+.horizontal {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  padding-bottom: 0px;
+}
+
+.horizontal:last-child {
+  padding-bottom: 16px;
+}
+
+.main-icon {
+  align-self: center;
+  margin-left: 1em;
+  margin-right: 0.5em;
+}
+
 .summary > div {
   align-items: center;
 }
