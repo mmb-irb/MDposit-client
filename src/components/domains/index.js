@@ -50,7 +50,6 @@ const Domains = ({ setter }) => {
   const mutationsRepresentation = useMutationsRepresentations(
     accession,
     metadata,
-    pdbData,
   );
 
   // The domains strucutre is:

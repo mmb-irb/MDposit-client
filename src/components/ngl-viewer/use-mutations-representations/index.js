@@ -1,17 +1,19 @@
 import { useMemo } from 'react';
 
-import { absolute2sourceResidue } from '../../../utils/topology-manager';
-
 import useAPI from '../../../hooks/use-api';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 import { ColormakerRegistry } from 'ngl';
 
-import { color as d3color, interpolateRgb } from 'd3';
+import { color as d3color, scaleLinear } from 'd3';
+
+// Set the color of each residue in the NGL representation
+// WARNING: Grey looks better than white because the background may be white and resdiues are hard to see
+const greyColorPlan = ['grey', 'yellow', 'red'];
 
 // Use this hook to get the memoized NGL default representations
-const useMutationsRepresentations = (accession, metadata, pdbData) => {
+const useMutationsRepresentations = (accession, metadata) => {
   // Request to API the toporef data
   const { loading, payload, error } = useAPI(
     `${BASE_PATH_PROJECTS}${accession}/toporefs`,
@@ -21,21 +23,18 @@ const useMutationsRepresentations = (accession, metadata, pdbData) => {
   const mutationRepresentations = useMemo(() => {
     if (!payload) return;
 
-    const firstAndUniqueToporef = payload && payload[0];
-    if (!firstAndUniqueToporef) return;
-    const entropies = firstAndUniqueToporef.entropies;
-
     // Build a residues map from the topology reference
     let toporefMap;
     const toporefs = metadata.TOPOREFS;
     if (toporefs && toporefs.length > 0) {
       toporefMap = residue => {
-        for (const toporef of toporefs) {
-          if (!toporef.map) return null;
+        for (const [index, toporef] of toporefs.entries()) {
+          if (!toporef.map) continue;
           const equivalent = toporef.map[residue];
-          if (equivalent) return equivalent;
+          if (!equivalent) continue;
+          return [equivalent, index];
         }
-        return null;
+        return [null, null];
       };
     }
 
@@ -50,26 +49,22 @@ const useMutationsRepresentations = (accession, metadata, pdbData) => {
       };
     }
 
-    // We add a small extra value to avoid having 0s, which would return a negative infinity
-    const logaritmicEntropies = entropies.map(entropy =>
-      Math.log(entropy + 0.0001),
-    );
-    const maxEntropy = Math.max(...logaritmicEntropies);
-    const minEntropy = Math.min(...logaritmicEntropies);
-    // Normalize entropies
-    const normalizedEntropies = logaritmicEntropies.map(
-      entropy => (entropy - minEntropy) * (1 / (maxEntropy - minEntropy)),
-    );
+    // Get the entorpies of each toporef
+    // Save the logarithmic values
+    const entropiesPerToporef = payload.map(toporef => {
+      if (!toporef.entropies) return [];
+      return toporef.entropies.map(entropy => Math.log(entropy + 0.0001));
+    });
 
-    // Set the color scale, which ranges from 0 to 1
-    const colorScale = value => {
-      const lowerScale = interpolateRgb('grey', 'yellow');
-      const higherScale = interpolateRgb('yellow', 'red');
-      if (value < 0.5) return lowerScale(value * 2);
-      else return higherScale((value - 0.5) * 2);
-    };
+    // Save all array values together just to check the minimum and maximum values
+    const allEntropies = [].concat.apply([], entropiesPerToporef);
+    const max = Math.max(...allEntropies);
+    const min = Math.min(...allEntropies);
 
-    const topology = pdbData.file;
+    // Set the color scale according to the maximum and minimum means
+    const colorScale = scaleLinear()
+      .range(greyColorPlan)
+      .domain([min, (min + max) / 2, max]);
 
     const colorScheme = ColormakerRegistry.addScheme(function(params) {
       this.atomColor = atom => {
@@ -78,15 +73,15 @@ const useMutationsRepresentations = (accession, metadata, pdbData) => {
         // WARNING: It may happen that the first residue is a capping terminal and it is skipped
         // WARNING: The cartoon representation would skip the non-standard residue and start by 1
         const residue = atom.residueIndex;
-        const mapedResidue = toporefMap
-          ? toporefMap(residue)
-          : absolute2sourceResidue(residue, topology).residueNumber;
+        const [mapedResidue, toporefIndex] = toporefMap(residue);
         //console.log(residue + ' -> ' + mapedResidue);
         // If no residue was found then paint it white
         if (mapedResidue === null) return parseInt('ffffff', 16);
         // get the corresponding entropy
         // -1 because the residue 'x' would be the index 'x-1' in the array
-        const entropy = normalizedEntropies[mapedResidue - 1];
+        const entropies = entropiesPerToporef[toporefIndex];
+        if (!entropies || entropies.length === 0) return parseInt('ffffff', 16);
+        const entropy = entropies[mapedResidue - 1];
         // Calculate the interpolated rgb for this value
         // The interpolated color comes in rbg format
         const hexColor = d3color(colorScale(entropy)).formatHex();
@@ -99,7 +94,7 @@ const useMutationsRepresentations = (accession, metadata, pdbData) => {
 
     const reps = [{ color: 'custom', customScheme: colorScheme }];
     return reps;
-  }, [payload, pdbData, metadata]);
+  }, [payload, metadata]);
 
   if (loading) return;
   else if (error) return error.toString();
