@@ -68,7 +68,7 @@ const Energies = () => {
   const ligands = metadata && metadata.LIGANDS;
   const interactions = metadata && metadata.INTERACTIONS;
 
-  const { data, isOld } = useMemo(() => {
+  const { data, isOld, dataError } = useMemo(() => {
     // Return if the payload is not ready
     if (!payload) return {};
 
@@ -93,13 +93,18 @@ const Energies = () => {
       const agent = selectedOrder ? 'agent1' : 'agent2';
 
       // Get the data whose name matches the interaction name
-      data = payload.data.find(dataset => {
+      const dataset = payload.data.find(dataset => {
         return dataset.name === interaction.name;
-      })[agent];
-      if (!data)
-        throw new Error(
-          `Dataset for the interaction "${interaction.name}" not found`,
-        );
+      });
+      if (!dataset) {
+        const dataError = `ERROR: Dataset for the interaction "${interaction.name}" not found`;
+        return { data: null, isOld: null, dataError };
+      }
+      data = dataset[agent];
+      if (!data) {
+        const dataError = `ERROR: Data for the interaction "${interaction.name}" not found`;
+        return { data: null, isOld: null, dataError };
+      }
     }
 
     data.xTags = [];
@@ -109,7 +114,7 @@ const Energies = () => {
       data.xTags.push(mod.ngl);
     }
 
-    return { data, isOld };
+    return { data, isOld, dataError };
   }, [
     payload,
     interactions,
@@ -157,72 +162,76 @@ const Energies = () => {
             />
           </CardContent>
         )}
-        <CardContent>
-          <legend>Overall energies summatory</legend>
-          <div>
-            <TextField
-              className={style['text-field']}
-              label="Electrostatic"
-              title="Sum electorstatic value along the whole trajectory"
-              value={getSum(data.es) + ' kcal/mol'}
-            />
-            <TextField
-              className={style['text-field']}
-              label="Electrostatic Initial"
-              title="Sum electorstatic value along the first 20% trajectory frames"
-              value={getSum(data.ies) + ' kcal/mol'}
-            />
-            <TextField
-              className={style['text-field']}
-              label="Electrostatic Final"
-              title="Sum electorstatic value along the last 20% trajectory frames"
-              value={getSum(data.fes) + ' kcal/mol'}
-            />
-          </div>
-          <div>
-            <TextField
-              className={style['text-field']}
-              label="Van der Waals"
-              title="Sum Van der Waals value along the whole trajectory"
-              value={getSum(data.vdw) + ' kcal/mol'}
-            />
-            <TextField
-              className={style['text-field']}
-              label="Van der Waals Initial"
-              title="Sum Van der Waals value along the first 20% trajectory frames"
-              value={getSum(data.ivdw) + ' kcal/mol'}
-            />
-            <TextField
-              className={style['text-field']}
-              label="Van der Waals Final"
-              title="Sum Van der Waals value along the last 20% trajectory frames"
-              value={getSum(data.fvdw) + ' kcal/mol'}
-            />
-          </div>
-          <div>
-            <TextField
-              className={style['text-field']}
-              label="Electrostatic + Van der Waals"
-              title="Sum electorstatic + Van der Waals value along the whole trajectory"
-              value={getSum(data.both) + ' kcal/mol'}
-            />
-            <TextField
-              className={style['text-field']}
-              label="Electrostatic + Van der Waals Initial"
-              title="Sum electorstatic + Van der Waals value along the first 20% trajectory frames"
-              value={getSum(data.iboth) + ' kcal/mol'}
-            />
-            <TextField
-              className={style['text-field']}
-              label="Electrostatic + Van der Waals Final"
-              title="Sum electorstatic + Van der Waals value along the last 20% trajectory frames"
-              value={getSum(data.fboth) + ' kcal/mol'}
-            />
-          </div>
-        </CardContent>
-        {singleResidue ? (
+        {dataError ? null : (
           <CardContent>
-            <Typography variant="h6">The host has only 1 residue</Typography>
+            <legend>Overall energies summatory</legend>
+            <div>
+              <TextField
+                className={style['text-field']}
+                label="Electrostatic"
+                title="Sum electorstatic value along the whole trajectory"
+                value={getSum(data.es) + ' kcal/mol'}
+              />
+              <TextField
+                className={style['text-field']}
+                label="Electrostatic Initial"
+                title="Sum electorstatic value along the first 20% trajectory frames"
+                value={getSum(data.ies) + ' kcal/mol'}
+              />
+              <TextField
+                className={style['text-field']}
+                label="Electrostatic Final"
+                title="Sum electorstatic value along the last 20% trajectory frames"
+                value={getSum(data.fes) + ' kcal/mol'}
+              />
+            </div>
+            <div>
+              <TextField
+                className={style['text-field']}
+                label="Van der Waals"
+                title="Sum Van der Waals value along the whole trajectory"
+                value={getSum(data.vdw) + ' kcal/mol'}
+              />
+              <TextField
+                className={style['text-field']}
+                label="Van der Waals Initial"
+                title="Sum Van der Waals value along the first 20% trajectory frames"
+                value={getSum(data.ivdw) + ' kcal/mol'}
+              />
+              <TextField
+                className={style['text-field']}
+                label="Van der Waals Final"
+                title="Sum Van der Waals value along the last 20% trajectory frames"
+                value={getSum(data.fvdw) + ' kcal/mol'}
+              />
+            </div>
+            <div>
+              <TextField
+                className={style['text-field']}
+                label="Electrostatic + Van der Waals"
+                title="Sum electorstatic + Van der Waals value along the whole trajectory"
+                value={getSum(data.both) + ' kcal/mol'}
+              />
+              <TextField
+                className={style['text-field']}
+                label="Electrostatic + Van der Waals Initial"
+                title="Sum electorstatic + Van der Waals value along the first 20% trajectory frames"
+                value={getSum(data.iboth) + ' kcal/mol'}
+              />
+              <TextField
+                className={style['text-field']}
+                label="Electrostatic + Van der Waals Final"
+                title="Sum electorstatic + Van der Waals value along the last 20% trajectory frames"
+                value={getSum(data.fboth) + ' kcal/mol'}
+              />
+            </div>
+          </CardContent>
+        )}
+        {dataError || singleResidue ? (
+          <CardContent>
+            <Typography variant="h6">
+              {dataError ? dataError : 'The host has only 1 residue'}
+            </Typography>
           </CardContent>
         ) : (
           <CardContent>
