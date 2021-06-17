@@ -49,6 +49,8 @@ const useMutationsRepresentations = (accession, metadata) => {
       };
     }
 
+    if (!toporefMap) return;
+
     // Get the entorpies of each toporef
     // Save the logarithmic values
     const entropiesPerToporef = payload.map(toporef => {
