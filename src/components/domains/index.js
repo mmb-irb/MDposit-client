@@ -88,6 +88,7 @@ const Domains = ({ setter }) => {
       payload.forEach(toporef => {
         const toporefName = toporef.name;
         const toporefDomains = toporef.domains;
+        if (!toporefDomains) return;
         const metadataToporef = toporefs.find(
           toporef => toporef.name === toporefName,
         );
