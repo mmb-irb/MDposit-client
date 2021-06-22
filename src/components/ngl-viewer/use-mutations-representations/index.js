@@ -23,9 +23,13 @@ const useMutationsRepresentations = (accession, metadata) => {
   const mutationRepresentations = useMemo(() => {
     if (!payload) return;
 
+    const toporefs = metadata.TOPOREFS;
+    const anyMappedToporef =
+      toporefs && toporefs.some(toporef => !!toporef.map);
+    if (!anyMappedToporef) return;
+
     // Build a residues map from the topology reference
     let toporefMap;
-    const toporefs = metadata.TOPOREFS;
     if (toporefs && toporefs.length > 0) {
       toporefMap = residue => {
         for (const [index, toporef] of toporefs.entries()) {
@@ -48,8 +52,6 @@ const useMutationsRepresentations = (accession, metadata) => {
         console.log('MEEECK!! ' + residue);
       };
     }
-
-    if (!toporefMap) return;
 
     // Get the entorpies of each toporef
     // Save the logarithmic values
