@@ -22,10 +22,13 @@ const useMutationsRepresentations = (accession, metadata) => {
   // Set the representations for the NGL viewer
   const mutationRepresentations = useMemo(() => {
     if (!payload) return;
-
+    // Check that at least 1 of the toporefs has entropies
+    const anyToporefMutations = payload.some(toporef => !!toporef.entropies);
+    if (!anyToporefMutations) return;
     const toporefs = metadata.TOPOREFS;
-    const anyMappedToporef =
-      toporefs && toporefs.some(toporef => !!toporef.map);
+    if (!toporefs) return;
+    // Check that we have a map for at least 1 toporef
+    const anyMappedToporef = toporefs.some(toporef => !!toporef.map);
     if (!anyMappedToporef) return;
 
     // Build a residues map from the topology reference
