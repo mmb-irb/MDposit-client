@@ -43,17 +43,6 @@ const useMutationsRepresentations = metadata => {
       };
     }
 
-    // DANI: Hardcodeado para trayectorias de Rebecca Wade
-    if (!toporefMap && metadata.PDBID === '6ACC') {
-      toporefMap = residue => {
-        // Primera cadena 1-1287
-        if (residue >= 1 && residue <= 1287) return residue + 13;
-        if (residue >= 1288 && residue <= 2572) return residue - 1274;
-        if (residue >= 2573 && residue <= 3857) return residue - 2559;
-        console.log('MEEECK!! ' + residue);
-      };
-    }
-
     // Get the entorpies of each toporef
     // Save the logarithmic values
     const entropiesPerToporef = toporefData.map(toporef => {
