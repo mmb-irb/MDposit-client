@@ -19,6 +19,16 @@ import { ProjectCtx } from '../../../contexts';
 
 import style from './style.module.css';
 
+// Set manually which toporefs have entropies
+// This needs to be updated by hand when there is a new toporef with entropies
+// This workaround prevents having to pass the toporefs context to the root, which makes no sense
+// DANI: De hecho yo no pasaría ni el project al context del root
+// DANI: Habría que poner el project-menu deltro del accession, y que se una con el header solo visualmente
+const toporefsWithEntropies = ['SARS-CoV-2 spike'];
+const hasEntropies = toporefName => {
+  return toporefsWithEntropies.indexOf(toporefName) > -1;
+};
+
 // Render the menu of the project (i.e. the inferior header)
 // It only appears when the user is inside a project
 const ProjectMenu = ({ params: { accession, subPage } }) => {
@@ -64,9 +74,11 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
     }
   }
 
-  // Check if any metadata toporef has a map
+  // Check if any metadata toporef has a map and its toporef data has entropies
   const toporefs = metadata && metadata.TOPOREFS;
-  const anyMappedToporef = toporefs && toporefs.some(toporef => !!toporef.map);
+  const anySuitableToporef =
+    toporefs &&
+    toporefs.some(toporef => !!toporef.map && hasEntropies(toporef.name));
 
   // Set the tabs to be displayed
   // Each tab must have 'dir' or 'drops'. Never both, never none.
@@ -158,7 +170,7 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
             {
               name: 'Mutations',
               dir: 'mutations',
-              cond: anyMappedToporef,
+              cond: anySuitableToporef,
             },
           ],
         },

@@ -85,6 +85,14 @@ if (!reducedMotion()) {
   keyframes.transform = ['translateX(2.5%)', 'translateX(0)'];
 }
 
+// Set manually which toporefs have entropies
+// This needs to be updated by hand when there is a new toporef with entropies
+// This workaround prevents downloading all toporefs data to ckeck it, which would be unefficient
+const toporefsWithEntropies = ['SARS-CoV-2 spike'];
+const hasEntropies = toporefName => {
+  return toporefsWithEntropies.indexOf(toporefName) > -1;
+};
+
 const Row = ({ project, highlight, index, setProject }) => {
   // Harvest data from the project object
   const {
@@ -123,11 +131,13 @@ const Row = ({ project, highlight, index, setProject }) => {
   )
     analyses.push('electrostatic');
 
-  // Check if any metadata toporef has a map
+  // Check if any metadata toporef has a map and its toporef data has entropies
   const toporefs = metadata && metadata.TOPOREFS;
-  const anyMappedToporef = toporefs && toporefs.some(toporef => !!toporef.map);
+  const anySuitableToporef =
+    toporefs &&
+    toporefs.some(toporef => !!toporef.map && hasEntropies(toporef.name));
   // Push the mutations analysis if so
-  if (anyMappedToporef && analyses && !analyses.includes('mutations'))
+  if (anySuitableToporef && analyses && !analyses.includes('mutations'))
     analyses.push('mutations');
 
   // Returns a table with multiple rows
