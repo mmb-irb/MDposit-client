@@ -13,13 +13,9 @@ import useMutationsRepresentations from '../../../components/ngl-viewer/use-muta
 
 import style from './style.module.css';
 
-import { AccessionCtx, ProjectCtx } from '../../../contexts';
+import { ProjectCtx } from '../../../contexts';
 
 import Loading from '../../../components/loading';
-
-import useAPI from '../../../hooks/use-api';
-
-import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 //import ResidueSelector from '../../../components/residue-selector';
 
@@ -34,21 +30,11 @@ const Mutations = () => {
   // Set when one point in the graph is selected
   //const [selectedResidues, setSelectedResidues] = useState([]);
 
-  // Get the current project accession and metadata
-  const accession = useContext(AccessionCtx);
+  // Get the current project metadata
   const { metadata } = useContext(ProjectCtx);
 
-  // Request to API the toporef data
-  const { loading, payload, error } = useAPI(
-    `${BASE_PATH_PROJECTS}${accession}/toporefs`,
-  );
-
   // Set the representations for the NGL viewer
-  const representations = useMutationsRepresentations(accession, metadata);
-
-  if (loading) return <Loading />;
-  else if (error) return error.toString();
-  else if (!payload) return 'Something bad happened';
+  const representations = useMutationsRepresentations(metadata);
 
   return (
     <Suspense fallback={<Loading />}>

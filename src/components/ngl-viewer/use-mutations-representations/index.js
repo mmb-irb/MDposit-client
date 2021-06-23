@@ -1,29 +1,27 @@
-import { useMemo } from 'react';
-
-import useAPI from '../../../hooks/use-api';
-
-import { BASE_PATH_PROJECTS } from '../../../utils/constants';
+import { useContext, useMemo } from 'react';
 
 import { ColormakerRegistry } from 'ngl';
 
 import { color as d3color, scaleLinear } from 'd3';
+
+import { ToporefsCtx } from '../../../contexts';
 
 // Set the color of each residue in the NGL representation
 // WARNING: Grey looks better than white because the background may be white and resdiues are hard to see
 const greyColorPlan = ['grey', 'yellow', 'red'];
 
 // Use this hook to get the memoized NGL default representations
-const useMutationsRepresentations = (accession, metadata) => {
-  // Request to API the toporef data
-  const { loading, payload, error } = useAPI(
-    `${BASE_PATH_PROJECTS}${accession}/toporefs`,
-  );
+const useMutationsRepresentations = metadata => {
+  // Get the toporefs data
+  const toporefData = useContext(ToporefsCtx);
 
   // Set the representations for the NGL viewer
   const mutationRepresentations = useMemo(() => {
-    if (!payload) return;
+    if (!toporefData) return;
     // Check that at least 1 of the toporefs has entropies
-    const anyToporefMutations = payload.some(toporef => !!toporef.entropies);
+    const anyToporefMutations = toporefData.some(
+      toporef => !!toporef.entropies,
+    );
     if (!anyToporefMutations) return;
     const toporefs = metadata.TOPOREFS;
     if (!toporefs) return;
@@ -58,7 +56,7 @@ const useMutationsRepresentations = (accession, metadata) => {
 
     // Get the entorpies of each toporef
     // Save the logarithmic values
-    const entropiesPerToporef = payload.map(toporef => {
+    const entropiesPerToporef = toporefData.map(toporef => {
       if (!toporef.entropies) return [];
       return toporef.entropies.map(entropy => Math.log(entropy + 0.0001));
     });
@@ -101,11 +99,7 @@ const useMutationsRepresentations = (accession, metadata) => {
 
     const reps = [{ color: 'custom', customScheme: colorScheme }];
     return reps;
-  }, [payload, metadata]);
-
-  if (loading) return;
-  else if (error) return error.toString();
-  else if (!payload) return 'Something bad happened';
+  }, [toporefData, metadata]);
 
   return mutationRepresentations;
 };

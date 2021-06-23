@@ -3,7 +3,7 @@ import React, { useContext, useState, useMemo, Suspense } from 'react';
 import Card from '../animated-card';
 import { CardContent, Chip } from '@material-ui/core';
 
-import { AccessionCtx, ProjectCtx, PdbCtx } from '../../contexts';
+import { ProjectCtx, PdbCtx, ToporefsCtx } from '../../contexts';
 
 import useDefaultRepresentations from '../ngl-viewer/use-default-representations';
 import useMutationsRepresentations from '../ngl-viewer/use-mutations-representations';
@@ -20,15 +20,11 @@ import {
   complexSelectionRanger,
 } from '../../utils/topology-manager';
 
-import useAPI from '../../hooks/use-api';
-
-import { BASE_PATH_PROJECTS } from '../../utils/constants';
-
 // Show floatting bubles with domain names
 // When a bubble is selected the domain is represented
 const Domains = ({ setter }) => {
-  const accession = useContext(AccessionCtx);
   const { chains, metadata } = useContext(ProjectCtx);
+  const toporefData = useContext(ToporefsCtx);
   // Get the current topology
   const pdbData = useContext(PdbCtx);
   const topology = pdbData.file;
@@ -37,20 +33,9 @@ const Domains = ({ setter }) => {
   const [selectedDomain, setSelectedDomain] = useState(0);
   const [overlapedDomain, setOverlapedDomain] = useState(null);
 
-  // Request to API the toporef data
-  const { loading, payload, error } = useAPI(
-    `${BASE_PATH_PROJECTS}${accession}/toporefs`,
-  );
-
-  if (!loading && error)
-    console.error('The load of topology references has failed: ' + error);
-
   const defaultRepresentations = useDefaultRepresentations(chains, metadata);
 
-  const mutationsRepresentation = useMutationsRepresentations(
-    accession,
-    metadata,
-  );
+  const mutationsRepresentation = useMutationsRepresentations(metadata);
 
   // The domains strucutre is:
   // domains: [
@@ -84,8 +69,8 @@ const Domains = ({ setter }) => {
     // Get domains from topology references
     const referenceDomains = [];
     const toporefs = metadata.TOPOREFS;
-    if (payload && toporefs) {
-      payload.forEach(toporef => {
+    if (toporefData && toporefs) {
+      toporefData.forEach(toporef => {
         const toporefName = toporef.name;
         const toporefDomains = toporef.domains;
         if (!toporefDomains) return;
@@ -197,7 +182,7 @@ const Domains = ({ setter }) => {
     metadata,
     defaultRepresentations,
     mutationsRepresentation,
-    payload,
+    toporefData,
     topology,
   ]);
 
@@ -206,15 +191,7 @@ const Domains = ({ setter }) => {
     const currentSelectedDomain = domains[selectedDomain];
     const currentSelectedRepresentations = currentSelectedDomain.representations.map(
       rep => {
-        return {
-          name: rep.name,
-          selection: rep.selection,
-          show: rep.show,
-          type: rep.type,
-          color: rep.color,
-          opacity: rep.opacity,
-          customScheme: rep.customScheme,
-        };
+        return { ...rep };
       },
     );
     const currentOverlapedDomain =
@@ -222,13 +199,9 @@ const Domains = ({ setter }) => {
     const currentOverlapedRepresentations = currentOverlapedDomain
       ? currentOverlapedDomain.representations.map(rep => {
           return {
-            name: rep.name,
-            selection: rep.selection,
-            show: rep.show,
+            ...rep,
             type: 'spacefill',
-            color: rep.color,
             opacity: rep.opacity ? rep.opacity * 0.2 : 0.2,
-            customScheme: rep.customScheme,
           };
         })
       : [];
