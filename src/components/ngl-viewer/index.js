@@ -1099,7 +1099,7 @@ const NGLViewer = memo(
             // Wait if the trajectory has not been downloaded yet
             if (trajectory.loading) return;
 
-            // Get atoms and check they match
+            // Get atom counts from different trajectories and check they match
             if (!atoms) atoms = trajectory.atoms;
             if (atoms !== trajectory.atoms)
               throw new Error(
@@ -1199,14 +1199,20 @@ const NGLViewer = memo(
         return () => player.pause();
       }, [pdbFile, mainTraj, playing, isInView, noTrajectory, bounce]);
 
-      // speed
+      // Handle the speed
+      // The speed is also self-regulated by NGL
+      // If the topology is too big to reach the required speed it will work as fast as possible
       useEffect(() => {
-        stageRef.current &&
+        // Get the current trajectory
+        const traj =
+          stageRef.current &&
           stageRef.current.compList[0] &&
           stageRef.current.compList[0].trajList[0] &&
-          stageRef.current.compList[0].trajList[0].trajectory.player.setParameters(
-            { timeout: 500 / (Math.log2(speed + 1) + 1) },
-          );
+          stageRef.current.compList[0].trajList[0].trajectory;
+        if (!traj) return;
+        // Set the speed
+        const timeout = 500 / (Math.log2(speed + 1) + 1);
+        traj.player.setParameters({ timeout: timeout });
       }, [speed, trajectoryLoadingStatus]);
 
       // spinning
