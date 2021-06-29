@@ -14,6 +14,7 @@ import { color as d3color, scaleLinear } from 'd3';
 
 import Card from '../../../components/animated-card';
 import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
+import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 import Loading from '../../../components/loading';
 
 import useAPI from '../../../hooks/use-api';
@@ -57,9 +58,12 @@ const Sasa = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
   // Get the current project metadata
-  const { metadata } = useContext(ProjectCtx);
+  const { chains, metadata } = useContext(ProjectCtx);
   // Get the current topology, including the residue names
   const pdbData = useContext(PdbCtx);
+
+  // Get the default representations
+  const defaultRepresentations = useDefaultRepresentations(chains, metadata);
 
   // Set a ref to the ngl which allows access to the ngl viewer exposed methods
   const viewerRef = useRef(null);
@@ -117,6 +121,16 @@ const Sasa = () => {
       };
     });
 
+    // Set the representations by showing all default representations repainted
+    const representations = [];
+    defaultRepresentations.forEach(representation => {
+      const newRepresentation = { ...representation };
+      newRepresentation.color = 'custom';
+      newRepresentation.customScheme = colorScheme;
+      newRepresentation.type = 'spacefill';
+      representations.push(newRepresentation);
+    });
+
     const firstResidue = data[0];
     const framesNumber = firstResidue.saspf.length;
 
@@ -131,9 +145,7 @@ const Sasa = () => {
     const mainComponent = [
       {
         trajectoryURLs: [mainURL],
-        representations: [
-          { color: 'custom', customScheme: colorScheme, type: 'spacefill' },
-        ],
+        representations: representations,
       },
     ];
 
@@ -170,7 +182,7 @@ const Sasa = () => {
     });
 
     return { mainComponent, framesNumber, timeStep, sequences };
-  }, [payload, pdbData, metadata, accession]);
+  }, [payload, pdbData, metadata, accession, defaultRepresentations]);
 
   // Get the residues list in model notation
   const { selectedData, selectedResidueNames } = useMemo(() => {

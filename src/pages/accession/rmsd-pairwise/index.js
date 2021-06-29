@@ -7,6 +7,7 @@ import useAPI from '../../../hooks/use-api';
 import Card from '../../../components/animated-card';
 import Loading from '../../../components/loading';
 import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
+import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 
 import { AccessionCtx, ProjectCtx } from '../../../contexts';
 
@@ -23,7 +24,10 @@ const RmsdPairwise = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
   // Get the current project metadata
-  const { metadata } = useContext(ProjectCtx);
+  const { chains, metadata } = useContext(ProjectCtx);
+
+  // Get the default representations
+  const defaultRepresentations = useDefaultRepresentations(chains, metadata);
 
   // The selected frames
   const [selected, setSelected] = useState(null);
@@ -85,8 +89,8 @@ const RmsdPairwise = () => {
   }, [payload, metadata, interactions, selectedInteraction]);
 
   // Set the frames to be represented in the NGL viewer
-  const components = useMemo(() => {
-    if (!selected) return;
+  const { components, agent1, agent2 } = useMemo(() => {
+    if (!selected) return {};
 
     // Get the selected interaction
     const interaction = interactions[selectedInteraction];
@@ -108,46 +112,50 @@ const RmsdPairwise = () => {
     const agent2 = interaction.agent_2;
 
     const components = [];
-    if (selectedInteraction > 0) {
-      selected.forEach((frame, index) => {
-        components.push({
-          frame: frame,
-          representations: [
-            {
-              name: 'Frame ' + frame + ' (' + agent1 + ' interface)',
-              color: index === 0 ? 'orange' : 'purple',
-              selection: interactionInterface1,
-              type: 'licorice',
-            },
-            {
-              name: 'Frame ' + frame + ' (' + agent2 + ' interface)',
-              color: index === 0 ? 'yellow' : 'green',
-              selection: interactionInterface2,
-              type: 'licorice',
-            },
-            {
-              name: 'Frame ' + frame + ' reference',
-              color: index === 0 ? 'red' : 'blue',
-              opacity: 0.1,
-            },
-          ],
-        });
+    selected.forEach((frame, index) => {
+      const representations = [];
+      // Set the overall representations
+      // In case there is no interaction selected this would be opaque
+      // In case there is an interaction selected this would be transparent (just a reference)
+      defaultRepresentations.forEach(representation => {
+        const newRepresentation = { ...representation };
+        newRepresentation.name =
+          'Frame ' + frame + ' - ' + newRepresentation.name;
+        newRepresentation.color = index === 0 ? 'red' : 'blue';
+        if (selectedInteraction > 0) {
+          newRepresentation.name += ' reference';
+          newRepresentation.opacity = 0.1;
+        }
+        representations.push(newRepresentation);
       });
-    } else {
-      selected.forEach((frame, index) => {
-        components.push({
-          frame: frame,
-          representations: [
-            {
-              name: 'Frame ' + frame,
-              color: index === 0 ? 'red' : 'blue',
-            },
-          ],
-        });
+      // Set both interfaces representations, each with different colors
+      if (selectedInteraction > 0) {
+        const interface1Representation = {
+          name: 'Frame ' + frame + ' - ' + agent1 + ' interface',
+          color: index === 0 ? 'orange' : 'purple',
+          selection: interactionInterface1,
+          type: 'licorice',
+        };
+        const interface2Representation = {
+          name: 'Frame ' + frame + ' - ' + agent2 + ' interface',
+          color: index === 0 ? 'yellow' : 'green',
+          selection: interactionInterface2,
+          type: 'licorice',
+        };
+        representations.push(
+          interface1Representation,
+          interface2Representation,
+        );
+      }
+
+      components.push({
+        frame: frame,
+        representations: representations,
       });
-    }
-    return components;
-  }, [selected, interactions, selectedInteraction]);
+    });
+
+    return { components, agent1, agent2 };
+  }, [selected, interactions, selectedInteraction, defaultRepresentations]);
 
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
@@ -167,18 +175,36 @@ const RmsdPairwise = () => {
           />
           {selected && (
             <div>
-              {components.map(component =>
-                component.representations.map((representation, r) => (
-                  <Chip
-                    key={r}
-                    label={representation.name}
-                    style={{
-                      backgroundColor: representation.color,
-                      margin: '0.2em',
-                    }}
-                  />
-                )),
-              )}
+              {components.map((component, c) => (
+                <Chip
+                  key={c}
+                  label={'Frame ' + component.frame}
+                  style={{
+                    backgroundColor: c === 0 ? 'red' : 'blue',
+                    margin: '0.2em',
+                  }}
+                />
+              ))}
+              {selectedInteraction > 0 &&
+                components.map((component, c) =>
+                  [agent1, agent2].map((agent, a) => (
+                    <Chip
+                      key={a}
+                      label={'Frame ' + component.frame + ' - ' + agent}
+                      style={{
+                        backgroundColor:
+                          a === 0
+                            ? c === 0
+                              ? 'orange'
+                              : 'purple'
+                            : c === 0
+                            ? 'yellow'
+                            : 'green',
+                        margin: '0.2em',
+                      }}
+                    />
+                  )),
+                )}
             </div>
           )}
         </CardContent>
