@@ -30,7 +30,8 @@ const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
 
 // Set the color of each residue in the NGL representation
 // WARNING: Grey looks better than white because the background may be white and resdiues are hard to see
-const chargesColorPlan = ['blue', 'white', 'red'];
+// Red goes for negative charges and blue goes for positive charges
+const chargesColorPlan = ['red', 'white', 'blue'];
 
 const Electrostatic = () => {
   // Track if the NGL viewer
@@ -63,13 +64,10 @@ const Electrostatic = () => {
     const charges = metadata.CHARGES;
     let colorScheme;
     if (charges) {
-      // Set the color scale according to the maximum and minimum means
-      const max = Math.max(...charges);
-      const min = Math.min(...charges);
       // Set the color scale according to the maximum and minimum values
       const colorScale = scaleLinear()
         .range(chargesColorPlan)
-        .domain([min, (min + max) / 2, max]);
+        .domain([-1, 0, +1]);
       // Set the colorScheme to get each value corresponding color
       colorScheme = ColormakerRegistry.addScheme(function(params) {
         this.atomColor = atom => {
