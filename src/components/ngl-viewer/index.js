@@ -1379,45 +1379,62 @@ const NGLViewer = memo(
           */
         };
 
-        const hideTooltip = () => (tooltip.style.display = 'none');
+        // Save a timeout before displaying the tooltip
+        // This way we can kill the display in case the mouse is out before the timeout is over
+        let timeout;
+
+        // Set a function that both prevents the tooltip if it is about to appear and hides it is already displayed
+        const hideTooltip = () => {
+          clearTimeout(timeout);
+          tooltip.style.display = 'none';
+        };
 
         // Show our tooltip with the corresponding values when the mouse hovers an atom/bond
         stageRef.current.signals.hovered.add(function(pickingProxy) {
-          // When we hover a bond
+          // When mouse is over something (i.e. bonds or atoms)
           if (pickingProxy) {
-            // handle tooltip text
-            let description;
-            const bond = pickingProxy.bond;
-            const atom = pickingProxy.atom;
-            if (bond) {
-              const atom1 = bond.atom1;
-              const atom2 = bond.atom2;
-              description = (
-                <>
-                  <div>{`Bond ${atom1.index} - ${atom2.index}`}</div>
-                  <hr style={{ color: 'lightGrey' }} />
-                  {formatOutput(atom1)}
-                  <hr style={{ color: 'lightGrey' }} />
-                  {formatOutput(atom2)}
-                </>
+            // Set a timeout for the hover to do not be instantaneous
+            hideTooltip();
+            timeout = setTimeout(() => {
+              // handle tooltip text
+              let description;
+              const bond = pickingProxy.bond;
+              const atom = pickingProxy.atom;
+              // When we hover a bond
+              if (bond) {
+                const atom1 = bond.atom1;
+                const atom2 = bond.atom2;
+                description = (
+                  <>
+                    <div>{`Bond ${atom1.index} - ${atom2.index}`}</div>
+                    <hr style={{ color: 'lightGrey' }} />
+                    {formatOutput(atom1)}
+                    <hr style={{ color: 'lightGrey' }} />
+                    {formatOutput(atom2)}
+                  </>
+                );
+              }
+              // When we hover an atom
+              else if (atom) {
+                description = formatOutput(atom);
+              }
+              setTooltipContent(description);
+              // Handle tooltip position
+              // WARNING: It is important to make the display block before calculating the position
+              // This is because the position is calculated from the tooltip size, which would be 0 otherwise
+              tooltip.style.display = 'block';
+              const { x, y } = setTooltipPosition(
+                containerRef.current,
+                tooltip,
+                pickingProxy.mouse.position,
+                3,
               );
-            } else if (atom) {
-              description = formatOutput(atom);
-            }
-            setTooltipContent(description);
-            // Handle tooltip position
-            // WARNING: It is important to make the display block before calculating the position
-            // This is because the position is calculated from the tooltip size, which would be 0 otherwise
-            tooltip.style.display = 'block';
-            const { x, y } = setTooltipPosition(
-              containerRef.current,
-              tooltip,
-              pickingProxy.mouse.position,
-              3,
-            );
-            tooltip.style.top = y + 'px';
-            tooltip.style.left = x + 'px';
-          } else {
+              tooltip.style.top = y + 'px';
+              tooltip.style.left = x + 'px';
+            }, 400); // Wait 0,4 secs before showing the tooltip
+          }
+          // When mouse is over nothing
+          else {
             hideTooltip();
           }
         });
