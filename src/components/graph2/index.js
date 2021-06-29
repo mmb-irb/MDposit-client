@@ -44,6 +44,9 @@ import style from './style.module.css';
 // DANI: Puede que el número no se respete del todo
 const NUMBER_OF_DATA_POINTS_ON_SCREEN = 100; // i.e. minimum number of points in screen
 
+// Set the separation between text labels which appear when we hover data points
+const HOVER_TEXT_SEPARATION = 25;
+
 const dPR = window.devicePixelRatio || 1;
 
 // According to d3 documentation
@@ -577,6 +580,9 @@ const Graph2 = ({
         // Get the closest x axis index to the current mouse position
         const closestIndex =
           Math.round(x.invert(xValue) / precision / step) * precision;
+        // Track the implicit position of all hovering dots
+        // This is useful to know if dot texts would overlap
+        const dotDownOffsets = {};
         allDotGroups
           // Set the x position of the dot
           .attr('transform', `translate(${x(closestIndex * step)}, 0)`)
@@ -588,17 +594,53 @@ const Graph2 = ({
         allDotGroups
           .selectAll('g.dot-group')
           // Set the y position of the dot
-          .attr(
-            'transform',
-            d =>
-              `translate(0, ${
-                d === 'x'
-                  ? height - offset.bottom
-                  : (y(data[d].data[closestIndex]) || 0) + 2.5
-              })`,
-          )
+          .attr('transform', d => {
+            const offsetDown =
+              d === 'x'
+                ? // The x bottom axis for the x value
+                  height - offset.bottom
+                : // Just over the correspondong line for other values
+                  (y(data[d].data[closestIndex]) || 0) + 2.5;
+            // Record the current offset down
+            dotDownOffsets[d] = offsetDown;
+            return `translate(0, ${offsetDown})`;
+          })
           .attr('opacity', d => (d === 'x' || labels[d] ? 1 : 0))
           .selectAll('text')
+          .attr('transform', d => {
+            if (d === 'x') return `translate(0, ${-3})`;
+            // Find if an offset is too close to others and then move it to a better place (above)
+            let dotDownOffset = dotDownOffsets[d];
+            let extra = 0;
+            // Sort other offsets from more (below) to less (above)
+            const sortedOffsets = [];
+            for (const [key, value] of Object.entries(dotDownOffsets)) {
+              if (key !== d) sortedOffsets.push(value);
+            }
+            sortedOffsets.sort((a, b) => b - a);
+            // For each other offset, check if we are closer to it than the margin
+            // If so, we move our offset over the other as much as the margin needs
+            for (const offset of sortedOffsets) {
+              const difference = Math.abs(dotDownOffset + extra - offset);
+              if (difference > HOVER_TEXT_SEPARATION - 1) continue;
+              extra = offset - HOVER_TEXT_SEPARATION - dotDownOffset;
+            }
+            // In case the new offset is over the top limit we must relocate it below
+            if (dotDownOffset + extra < offset.top) {
+              extra = offset.top - dotDownOffset;
+              sortedOffsets.sort((a, b) => a - b);
+              // For each other offset, check if we are closer to it than the margin
+              // If so, we move our offset below the other as much as the margin needs
+              for (const offset of sortedOffsets) {
+                const difference = Math.abs(dotDownOffset + extra - offset);
+                if (difference > HOVER_TEXT_SEPARATION - 1) continue;
+                extra = offset + HOVER_TEXT_SEPARATION - dotDownOffset;
+              }
+            }
+            dotDownOffsets[d] = dotDownOffset + extra;
+            // Add the offset + a small margin
+            return `translate(0, ${extra - 3})`;
+          })
           // Set the dot text in the x axis
           .text(d => {
             // Dot in x axes
