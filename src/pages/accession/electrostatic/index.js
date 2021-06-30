@@ -43,8 +43,8 @@ const Electrostatic = () => {
 
   // Get the accession
   //const accession = useContext(AccessionCtx);
-  // Get the current project chains
-  const { metadata, chains } = useContext(ProjectCtx);
+  // Get the current project metadata
+  const { metadata } = useContext(ProjectCtx);
   // Get the current topology
   const pdbData = useContext(PdbCtx);
 
@@ -55,7 +55,7 @@ const Electrostatic = () => {
   const [selectedOrder, setSelectedOrder] = useState(true);
 
   // Get the default representations
-  const defaultRepresentations = useDefaultRepresentations(chains, metadata);
+  const defaultRepresentations = useDefaultRepresentations();
 
   // Set the representations for the NGL viewer
   const { representations, initialFocus } = useMemo(() => {

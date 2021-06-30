@@ -1,4 +1,4 @@
-import React, { useContext, Suspense } from 'react';
+import React, { Suspense } from 'react';
 // A hook to track whenever some element is on screen
 import { useInView } from 'react-intersection-observer';
 
@@ -12,8 +12,6 @@ import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls'
 import useMutationsRepresentations from '../../../components/ngl-viewer/use-mutations-representations';
 
 import style from './style.module.css';
-
-import { ProjectCtx } from '../../../contexts';
 
 import Loading from '../../../components/loading';
 
@@ -30,11 +28,8 @@ const Mutations = () => {
   // Set when one point in the graph is selected
   //const [selectedResidues, setSelectedResidues] = useState([]);
 
-  // Get the current project metadata
-  const { metadata } = useContext(ProjectCtx);
-
   // Set the representations for the NGL viewer
-  const representations = useMutationsRepresentations(metadata);
+  const representations = useMutationsRepresentations();
 
   return (
     <Suspense fallback={<Loading />}>

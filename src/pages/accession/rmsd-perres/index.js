@@ -68,12 +68,12 @@ const RmsdPerres = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
   // Get the current project metadata
-  const { chains, metadata } = useContext(ProjectCtx);
+  const { metadata } = useContext(ProjectCtx);
   // Get the current topology, including the residue names
   const pdbData = useContext(PdbCtx);
 
   // Get the default representations
-  const defaultRepresentations = useDefaultRepresentations(chains, metadata);
+  const defaultRepresentations = useDefaultRepresentations();
 
   // Set a ref to the ngl which allows access to the ngl viewer exposed methods
   const viewerRef = useRef(null);

@@ -56,7 +56,7 @@ const Pockets = () => {
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
 
   // Get the current project metadata
-  const { chains, metadata } = useContext(ProjectCtx);
+  const { metadata } = useContext(ProjectCtx);
   // Get the accession
   const accession = useContext(AccessionCtx);
   // Get the current topology, including the residue names
@@ -102,7 +102,7 @@ const Pockets = () => {
 
   // Use this hook to get the memoized NGL default representations
   // We need to access the default representations from here to know the number of representations
-  const defaultRepresentations = useDefaultRepresentations(chains, metadata);
+  const defaultRepresentations = useDefaultRepresentations();
 
   // Set the main component to be passed to NGL
   const { components, representationsNumber } = useMemo(() => {

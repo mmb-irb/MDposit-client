@@ -4,14 +4,16 @@ import { ColormakerRegistry } from 'ngl';
 
 import { color as d3color, scaleLinear } from 'd3';
 
-import { ToporefsCtx } from '../../../contexts';
+import { ProjectCtx, ToporefsCtx } from '../../../contexts';
 
 // Set the color of each residue in the NGL representation
 // WARNING: Grey looks better than white because the background may be white and resdiues are hard to see
 const greyColorPlan = ['grey', 'yellow', 'red'];
 
 // Use this hook to get the memoized NGL default representations
-const useMutationsRepresentations = metadata => {
+const useMutationsRepresentations = () => {
+  // Get the current project metadata
+  const { metadata } = useContext(ProjectCtx);
   // Get the toporefs data
   const toporefData = useContext(ToporefsCtx);
 

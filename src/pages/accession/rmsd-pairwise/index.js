@@ -24,10 +24,10 @@ const RmsdPairwise = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
   // Get the current project metadata
-  const { chains, metadata } = useContext(ProjectCtx);
+  const { metadata } = useContext(ProjectCtx);
 
   // Get the default representations
-  const defaultRepresentations = useDefaultRepresentations(chains, metadata);
+  const defaultRepresentations = useDefaultRepresentations();
 
   // The selected frames
   const [selected, setSelected] = useState(null);

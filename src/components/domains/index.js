@@ -23,7 +23,7 @@ import {
 // Show floatting bubles with domain names
 // When a bubble is selected the domain is represented
 const Domains = ({ setter }) => {
-  const { chains, metadata } = useContext(ProjectCtx);
+  const { metadata } = useContext(ProjectCtx);
   const toporefData = useContext(ToporefsCtx);
   // Get the current topology
   const pdbData = useContext(PdbCtx);
@@ -33,9 +33,9 @@ const Domains = ({ setter }) => {
   const [selectedDomain, setSelectedDomain] = useState(0);
   const [overlapedDomain, setOverlapedDomain] = useState(null);
 
-  const defaultRepresentations = useDefaultRepresentations(chains, metadata);
+  const defaultRepresentations = useDefaultRepresentations();
 
-  const mutationsRepresentation = useMutationsRepresentations(metadata);
+  const mutationsRepresentation = useMutationsRepresentations();
 
   // The domains strucutre is:
   // domains: [

@@ -1,7 +1,6 @@
 // React logic
 import React, {
   useCallback,
-  useContext,
   useState,
   useEffect,
   useRef,
@@ -54,10 +53,6 @@ import useDefaultRepresentations from '../ngl-viewer/use-default-representations
 
 // Hooks
 import useToggleState from '../../hooks/use-toggle-state';
-
-import { ProjectCtx } from '../../contexts';
-
-import Loading from '../../components/loading';
 
 import connectionLevel, {
   LOW,
@@ -158,11 +153,8 @@ const NGLViewerWithControls = forwardRef(
     },
     ref,
   ) => {
-    // Get context data only for the default setup of components and representations
-    const { metadata, chains } = useContext(ProjectCtx);
-
     // Use this hook to get the memoized NGL default representations
-    const defaultRepresentations = useDefaultRepresentations(chains, metadata);
+    const defaultRepresentations = useDefaultRepresentations();
 
     // Additional representations which may be added by the user
     // It is an array of objects with the following structure:
@@ -511,14 +503,6 @@ const NGLViewerWithControls = forwardRef(
         setOpacities,
       ],
     );
-
-    // Return loading if the context is not loaded yet
-    // DANI: Esto podría no tener mucho sentido aquí, hay que darle una vuelta
-    //if (!metadata || !chains) return <Loading />;
-
-    // DANI: La metadata habría que plantearse hasta que punto es un requisito indispensable
-    // Gran parte del NGL podría seguir funcionando en una trayectoria que por error no tiene metadata
-    if (!metadata) return <Loading />;
 
     // DANI: Si no quieres buscarte problemas no cambies las "Card"s de aquí abajo por "div"s o similar
     return (

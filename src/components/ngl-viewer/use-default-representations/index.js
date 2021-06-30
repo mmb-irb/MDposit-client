@@ -1,8 +1,12 @@
 // React logic
-import { useMemo } from 'react';
+import { useMemo, useContext } from 'react';
+
+import { ProjectCtx } from '../../../contexts';
 
 // Use this hook to get the memoized NGL default representations
-const useDefaultRepresentations = (chains, metadata) => {
+const useDefaultRepresentations = () => {
+  // Get the current project metadata and chains
+  const { chains, metadata } = useContext(ProjectCtx);
   // Set the chains to be represented in the NGL viewer by default
   // WARNING: This is experimental and may have some bugs
   const defaultRepresentations = useMemo(() => {
