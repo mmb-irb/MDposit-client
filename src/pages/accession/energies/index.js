@@ -4,6 +4,7 @@ import { CardContent, Typography, TextField } from '@material-ui/core';
 
 import Card from '../../../components/animated-card';
 import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
+import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 import Loading from '../../../components/loading';
 
 import useAPI from '../../../hooks/use-api';
@@ -24,6 +25,7 @@ import {
   model2sourceResidue,
   complexNumerationParser,
   source2modelResidue,
+  complexSelectionRanger,
 } from '../../../utils/topology-manager';
 
 const Graph2 = lazy(() =>
@@ -44,6 +46,9 @@ const Energies = () => {
   const { metadata } = useContext(ProjectCtx);
   // Get the current topology, including the residue names
   const pdbData = useContext(PdbCtx);
+
+  // Get the default representations
+  const defaultRepresentations = useDefaultRepresentations();
 
   // Send a request to the API with the url of the rgyr analysis
   const { loading, payload, error } = useAPI(
@@ -68,11 +73,12 @@ const Energies = () => {
   const ligands = metadata && metadata.LIGANDS;
   const interactions = metadata && metadata.INTERACTIONS;
 
-  const { data, isOld, dataError } = useMemo(() => {
+  const { data, isOld, dataError, representations } = useMemo(() => {
     // Return if the payload is not ready
     if (!payload) return {};
 
     let data;
+    let guestSelection;
 
     // DANI: hardcodeado para que pueda soportar ambos formatos de energies: el viejo y el nuevo
     const isOld = payload.data[0].agent1 ? false : true;
@@ -85,7 +91,12 @@ const Energies = () => {
       data = payload.data.find(dataset => {
         return dataset.name === ligand.name;
       });
-      if (!data) return `Dataset for the ligand "${ligand.name}" not found`;
+      if (!data) {
+        const dataError = `Dataset for the ligand "${ligand.name}" not found`;
+        return { data: null, isOld: null, dataError };
+      }
+      // Set the guest NGL selection
+      guestSelection = ligand.nglSelection;
     } else {
       // Get the selected interaction
       const interaction = interactions[selectedInteractionOrLigand];
@@ -97,14 +108,22 @@ const Energies = () => {
         return dataset.name === interaction.name;
       });
       if (!dataset) {
-        const dataError = `ERROR: Dataset for the interaction "${interaction.name}" not found`;
+        const dataError = `Dataset for the interaction "${interaction.name}" not found`;
         return { data: null, isOld: null, dataError };
       }
       data = dataset[agent];
       if (!data) {
-        const dataError = `ERROR: Data for the interaction "${interaction.name}" not found`;
+        const dataError = `Data for the interaction "${interaction.name}" not found`;
         return { data: null, isOld: null, dataError };
       }
+      // Set the guest NGL selection
+      const guestResidues = selectedOrder
+        ? interaction.interface_2
+        : interaction.interface_1;
+      const { rangedSelection: parsedResidues } = complexSelectionRanger(
+        guestResidues,
+      );
+      guestSelection = parsedResidues;
     }
 
     data.xTags = [];
@@ -114,7 +133,18 @@ const Energies = () => {
       data.xTags.push(mod.ngl);
     }
 
-    return { data, isOld, dataError };
+    const representations = [
+      ...defaultRepresentations,
+      {
+        selection: guestSelection,
+        name: 'Guest elements',
+        type: 'ball+stick',
+        color: 'element',
+        opacity: 0.3,
+      },
+    ];
+
+    return { data, isOld, dataError, representations };
   }, [
     payload,
     interactions,
@@ -122,6 +152,7 @@ const Energies = () => {
     selectedInteractionOrLigand,
     selectedOrder,
     pdbData,
+    defaultRepresentations,
   ]);
 
   // Render loading or error messages according with the API response
@@ -338,6 +369,7 @@ const Energies = () => {
             ? {
                 accession: accession,
                 selectedResidues: selected,
+                representations: representations,
               }
             : null
         }
