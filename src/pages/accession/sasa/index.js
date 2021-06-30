@@ -50,6 +50,16 @@ const greyColorPlan = ['grey', 'yellow', 'red'];
 // WARNING: White looks better than grey because the background is white and the contrast would be notable
 const whiteColorPlan = ['white', 'yellow', 'red'];
 
+// Set the custom highlighted types
+// In this analysis, since the default representation is spacefill, all highligths must be spacefill
+// Otherwise they would be eclipsed by the base representation
+const highlightTypes = {
+  atoms: 'spacefill',
+  residues: 'spacefill',
+  chains: 'spacefill',
+  selections: 'spacefill',
+};
+
 const Sasa = () => {
   // Track if the NGL viewer
   // The status isNglVisible is returned true/false when the element is in/out the screen respectively
@@ -263,12 +273,7 @@ const Sasa = () => {
             onProgress={handleFrameProgress}
             ref={viewerRef}
             framesSelect={false}
-            highlightTypes={{
-              atoms: 'spacefill',
-              residues: 'spacefill',
-              chains: 'spacefill',
-              selections: 'spacefill',
-            }}
+            highlightTypes={highlightTypes}
           />
         ) : (
           <div style={{ height: '50vh' }} />
