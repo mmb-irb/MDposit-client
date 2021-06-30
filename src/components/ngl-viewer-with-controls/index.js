@@ -789,6 +789,7 @@ const NGLViewerWithControls = forwardRef(
                   className={cn(style['fullscreen-toggle'], {
                     [style.hidden]: !screenfull.isEnabled,
                     [style['is-fullscreen']]: isFullscreen,
+                    [style['settings']]: settings,
                   })}
                   disabled={!screenfull.isEnabled}
                 >

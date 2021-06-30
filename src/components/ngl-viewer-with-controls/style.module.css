@@ -74,10 +74,12 @@
 @keyframes expand {
   from {
     transform: scale(1);
+    color: 'white';
   }
 
   to {
     transform: scale(1.5);
+    color: 'red';
   }
 }
 
@@ -97,6 +99,10 @@
 
 .fullscreen-toggle.is-fullscreen:hover svg {
   animation-name: compress;
+}
+
+.fullscreen-toggle.settings:not(.is-fullscreen) svg {
+  animation: expand 1s ease-in-out 500ms infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
