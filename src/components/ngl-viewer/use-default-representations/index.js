@@ -1,12 +1,15 @@
 // React logic
 import { useMemo, useContext } from 'react';
 
-import { ProjectCtx } from '../../../contexts';
+import { ProjectCtx, PdbCtx } from '../../../contexts';
 
 // Use this hook to get the memoized NGL default representations
 const useDefaultRepresentations = () => {
   // Get the current project metadata and chains
   const { chains, metadata } = useContext(ProjectCtx);
+  // Get current structure
+  const pdbData = useContext(PdbCtx);
+  const structure = pdbData && pdbData.file;
   // Set the chains to be represented in the NGL viewer by default
   // WARNING: This is experimental and may have some bugs
   const defaultRepresentations = useMemo(() => {
@@ -63,6 +66,19 @@ const useDefaultRepresentations = () => {
       });
     }
 
+    // Add a representation for ions in spacefill in case there are residues with 1 atom
+    const someSingleAtomResidue = structure.residueStore.atomCount.some(
+      count => count === 1,
+    );
+    if (someSingleAtomResidue) {
+      reps.push({
+        name: 'Ions',
+        selection: 'ion',
+        type: 'spacefill',
+        color: 'element',
+      });
+    }
+
     // DANI: Hardcodeado para trayectorias de Rebecca Wade
     if (metadata.PDBID === '6ACC') {
       reps.push({
@@ -75,7 +91,7 @@ const useDefaultRepresentations = () => {
     }
 
     return reps;
-  }, [chains, metadata]);
+  }, [chains, metadata, structure]);
 
   return defaultRepresentations;
 };
