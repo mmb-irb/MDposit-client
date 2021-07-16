@@ -194,32 +194,40 @@ const ResidueSelector = ({
             <details open key={sequence.name}>
               <summary>{sequence.name}</summary>
               <span className={style.flexible}>
-                {sequence.residues.map((residue, index) => {
-                  // isTen is true once every 10 residues
-                  const isTen = (index + 1) % 10 === 0;
-                  return [
-                    <span
-                      lang={'residue'}
-                      key={index}
-                      className={style['normal']}
-                      style={{ backgroundColor: residue.color }}
-                      title={residue.tooltip}
-                      residueindex={residue.index}
-                    >
-                      {residue.letter}
-                    </span>,
-                    isTen && (
-                      <span
-                        key={index + '_'}
-                        className={style['extra-right-margin']}
-                      >
-                        <span className={style['small-up-number']}>
-                          {index + 1}
+                {sequence.residues
+                  .reduce((residueGroups, currentResidue, currentIndex) => {
+                    const isTen = currentIndex % 10 === 0;
+                    if (isTen) residueGroups.push([]);
+                    const lastGroup = residueGroups[residueGroups.length - 1];
+                    lastGroup.push(currentResidue);
+                    return residueGroups;
+                  }, [])
+                  .map((residueGroup, groupIndex) => {
+                    const letters = residueGroup.map((residue, index) => {
+                      return (
+                        <span
+                          lang={'residue'}
+                          key={index}
+                          className={style['normal']}
+                          style={{ backgroundColor: residue.color }}
+                          title={residue.tooltip}
+                          residueindex={residue.index}
+                        >
+                          {residue.letter}
+                        </span>
+                      );
+                    });
+                    return (
+                      <span key={groupIndex} className={style['margined']}>
+                        {letters}
+                        <span className={style['extra-right-margin']}>
+                          <span className={style['small-up-number']}>
+                            {(groupIndex + 1) * 10}
+                          </span>
                         </span>
                       </span>
-                    ),
-                  ];
-                })}
+                    );
+                  })}
               </span>
             </details>
           );

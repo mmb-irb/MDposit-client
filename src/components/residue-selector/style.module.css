@@ -17,14 +17,16 @@
 .normal {
   font-size: 85%;
   font-family: 'Courier New', monospace;
-  margin-top: 0.5em;
   cursor: pointer;
+}
+
+.margined {
+  margin-top: 0.5em;
 }
 
 .selected {
   font-size: 85%;
   font-family: 'Courier New', monospace;
-  margin-top: 0.5em;
   cursor: pointer;
   color: white;
   background-color: black;
