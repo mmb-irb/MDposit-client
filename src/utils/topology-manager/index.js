@@ -76,10 +76,15 @@ export const parsedSelectionRanger = selection => {
   let rangedSelection = '';
   let minimumSerieLength = Number.POSITIVE_INFINITY;
   selection.sort((a, b) => a - b); // Sort numbers numerically
-  for (let i = 0; i < selection.length; i++) {
+  const selectionLength = selection.length;
+  // When the selection is a single value
+  if (selectionLength === 1) {
+    return { rangedSelection: selection[0].toString(), small: true };
+  }
+  for (let i = 0; i < selectionLength; i++) {
     const num = selection[i];
     rangedSelection += ', ' + num;
-    for (let j = i + 1; j < selection.length; j++) {
+    for (let j = i + 1; j < selectionLength; j++) {
       const nextNum = selection[j];
       let length = j - i; // The serie length
       if (nextNum - num !== length) {
@@ -96,7 +101,7 @@ export const parsedSelectionRanger = selection => {
         }
         break;
       }
-      if (j === selection.length - 1) {
+      if (j === selectionLength - 1) {
         // End of the selection
         minimumSerieLength = Math.min(length, minimumSerieLength);
         if (length > 1) {
