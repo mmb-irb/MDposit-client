@@ -242,6 +242,7 @@ const Sasa = () => {
       <Card>
         <ResidueSelector
           sequences={sequences}
+          selectedResidues={selectedResidues}
           selectedResiduesSetter={setSelectedResidues}
           colorPlan={whiteColorPlan}
           legendTitle={'Average SAS per atom (Å²)'}

@@ -246,6 +246,7 @@ const RmsdPerres = () => {
       <Card>
         <ResidueSelector
           sequences={sequences}
+          selectedResidues={selectedResidues}
           selectedResiduesSetter={setSelectedResidues}
           colorPlan={whiteColorPlan}
           legendTitle={'Average RMSD (Å)'}

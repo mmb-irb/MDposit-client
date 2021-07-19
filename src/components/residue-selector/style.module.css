@@ -1,12 +1,18 @@
 .horizontal {
   display: flex;
   flex-direction: row;
+  min-height: 150px;
   max-height: 300px;
+}
+
+.thin {
+  width: 110px;
 }
 
 .scroll {
   overflow-y: scroll;
-  padding-left: 0px;
+  padding-left: 0.2em;
+  flex: 1;
 }
 
 .flexible {
@@ -15,13 +21,18 @@
 }
 
 .normal {
-  font-size: 85%;
-  font-family: 'Courier New', monospace;
   cursor: pointer;
 }
 
+.letter {
+  font-size: 85%;
+  font-family: 'Courier New', monospace;
+  pointer-events: none;
+}
+
 .margined {
-  margin-top: 0.5em;
+  margin-top: 0.2em;
+  margin-bottom: 0.2em;
 }
 
 .selected {
@@ -39,7 +50,7 @@
 
 .small-up-number {
   position: absolute;
-  transform: translate(0em, -0.1em);
+  transform: translate(0em, -0.3em);
   font-size: 64%;
 }
 
@@ -50,8 +61,15 @@
 /* Create a triangle over the hovered residue letter */
 .pointer {
   position: absolute;
-  transform: translate(-0.75em, -0.5em);
-  border-top: solid 0.5em black;
-  border-left: solid 0.5em transparent;
-  border-right: solid 0.5em transparent;
+  transform: translate(-0.75em, -0.3em);
+  border-top: solid 0.4em black;
+  border-left: solid 0.4em transparent;
+  border-right: solid 0.4em transparent;
+  pointer-events: none;
+}
+
+.button {
+  position: absolute;
+  top: 0.1em;
+  right: 0.5em;
 }

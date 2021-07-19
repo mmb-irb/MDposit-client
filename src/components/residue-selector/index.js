@@ -1,8 +1,10 @@
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useRef } from 'react';
 
 import style from './style.module.css';
 
-import { CardContent } from '@material-ui/core';
+import { CardContent, IconButton } from '@material-ui/core';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrash } from '@fortawesome/free-solid-svg-icons';
 
 import ColorLegend from '../color-legend';
 
@@ -35,6 +37,11 @@ const freeColor = color => {
     if (ac.color === color) ac.used = false;
   }
 };
+const freeAllColors = () => {
+  for (const ac of asignedColors) {
+    ac.used = false;
+  }
+};
 
 // Add a triangle / arrow over the selected residue letter
 // Return also the visual part, so its color can be changed
@@ -43,6 +50,7 @@ const addPointer = target => {
   pivot.className = style.pivot;
   const pointer = document.createElement('span');
   pointer.className = style.pointer;
+  pointer.lang = 'pointer';
   pivot.appendChild(pointer);
   target.appendChild(pivot);
   return pointer;
@@ -72,6 +80,7 @@ sequences = [
 const ResidueSelector = ({
   sequences,
   colorPlan,
+  selectedResidues,
   selectedResiduesSetter,
   legendTitle,
 }) => {
@@ -107,24 +116,30 @@ const ResidueSelector = ({
     return { residuesData, maxValue, minValue };
   }, [sequences, colorPlan]);
 
+  // Save all current pointers
+  const pointersRef = useRef([]);
+
   // Add events to manage when the mouse hovers / outs / clicks on residues
   useEffect(() => {
     const manager = document.getElementById('manager');
     const handleMouseOver = event => {
-      if (event.target.lang !== 'residue') return;
-      addPointer(event.target);
+      const residue = event.target;
+      if (residue.lang !== 'residue') return;
+      addPointer(residue);
     };
     const handleMouseOut = event => {
-      if (event.target.lang !== 'residue') return;
-      event.target.removeChild(event.target.lastChild);
+      const residue = event.target;
+      if (residue.lang !== 'residue') return;
+      residue.removeChild(residue.lastChild);
     };
     const hadleMouseClick = event => {
-      if (event.target.lang !== 'residue') return;
+      const residue = event.target;
+      if (residue.lang !== 'residue') return;
       // Remove the hover pointer so it does not interfere with the click pointer
-      event.target.removeChild(event.target.lastChild);
+      residue.removeChild(residue.lastChild);
       // WARNING: This method does not allow to get objects and there is no easy way to do it
       // Thats why it is done this work around with the residue index
-      const residueIndex = event.target.getAttribute('residueindex');
+      const residueIndex = residue.getAttribute('residueindex');
       const data = residuesData[residueIndex];
       let selected;
       let color;
@@ -139,26 +154,29 @@ const ResidueSelector = ({
             newState.push(data);
             selected = true;
           } else {
+            data.color = null;
             newState.splice(index, 1);
+            pointersRef.current.splice(index, 1);
             selected = false;
           }
           return newState;
         });
       // Add a pointer and color it
       if (selected) {
-        const pointer = addPointer(event.target);
+        const pointer = addPointer(residue);
         pointer.style['border-top-color'] = color;
+        pointersRef.current.push(pointer);
       }
       // Remove the pointer
       else {
-        const pivot = event.target.lastChild;
+        const pivot = residue.lastChild;
         const pointer = pivot.lastChild;
         color = pointer.style['border-top-color'];
         freeColor(color);
-        event.target.removeChild(pivot);
+        residue.removeChild(pivot);
       }
       // Set the hover pointer back
-      addPointer(event.target);
+      addPointer(residue);
     };
 
     // Highlight the residue when the mouse is over
@@ -176,6 +194,18 @@ const ResidueSelector = ({
     };
   }, [sequences, selectedResiduesSetter, residuesData]);
 
+  // Set a function to remove all selected residues
+  const cleanSelections = () => {
+    for (const pointer of pointersRef.current) {
+      const pivot = pointer.parentElement;
+      const target = pivot.parentElement;
+      target.removeChild(pivot);
+    }
+    pointersRef.current = [];
+    freeAllColors();
+    selectedResiduesSetter([]);
+  };
+
   // Render
   return (
     <div className={style.horizontal}>
@@ -186,13 +216,14 @@ const ResidueSelector = ({
           maxValue={maxValue}
           colorPlan={colorPlan}
           vertical={true}
+          className={style.thin}
         />
       )}
       <CardContent className={style.scroll} id="manager">
         {sequences.map(sequence => {
           return (
             <details open key={sequence.name}>
-              <summary>{sequence.name}</summary>
+              <summary style={{ cursor: 'pointer' }}>{sequence.name}</summary>
               <span className={style.flexible}>
                 {sequence.residues
                   .reduce((residueGroups, currentResidue, currentIndex) => {
@@ -209,22 +240,28 @@ const ResidueSelector = ({
                           lang={'residue'}
                           key={index}
                           className={style['normal']}
-                          style={{ backgroundColor: residue.color }}
                           title={residue.tooltip}
                           residueindex={residue.index}
                         >
-                          {residue.letter}
+                          <span
+                            className={style['letter']}
+                            style={{ backgroundColor: residue.color }}
+                          >
+                            {residue.letter}
+                          </span>
                         </span>
                       );
                     });
                     return (
                       <span key={groupIndex} className={style['margined']}>
                         {letters}
-                        <span className={style['extra-right-margin']}>
-                          <span className={style['small-up-number']}>
-                            {(groupIndex + 1) * 10}
+                        {letters.length === 10 && (
+                          <span className={style['extra-right-margin']}>
+                            <span className={style['small-up-number']}>
+                              {(groupIndex + 1) * 10}
+                            </span>
                           </span>
-                        </span>
+                        )}
                       </span>
                     );
                   })}
@@ -233,6 +270,15 @@ const ResidueSelector = ({
           );
         })}
       </CardContent>
+      {selectedResidues.length > 0 && (
+        <IconButton
+          title="Clean selections"
+          onClick={cleanSelections}
+          className={style.button}
+        >
+          <FontAwesomeIcon icon={faTrash} />
+        </IconButton>
+      )}
     </div>
   );
 };

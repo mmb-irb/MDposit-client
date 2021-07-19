@@ -19,6 +19,8 @@ const ColorLegend = ({
   splits = 19,
   // Set if the color bar must be veritcal
   vertical = false,
+  // Allow to force a custom className from the parent component
+  className,
 }) => {
   // Create a fake 'data' object for the heatmap
   const { legendData, legendLabels } = useMemo(() => {
@@ -48,7 +50,11 @@ const ColorLegend = ({
 
   // Render
   return (
-    <CardContent className={vertical ? style.vertical : style.horizontal}>
+    <CardContent
+      className={
+        className ? className : vertical ? style.vertical : style.horizontal
+      }
+    >
       {title}
       <D3HeatmapGrid
         data={legendData}
