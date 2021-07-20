@@ -2,10 +2,6 @@
   margin: 1em 0;
 }
 
-.graph {
-  height: 50vh;
-}
-
 .horizontal {
   display: flex;
   flex-direction: row;

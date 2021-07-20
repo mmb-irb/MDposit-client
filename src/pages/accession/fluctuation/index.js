@@ -22,8 +22,8 @@ import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 import style from './style.module.css';
 
-const Graph = lazy(() =>
-  import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
+const Graph2 = lazy(() =>
+  import(/* webpackChunkName: 'graph' */ '../../../components/graph2'),
 );
 
 const FluctuationAnalysis = () => {
@@ -83,18 +83,18 @@ const FluctuationAnalysis = () => {
       <Card className={style.card}>
         <CardContent>
           <Typography variant="h6" />
-          <Graph
-            y={payload.y}
+          <Graph2
+            yData={payload.y}
             step={payload.step}
-            xLabel={'Atom'}
+            xAxisLabel={'Atom'}
             xUnit={'atom'}
-            yLabel={'Fluctuation (Å)'}
+            yAxisLabel={'Fluctuation (Å)'}
             type={'dash'}
             onHover={setHoveredAtom}
-            hovered={hoveredAtom}
             onSelect={setSelectedAtoms}
             selected={selectedAtoms}
-            showPrecisionSlider={false}
+            mean={true}
+            standardDeviation={true}
           />
         </CardContent>
       </Card>

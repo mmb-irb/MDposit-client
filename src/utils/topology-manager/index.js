@@ -177,14 +177,31 @@ export const nglNumerationParser = numeration => {
   return { chain, residue: +residue, icode, nglSelection, complex };
 };
 
+// Get atom data from atom index
+export const getAtom = (index, topology = PdbCtx._currentValue.file) => {
+  const atomStore = topology.atomStore;
+  // Get the atom number according to the topology. It usually ranges from 1 to n
+  const serial = atomStore.serial[index];
+  // Absolute index (0-n)
+  const residue = atomStore.residueIndex[index];
+  // Atom properties
+  const typeId = atomStore.atomTypeId[index];
+  const data = topology.atomMap.get(typeId);
+  const { number: residueAtomNumber, atomname: name, element } = data;
+  return { serial, residue, residueAtomNumber, name, element };
+};
+
 // Return residue data whom the specified absolute atom number belongs to
 export const getAtomResidue = (atom, topology = PdbCtx._currentValue.file) => {
   const index = topology.atomStore.residueIndex[atom];
   const residueStore = topology.residueStore;
   const atomCount = residueStore.atomCount[index];
   const atomOffset = residueStore.atomOffset[index];
+  const typeId = residueStore.residueTypeId[index];
+  const data = topology.residueMap.get(typeId);
+  const { resname } = data;
   //console.log(atom + ' => ' + index);
-  return { index, atomCount, atomOffset };
+  return { index, atomCount, atomOffset, resname };
 };
 
 // Get first atom absolute number from resiude absolute number
@@ -553,20 +570,4 @@ export const model2sourceResidue = (
   const absolute = model2absoluteResidue({ chain, residue }, topology);
   const source = absolute2sourceResidue(absolute, topology);
   return source;
-};
-
-// Get atom data from atom index
-export const getAtom = (index, topology = PdbCtx._currentValue.file) => {
-  // Get the atom number according to the topology. It usually ranges from 1 to n
-  const serial = topology.atomStore.serial[index];
-  // Absolute index (0-n)
-  const residue = topology.atomStore.residueIndex[index];
-  // Atom properties
-  const typeId = topology.atomStore.atomTypeId[index];
-  const {
-    number: residueAtomNumber,
-    atomname: name,
-    element,
-  } = topology.atomMap.get(typeId);
-  return { serial, residue, residueAtomNumber, name, element };
 };

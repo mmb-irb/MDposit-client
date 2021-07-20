@@ -176,13 +176,13 @@ const Pockets = () => {
   ]);
 
   // Set the graph parameters
-  const { graphInputData, show } = useMemo(() => {
+  const { graphInputData, dataDisplay } = useMemo(() => {
     // Wait for data and metadata to be ready
     if (!data || !metadata) return {};
 
     // Set the input objets for the graph
     const graphInputData = {};
-    const show = {};
+    const dataDisplay = {};
 
     data.forEach((pocket, p) => {
       const pocketName = pocket.name;
@@ -190,10 +190,10 @@ const Pockets = () => {
       graphInputData[pocketName] = {
         data: pocket.volumes,
       };
-      show[pocketName] = p === selectedPocket;
+      dataDisplay[pocketName] = p === selectedPocket;
     });
 
-    return { graphInputData, show };
+    return { graphInputData, dataDisplay };
   }, [data, metadata, selectedPocket]);
 
   // Handle the change of frame
@@ -322,7 +322,7 @@ const Pockets = () => {
           xScaleFactor={1}
           xAxisLabel={'Frames'}
           yAxisLabel={`Pocket volume (Å³)`}
-          show={show}
+          dataDisplay={dataDisplay}
           showPrecisionSlider={false}
           blockMaxPrecision={true}
           roundcents={false}

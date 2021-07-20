@@ -1,9 +1,23 @@
+.graph {
+  height: 50vh;
+}
+
 .graph-container {
   height: 100%;
 }
 
 .graph-container > svg,
 .graph-container > canvas {
+  cursor: crosshair;
+  position: absolute;
+}
+
+.graph-container-partial {
+  height: calc(100% - 42px);
+}
+
+.graph-container-partial > svg,
+.graph-container-partial > canvas {
   cursor: crosshair;
   position: absolute;
 }
@@ -15,11 +29,5 @@
 }
 
 .graph-legend > * {
-  margin: 0 1em !important;
-}
-
-.graph-legend.precision {
-  margin-top: 2ch;
-  margin-left: 25%;
-  width: 50%;
+  margin: 0 1em;
 }

@@ -4,6 +4,7 @@ import React, {
   useRef,
   useEffect,
   useContext,
+  useMemo,
 } from 'react';
 import { fromPairs, noop, flatten } from 'lodash-es';
 import {
@@ -19,10 +20,12 @@ import {
   event,
 } from 'd3';
 
-import { FormControlLabel, Checkbox } from '@material-ui/core';
+import { FormControlLabel, Checkbox, Button } from '@material-ui/core';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrashAlt } from '@fortawesome/free-regular-svg-icons';
 
 import { PdbCtx } from '../../contexts';
-import { NICE_NAMES } from '../../utils/constants';
+import { NICE_NAMES, COLORS } from '../../utils/constants';
 
 import addTextBackground from './add-text-background';
 import addMasks from './add-masks';
@@ -30,6 +33,10 @@ import addMasks from './add-masks';
 import { getTextWidth, getTextSizeDOM } from '../../utils/document-measurer';
 
 import { getMean, getMeanAndStdv } from '../../utils/statistics';
+
+import { ColormakerRegistry } from 'ngl';
+
+import { getAtom, getAtomResidue } from '../../utils/topology-manager';
 
 import style from './style.module.css';
 
@@ -47,6 +54,16 @@ const NUMBER_OF_DATA_POINTS_ON_SCREEN = 100; // i.e. minimum number of points in
 // Set the separation between text labels which appear when we hover data points
 const HOVER_TEXT_SEPARATION = 25;
 
+// Set a small offset to be added between normal labels and 90 degrees rotated labels
+// This offset is added between the y labels (normal) and the y title (rotated)
+// This offset is added between the x labels (rotated) and the x title (normal)
+const roatatedTextOffset = 9; // In px
+
+// Set a small offset to keep away the axis labels and the axis values
+// They are very close to the axis values by default
+const axisLabelsOffset = 9; // In px
+
+const scheme = new ColormakerRegistry.schemes.element({});
 const dPR = window.devicePixelRatio || 1;
 
 // According to d3 documentation
@@ -55,6 +72,7 @@ const defaultD3font = 'normal 10px sans-serif';
 const titlesD3font = 'normal 14px sans-serif';
 
 const yDataPlaceholder = { placeholder: { data: [0] } };
+const defaultMargins = { top: 10, right: 10, bottom: 10, left: 10 };
 
 // This function is a workaround to calculate maximum values from an array without spread syntax
 // Some browsers (e.g. Chrome) do not support large amount of arguments in a function
@@ -97,6 +115,9 @@ const Graph2 = ({
   // This is used to show the right text when the mouse is over it
   // Accepted values: ns, frame, atom
   xUnit = 'ns',
+  // Set the type of grapg to render
+  // Accepted values: line, dash
+  type = 'line',
   // Start number of activated keys
   // A value of 'null' stands for all activated
   startKeys = null,
@@ -106,16 +127,19 @@ const Graph2 = ({
   onSelect,
   selfLegend = false,
   // Object with each dataset name and a value of true/false to set which data is displayed
-  show,
+  dataDisplay,
+  setDataDisplay,
   // Display the mean line in the graph
   mean = false,
   // Display the standard deviation area in the graph
   standardDeviation = false,
   // Set an extra margin around the graph
-  margin = { top: 10, right: 10, bottom: 10, left: 10 },
+  margin = defaultMargins,
   // DANI: Todavía no está implementado pero se usa para calcular márgenes
   // Set if values in x axis is horizontal (false) or vertical (true)
   flippedXAxisValues = false,
+  // Force a classname for the overall component element
+  className,
 }) => {
   // Set a fake dataset to allow the grapgh to work when no data is passed
   if (!yData || Object.keys(yData).length === 0) yData = yDataPlaceholder;
@@ -131,11 +155,12 @@ const Graph2 = ({
   const dataRef = useRef(yDataPlaceholder);
 
   // Get each dataset
-  const yEntries = Object.entries(yData);
-  const yKeys = yEntries.map(([key]) => key);
+  const { yEntries, yKeys } = useMemo(() => {
+    const yEntries = Object.entries(yData);
+    const yKeys = yEntries.map(([key]) => key);
+    return { yEntries, yKeys };
+  }, [yData]);
 
-  // Get each dataset name
-  //const yKeys = yEntries.map(([key]) => key);
   let counter = 0;
   const activateKey = () => {
     if (startKeys === null || counter < startKeys) {
@@ -148,77 +173,86 @@ const Graph2 = ({
   // ----------------------------------------------------------------------------------------
 
   // OFFSETS: Estimate the space needed for all the labels and titles to not overlap
-
-  // DANI: Toda esta parte no se actualiza en caso de que los valores de las labels cambien
+  // DANI: Toda esta parte no se actualiza en el drawRef en caso de que los valores de las labels cambien
   // DANI: De momento no da problemas pero algún día habrá que arreglarlo
+  const {
+    offset,
+    labelsHeight,
+    requiredBottomOffset,
+    yAxisLabelHegiht,
+  } = useMemo(() => {
+    // Set the yAxisValues by adding all dataset 'data' values
+    let yAxisValues = yEntries
+      .map(([, dataset]) => dataset.data)
+      .reduce((cv, nv) => cv.concat(nv));
+    // Round values if they are nomeric, since labels just reach x.00
+    yAxisValues = yAxisValues.map(v => Math.round(v * 100) / 100);
 
-  // Set the yAxisValues by adding all dataset 'data' values
-  let yAxisValues = yEntries
-    .map(([, dataset]) => dataset.data)
-    .reduce((cv, nv) => cv.concat(nv));
-  // Round values if they are nomeric, since labels just reach x.00
-  yAxisValues = yAxisValues.map(v => Math.round(v * 100) / 100);
+    // Measure the height of normal and text and labels
+    const textHeight = getTextSizeDOM('|', defaultD3font).height;
+    const labelsHeight =
+      getTextSizeDOM('|', titlesD3font).height + axisLabelsOffset;
 
-  // Set a small offset to be added between normal labels and 90 degrees rotated labels
-  // This offset is added between the y labels (normal) and the y title (rotated)
-  // This offset is added between the x labels (rotated) and the x title (normal)
-  const roatatedTextOffset = 9; // In px
+    // Get the calculated widths of all y labels and select the maximum
+    // In addition, add a small offset between labels and the axis which is added further
+    // This offset is only in x axes, which are rotated 90 degrees and end too much close to the axis
+    const maxXAxisWidth = xAxisValues
+      ? steppedMax(
+          xAxisValues.map(label => getTextWidth(label, defaultD3font)),
+        ) + roatatedTextOffset
+      : 10;
+    // Get the calculated widths of all y labels and select the maximum
+    const maxYAxisWidth = steppedMax(
+      yAxisValues.map(label => getTextWidth(label, defaultD3font)),
+    );
 
-  // Set a small offset to keep away the axis labels and the axis values
-  // They are very close to the axis values by default
-  const axisLabelsOffset = 9; // In px
+    // In addition, add a small offset between labels and the axis which is added further
+    // This offset is only in x axes, which are rotated 90 degrees and end too much close to the axis
+    const xAxisLabelHegiht = xAxisLabel ? labelsHeight : 0;
+    const yAxisLabelHegiht = yAxisLabel ? labelsHeight + roatatedTextOffset : 0;
 
-  // Measure the height of normal and text and labels
-  const textHeight = getTextSizeDOM('|', defaultD3font).height;
-  const labelsHeight =
-    getTextSizeDOM('|', titlesD3font).height + axisLabelsOffset;
+    // Finally, estimate the space needed by axes, titles, etc.
+    const requiredTopOffset = title ? labelsHeight + axisLabelsOffset : 0;
+    const requiredBottomOffset = flippedXAxisValues
+      ? maxXAxisWidth + xAxisLabelHegiht
+      : textHeight + xAxisLabelHegiht;
+    const requiredLeftOffset =
+      yAxisValues.length === 1 && yData !== yDataPlaceholder
+        ? Math.max(maxYAxisWidth, getTextWidth(yAxisLabel, titlesD3font))
+        : maxYAxisWidth + yAxisLabelHegiht;
 
-  // Get the calculated widths of all y labels and select the maximum
-  // In addition, add a small offset between labels and the axis which is added further
-  // This offset is only in x axes, which are rotated 90 degrees and end too much close to the axis
-  const maxXAxisWidth = xAxisValues
-    ? steppedMax(xAxisValues.map(label => getTextWidth(label, defaultD3font))) +
-      roatatedTextOffset
-    : 10;
-  // Get the calculated widths of all y labels and select the maximum
-  const maxYAxisWidth = steppedMax(
-    yAxisValues.map(label => getTextWidth(label, defaultD3font)),
-  );
-
-  // In addition, add a small offset between labels and the axis which is added further
-  // This offset is only in x axes, which are rotated 90 degrees and end too much close to the axis
-  const xAxisLabelHegiht = xAxisLabel ? labelsHeight : 0;
-  const yAxisLabelHegiht = yAxisLabel ? labelsHeight + roatatedTextOffset : 0;
-
-  // Finally, estimate the space needed by axes, titles, etc.
-  const requiredTopOffset = title ? labelsHeight + axisLabelsOffset : 0;
-  const requiredBottomOffset = flippedXAxisValues
-    ? maxXAxisWidth + xAxisLabelHegiht
-    : textHeight + xAxisLabelHegiht;
-  const requiredLeftOffset =
-    yAxisValues.length === 1 && yData !== yDataPlaceholder
-      ? Math.max(maxYAxisWidth, getTextWidth(yAxisLabel, titlesD3font))
-      : maxYAxisWidth + yAxisLabelHegiht;
-
-  // Set the dimensions and offsets of the graph
-  const offset = {
-    top: requiredTopOffset + margin.top,
-    right: margin.right,
-    bottom: requiredBottomOffset + margin.bottom,
-    left: requiredLeftOffset + margin.left,
-  };
+    // Set the dimensions and offsets of the graph
+    const offset = {
+      top: requiredTopOffset + margin.top,
+      right: margin.right,
+      bottom: requiredBottomOffset + margin.bottom,
+      left: requiredLeftOffset + margin.left,
+    };
+    return { offset, labelsHeight, requiredBottomOffset, yAxisLabelHegiht };
+  }, [
+    flippedXAxisValues,
+    margin,
+    title,
+    xAxisLabel,
+    xAxisValues,
+    yAxisLabel,
+    yData,
+    yEntries,
+  ]);
 
   // ----------------------------------------------------------------------------------------
 
-  // Boolean array defining which data is displayed (true) or hidden (false)
-  const [lab, setLab] = useState(() =>
+  // Object with entries defining which data is displayed (true) or hidden (false)
+  // Each entry has the same key that its corresponding dataset
+  // First set a defualt internal state for cases where it is not passed with the arguments
+  const [internalDataDisplay, setInternalDataDisplay] = useState(() =>
     fromPairs(yKeys.map(key => [key, activateKey()])),
   );
-
-  // if show is not available we set all as true
-  if (!show && (!lab.length || lab.length < yKeys.length))
-    setLab(Array(yKeys.length).fill(true));
-  if (show && lab !== show) setLab(show);
+  // If the data display state was passed then use it
+  // Otherwise, use the internal state
+  const [lab, setLab] = dataDisplay
+    ? [dataDisplay, setDataDisplay]
+    : [internalDataDisplay, setInternalDataDisplay];
 
   const prevLabels = useRef(lab);
   const prevZoom = useRef({ k: 1, x: 0, rescaleX: scale => scale });
@@ -236,6 +270,13 @@ const Graph2 = ({
   useEffect(() => {
     // Set the d3 base
     let canvas;
+    let canvasContext;
+    if (type === 'dash') {
+      canvas = select(containerRef.current).append('canvas');
+      canvasContext = canvas
+        .node()
+        .getContext('2d' /*, {desynchronized: true}*/);
+    }
     const graph = select(containerRef.current).append('svg');
     // 'defs' is an element used to store graphical data which is not rendered directly
     // Graphics in defs are displayed later by refering them
@@ -346,7 +387,7 @@ const Graph2 = ({
       // If it is bigger thant the maximum extent then use the maximum extent instead
       // This may happen when the dataset is changed while the zoom is in the maximum
       const k = Math.min(currentZoom.k, maxZoomExtent);
-      const precision = getZoomPrecision(k);
+      const precision = type === 'dash' ? 1 : getZoomPrecision(k);
       const rescaleX = currentZoom.rescaleX.bind(currentZoom);
 
       // ----------------------------------------------------------------------------
@@ -504,45 +545,97 @@ const Graph2 = ({
 
       const minIndex = Math.floor(x.invert(0) / step / precision);
       const maxIndex = Math.ceil(x.invert(width) / step / precision);
+      // In case it is a classical line graph
+      if (type === 'line') {
+        // Define the data line positions
+        const lineFn = line()
+          .defined((_, i) => i >= minIndex && i <= maxIndex)
+          .x((_, i) => x(i * step * precision))
+          .y(d => y(d));
 
-      // Define the data line positions
-      const lineFn = line()
-        .defined((_, i) => i >= minIndex && i <= maxIndex)
-        .x((_, i) => x(i * step * precision))
-        .y(d => y(d));
-
-      // Draw the data lines
-      // First set the lines/data mapping
-      const linesData = main.selectAll('path.line').data(dataKeys);
-      // Add as many lines as required according to the mapped data
-      linesData
-        .enter()
-        .append('path')
-        .attr('class', 'line')
-        .attr('fill', 'none')
-        // Update existing lines with the mapped data
-        .merge(linesData)
-        .attr('stroke', d => data[d].color || 'black')
-        .attr('stroke-linejoin', 'round')
-        .attr('stroke-linecap', 'round')
-        .attr('d', d =>
-          lineFn(data[d].data.filter((_, i) => i % precision === 0)),
-        )
-        .transition()
-        .attr('opacity', d => (labels[d] ? 1 : 0))
-        .attr('stroke-width', d => (hovered === d ? 3 : 1.5));
-      // Remove lines which are not required anymore according to the mapped data
-      linesData.exit().remove();
-
-      // Place the vertical line in the selected data point position
-      if (selectedRect) {
-        const width = Math.max(1, x(precision * step) - x(0));
-        selectedRect
-          .attr('width', () => width)
-          .attr('x', () =>
-            Number.isInteger(selected) ? x(selected * step) - width / 2 : 0,
+        // Draw the data lines
+        // First set the lines/data mapping
+        const linesData = main.selectAll('path.line').data(dataKeys);
+        // Add as many lines as required according to the mapped data
+        linesData
+          .enter()
+          .append('path')
+          .attr('class', 'line')
+          .attr('fill', 'none')
+          // Update existing lines with the mapped data
+          .merge(linesData)
+          .attr('stroke', d => data[d].color || 'black')
+          .attr('stroke-linejoin', 'round')
+          .attr('stroke-linecap', 'round')
+          .attr('d', d =>
+            lineFn(data[d].data.filter((_, i) => i % precision === 0)),
           )
-          .attr('opacity', selected === null ? 0 : 1);
+          .transition()
+          .attr('opacity', d => (labels[d] ? 1 : 0))
+          .attr('stroke-width', d => (hovered === d ? 3 : 1.5));
+        // Remove lines which are not required anymore according to the mapped data
+        linesData.exit().remove();
+
+        // Place the vertical line in the selected data point position
+        if (selectedRect) {
+          const width = Math.max(1, x(precision * step) - x(0));
+          selectedRect
+            .attr('width', () => width)
+            .attr('x', () =>
+              Number.isInteger(selected) ? x(selected * step) - width / 2 : 0,
+            )
+            .attr('opacity', selected === null ? 0 : 1);
+        }
+      }
+      // In case it is a dash graph
+      else if (type === 'dash' && canvasContext) {
+        const dashWidth = Math.max(1, x(1) - x(0));
+        const dashHeight = 5;
+        canvasContext.clearRect(0, 0, width, height);
+        for (const [key, { data }] of yEntries) {
+          if (!labels[key]) continue;
+          // selected areas
+          canvasContext.fillStyle = '#c8c8c8';
+          for (const atom of selected || []) {
+            // skip the ones not in view
+            if (atom < minIndex || atom > maxIndex) continue;
+            canvasContext.fillRect(
+              (x(atom * step * precision) - dashWidth / 2) * dPR,
+              0,
+              dashWidth * dPR,
+              height * dPR,
+            );
+          }
+          canvasContext.fillStyle = COLORS.get(key) || '#000000';
+          const maxInView = Math.min(data.length - 1, maxIndex);
+          // each atom in view
+          for (
+            let index = Math.max(0, minIndex);
+            index <= maxInView;
+            index += step
+          ) {
+            if (pdbData && pdbData.file) {
+              const atom = pdbData.file.atomMap.get(
+                pdbData.file.atomStore.atomTypeId[index],
+              );
+              if (atom) {
+                const color = `#${scheme
+                  .atomColor(atom)
+                  .toString(16)
+                  .padStart(6, '0')}`;
+                canvasContext.fillStyle =
+                  color === '#ffffff' ? '#eeeeee' : color;
+              }
+            }
+
+            canvasContext.fillRect(
+              (x(index * step * precision) - dashWidth / 2) * dPR,
+              (y(data[index]) - dashHeight / 2) * dPR,
+              dashWidth * dPR,
+              dashHeight * dPR,
+            );
+          }
+        }
       }
 
       // dots over the selected vertical line
@@ -646,19 +739,17 @@ const Graph2 = ({
             // Dot in x axes
             if (d === 'x') {
               const number = closestIndex * step * xScaleFactor;
+              if (number < 0) return;
               if (xUnit === 'ns') return +number.toFixed(2) + ' ns';
               if (xUnit === 'frame') return 'frame ' + +number.toFixed(2);
               if (xUnit === 'atom') {
-                if (!pdbData.file) return +number.toFixed(2);
-                const atom = pdbData.file.atomMap.get(
-                  pdbData.file.atomStore.atomTypeId[number],
-                );
-                if (!atom) return +number.toFixed(2);
-                const residue = pdbData.file.residueMap.get(
-                  pdbData.file.atomStore.residueIndex[number],
-                );
-                if (!residue) return +number.toFixed(2);
-                return `${residue.resname} - ${atom.atomname}`;
+                let tag = 'atom ' + +number.toFixed(2);
+                if (!pdbData.file) return tag;
+                const atom = getAtom(number, pdbData.file);
+                if (!atom) return tag;
+                const residue = getAtomResidue(number, pdbData.file);
+                if (!residue) return tag + ` (${atom.name})`;
+                return tag + ` (${residue.resname} - ${atom.name})`;
               }
               if (xUnit === 'residue')
                 return (
@@ -672,6 +763,7 @@ const Graph2 = ({
               return Math.round(data[d].data[closestIndex] * 100) / 100;
             }
           });
+
         if (onHover) {
           onHover(
             closestIndex * step >= xMin && closestIndex * step < xMax
@@ -690,10 +782,18 @@ const Graph2 = ({
           if (closestIndex * step < xMin || closestIndex * step >= xMax) {
             return;
           }
-          onSelect(
-            closestIndex,
-            xAxisValues ? xAxisValues[closestIndex] : null,
-          );
+          onSelect(selected => {
+            // In case is a multiple selection
+            if (selected instanceof Set) {
+              const newSet = new Set(selected);
+              newSet[newSet.has(closestIndex) ? 'delete' : 'add'](closestIndex);
+              return newSet;
+            }
+            // In case it is a single selection
+            return closestIndex === selected ? null : closestIndex;
+            //closestIndex,
+            //xAxisValues ? xAxisValues[closestIndex] : null,
+          });
         });
       }
 
@@ -735,18 +835,25 @@ const Graph2 = ({
   useEffect(() => drawRef.current({ labels: lab }), [lab]);
 
   // Handle when user clicks on legend checkboxes
-  const handleChange = useCallback(({ target: { dataset: { key } } }) => {
-    if (!key) return;
-
-    setLab(previous => {
-      const nextLabels = { ...previous, [key]: !previous[key] };
-      // Check if any value is true before returning the labels
-      // This way, the user can not uncheck the last active checkbox
-      if (Object.values(nextLabels).some(Boolean)) return nextLabels;
-      // If all of the values would be false, keep the previous
-      return previous;
-    });
-  }, []);
+  const handleChange = useCallback(
+    ({
+      target: {
+        dataset: { key },
+      },
+    }) => {
+      if (!key) return;
+      if (!setLab) return;
+      setLab(previous => {
+        const nextLabels = { ...previous, [key]: !previous[key] };
+        // Check if any value is true before returning the labels
+        // This way, the user can not uncheck the last active checkbox
+        if (Object.values(nextLabels).some(Boolean)) return nextLabels;
+        // If all of the values would be false, keep the previous
+        return previous;
+      });
+    },
+    [setLab],
+  );
 
   const handleMouseOver = useCallback(
     ({
@@ -754,10 +861,10 @@ const Graph2 = ({
         dataset: { key },
       },
     }) => {
-      if (!key || !lab[key]) return;
+      if (!key || !lab[key] || type === 'dash') return;
       drawRef.current({ hovered: key, labels: lab });
     },
-    [lab],
+    [lab, type],
   );
 
   const handleMouseOut = useCallback(
@@ -766,18 +873,30 @@ const Graph2 = ({
         dataset: { key },
       },
     }) => {
-      if (!key || !lab[key]) return;
+      if (!key || !lab[key] || type === 'dash') return;
       drawRef.current({ labels: lab });
     },
-    [lab],
+    [lab, type],
   );
 
+  const handleClick = useCallback(() => onSelect(new Set()), [onSelect]);
+
+  // Set if the grpah must give a few space for elements below (e.g. the legend)
+  const giveSpaceBelow = selfLegend || type === 'dash';
+
   return (
-    <>
-      <div className={style['graph-container']} ref={containerRef} />
-      <div className={style['graph-legend']}>
-        {selfLegend &&
-          yEntries.map(([key]) => (
+    <div className={className ? className : style.graph}>
+      <div
+        className={
+          giveSpaceBelow
+            ? style['graph-container-partial']
+            : style['graph-container']
+        }
+        ref={containerRef}
+      />
+      {selfLegend && (
+        <div className={style['graph-legend']}>
+          {yEntries.map(([key]) => (
             <FormControlLabel
               data-key={key}
               key={key}
@@ -794,8 +913,20 @@ const Graph2 = ({
               label={NICE_NAMES.get(key) || key}
             />
           ))}
-      </div>
-    </>
+        </div>
+      )}
+      {type === 'dash' && (
+        <Button
+          variant="contained"
+          disabled={selected instanceof Set && !selected.size}
+          onClick={handleClick}
+        >
+          <FontAwesomeIcon icon={faTrashAlt} />
+          &nbsp;
+          <span>Clear selection</span>
+        </Button>
+      )}
+    </div>
   );
 };
 

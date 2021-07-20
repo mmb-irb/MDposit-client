@@ -180,19 +180,17 @@ const Rmsds = () => {
       </Card>
       <Card className={style.card}>
         <CardContent>
-          <div className={style.graph}>
-            <Graph2
-              yData={rmsds}
-              step={xAxesStep}
-              xAxisLabel={'Time (ns)'}
-              xScaleFactor={1}
-              yAxisLabel={yAxisLabel}
-              onSelect={setSelected}
-              selected={selected}
-              selfLegend={false}
-              show={display}
-            />
-          </div>
+          <Graph2
+            yData={rmsds}
+            step={xAxesStep}
+            xAxisLabel={'Time (ns)'}
+            xScaleFactor={1}
+            yAxisLabel={yAxisLabel}
+            onSelect={setSelected}
+            selected={selected}
+            selfLegend={false}
+            dataDisplay={display}
+          />
         </CardContent>
       </Card>
       <NGLViewerSpawner

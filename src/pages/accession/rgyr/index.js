@@ -22,8 +22,8 @@ import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 import style from './style.module.css';
 
-const Graph = lazy(() =>
-  import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
+const Graph2 = lazy(() =>
+  import(/* webpackChunkName: 'graph' */ '../../../components/graph2'),
 );
 
 const Rgyr = () => {
@@ -37,25 +37,20 @@ const Rgyr = () => {
     `${BASE_PATH_PROJECTS}${accession}/analyses/rgyr/`,
   );
 
-  // Rgyr analysis comes in nanometers (nm) and we want it in Ångstroms
+  // Rgyr analysis comes in nanometers (nm) and we want it in Ångstroms (Å) so we must multuply by 10 all values
   useMemo(() => {
     if (!payload) return;
     const rgyr = payload.y['rgyr'];
-    rgyr.average = rgyr.average * 10;
-    rgyr.stddev = rgyr.stddev * 10;
     rgyr.data = rgyr.data.map(v => v * 10);
     const rgyrx = payload.y['rgyrx'];
-    rgyrx.average = rgyrx.average * 10;
-    rgyrx.stddev = rgyrx.stddev * 10;
     rgyrx.data = rgyrx.data.map(v => v * 10);
+    rgyrx.color = 'red';
     const rgyry = payload.y['rgyry'];
-    rgyry.average = rgyry.average * 10;
-    rgyry.stddev = rgyry.stddev * 10;
     rgyry.data = rgyry.data.map(v => v * 10);
+    rgyry.color = 'green';
     const rgyrz = payload.y['rgyrz'];
-    rgyrz.average = rgyrz.average * 10;
-    rgyrz.stddev = rgyrz.stddev * 10;
     rgyrz.data = rgyrz.data.map(v => v * 10);
+    rgyrz.color = 'blue';
   }, [payload]);
 
   // React hooks
@@ -116,17 +111,17 @@ const Rgyr = () => {
       <Card className={style.card}>
         <CardContent>
           <Typography variant="h6" />
-          <Graph
-            y={payload.y}
-            start={payload.start || 0}
+          <Graph2
+            yData={payload.y}
             step={xAxesStep}
-            //defaultPrecision={2 ** 6}
-            xLabel={'Time (ns)'}
-            xScaleFactor={0.001}
-            yLabel={'Rgyr (Å)'}
+            xAxisLabel={'Time (ns)'}
+            xScaleFactor={1}
+            yAxisLabel={'Rgyr (Å)'}
             onSelect={setSelected}
             selected={selected}
             selfLegend={true}
+            mean={true}
+            standardDeviation={true}
           />
         </CardContent>
       </Card>

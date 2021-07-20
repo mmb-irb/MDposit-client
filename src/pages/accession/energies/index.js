@@ -266,83 +266,80 @@ const Energies = () => {
           </CardContent>
         ) : (
           <CardContent>
-            <div className={style.graph}>
-              <Graph2
-                yData={{
-                  esi: { data: data.ies, color: 'red' },
-                  esf: { data: data.fes, color: 'blue' },
-                  es: { data: data.es, color: 'black' },
-                }}
-                xAxisValues={data.xTags}
-                xUnit={'residue'}
-                title={'Electrostatic'}
-                xScaleFactor={0.001}
-                yAxisLabel={'kcal/mol'}
-                onSelect={(xIndex, xValue) => {
-                  // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
-                  const num = nglNumerationParser(xValue);
-                  const source = model2sourceResidue(num, pdbData.file);
-                  setSelected([source.numeration]);
-                }}
-                show={{ esi: display.start, esf: display.end, es: display.all }}
-                selected={selected}
-              />
-            </div>
-            <div className={style.graph}>
-              <Graph2
-                yData={{
-                  vdwi: { data: data.ivdw, color: 'red' },
-                  vdwf: { data: data.fvdw, color: 'blue' },
-                  vdw: { data: data.vdw, color: 'black' },
-                }}
-                title={'vdW'}
-                xAxisValues={data.xTags}
-                xUnit={'residue'}
-                yAxisLabel={'kcal/mol'}
-                onSelect={(xIndex, xValue) => {
-                  // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
-                  const num = nglNumerationParser(xValue);
-                  const source = model2sourceResidue(num, pdbData.file);
-                  setSelected([source.numeration]);
-                }}
-                show={{
-                  vdwi: display.start,
-                  vdwf: display.end,
-                  vdw: display.all,
-                }}
-                selected={selected}
-              />
-            </div>
-            <div className={style.graph}>
-              <Graph2
-                yData={{
-                  bothi: {
-                    data: data.iboth,
-                    color: 'red',
-                  },
-                  bothf: { data: data.fboth, color: 'blue' },
-                  both: { data: data.both, color: 'black' },
-                }}
-                title={'Electrostatic+vdW'}
-                xAxisLabel={'Residue number'}
-                xAxisValues={data.xTags}
-                xUnit={'residue'}
-                yAxisLabel={'kcal/mol'}
-                onSelect={(xIndex, xValue) => {
-                  // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
-                  const num = nglNumerationParser(xValue);
-                  const source = model2sourceResidue(num, pdbData.file);
-                  setSelected([source.numeration]);
-                }}
-                show={{
-                  bothi: display.start,
-                  bothf: display.end,
-                  both: display.all,
-                }}
-                selected={selected}
-              />
-            </div>
-
+            <Graph2
+              yData={{
+                esi: { data: data.ies, color: 'red' },
+                esf: { data: data.fes, color: 'blue' },
+                es: { data: data.es, color: 'black' },
+              }}
+              xAxisValues={data.xTags}
+              xUnit={'residue'}
+              title={'Electrostatic'}
+              xScaleFactor={0.001}
+              yAxisLabel={'kcal/mol'}
+              onSelect={(xIndex, xValue) => {
+                // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
+                const num = nglNumerationParser(xValue);
+                const source = model2sourceResidue(num, pdbData.file);
+                setSelected([source.numeration]);
+              }}
+              dataDisplay={{
+                esi: display.start,
+                esf: display.end,
+                es: display.all,
+              }}
+              selected={selected}
+            />
+            <Graph2
+              yData={{
+                vdwi: { data: data.ivdw, color: 'red' },
+                vdwf: { data: data.fvdw, color: 'blue' },
+                vdw: { data: data.vdw, color: 'black' },
+              }}
+              title={'vdW'}
+              xAxisValues={data.xTags}
+              xUnit={'residue'}
+              yAxisLabel={'kcal/mol'}
+              onSelect={(xIndex, xValue) => {
+                // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
+                const num = nglNumerationParser(xValue);
+                const source = model2sourceResidue(num, pdbData.file);
+                setSelected([source.numeration]);
+              }}
+              dataDisplay={{
+                vdwi: display.start,
+                vdwf: display.end,
+                vdw: display.all,
+              }}
+              selected={selected}
+            />
+            <Graph2
+              yData={{
+                bothi: {
+                  data: data.iboth,
+                  color: 'red',
+                },
+                bothf: { data: data.fboth, color: 'blue' },
+                both: { data: data.both, color: 'black' },
+              }}
+              title={'Electrostatic+vdW'}
+              xAxisLabel={'Residue number'}
+              xAxisValues={data.xTags}
+              xUnit={'residue'}
+              yAxisLabel={'kcal/mol'}
+              onSelect={(xIndex, xValue) => {
+                // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
+                const num = nglNumerationParser(xValue);
+                const source = model2sourceResidue(num, pdbData.file);
+                setSelected([source.numeration]);
+              }}
+              dataDisplay={{
+                bothi: display.start,
+                bothf: display.end,
+                both: display.all,
+              }}
+              selected={selected}
+            />
             <Legend
               entries={[
                 { name: 'all', color: 'black', check: display.all },
