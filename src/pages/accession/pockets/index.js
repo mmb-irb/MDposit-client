@@ -5,7 +5,6 @@ import React, {
   useRef,
   useMemo,
   useEffect,
-  useCallback,
 } from 'react';
 // A hook to track whenever some element is on screen
 import { useInView } from 'react-intersection-observer';
@@ -18,6 +17,7 @@ import {
   TableBody,
   FormControlLabel,
   Checkbox,
+  Typography,
 } from '@material-ui/core';
 
 import Card from '../../../components/animated-card';
@@ -33,6 +33,13 @@ import Loading from '../../../components/loading';
 import useAPI from '../../../hooks/use-api';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
+
+import { getColor, freeColor } from '../../../utils/color-admin';
+
+const hoveredPocketColor = 'yellow';
+const pocketsColor = 'grey';
+const surfaceColor = 'grey';
+const defaultRepresentationsColor = 'black';
 
 const Graph2 = lazy(() =>
   import(/* webpackChunkName: 'graph2' */ '../../../components/graph2'),
@@ -68,11 +75,21 @@ const Pockets = () => {
   // Set a ref to the ngl which allows access to the ngl viewer exposed methods
   const viewerRef = useRef(null);
 
-  // Set which pocket is selected by the user
-  const [selectedPocket, setSelectedPocket] = useState(0);
+  // Track which pockets is beeing hovered in the list
+  const [showAllPockets, setShowAllPockets] = useState(false);
 
-  // Set which pocket is selected by the user
+  // Track which pockets is beeing hovered in the list
+  const [hoveredPocket, setHoveredPocket] = useState(null);
+  // Track which pocket is selected by the user
+  const [selectedPockets, setSelectedPockets] = useState([]);
+
+  // Set which representations are shown
+  // Note that this state is syncroniced to the representations manager in NGL
   const [showRepresentations, setShowRepresentations] = useState([]);
+
+  // Set the color of each representation
+  // Note that this state is syncroniced to the representations manager in NGL
+  const [colorRepresentations, setColorRepresentations] = useState([]);
 
   // Set when one point in the graph is selected
   const [selectedFrame, setSelectedFrame] = useState(0);
@@ -82,32 +99,31 @@ const Pockets = () => {
     `${BASE_PATH_PROJECTS}${accession}/analyses/pockets/`,
   );
 
-  const { data, currentPocket, frameStep } = useMemo(() => {
+  const { data, frameStep } = useMemo(() => {
     if (!payload) return {};
     // Get the main data
     const data = payload && payload.data;
-
-    // Get the selected pocket data
-    // There must be always 1 selected pocket
-    const currentPocket = data[selectedPocket];
-
-    // Get the frames step of the analysis
-    // If the step is missing guess it from the number of frames
-    const frameNumber = currentPocket.volumes.length;
+    const pocketsNumber = data.length;
+    // Calculate the frames step of the first pocket volumes analysis
+    // All pockets must have the same frames step
+    const frameNumber = data[0].volumes.length;
     const frameStep =
       payload.step || Math.floor(metadata.SNAPSHOTS / (frameNumber - 1));
-
-    return { data, currentPocket, frameStep };
-  }, [payload, metadata, selectedPocket]);
+    // Instantiate the selected pockets state using the number of pockets
+    // Setting the surfaces as hidden by default returns some warnings but everything works fine
+    // e.g. 'Unexpected value NaN parsing y1 attribute'
+    setSelectedPockets(new Array(pocketsNumber).fill(null));
+    return { data, frameStep };
+  }, [payload, metadata]);
 
   // Use this hook to get the memoized NGL default representations
   // We need to access the default representations from here to know the number of representations
   const defaultRepresentations = useDefaultRepresentations();
 
   // Set the main component to be passed to NGL
-  const { components, representationsNumber } = useMemo(() => {
+  const { components } = useMemo(() => {
     // Wait for payload to be downloaded
-    if (!data || !currentPocket) return {};
+    if (!data) return {};
 
     // DANI: Temporalmente se suspende el average
     // Use the average structure to reference the pockets
@@ -115,16 +131,26 @@ const Pockets = () => {
     // Load the required frames from the main trajectory
     const mainURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory?frames=1:${metadata.SNAPSHOTS}:${frameStep}`;
     //console.log(mainURL);
-    // Set representations
-    // Default representations and, if there is a selected frame, the surface of the selected pocket
-    const representations = [...defaultRepresentations];
-    // Set the surface representation of the pocket
-    representations.push({
-      name: currentPocket.name + ' surface',
-      selection: '@' + currentPocket.atoms.join(','),
-      type: 'surface',
-      color: 'electrostatic',
+
+    // Set the surface representation of each pocket
+    const pocketSurfaceRepresentations = data.map(pocket => {
+      return {
+        name: pocket.name + ' surface',
+        selection: '@' + pocket.atoms.join(','),
+        type: 'surface',
+        color: 'electrostatic',
+      };
     });
+
+    // Reduce the opacity of all default representations
+    defaultRepresentations.forEach(
+      representation => (representation.opacity = 0.3),
+    );
+    // Set representations by adding default representations and pockets surface representations together
+    const representations = [
+      ...defaultRepresentations,
+      ...pocketSurfaceRepresentations,
+    ];
 
     // The first component, which includes everything but the pockets
     const mainComponent = {
@@ -133,8 +159,6 @@ const Pockets = () => {
       //trajectoryURLs: [averageURL, mainURL],
       representations: representations,
     };
-
-    const representationsNumber = representations.length;
 
     const pocketComponents = data.map(pocket => {
       // NGL
@@ -159,21 +183,38 @@ const Pockets = () => {
     const components = [mainComponent, ...pocketComponents];
 
     // Create an array of 'true' as long as the number of default representations
-    const showDefaultRepresentations = Array(representationsNumber).fill(true);
+    const showDefaultRepresentations = Array(
+      defaultRepresentations.length,
+    ).fill(true);
     // Create an array of 'true' as long as the number of pockets
     const pocketNumber = data.length;
-    const showPockets = Array(pocketNumber).fill(true);
-    setShowRepresentations([...showDefaultRepresentations, ...showPockets]);
+    // Set the default pockets to be shown (none)
+    const showPockets = Array(pocketNumber).fill(false);
+    // Add the show pockets twice: the first for the surfaces and the second for the pockets themselves
+    setShowRepresentations([
+      ...showDefaultRepresentations,
+      ...showPockets,
+      ...showPockets,
+    ]);
+    // Use the default show to count how many representations we have at the end
+    const defaultRepresentationColors = Array(
+      defaultRepresentations.length,
+    ).fill(defaultRepresentationsColor);
+    const surfaceRepresentationColors = Array(showPockets.length).fill(
+      surfaceColor,
+    );
+    const pocketRepresentationColors = Array(showPockets.length).fill(
+      pocketsColor,
+    );
+    // Set the default colors
+    setColorRepresentations([
+      ...defaultRepresentationColors,
+      ...surfaceRepresentationColors,
+      ...pocketRepresentationColors,
+    ]);
 
-    return { components, representationsNumber };
-  }, [
-    accession,
-    metadata,
-    data,
-    defaultRepresentations,
-    currentPocket,
-    frameStep,
-  ]);
+    return { components };
+  }, [accession, metadata, data, defaultRepresentations, frameStep]);
 
   // Set the graph parameters
   const { graphInputData, dataDisplay } = useMemo(() => {
@@ -189,12 +230,13 @@ const Pockets = () => {
       // Graph
       graphInputData[pocketName] = {
         data: pocket.volumes,
+        color: selectedPockets[p],
       };
-      dataDisplay[pocketName] = p === selectedPocket;
+      dataDisplay[pocketName] = selectedPockets[p] ? true : false;
     });
 
     return { graphInputData, dataDisplay };
-  }, [data, metadata, selectedPocket]);
+  }, [data, metadata, selectedPockets]);
 
   // Handle the change of frame
   useEffect(() => {
@@ -206,19 +248,55 @@ const Pockets = () => {
     //else viewerRef.current.currentFrame = selectedFrame + 1;
   }, [selectedFrame]);
 
-  // Set a function to wrap the 'setSelectedFrame'
-  // Make the 'selectedFrame' null when the new frame is the already selected frame
-  const handleFrameSelection = useCallback(
-    frame => {
-      setSelectedFrame(previousFrame => {
-        return frame;
-        // DANI: Temporalmente se suspende el average
-        //if (frame === previousFrame) return null;
-        //else return frame;
+  // Update the showRepresentations state when the selected or hovered pockets change
+  useEffect(() => {
+    setShowRepresentations(previous => {
+      const pocketsNumber = selectedPockets.length;
+      const defaultRepresentationsNumber = previous.length - pocketsNumber * 2;
+      // First hide all pockets and surfaces
+      for (let i = 0; i < previous.length; i++) {
+        if (i < defaultRepresentationsNumber) continue;
+        previous[i] = false;
+      }
+      // Display the selected pockets and their surfaces
+      const defaultAndSurfaces = defaultRepresentationsNumber + pocketsNumber;
+      selectedPockets.forEach((selected, p) => {
+        previous[defaultRepresentationsNumber + p] = selected ? true : false; // The pocket surface
+        previous[defaultAndSurfaces + p] = selected ? true : false; // The pocket itself
       });
-    },
-    [setSelectedFrame],
-  );
+      // Display the hovered pocket
+      if (hoveredPocket !== null) {
+        previous[
+          defaultRepresentationsNumber + pocketsNumber + hoveredPocket
+        ] = true;
+      }
+      // Show all pockets in case the overall pockets checkbox is selected
+      if (showAllPockets)
+        for (let i = 0; i < previous.length; i++) {
+          if (i < defaultAndSurfaces) continue;
+          previous[i] = true;
+        }
+      return [...previous];
+    });
+    // Paint selected pockets according to their order of selection and paint the hovered pocket
+    setColorRepresentations(previous => {
+      const pocketsNumber = selectedPockets.length;
+      const defaultRepresentationsNumber = previous.length - pocketsNumber * 2;
+      selectedPockets.forEach((selected, p) => {
+        //previous[defaultRepresentationsNumber + p] = selected ? selected : surfaceColor; // The pocket surface
+        previous[defaultRepresentationsNumber + pocketsNumber + p] = selected
+          ? selected
+          : pocketsColor; // The pocket itself
+      });
+      // Display the hovered pocket
+      if (hoveredPocket !== null) {
+        previous[
+          defaultRepresentationsNumber + pocketsNumber + hoveredPocket
+        ] = hoveredPocketColor;
+      }
+      return [...previous];
+    });
+  }, [selectedPockets, hoveredPocket, showAllPockets]);
 
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
@@ -234,9 +312,16 @@ const Pockets = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                {['Pocket', 'Average volume (Å³)'].map(name => (
-                  <TableCell key={name}>{name}</TableCell>
-                ))}
+                <TableCell key={0}>
+                  {
+                    <FormControlLabel
+                      onChange={() => setShowAllPockets(previous => !previous)}
+                      control={<Checkbox checked={showAllPockets} />}
+                      label={'Pockets'}
+                    />
+                  }
+                </TableCell>
+                <TableCell key={1}>{'Average volume (Å³)'}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -246,15 +331,17 @@ const Pockets = () => {
                   <TableRow
                     key={pocketName}
                     // Hover only when it is not already selected
-                    hover={p !== selectedPocket}
+                    //hover={p !== selectedPocket}
                     role="checkbox"
                     className={
-                      p === selectedPocket ? style.selectedrow : undefined
+                      p === hoveredPocket ? style.selectedrow : undefined
                     }
-                    onClick={() => {
-                      if (blockRef.current === p) return;
-                      return setSelectedPocket(p);
-                    }}
+                    onMouseOver={() => setHoveredPocket(p)}
+                    onMouseOut={() =>
+                      setHoveredPocket(previous =>
+                        previous === p ? null : previous,
+                      )
+                    }
                   >
                     {[
                       <FormControlLabel
@@ -267,19 +354,23 @@ const Pockets = () => {
                           blockRef.current = null;
                         }}
                         onChange={() =>
-                          setShowRepresentations(previous => {
-                            previous[p + representationsNumber] = !previous[
-                              p + representationsNumber
-                            ];
+                          setSelectedPockets(previous => {
+                            if (!previous[p]) previous[p] = getColor();
+                            else {
+                              freeColor(previous[p]);
+                              previous[p] = null;
+                            }
                             return [...previous];
                           })
                         }
                         control={
                           <Checkbox
-                            checked={
-                              showRepresentations[p + representationsNumber]
-                            }
-                            style={{ color: 'black' }}
+                            checked={selectedPockets[p] ? true : false}
+                            style={{
+                              color: selectedPockets[p]
+                                ? selectedPockets[p]
+                                : 'black',
+                            }}
                             inputProps={{ 'data-key': pocketName }}
                           />
                         }
@@ -302,10 +393,14 @@ const Pockets = () => {
           <NGLViewerWithControls
             className={style.container}
             components={components}
-            selectedRepresentation={currentPocket.name}
+            //selectedRepresentation={currentPocket.name}
             showRepresentationsForced={[
               showRepresentations,
               setShowRepresentations,
+            ]}
+            coloringMethodsForced={[
+              colorRepresentations,
+              setColorRepresentations,
             ]}
             preventTrajectory
             ref={viewerRef}
@@ -315,6 +410,11 @@ const Pockets = () => {
         )}
       </Card>
       <Card className={style.graph}>
+        {selectedPockets.every(pocket => pocket === null) && (
+          <div className={style['graph-placeholder']}>
+            <Typography variant="h6">No pocket selected</Typography>
+          </div>
+        )}
         <Graph2
           yData={graphInputData}
           step={frameStep}
@@ -326,9 +426,9 @@ const Pockets = () => {
           showPrecisionSlider={false}
           blockMaxPrecision={true}
           roundcents={false}
-          mean
-          standardDeviation
-          onSelect={handleFrameSelection}
+          //mean
+          //standardDeviation
+          onSelect={setSelectedFrame}
           selected={selectedFrame}
         />
       </Card>

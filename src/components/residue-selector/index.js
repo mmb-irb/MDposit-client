@@ -8,40 +8,9 @@ import { faTrash } from '@fortawesome/free-solid-svg-icons';
 
 import ColorLegend from '../color-legend';
 
+import { getColor, freeColor, freeAllColors } from '../../utils/color-admin';
+
 import { scaleLinear } from 'd3';
-
-// These colors are used to mark each selected residues
-// When all colors are used the next residues are marked in black
-const asignedColors = [
-  { color: 'red' },
-  { color: 'green' },
-  { color: 'blue' },
-  { color: 'orange' },
-  { color: 'purple' },
-];
-
-// Check colors untils get an available color
-// If no color is available then return black
-const getColor = () => {
-  for (const ac of asignedColors) {
-    if (ac.used) continue;
-    ac.used = true;
-    return ac.color;
-  }
-  return 'black';
-};
-// Mark the color as not used, so it can be used further
-const freeColor = color => {
-  if (color === 'black') return;
-  for (const ac of asignedColors) {
-    if (ac.color === color) ac.used = false;
-  }
-};
-const freeAllColors = () => {
-  for (const ac of asignedColors) {
-    ac.used = false;
-  }
-};
 
 // Add a triangle / arrow over the selected residue letter
 // Return also the visual part, so its color can be changed
@@ -190,7 +159,7 @@ const ResidueSelector = ({
       manager.removeEventListener('mouseover', handleMouseOver, true);
       manager.removeEventListener('mouseout', handleMouseOut, true);
       manager.removeEventListener('mousedown', hadleMouseClick, true);
-      asignedColors.forEach(ac => (ac.used = false));
+      freeAllColors();
     };
   }, [sequences, selectedResiduesSetter, residuesData]);
 

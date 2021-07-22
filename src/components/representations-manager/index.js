@@ -17,14 +17,6 @@ import { faPlusCircle } from '@fortawesome/free-solid-svg-icons';
 
 import style from './style.module.css';
 
-// Check if a value exists inside the available values
-const valueExists = (value, source) => {
-  for (const opt of source) {
-    if (opt.value === value) return true;
-  }
-  return false;
-};
-
 const availableDrawingMethods = [
   {
     label: 'Cartoon',
@@ -60,6 +52,14 @@ const availableDrawingMethods = [
   },
 ];
 
+// Check if a value exists inside the available values
+const DrawingMethodExists = value => {
+  for (const opt of availableDrawingMethods) {
+    if (opt.value === value) return true;
+  }
+  return false;
+};
+
 const availableColoringMethods = [
   {
     label: 'By chain id',
@@ -91,6 +91,32 @@ const availableColoringMethods = [
   },
 ];
 
+const availableColors = [
+  'red',
+  'yellow',
+  'blue',
+  'green',
+  'orange',
+  'purple',
+  'white',
+  'grey',
+  'black',
+];
+
+// Check if a value exists inside the available values
+const coloringExists = value => {
+  for (const opt of availableColoringMethods) {
+    if (opt.value === value) return true;
+  }
+  for (const opt of availableColors) {
+    if (opt === value) return true;
+  }
+  return false;
+};
+
+// Return a word but with the first letter in upper case
+const firstLetterUpper = word => word[0].toUpperCase() + word.slice(1);
+
 // Display a huge panel to select which representations must be shown or hidden
 // In addition the user can manage the way these representatios are shown
 const RepresentationsManager = memo(
@@ -108,7 +134,6 @@ const RepresentationsManager = memo(
     setColoringMethods,
     opacities,
     setOpacities,
-    defaults, // Original values
   }) => {
     return (
       <>
@@ -137,114 +162,103 @@ const RepresentationsManager = memo(
                 </TableCell>
                 {/* Show */}
                 <TableCell align="right">
-                  {
-                    <Checkbox
-                      key={rep.name}
-                      checked={showRepresentations[index]}
-                      onChange={() =>
-                        setShowRepresentations(previous => {
-                          const newState = [...previous];
-                          newState[index] = !newState[index];
-                          return newState;
-                        })
-                      }
-                      style={{ color: 'black' }}
-                      inputProps={{ 'data-key': rep.name }}
-                    />
-                  }
+                  <Checkbox
+                    key={rep.name}
+                    checked={showRepresentations[index]}
+                    onChange={() =>
+                      setShowRepresentations(previous => {
+                        const newState = [...previous];
+                        newState[index] = !newState[index];
+                        return newState;
+                      })
+                    }
+                    style={{ color: 'black' }}
+                    inputProps={{ 'data-key': rep.name }}
+                  />
                 </TableCell>
                 {/* Selection */}
                 <TableCell align="right">
-                  {
-                    <TextField
-                      defaultValue={nglSelections[index]}
-                      title={nglSelections[index]}
-                      variant="outlined"
-                      onKeyPress={event => {
-                        if (event.key !== 'Enter') return;
-                        setNglSelections(previous => {
-                          const newState = [...previous];
-                          if (!event.target || !event.target.value)
-                            return previous;
-                          newState[index] = event.target.value;
-                          return newState;
-                        });
-                      }}
-                      disabled={!rep.custom}
-                      size="small"
-                      margin="dense"
-                    />
-                  }
+                  <TextField
+                    defaultValue={nglSelections[index]}
+                    title={nglSelections[index]}
+                    variant="outlined"
+                    onKeyPress={event => {
+                      if (event.key !== 'Enter') return;
+                      setNglSelections(previous => {
+                        const newState = [...previous];
+                        if (!event.target || !event.target.value)
+                          return previous;
+                        newState[index] = event.target.value;
+                        return newState;
+                      });
+                    }}
+                    disabled={!rep.custom}
+                    size="small"
+                    margin="dense"
+                  />
                 </TableCell>
                 {/* Drawing method */}
                 <TableCell align="right">
-                  {
-                    <Select
-                      native
-                      value={drawingMethods[index]}
-                      onChange={({ target: { value } }) => {
-                        let changed = drawingMethods;
-                        changed[index] = value;
-                        setDrawingMethods([...changed]);
-                      }}
-                    >
-                      {!valueExists(
-                        defaults.drawingMethods[index],
-                        availableDrawingMethods,
-                      ) && (
-                        <option value={defaults.drawingMethods[index]}>
-                          {defaults.drawingMethods[index]}
-                        </option>
-                      )}
-                      {availableDrawingMethods.map((cm, i) => (
-                        <option key={i} value={cm.value}>
-                          {cm.label}
-                        </option>
-                      ))}
-                    </Select>
-                  }
+                  <Select
+                    native
+                    value={drawingMethods[index]}
+                    onChange={({ target: { value } }) => {
+                      let changed = drawingMethods;
+                      changed[index] = value;
+                      setDrawingMethods([...changed]);
+                    }}
+                  >
+                    {!DrawingMethodExists(drawingMethods[index]) && (
+                      <option value={drawingMethods[index]}>
+                        {drawingMethods[index]}
+                      </option>
+                    )}
+                    {availableDrawingMethods.map((cm, i) => (
+                      <option key={i} value={cm.value}>
+                        {cm.label}
+                      </option>
+                    ))}
+                  </Select>
                 </TableCell>
                 {/* Coloring method */}
                 <TableCell align="right">
-                  {
-                    <Select
-                      native
-                      value={coloringMethods[index]}
-                      onChange={({ target: { value } }) => {
-                        let changed = coloringMethods;
-                        changed[index] = value;
-                        setColoringMethods([...changed]);
-                      }}
-                    >
-                      {!valueExists(
-                        defaults.coloringMethods[index],
-                        availableColoringMethods,
-                      ) && (
-                        <option value={defaults.coloringMethods[index]}>
-                          {defaults.coloringMethods[index]}
-                        </option>
-                      )}
-                      {availableColoringMethods.map((cm, i) => (
-                        <option key={i} value={cm.value}>
-                          {cm.label}
-                        </option>
-                      ))}
-                    </Select>
-                  }
+                  <Select
+                    native
+                    value={coloringMethods[index]}
+                    onChange={({ target: { value } }) => {
+                      let changed = coloringMethods;
+                      changed[index] = value;
+                      setColoringMethods([...changed]);
+                    }}
+                  >
+                    {!coloringExists(coloringMethods[index]) && (
+                      <option value={coloringMethods[index]}>
+                        {coloringMethods[index]}
+                      </option>
+                    )}
+                    {availableColoringMethods.map((cm, i) => (
+                      <option key={i} value={cm.value}>
+                        {cm.label}
+                      </option>
+                    ))}
+                    {availableColors.map((color, i) => (
+                      <option key={i} value={color}>
+                        {firstLetterUpper(color)}
+                      </option>
+                    ))}
+                  </Select>
                 </TableCell>
                 {/* Opacity */}
                 <TableCell align="right">
-                  {
-                    <Slider
-                      value={opacities[index] * 100}
-                      onChange={(_, value) => {
-                        let changed = opacities;
-                        changed[index] = value / 100;
-                        setOpacities([...changed]);
-                      }}
-                      className={style['popover-slider']}
-                    />
-                  }
+                  <Slider
+                    value={opacities[index] * 100}
+                    onChange={(_, value) => {
+                      let changed = opacities;
+                      changed[index] = value / 100;
+                      setOpacities([...changed]);
+                    }}
+                    className={style['popover-slider']}
+                  />
                 </TableCell>
               </TableRow>
             ))}
@@ -252,30 +266,28 @@ const RepresentationsManager = memo(
           <TableBody>
             <TableRow key={'addCustom'}>
               <TableCell align="center" colSpan={6}>
-                {
-                  <Chip
-                    icon={<FontAwesomeIcon icon={faPlusCircle} />}
-                    label={'Add representation'}
-                    variant="outlined"
-                    onClick={() =>
-                      setAdditionalRepresentations(previous => {
-                        // Use the first components a reference and copy its parameters
-                        // This way, the new representation will use the principal component
-                        // Otherwise it would may create a new component with no trajectory
-                        const principalComponent = components[0];
-                        const newRepresentation = {
-                          selection: 'None',
-                          name: 'Custom',
-                          topologyURL: principalComponent.topologyURL,
-                          trajectoryURLs: principalComponent.trajectoryURLs,
-                          frame: principalComponent.frame,
-                        };
-                        const current = [newRepresentation, ...previous];
-                        return current;
-                      })
-                    }
-                  />
-                }
+                <Chip
+                  icon={<FontAwesomeIcon icon={faPlusCircle} />}
+                  label={'Add representation'}
+                  variant="outlined"
+                  onClick={() =>
+                    setAdditionalRepresentations(previous => {
+                      // Use the first components a reference and copy its parameters
+                      // This way, the new representation will use the principal component
+                      // Otherwise it would may create a new component with no trajectory
+                      const principalComponent = components[0];
+                      const newRepresentation = {
+                        selection: 'None',
+                        name: 'Custom',
+                        topologyURL: principalComponent.topologyURL,
+                        trajectoryURLs: principalComponent.trajectoryURLs,
+                        frame: principalComponent.frame,
+                      };
+                      const current = [newRepresentation, ...previous];
+                      return current;
+                    })
+                  }
+                />
               </TableCell>
             </TableRow>
           </TableBody>
