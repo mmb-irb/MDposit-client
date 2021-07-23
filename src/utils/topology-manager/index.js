@@ -532,6 +532,7 @@ export const absolute2sourceResidue = (
 // This function converts absolute residue numbers to topology reference residue numbers
 // If the residue is not mapped for whatever the reason then return null
 // e.g. the topology map may be missing or the residue may be not protein
+// Note that each absolute residue may belong to only 1 reference
 export const absolute2reference = (
   residue,
   metadata = ProjectCtx._currentValue.metadata,
@@ -546,6 +547,32 @@ export const absolute2reference = (
     return { name: toporef.name, index: reference };
   }
   return null;
+};
+
+// This function converts a list of topology reference residue numbers to current topology residue numbers
+// The reference must be specified with the topology reference name, since there may be more than 1 reference
+// e.g. "SARS-CoV-2 spike"
+// Note that one residue in the reference may be more than once or not be in the current topology
+export const reference2absolute = (
+  reference,
+  residues,
+  metadata = ProjectCtx._currentValue.metadata,
+) => {
+  const metadataToporef =
+    metadata &&
+    metadata.TOPOREFS &&
+    metadata.TOPOREFS.find(toporef => toporef.name === reference);
+  const metadataToporefMap = metadataToporef && metadataToporef.map;
+  if (!metadataToporefMap) return;
+  return [].concat.apply(
+    [],
+    residues.map(residue =>
+      metadataToporefMap.reduce((a, res, r) => {
+        if (res === residue) a.push(r);
+        return a;
+      }, []),
+    ),
+  );
 };
 
 // This function converts model residue numbers to absolute residue numbers

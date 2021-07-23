@@ -26,24 +26,21 @@ const useMutationsRepresentations = () => {
     );
     if (!anyToporefMutations) return;
     const toporefs = metadata.TOPOREFS;
-    if (!toporefs) return;
+    if (!toporefs || toporefs.length === 0) return;
     // Check that we have a map for at least 1 toporef
     const anyMappedToporef = toporefs.some(toporef => !!toporef.map);
     if (!anyMappedToporef) return;
 
     // Build a residues map from the topology reference
-    let toporefMap;
-    if (toporefs && toporefs.length > 0) {
-      toporefMap = residue => {
-        for (const [index, toporef] of toporefs.entries()) {
-          if (!toporef.map) continue;
-          const equivalent = toporef.map[residue];
-          if (!equivalent) continue;
-          return [equivalent, index];
-        }
-        return [null, null];
-      };
-    }
+    const toporefMap = residue => {
+      for (const [index, toporef] of toporefs.entries()) {
+        if (!toporef.map) continue;
+        const equivalent = toporef.map[residue];
+        if (!equivalent) continue;
+        return [equivalent, index];
+      }
+      return [null, null];
+    };
 
     // Get the entorpies of each toporef
     // Save the logarithmic values

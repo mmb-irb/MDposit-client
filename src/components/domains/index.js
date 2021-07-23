@@ -7,6 +7,7 @@ import { ProjectCtx, PdbCtx, ToporefsCtx } from '../../contexts';
 
 import useDefaultRepresentations from '../ngl-viewer/use-default-representations';
 import useMutationsRepresentations from '../ngl-viewer/use-mutations-representations';
+import useEpitopesRepresentations from '../ngl-viewer/use-epitopes-representations';
 
 import style from './style.module.css';
 
@@ -18,6 +19,7 @@ import {
   rangedSelectionParser,
   absolute2sourceResidue,
   complexSelectionRanger,
+  reference2absolute,
 } from '../../utils/topology-manager';
 
 // Show floatting bubles with domain names
@@ -36,6 +38,8 @@ const Domains = ({ setter }) => {
   const defaultRepresentations = useDefaultRepresentations();
 
   const mutationsRepresentation = useMutationsRepresentations();
+
+  const epitopesRepresentation = useEpitopesRepresentations();
 
   // The domains strucutre is:
   // domains: [
@@ -74,12 +78,6 @@ const Domains = ({ setter }) => {
         const toporefName = toporef.name;
         const toporefDomains = toporef.domains;
         if (!toporefDomains) return;
-        const metadataToporef = toporefs.find(
-          toporef => toporef.name === toporefName,
-        );
-        const metadataToporefMap = metadataToporef.map;
-        // If there is no map for the current toporef then return here
-        if (!metadataToporefMap) return;
         // ----------------------------------------------------------------------------------------
         // These domains are only specified for the reference sequence
         // Residue selections must be mapped back to the current topology for each representation
@@ -93,18 +91,13 @@ const Domains = ({ setter }) => {
             const selection = representation.selection;
             const parsedSelection = rangedSelectionParser(selection);
             // WARNING: A single reference residue may correspond to multiple topology residues
-            const mappedSelection = [].concat.apply(
-              [],
-              parsedSelection.map(residue =>
-                metadataToporefMap.reduce((a, res, r) => {
-                  // We substract 1 since the reference numeration is from 1 to n and we want it from 0
-                  if (res === residue) a.push(r);
-                  return a;
-                }, []),
-              ),
+            const mappedSelection = reference2absolute(
+              toporefName,
+              parsedSelection,
+              metadata,
             );
             // Representations with a selection not present in topology are discarded
-            if (mappedSelection.length === 0) return;
+            if (!mappedSelection || mappedSelection.length === 0) return;
             // Transform the mapped selection, which comes in absolute numeration, to the source format
             // The source numeration is compatible with NGL once parsed
             const sourceSelection = mappedSelection.map(
@@ -171,9 +164,20 @@ const Domains = ({ setter }) => {
     if (mutationsRepresentation) {
       const mutationsDomain = {
         name: 'Mutations',
+        description:
+          'Show the entropies of each residue according to the bibliography',
         representations: mutationsRepresentation,
       };
       domains.push(mutationsDomain);
+    }
+    if (epitopesRepresentation) {
+      const epitopesDomain = {
+        name: 'Epitopes',
+        description:
+          'Show regions considered as epitopes according to the bibliography',
+        representations: epitopesRepresentation,
+      };
+      domains.push(epitopesDomain);
     }
     // Reset the selected domain
     setSelectedDomain(0);
@@ -182,6 +186,7 @@ const Domains = ({ setter }) => {
     metadata,
     defaultRepresentations,
     mutationsRepresentation,
+    epitopesRepresentation,
     toporefData,
     topology,
   ]);
