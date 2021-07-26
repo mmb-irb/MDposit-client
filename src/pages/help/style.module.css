@@ -1,3 +1,29 @@
-.card {
+.horizontal {
+  display: flex;
+  flex-direction: row;
+}
+
+.menu {
+  overflow-y: scroll;
+  width: 20%;
+  height: 30em;
+}
+
+.text {
+  overflow-y: scroll;
+  width: 80%;
+  height: 30em;
+}
+
+.paragraph {
   margin: 1em;
+}
+
+.header {
+  margin-bottom: 1em;
+}
+
+.hr {
+  margin-top: 1.5em;
+  color: lightGrey;
 }
