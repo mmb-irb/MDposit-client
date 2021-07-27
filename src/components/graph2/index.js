@@ -118,9 +118,6 @@ const Graph2 = ({
   // Set the type of grapg to render
   // Accepted values: line, dash
   type = 'line',
-  // Start number of activated keys
-  // A value of 'null' stands for all activated
-  startKeys = null,
   // React hooks
   onHover,
   selected,
@@ -161,20 +158,12 @@ const Graph2 = ({
     return { yEntries, yKeys };
   }, [yData]);
 
-  let counter = 0;
-  const activateKey = () => {
-    if (startKeys === null || counter < startKeys) {
-      counter += 1;
-      return true;
-    }
-    return false;
-  };
-
   // ----------------------------------------------------------------------------------------
 
   // OFFSETS: Estimate the space needed for all the labels and titles to not overlap
   // DANI: Toda esta parte no se actualiza en el drawRef en caso de que los valores de las labels cambien
-  // DANI: De momento no da problemas pero algún día habrá que arreglarlo
+  // DANI: Esto da problemas si queremos cargar un graph sin data para luego ir metiendo data
+  // DANI: El graph se creará sin margen para las labels y cuando introduzcamos data habrá un overlap
   const {
     offset,
     labelsHeight,
@@ -245,9 +234,14 @@ const Graph2 = ({
   // Object with entries defining which data is displayed (true) or hidden (false)
   // Each entry has the same key that its corresponding dataset
   // First set a defualt internal state for cases where it is not passed with the arguments
-  const [internalDataDisplay, setInternalDataDisplay] = useState(() =>
-    fromPairs(yKeys.map(key => [key, activateKey()])),
+  const [internalDataDisplay, setInternalDataDisplay] = useState(
+    fromPairs(yKeys.map(key => true)),
   );
+  // Update the internal data display when data changes
+  useEffect(() => {
+    setInternalDataDisplay(fromPairs(yKeys.map(key => true)));
+  }, [yKeys]);
+
   // If the data display state was passed then use it
   // Otherwise, use the internal state
   const [lab, setLab] = dataDisplay
