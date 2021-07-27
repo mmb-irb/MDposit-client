@@ -451,6 +451,55 @@ const documentation = [
     ),
   },
   {
+    id: 'epitopes',
+    header: 'Epitopes',
+    page: (
+      <>
+        This is the epitopes viewer.
+        <br />
+        <br />
+        Epitopes present in the structure are listed left. The list includes the
+        PDB code of the corresponding human antibody and the average Solvent
+        Accessible Surface (SAS) of all epitope residues together. Epitopes can
+        be represented in the{' '}
+        <a
+          href="/help#/help#ngl-viewer"
+          target="_blank"
+          rel="noreferrer noopener"
+        >
+          viewer
+        </a>{' '}
+        at right, over the overall structure in low opacity black color. Hover
+        any epitope to display its residues in yellow color. Click on any
+        epitope checkbox to display its residues in a specific color and also
+        the SAS of its residues together along the trajectory in the graph
+        below. Several epitopes may be selected in order to compare them. Note
+        that if overlapping epitopes are selected then epitopes above in the
+        list will eclipse epitops below in the viewer. Click on the overall
+        pockets checkbox to represent the overall epitopes representation. Click
+        anywhere on the graph to change the viewer trajectory frame.
+      </>
+    ),
+    body: (
+      <>
+        Epitopes were mined from the{' '}
+        <a
+          href="https://www.rcsb.org/"
+          target="_blank"
+          rel="noreferrer noopener"
+        >
+          PDB
+        </a>{' '}
+        . A systematic search was performed with the parameters 'Source Organism
+        Taxonomy Name' equals 'SARS-CoV-2' + 'Homo sapiens' and 'Additional
+        Structure Keywords' contains phrase 'antibody'. Last search was
+        performed on June 2021 with more than 150 results. For each structure,
+        SARS-CoV-2 interface residues with the human antibody were captured by
+        using a distance cutoff of 5 Ångstroms between atoms.
+      </>
+    ),
+  },
+  {
     id: 'sasa',
     header: 'Solvent accessible surface',
     page: (

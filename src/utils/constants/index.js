@@ -32,6 +32,7 @@ export const NICE_NAMES = new Map([
   ['energies', 'Energies'],
   ['pockets', 'Pockets'],
   ['mutations', 'Mutations'],
+  ['epitopes', 'Epitopes'],
   ['sasa', 'Solvent accessible surface'],
 ]);
 

@@ -1,0 +1,43 @@
+.paper {
+  max-height: 500px;
+  overflow-y: scroll;
+}
+
+.tablecard {
+  margin-top: 1em;
+  display: inline-block;
+  width: 25%;
+}
+
+.nglcard {
+  margin-top: 1em;
+  display: inline-block;
+  width: 75%;
+  height: 500px;
+}
+
+.margined {
+  margin: 1em;
+}
+
+.container {
+  height: 100%;
+}
+
+.selectedrow {
+  background-color: #76ff03;
+}
+
+.graph {
+  height: 50vh;
+}
+
+.graph-placeholder {
+  position: relative;
+  width: 100%;
+  height: 50vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: white;
+}

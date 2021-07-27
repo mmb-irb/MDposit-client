@@ -121,16 +121,12 @@ const Pockets = () => {
   const defaultRepresentations = useDefaultRepresentations();
 
   // Set the main component to be passed to NGL
-  const { components } = useMemo(() => {
+  const components = useMemo(() => {
     // Wait for payload to be downloaded
-    if (!data) return {};
+    if (!data) return;
 
-    // DANI: Temporalmente se suspende el average
-    // Use the average structure to reference the pockets
-    //const averageURL = `${BASE_PATH_PROJECTS}${accession}/files/average.bin`;
     // Load the required frames from the main trajectory
     const mainURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory?frames=1:${metadata.SNAPSHOTS}:${frameStep}`;
-    //console.log(mainURL);
 
     // Set the surface representation of each pocket
     const pocketSurfaceRepresentations = data.map(pocket => {
@@ -155,8 +151,6 @@ const Pockets = () => {
     // The first component, which includes everything but the pockets
     const mainComponent = {
       trajectoryURLs: [mainURL],
-      // DANI: Temporalmente se suspende el average
-      //trajectoryURLs: [averageURL, mainURL],
       representations: representations,
     };
 
@@ -213,7 +207,7 @@ const Pockets = () => {
       ...pocketRepresentationColors,
     ]);
 
-    return { components };
+    return components;
   }, [accession, metadata, data, defaultRepresentations, frameStep]);
 
   // Set the graph parameters
@@ -242,10 +236,6 @@ const Pockets = () => {
   useEffect(() => {
     if (!viewerRef.current) return;
     viewerRef.current.currentFrame = selectedFrame;
-    // DANI: Temporalmente se suspende el average
-    // The first frame (0) is the average
-    //if (selectedFrame === null) viewerRef.current.currentFrame = 0;
-    //else viewerRef.current.currentFrame = selectedFrame + 1;
   }, [selectedFrame]);
 
   // Update the showRepresentations state when the selected or hovered pockets change

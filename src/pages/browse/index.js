@@ -92,6 +92,10 @@ const toporefsWithEntropies = ['SARS-CoV-2 spike'];
 const hasEntropies = toporefName => {
   return toporefsWithEntropies.indexOf(toporefName) > -1;
 };
+const toporefsWithEpitopes = ['SARS-CoV-2 spike'];
+const hasEpitopes = toporefName => {
+  return toporefsWithEpitopes.indexOf(toporefName) > -1;
+};
 
 const Row = ({ project, highlight, index, setProject }) => {
   // Harvest data from the project object
@@ -133,12 +137,27 @@ const Row = ({ project, highlight, index, setProject }) => {
 
   // Check if any metadata toporef has a map and its toporef data has entropies
   const toporefs = metadata && metadata.TOPOREFS;
-  const anySuitableToporef =
+  const anySuitableToporefWithEntropies =
     toporefs &&
     toporefs.some(toporef => !!toporef.map && hasEntropies(toporef.name));
   // Push the mutations analysis if so
-  if (anySuitableToporef && analyses && !analyses.includes('mutations'))
+  if (
+    anySuitableToporefWithEntropies &&
+    analyses &&
+    !analyses.includes('mutations')
+  )
     analyses.push('mutations');
+  // Check if any metadata toporef has a map and its toporef data has entropies
+  const anySuitableToporefWithEpitopes =
+    toporefs &&
+    toporefs.some(toporef => !!toporef.map && hasEpitopes(toporef.name));
+  // Push the entropies analysis if so
+  if (
+    anySuitableToporefWithEpitopes &&
+    analyses &&
+    !analyses.includes('epitopes')
+  )
+    analyses.push('epitopes');
 
   // Returns a table with multiple rows
   // The 3 first rows: accession, PDB accession and name are searchable. Search text is highlighted when found
@@ -207,6 +226,7 @@ const Row = ({ project, highlight, index, setProject }) => {
                   'energies',
                   'pockets',
                   'mutations',
+                  'epitopes',
                   'sasa',
                 ].includes(element),
               )

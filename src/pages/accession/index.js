@@ -80,6 +80,10 @@ const Mutations = lazy(() =>
   import(/* webpackChunkName: 'mutations' */ './mutations'),
 );
 
+const Epitopes = lazy(() =>
+  import(/* webpackChunkName: 'mutations' */ './epitopes'),
+);
+
 const Sasa = lazy(() => import(/* webpackChunkName: 'sasa' */ './sasa'));
 
 const JsonViewer = lazy(() =>
@@ -354,6 +358,15 @@ const SummarySwitch = ({ setProject, subPage, dataUrl }) => {
                 )}
               />
               <Route
+                path="/browse/:accession/sasa"
+                exact
+                render={props => (
+                  <Suspense fallback={<Loading />}>
+                    <Sasa {...props} />
+                  </Suspense>
+                )}
+              />
+              <Route
                 path="/browse/:accession/mutations"
                 exact
                 render={props => (
@@ -363,11 +376,11 @@ const SummarySwitch = ({ setProject, subPage, dataUrl }) => {
                 )}
               />
               <Route
-                path="/browse/:accession/sasa"
+                path="/browse/:accession/epitopes"
                 exact
                 render={props => (
                   <Suspense fallback={<Loading />}>
-                    <Sasa {...props} />
+                    <Epitopes {...props} />
                   </Suspense>
                 )}
               />
