@@ -376,7 +376,6 @@ const Epitopes = () => {
           <NGLViewerWithControls
             className={style.container}
             components={[component]}
-            preventTrajectory
             ref={viewerRef}
           />
         ) : (
