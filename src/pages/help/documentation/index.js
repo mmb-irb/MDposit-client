@@ -28,6 +28,20 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Icon } from '@material-ui/core';
 
+// Ser a simpler link component
+const Link = ({ name, id, url }) => (
+  <>
+    {' '}
+    <a
+      href={id ? `/help#/help#${id}` : url}
+      target="_blank"
+      rel="noreferrer noopener"
+    >
+      {name}
+    </a>{' '}
+  </>
+);
+
 // All text to be displayed is set previously here
 const documentation = [
   {
@@ -37,6 +51,12 @@ const documentation = [
   {
     id: 'rmsds',
     header: 'RMSds',
+    body: (
+      <>
+        RMSds page includes both <Link name={'RMSd'} id={'rmsd'} /> and
+        <Link name={'TM score'} id={'tm-score'} /> analyses together.
+      </>
+    ),
     page: (
       <>
         This is the RMSDs analysis.
@@ -77,12 +97,61 @@ const documentation = [
     ),
   },
   {
+    id: 'rmsd',
+    header: 'RMSd',
+    body: (
+      <>
+        RMSd analyses have been run against the first frame and against the
+        average structure of the whole trajectory. RMSd analyses have been run
+        over different protein atom selections: all protein atoms (protein),
+        heavy atoms (protein-h), backbone and alpha carbon (c-alpha). The RMSd
+        value of the sturcutre is stored on each frame along the trajectory.
+        <br />
+        <br />
+        This analysis is powered by{' '}
+        <Link name={'Gromacs'} url={'https://www.gromacs.org/'} />
+      </>
+    ),
+  },
+  {
+    id: 'tm-score',
+    header: 'TM score',
+    body: (
+      <>
+        TM score analyses are run against the first frame and against the
+        average structure of the whole trajectory. TM score analyses are run
+        over alpha carbon atoms. The TM score value of the sturcutre is stored
+        on 100 frames along the trajectory.
+        <br />
+        <br />
+        This analysis is powered by the{' '}
+        <Link name={'tmscoring'} url={'https://pypi.org/project/tmscoring/'} />
+        python module. Click{' '}
+        <Link
+          name={'here'}
+          url={'https://zhanglab.ccmb.med.umich.edu/TM-score/'}
+        />
+        to learn more about TM score.
+      </>
+    ),
+  },
+  {
     id: 'rmsd-perres',
     header: 'RMSd per residue',
-    body: `The RMSD (Root Mean Squared Deviation) per residue analysis computes the
-        mean and standard deviation distance between the original position of each
-        residue and their positions along each frame.
-        This analysis is powered by PyTraj`,
+    body: (
+      <>
+        The RMSD (Root Mean Squared Deviation) per residue analysis computes the
+        mean and standard deviation distance between the original position of
+        each residue and their positions along each frame.
+        <br />
+        <br />
+        This analysis is powered by{' '}
+        <Link
+          name={'PyTraj'}
+          url={'https://amber-md.github.io/pytraj/latest/index.html#'}
+        />
+      </>
+    ),
     page: (
       <>
         This is the RMSd per residue analysis.

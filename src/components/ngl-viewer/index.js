@@ -38,10 +38,7 @@ import style from './style.module.css';
 // To get frames
 import { BASE_PATH_PROJECTS } from '../../utils/constants';
 
-// This function extracts the atom and frame counts from the content-range header
-// DEPRECATED: This data now is extracted from the 'files' metadata in the project context
-//import extractCounts from './extract-counts';
-
+// A tool to download the trajectory data (https://www.npmjs.com/package/axios)
 import axios from 'axios';
 
 // Make a deep copy of an object even with cyclic references
@@ -81,7 +78,7 @@ function appendBuffer(buffer1, buffer2) {
   return tmp.buffer;
 }
 
-const defaulthighlightTypes = {
+const defaultHighlightTypes = {
   atoms: 'spacefill',
   residues: 'ball+stick',
   chains: 'ball+stick',
@@ -121,7 +118,7 @@ const NGLViewer = memo(
         showRepresentations,
         nglSelections,
         // Set the highlight representations types
-        highlightTypes = defaulthighlightTypes,
+        highlightTypes = defaultHighlightTypes,
       },
       ref,
     ) => {
@@ -277,8 +274,10 @@ const NGLViewer = memo(
       // Set a function to modify an url by adding the frames range according to nFrames
       // The only exception are those trajectories whose frame number is lower than nFrames
 
-      // Set variable to store trajectory data and loading status
-      const [trajectories, setTrajectories] = useState([]);
+      // Set a state to store requested trajectories and their loading status
+      const [requestedTrajectories, setRequestedTrajectories] = useState([]);
+      // Set also a state to track whenever there is still a downloading trajectory
+      const [anyLoadingTrajectory, setAnyLoadingTrajectory] = useState(false);
 
       // Find if there are new trajectories to be requested in the components:
       // Collect trajectories on each component
@@ -287,8 +286,8 @@ const NGLViewer = memo(
       // Only the main component (the first) is allowed to load multiple frames by the moment
       useMemo(() => {
         // Finally update the trajectories state
-        setTrajectories(currentTrajectories => {
-          // Save the new trajectories
+        setRequestedTrajectories(currentTrajectories => {
+          // Save the new requetsed trajectories
           const newTrajectories = [];
 
           // Set the url to ask the API
@@ -390,22 +389,35 @@ const NGLViewer = memo(
                   atoms: trajectoryMetadata.atoms,
                   loading: true,
                 });
+                setAnyLoadingTrajectory(true);
               }
             });
           });
-          return [...currentTrajectories, ...newTrajectories];
+          // In case there are new requested trajectories we return a new array to trigger dependencies
+          if (newTrajectories.length > 0)
+            return [...currentTrajectories, ...newTrajectories];
+          // Otherwise we return the previous array to do no trigger dependencies
+          return currentTrajectories;
         });
       }, [accession, comps, files, nFrames]);
 
+      // Set a state to store trajectories data
+      const [trajectories, setTrajectories] = useState([]);
+      // Set also a state to track the progress of the overall trajectories downloading
+      const [
+        trajectoriesLoadingProgress,
+        setTrajectoriesLoadingProgress,
+      ] = useState(0);
+
       // Download the requested trajectory data (frames)
       useEffect(() => {
-        // Ask the API through axios (https://www.npmjs.com/package/axios)
+        // Ask the API through axios
         // Some extra load features are passed through axios
         // Set a cancel 'token'
         const source = axios.CancelToken.source();
         let didCancel = false;
 
-        trajectories.forEach(trajectory => {
+        requestedTrajectories.forEach(trajectory => {
           // Check if the requested url has the data already downloaded
           // If so, skip this request
           if (trajectory && trajectory.payload) return;
@@ -422,6 +434,12 @@ const NGLViewer = memo(
             // Check if progress is measurable. If so, mesure it.
             if (progressEvent.lengthComputable)
               trajectory.progress = progressEvent.loaded / progressEvent.total;
+            // Then calculate the avreage progress in all loading trajectories and update the progress state
+            const overallProgress =
+              requestedTrajectories
+                .map(trajectory => trajectory.progress)
+                .reduce((a, b) => a + b, 0) / requestedTrajectories.length;
+            setTrajectoriesLoadingProgress(overallProgress);
           };
 
           // Send a request to the API in a Promise/await manner
@@ -433,13 +451,23 @@ const NGLViewer = memo(
             // If the request has succeed
             .then(response => {
               if (didCancel) return;
-              // 'counts' include the number of atoms and the real number of frames
-              //trajectory.counts = extractCounts(response);
               // Save the main data in the ref
-              trajectory.payload = response.data;
               trajectory.loading = false;
+              // Then check the loading state of all requested trajectories and update the overall loading state
+              const anyLoading = requestedTrajectories.some(
+                trajectory => trajectory.loading,
+              );
+              setAnyLoadingTrajectory(anyLoading);
               // We create a new object to force the trajectory data load in ngl (trajectories dependent)
-              setTrajectories([...trajectories]);
+              setTrajectories(previousTrajectories => {
+                const newTrajectory = {
+                  url: trajectory.url,
+                  frames: trajectory.frames,
+                  atoms: trajectory.atoms,
+                  payload: response.data,
+                };
+                return [...previousTrajectories, newTrajectory];
+              });
             })
             // Otherwise
             .catch(error => {
@@ -452,23 +480,7 @@ const NGLViewer = memo(
           source.cancel();
           didCancel = true;
         };
-      }, [trajectories]);
-
-      const trajectoryLoadingStatus = useMemo(() => {
-        const everyLoading = trajectories.map(trajectory => trajectory.loading);
-        const trajectoryLoadingStatus = everyLoading.some(l => l === true);
-
-        return trajectoryLoadingStatus;
-      }, [trajectories]);
-
-      // Get the current progress of all trajectory downloads
-      const everyProgress = trajectories.map(trajectory => trajectory.progress);
-      const trajectoryProgress = useMemo(() => {
-        const sum = everyProgress.reduce((a, b) => a + b, 0);
-        const trajectoryProgress = sum / everyProgress.length;
-
-        return trajectoryProgress;
-      }, [everyProgress]);
+      }, [requestedTrajectories]);
 
       // Stage creation and removal on mounting and unmounting
       useEffect(() => {
@@ -1060,7 +1072,7 @@ const NGLViewer = memo(
         )
           return;
         stageRef.current.compList[0].trajList[0].trajectory.player.pause();
-      }, [pdbFile, trajectoryLoadingStatus]);
+      }, [pdbFile, anyLoadingTrajectory]);
 
       // DCD file, trajectory
       // Once the trajectories are downloaded, load them in corresponding NGL representations
@@ -1095,9 +1107,6 @@ const NGLViewer = memo(
               throw new Error(
                 `The url '${url}' has not been requested to the API`,
               );
-
-            // Wait if the trajectory has not been downloaded yet
-            if (trajectory.loading) return;
 
             // Get atom counts from different trajectories and check they match
             if (!atoms) atoms = trajectory.atoms;
@@ -1213,7 +1222,7 @@ const NGLViewer = memo(
         // Set the speed
         const timeout = 500 / (Math.log2(speed + 1) + 1);
         traj.player.setParameters({ timeout: timeout });
-      }, [speed, trajectoryLoadingStatus]);
+      }, [speed, anyLoadingTrajectory]);
 
       // spinning
       useEffect(() => {
@@ -1236,10 +1245,10 @@ const NGLViewer = memo(
 
       // to avoid sometimes when it's not rendering after loading
       useEffect(() => {
-        if (!(pdbFile && trajectories.length)) return;
+        if (!(pdbFile && requestedTrajectories.length)) return;
         handleResize();
         return handleResize.cancel;
-      }, [pdbFile, trajectories, handleResize]);
+      }, [pdbFile, requestedTrajectories, handleResize]);
 
       // Highlight the selected chain region
       // This useEffect seems to be special:
@@ -1487,7 +1496,7 @@ const NGLViewer = memo(
             */
           },
           get currentFrame() {
-            if (!(pdbFile && trajectories.length)) return -1;
+            if (!(pdbFile && requestedTrajectories.length)) return -1;
             try {
               return stageRef.current.compList[0].trajList[0].trajectory
                 .currentFrame;
@@ -1496,7 +1505,7 @@ const NGLViewer = memo(
             }
           },
           set currentFrame(value) {
-            if (!(pdbFile && trajectories.length)) return;
+            if (!(pdbFile && requestedTrajectories.length)) return;
             try {
               const total = this.totalFrames;
               let frame = value % total;
@@ -1509,7 +1518,7 @@ const NGLViewer = memo(
             }
           },
           get totalFrames() {
-            if (!(pdbFile && trajectories.length)) return 1;
+            if (!(pdbFile && requestedTrajectories.length)) return 1;
             try {
               return stageRef.current.compList[0].trajList[0].trajectory.frames
                 .length;
@@ -1518,7 +1527,7 @@ const NGLViewer = memo(
             }
           },
         }),
-        [pdbFile, trajectories, handleResize],
+        [pdbFile, requestedTrajectories, handleResize],
       );
 
       // workaround to have multiple ref logic on one element
@@ -1536,7 +1545,7 @@ const NGLViewer = memo(
             className={cn(className, style.container, {
               [style['loading-pdb']]: loadingPDB,
               [style['loading-trajectory']]:
-                !noTrajectory && trajectoryLoadingStatus,
+                !noTrajectory && anyLoadingTrajectory,
               [style['light-theme']]: !darkBackground,
             })}
             // Display loading status data in the upper left corner of the NGL window
@@ -1545,13 +1554,15 @@ const NGLViewer = memo(
                 ? `Loading structure`
                 : !pdbFile
                 ? `No structure available`
-                : trajectoryLoadingStatus
+                : anyLoadingTrajectory
                 ? `Loading ${
                     loadingPDB
                       ? 'structure'
-                      : `trajectory (${Math.round(trajectoryProgress * 100)}%)`
+                      : `trajectory (${Math.round(
+                          trajectoriesLoadingProgress * 100,
+                        )}%)`
                   }…`
-                : !trajectories.length && !noTrajectory
+                : !requestedTrajectories.length && !noTrajectory
                 ? `No trajectory available`
                 : stageRef.current && stageRef.current.tasks.count > 0
                 ? `Rendering...`
