@@ -32,9 +32,9 @@ import Loading from '../../../components/loading';
 
 import useAPI from '../../../hooks/use-api';
 
-import { BASE_PATH_PROJECTS } from '../../../utils/constants';
+import useColors from '../../../hooks/use-colors';
 
-import { getColor, freeColor } from '../../../utils/color-admin';
+import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 const hoveredPocketColor = 'yellow';
 const pocketsColor = 'grey';
@@ -74,6 +74,9 @@ const Pockets = () => {
 
   // Set a ref to the ngl which allows access to the ngl viewer exposed methods
   const viewerRef = useRef(null);
+
+  // Use the colors hook
+  const [getColor, freeColor] = useColors();
 
   // Track which pockets is beeing hovered in the list
   const [showAllPockets, setShowAllPockets] = useState(false);

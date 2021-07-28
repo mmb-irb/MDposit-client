@@ -37,9 +37,10 @@ import Loading from '../../../components/loading';
 
 import useAPI from '../../../hooks/use-api';
 
+import useColors from '../../../hooks/use-colors';
+
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
-import { getColor, freeColor } from '../../../utils/color-admin';
 import useEpitopesRepresentations from '../../../components/ngl-viewer/use-epitopes-representations';
 
 import {
@@ -98,6 +99,9 @@ const Epitopes = () => {
 
   // Set a ref to the ngl which allows access to the ngl viewer exposed methods
   const viewerRef = useRef(null);
+
+  // Use the colors hook
+  const [getColor, freeColor] = useColors();
 
   // Track which epitope is beeing hovered in the list
   const [showAllEpitopes, setShowAllEpitopes] = useState(false);

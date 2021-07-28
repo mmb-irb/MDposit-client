@@ -261,6 +261,7 @@ const RmsdPerres = () => {
             yAxisLabel={'RMSd (Å)'}
             onSelect={handleFrameSelection}
             selected={selectedFrame}
+            className={style['graph']}
           />
         ) : (
           <div className={style['graph-placeholder']}>

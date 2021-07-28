@@ -8,7 +8,7 @@ import { faTrash } from '@fortawesome/free-solid-svg-icons';
 
 import ColorLegend from '../color-legend';
 
-import { getColor, freeColor, freeAllColors } from '../../utils/color-admin';
+import useColors from '../../hooks/use-colors';
 
 import { scaleLinear } from 'd3';
 
@@ -53,6 +53,8 @@ const ResidueSelector = ({
   selectedResiduesSetter,
   legendTitle,
 }) => {
+  // Use the colors hook
+  const [getColor, freeColor, freeAllColors] = useColors();
   // Save an array with all 'settable' values
   const { residuesData, maxValue, minValue } = useMemo(() => {
     // Collect all residues in all sequences
@@ -161,7 +163,14 @@ const ResidueSelector = ({
       manager.removeEventListener('mousedown', hadleMouseClick, true);
       freeAllColors();
     };
-  }, [sequences, selectedResiduesSetter, residuesData]);
+  }, [
+    sequences,
+    selectedResiduesSetter,
+    residuesData,
+    getColor,
+    freeColor,
+    freeAllColors,
+  ]);
 
   // Set a function to remove all selected residues
   const cleanSelections = () => {
