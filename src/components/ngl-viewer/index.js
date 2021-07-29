@@ -1103,10 +1103,8 @@ const NGLViewer = memo(
             const trajectory = trajectories.find(trajectory => {
               return trajectory.url === url;
             });
-            if (!trajectory)
-              throw new Error(
-                `The url '${url}' has not been requested to the API`,
-              );
+            // If the trajectory is not downloaded yet then exit
+            if (!trajectory) return;
 
             // Get atom counts from different trajectories and check they match
             if (!atoms) atoms = trajectory.atoms;
