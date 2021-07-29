@@ -252,7 +252,7 @@ const RmsdPerres = () => {
           legendTitle={'Average RMSD (Å)'}
         />
       </Card>
-      <Card className={style['graph']}>
+      <Card className={style.graphcard}>
         {selectedResidues.length > 0 ? (
           <Graph2
             yData={selectedData}
@@ -261,7 +261,7 @@ const RmsdPerres = () => {
             yAxisLabel={'RMSd (Å)'}
             onSelect={handleFrameSelection}
             selected={selectedFrame}
-            className={style['graph']}
+            className={style.graph}
           />
         ) : (
           <div className={style['graph-placeholder']}>

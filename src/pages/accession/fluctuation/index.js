@@ -57,6 +57,15 @@ const FluctuationAnalysis = () => {
 
   const cents = num => Math.round(num * 100) / 100;
 
+  // Handle when we get the atom index after clicking in the graph
+  const handleAtomsSelection = atomIndex => {
+    setSelectedAtoms(previous => {
+      const newSet = new Set(previous);
+      newSet[newSet.has(atomIndex) ? 'delete' : 'add'](atomIndex);
+      return newSet;
+    });
+  };
+
   // Render
   return (
     <Suspense fallback={<Loading />}>
@@ -91,7 +100,7 @@ const FluctuationAnalysis = () => {
             yAxisLabel={'Fluctuation (Å)'}
             type={'dash'}
             onHover={setHoveredAtom}
-            onSelect={setSelectedAtoms}
+            onSelect={handleAtomsSelection}
             selected={selectedAtoms}
             mean={true}
             standardDeviation={true}

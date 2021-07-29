@@ -248,7 +248,7 @@ const Sasa = () => {
           legendTitle={'Average SAS per atom (Å²)'}
         />
       </Card>
-      <Card className={style['graph']}>
+      <Card className={style.graphcard}>
         {selectedResidues.length > 0 ? (
           <Graph2
             yData={selectedData}
@@ -257,6 +257,7 @@ const Sasa = () => {
             yAxisLabel={'SAS per atom (Å²)'}
             onSelect={handleFrameSelection}
             selected={selectedFrame}
+            className={style.graph}
           />
         ) : (
           <div className={style['graph-placeholder']}>

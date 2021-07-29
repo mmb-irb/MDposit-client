@@ -6,7 +6,7 @@ import React, {
   useContext,
   useMemo,
 } from 'react';
-import { fromPairs, noop, flatten } from 'lodash-es';
+import { noop, flatten } from 'lodash-es';
 import {
   select,
   scaleLinear,
@@ -84,6 +84,13 @@ const steppedMax = values => {
     max = Math.max(value, max);
   });
   return max;
+};
+
+// Create an object with all specified keys and all values as true
+const trueEntries = keys => {
+  const object = {};
+  keys.forEach(key => (object[key] = true));
+  return object;
 };
 
 // The expected input data (y) is:
@@ -235,11 +242,11 @@ const Graph2 = ({
   // Each entry has the same key that its corresponding dataset
   // First set a defualt internal state for cases where it is not passed with the arguments
   const [internalDataDisplay, setInternalDataDisplay] = useState(
-    fromPairs(yKeys.map(key => true)),
+    trueEntries(yKeys),
   );
   // Update the internal data display when data changes
   useEffect(() => {
-    setInternalDataDisplay(fromPairs(yKeys.map(key => true)));
+    setInternalDataDisplay(trueEntries(yKeys));
   }, [yKeys]);
 
   // If the data display state was passed then use it
@@ -776,18 +783,10 @@ const Graph2 = ({
           if (closestIndex * step < xMin || closestIndex * step >= xMax) {
             return;
           }
-          onSelect(selected => {
-            // In case is a multiple selection
-            if (selected instanceof Set) {
-              const newSet = new Set(selected);
-              newSet[newSet.has(closestIndex) ? 'delete' : 'add'](closestIndex);
-              return newSet;
-            }
-            // In case it is a single selection
-            return closestIndex === selected ? null : closestIndex;
-            //closestIndex,
-            //xAxisValues ? xAxisValues[closestIndex] : null,
-          });
+          onSelect(
+            closestIndex,
+            xAxisValues ? xAxisValues[closestIndex] : null,
+          );
         });
       }
 
@@ -873,7 +872,7 @@ const Graph2 = ({
     [lab, type],
   );
 
-  const handleClick = useCallback(() => onSelect(new Set()), [onSelect]);
+  const handleButtonClick = useCallback(() => onSelect(new Set()), [onSelect]);
 
   // Set if the grpah must give a few space for elements below (e.g. the legend)
   const giveSpaceBelow = selfLegend || type === 'dash';
@@ -913,7 +912,7 @@ const Graph2 = ({
         <Button
           variant="contained"
           disabled={selected instanceof Set && !selected.size}
-          onClick={handleClick}
+          onClick={handleButtonClick}
         >
           <FontAwesomeIcon icon={faTrashAlt} />
           &nbsp;
