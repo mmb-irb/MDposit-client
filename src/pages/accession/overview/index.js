@@ -23,30 +23,6 @@ export default React.memo(() => {
 
   // Process the pdbInfo metadata to show a report
   const pdbInfo = metadata.pdbInfo;
-  const pdbId = pdbInfo && pdbInfo._id.toLowerCase();
-
-  // Set the url to get the pdb image
-  const imgSrc =
-    pdbInfo &&
-    pdbInfo._id &&
-    `https://cdn.rcsb.org/images/structures/${pdbId.substr(
-      1,
-      2,
-    )}/${pdbId}/${pdbId}_assembly-1.jpeg`;
-
-  // Mine the organism, keyword and publish date
-  let organisms;
-  let keywords;
-  let publishDate;
-  if (pdbInfo && pdbInfo._id) {
-    organisms = Array.from(
-      new Set((pdbInfo.sources || '').split(COMMA_SEPARATOR)),
-    );
-    keywords = Array.from(
-      new Set((pdbInfo.header || '').split(COMMA_SEPARATOR)),
-    );
-    publishDate = new Date(pdbInfo.ascDate);
-  }
 
   let citation;
   if (metadata && metadata.CITATION) {
@@ -110,103 +86,135 @@ export default React.memo(() => {
           </div>
         </CardContent>
       </Card>
-      {pdbInfo && pdbInfo._id && (
+      {pdbInfo && pdbInfo.length > 0 && (
         <Card className={style.card}>
           <CardContent className={style['card-content']}>
             <Typography variant="h6">PDB information</Typography>
-            <LazyImg
-              src={imgSrc}
-              width="350"
-              height="350"
-              loading="lazy"
-              alt={`3D view of the ${pdbInfo._id} structure`}
-            />
-            {pdbInfo && (
-              <div className={style['summary-list']}>
-                <div>{pdbInfo.title}</div>
-                <div>
-                  PDB Accession: {pdbInfo._id}
-                  {pdbInfo.replaces && ` (replaces ${pdbInfo.replaces})`}
-                </div>
-                <div>
-                  {pdbInfo.status &&
-                    pdbInfo.status !== 'CURRENT' &&
-                    `Status: ${pdbInfo.status}`}
-                </div>
-                <div>Experimental method: {pdbInfo.expClass.toLowerCase()}</div>
-                <div>
-                  Organism
-                  {organisms.length > 1 && 's'}:{' '}
-                  {organisms.map(organism => (
-                    <Chip
-                      key={organism}
-                      label={organism}
-                      variant="outlined"
-                      color="primary"
-                      className={style.chip}
-                    />
-                  ))}
-                </div>
-                <div>
-                  Keyword
-                  {keywords.length > 1 && 's'}:{' '}
-                  {keywords.map(keyword => (
-                    <Chip
-                      key={keyword}
-                      label={keyword}
-                      variant="outlined"
-                      color="primary"
-                      className={style.chip}
-                    />
-                  ))}
-                </div>
-                <div>
-                  Publication date:{' '}
-                  <time dateTime={publishDate.toISOString()}>
-                    {publishDate.toDateString()}
-                  </time>
-                </div>
-              </div>
-            )}
+            {pdbInfo.map((pdb, i) => {
+              const pdbId = pdb && pdb._id.toLowerCase();
+              // Set the url to get the pdb image
+              const imgSrc =
+                pdbId &&
+                `https://cdn.rcsb.org/images/structures/${pdbId.substr(
+                  1,
+                  2,
+                )}/${pdbId}/${pdbId}_assembly-1.jpeg`;
+              // Mine the organism, keyword and publish date
+              let organisms;
+              let keywords;
+              let publishDate;
+              if (pdbId) {
+                organisms = Array.from(
+                  new Set((pdb.sources || '').split(COMMA_SEPARATOR)),
+                );
+                keywords = Array.from(
+                  new Set((pdb.header || '').split(COMMA_SEPARATOR)),
+                );
+                publishDate = new Date(pdb.ascDate);
+              }
+              return (
+                <>
+                  {i !== 0 && <hr style={{ color: 'lightGrey' }} />}
+                  <CardContent style={{ height: 380 }}>
+                    <div>
+                      <LazyImg
+                        src={imgSrc}
+                        width="350"
+                        height="350"
+                        loading="lazy"
+                        alt={`3D view of the ${pdb._id} structure`}
+                      />
+                      <div className={style['summary-list']}>
+                        <div>{pdb.title}</div>
+                        <div>
+                          PDB Accession: {pdb._id}
+                          {pdb.replaces && ` (replaces ${pdb.replaces})`}
+                        </div>
+                        <div>
+                          {pdb.status &&
+                            pdb.status !== 'CURRENT' &&
+                            `Status: ${pdb.status}`}
+                        </div>
+                        <div>
+                          Experimental method: {pdb.expClass.toLowerCase()}
+                        </div>
+                        <div>
+                          Organism
+                          {organisms.length > 1 && 's'}:{' '}
+                          {organisms.map(organism => (
+                            <Chip
+                              key={organism}
+                              label={organism}
+                              variant="outlined"
+                              color="primary"
+                              className={style.chip}
+                            />
+                          ))}
+                        </div>
+                        <div>
+                          Keyword
+                          {keywords.length > 1 && 's'}:{' '}
+                          {keywords.map(keyword => (
+                            <Chip
+                              key={keyword}
+                              label={keyword}
+                              variant="outlined"
+                              color="primary"
+                              className={style.chip}
+                            />
+                          ))}
+                        </div>
+                        <div>
+                          Publication date:{' '}
+                          <time dateTime={publishDate.toISOString()}>
+                            {publishDate.toDateString()}
+                          </time>
+                        </div>
+                      </div>
+                    </div>
+                    <CardActions>
+                      <Button
+                        component={'a'}
+                        variant="contained"
+                        href={`https://www.ebi.ac.uk/pdbe/entry/pdb/${pdb._id}`}
+                        size="small"
+                        color="primary"
+                        target="_blank"
+                        rel="noreferrer noopener"
+                      >
+                        <FontAwesomeIcon icon={faLink} />
+                        &nbsp;PDBe website
+                      </Button>
+                      <Button
+                        component={'a'}
+                        variant="contained"
+                        href={`https://www.rcsb.org/structure/${pdb._id}`}
+                        size="small"
+                        color="primary"
+                        target="_blank"
+                        rel="noreferrer noopener"
+                      >
+                        <FontAwesomeIcon icon={faLink} />
+                        &nbsp;RCSB website
+                      </Button>
+                      <Button
+                        component={'a'}
+                        variant="contained"
+                        href={`http://3dbionotes-ws.cnb.csic.es/?queryId=${pdb._id}`}
+                        size="small"
+                        color="primary"
+                        target="_blank"
+                        rel="noreferrer noopener"
+                      >
+                        <FontAwesomeIcon icon={faLink} />
+                        &nbsp;3DBIONOTES
+                      </Button>
+                    </CardActions>
+                  </CardContent>
+                </>
+              );
+            })}
           </CardContent>
-          <CardActions>
-            <Button
-              component={'a'}
-              variant="contained"
-              href={`https://www.ebi.ac.uk/pdbe/entry/pdb/${pdbInfo._id}`}
-              size="small"
-              color="primary"
-              target="_blank"
-              rel="noreferrer noopener"
-            >
-              <FontAwesomeIcon icon={faLink} />
-              &nbsp;PDBe website
-            </Button>
-            <Button
-              component={'a'}
-              variant="contained"
-              href={`https://www.rcsb.org/structure/${pdbInfo._id}`}
-              size="small"
-              color="primary"
-              target="_blank"
-              rel="noreferrer noopener"
-            >
-              <FontAwesomeIcon icon={faLink} />
-              &nbsp;RCSB website
-            </Button>
-            <Button
-              component={'a'}
-              variant="contained"
-              href={`http://3dbionotes-ws.cnb.csic.es/?queryId=${pdbInfo._id}`}
-              size="small"
-              color="primary"
-              target="_blank"
-              rel="noreferrer noopener"
-            >
-              <FontAwesomeIcon icon={faLink} />
-              &nbsp;3DBIONOTES
-            </Button>
-          </CardActions>
         </Card>
       )}
       {metadata && metadata.LIGANDS && metadata.LIGANDS.length > 0 && (
