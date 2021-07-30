@@ -52,16 +52,18 @@ import standardPreview4 from '../../images/spike_preview.png';
 import standardPreview5 from '../../images/3clpro_preview.png';
 import standardPreview6 from '../../images/plpro_preview.png';
 import standardPreview7 from '../../images/polymerase_preview.png';
+import standardPreview8 from '../../images/other.png';
 
 // Define the image to be shown depending on the unit name
-const unitPreview = unit => {
-  if (unit === 'RBD-ACE2') return standardPreview1;
-  if (unit === 'RBD') return standardPreview2;
-  if (unit === 'ACE2') return standardPreview3;
-  if (unit === 'Spike') return standardPreview4;
-  if (unit === '3CLpro') return standardPreview5;
-  if (unit === 'PLpro') return standardPreview6;
-  if (unit === 'Polymerase') return standardPreview7;
+const unitPreview = {
+  'RBD-ACE2': standardPreview1,
+  RBD: standardPreview2,
+  ACE2: standardPreview3,
+  Spike: standardPreview4,
+  '3CLpro': standardPreview5,
+  PLpro: standardPreview6,
+  Polymerase: standardPreview7,
+  Other: standardPreview8,
 };
 
 const DEFAULT_PAGE = 1;
@@ -195,7 +197,7 @@ const Row = ({ project, highlight, index, setProject }) => {
             width="110px"
             height="110px"
             // Take the image from a specific URL which is processed from the PDB identifier
-            src={unitPreview(metadata.UNIT)}
+            src={unitPreview[metadata.UNIT]}
             loading="lazy"
             alt={'No available preview'}
           />
@@ -342,13 +344,9 @@ const Browse = ({ location, history, setProject }) => {
                     }}
                   >
                     <MenuItem value="">All</MenuItem>
-                    <MenuItem value="RBD">RBD</MenuItem>
-                    <MenuItem value="ACE2">ACE2</MenuItem>
-                    <MenuItem value="RBD-ACE2">RBD-ACE2</MenuItem>
-                    <MenuItem value="Spike">Spike</MenuItem>
-                    <MenuItem value="3CLpro">3CLpro</MenuItem>
-                    <MenuItem value="PLpro">PLpro</MenuItem>
-                    <MenuItem value="Polymerase">Polymerase</MenuItem>
+                    {Object.keys(unitPreview).map(key => (
+                      <MenuItem value={key}>{key}</MenuItem>
+                    ))}
                   </Select>
                 </FormControl>
               </TableCell>
