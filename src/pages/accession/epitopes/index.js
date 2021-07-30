@@ -5,6 +5,7 @@ import React, {
   useRef,
   useMemo,
   useEffect,
+  useCallback,
 } from 'react';
 // A hook to track whenever some element is on screen
 import { useInView } from 'react-intersection-observer';
@@ -119,22 +120,58 @@ const Epitopes = () => {
     `${BASE_PATH_PROJECTS}${accession}/analyses/sasa/`,
   );
 
-  const { data, frameStep } = useMemo(() => {
-    if (!payload) return {};
+  // Set the epitopes formatted data
+  const { data, epitopesData, frameStep, frameCount } = useMemo(() => {
+    // Wait for data and metadata to be ready
+    if (!payload || !metadata || !pdbData) return {};
+    // get the topology data
+    const topology = pdbData.file;
     // Get the main data
     const data = payload && payload.data;
-    const epitopesNumber = epitopes.length;
     // Calculate the frames step of the first residue SAS analysis
     // All residues must have the same frames step
-    const frameNumber = data[0].saspf.length;
+    const frameCount = data[0].saspf.length;
     const frameStep =
-      payload.step || Math.floor(metadata.SNAPSHOTS / (frameNumber - 1));
-    // Instantiate the selected epitopes state using the number of epitopes
-    // Setting the surfaces as hidden by default returns some warnings but everything works fine
-    // e.g. 'Unexpected value NaN parsing y1 attribute'
-    setSelectedEpitopes(new Array(epitopesNumber).fill(null));
-    return { data, frameStep };
-  }, [payload, metadata, epitopes]);
+      payload.step || Math.floor(metadata.SNAPSHOTS / (frameCount - 1));
+    // Set the input objets for the graph
+    const epitopesData = [];
+    epitopes.forEach(([toporefName, epitopeName, epitopeResidues]) => {
+      // Parse the reference residues list to a mapped NGL selection string
+      const mappedResidues = reference2absolute(
+        toporefName,
+        epitopeResidues,
+        metadata,
+      );
+      // In case the epitope is not found in the current structure we do not push it
+      if (mappedResidues.length === 0) return {};
+      // Get the SAS values for each residue and add them along frames
+      const residuesData = mappedResidues.map(
+        residueIndex => data[residueIndex],
+      );
+      const epitopeData = [];
+      for (let i = 0; i < frameCount; i++) {
+        const frameData = residuesData.map(residue => residue.saspf[i]);
+        const summatory = frameData.reduce((a, b) => a + b, 0);
+        epitopeData.push(summatory);
+      }
+      // Get also the NGL selection from the mapped residues
+      const sourceResidues = mappedResidues.map(
+        residue => absolute2sourceResidue(residue, topology).numeration,
+      );
+      const { rangedSelection, small } = complexSelectionRanger(sourceResidues);
+      epitopesData.push({
+        name: epitopeName,
+        data: epitopeData,
+        selection: rangedSelection,
+        small: small,
+      });
+    });
+
+    // Instantiate the selected epitopes state using the number of epitopes data
+    setSelectedEpitopes(new Array(epitopesData.length).fill(null));
+
+    return { data, epitopesData, frameStep, frameCount };
+  }, [payload, metadata, pdbData, epitopes]);
 
   // Set the main component to be passed to NGL
   const component = useMemo(() => {
@@ -152,13 +189,11 @@ const Epitopes = () => {
   // Use this hook to get the memoized NGL default representations
   // We need to access the default representations from here to know the number of representations
   const defaultRepresentations = useDefaultRepresentations();
-  const allEpitopesRepresentation = useEpitopesRepresentations();
+  const allEpitopesRepresentations = useEpitopesRepresentations();
 
   // Set the main component to be passed to NGL
   const representations = useMemo(() => {
-    if (!pdbData) return;
-    const topology = pdbData.file;
-
+    if (!epitopesData) return;
     // Reduce the opacity of all default representations and set their color as black
     defaultRepresentations.forEach(representation => {
       representation.opacity = 0.3;
@@ -166,98 +201,42 @@ const Epitopes = () => {
     });
     // Set representations with the defualt representations by the moment
     const representations = [...defaultRepresentations];
-    // Set a function to represent epitopes which will be used to show both selected and hovered epitopes
-    const representEpitope = (index, color) => {
-      // Get the current epitope name and absolute residues
-      const [toporefName, epitopeName, epitopeResidues] = epitopes[index];
-      // Parse the reference residues list to a mapped NGL selection string
-      const mappedResidues = reference2absolute(
-        toporefName,
-        epitopeResidues,
-        metadata,
-      );
-      const sourceResidues = mappedResidues.map(
-        residue => absolute2sourceResidue(residue, topology).numeration,
-      );
-      const { rangedSelection, small } = complexSelectionRanger(sourceResidues);
-      // Build the new representation and add it to the list
-      return {
-        name: epitopeName,
-        selection: rangedSelection,
-        type: small ? 'licorice' : 'cartoon',
-        color: color,
-      };
-    };
     // In case there are selected epitopes add an extra representation for each one
     selectedEpitopes.forEach((color, i) => {
       if (color === null) return;
-      const newRepresentation = representEpitope(i, color);
+      const epitopeData = epitopesData[i];
+      const newRepresentation = {
+        name: epitopeData.name,
+        selection: epitopeData.selection,
+        type: epitopeData.small ? 'licorice' : 'cartoon',
+        color: color,
+      };
       representations.push(newRepresentation);
     });
     // In case the showAllEpitopes is marked show the all epitopes representation
-    if (showAllEpitopes) representations.push(allEpitopesRepresentation);
+    if (showAllEpitopes) representations.push(...allEpitopesRepresentations);
     // In case the showAllEpitopes is marked show the all epitopes representation
     if (hoveredEpitope !== null) {
-      const newRepresentation = representEpitope(
-        hoveredEpitope,
-        hoveredEpitopeColor,
-      );
+      const epitopeData = epitopesData[hoveredEpitope];
+      const newRepresentation = {
+        name: epitopeData.name,
+        selection: epitopeData.selection,
+        type: epitopesData.small ? 'licorice' : 'cartoon',
+        color: hoveredEpitopeColor,
+      };
       representations.push(newRepresentation);
     }
-
     return representations;
   }, [
-    epitopes,
+    epitopesData,
     selectedEpitopes,
     showAllEpitopes,
     hoveredEpitope,
     defaultRepresentations,
-    allEpitopesRepresentation,
-    pdbData,
-    metadata,
+    allEpitopesRepresentations,
   ]);
 
   component.representations = representations;
-
-  // Set the epitopes
-  const epitopesData = useMemo(() => {
-    // Wait for data and metadata to be ready
-    if (!data || !metadata) return;
-
-    // Set the input objets for the graph
-    const epitopesData = [];
-    epitopes.forEach(([toporefName, epitopeName, epitopeResidues], p) => {
-      // Parse the reference residues list to a mapped NGL selection string
-      const mappedResidues = reference2absolute(
-        toporefName,
-        epitopeResidues,
-        metadata,
-      );
-      // In case the epitope is not found in the current structure we do not push it
-      if (mappedResidues.length === 0) return;
-      // Get the SAS values for each residue and add them along frames
-      const residuesData = mappedResidues.map(
-        residueIndex => data[residueIndex],
-      );
-      const frameCount = residuesData[0].saspf.length;
-      const epitopeData = [];
-      for (let i = 0; i < frameCount; i++) {
-        const frameData = residuesData.map(residue => residue.saspf[i]);
-        const summatory = frameData.reduce((a, b) => a + b, 0);
-        epitopeData.push(summatory);
-      }
-      //console.log(epitopeData);
-      epitopesData.push({
-        name: epitopeName,
-        data: epitopeData,
-      });
-    });
-
-    // Instantiate the selected epitopes state using the number of epitopes data
-    setSelectedEpitopes(new Array(epitopesData.length).fill(null));
-
-    return epitopesData;
-  }, [data, metadata, epitopes]);
 
   // Set the graph parameters
   const { graphInputData, dataDisplay } = useMemo(() => {
@@ -285,6 +264,26 @@ const Epitopes = () => {
     if (!viewerRef.current) return;
     viewerRef.current.currentFrame = selectedFrame;
   }, [selectedFrame]);
+
+  // When the user clicks on the graph
+  const handleFrameSelection = useCallback(frame => {
+    viewerRef.current.togglePlaying(false);
+    viewerRef.current.currentFrame = frame;
+    //setSelectedFrame(frame);
+  }, []);
+
+  // When the ngl is playing
+  const handleFrameProgress = useCallback(
+    progress => {
+      // Process is a float number which ranges from 0 to 1
+      // Guess the frame number which belongs to the process
+      // WARNING: The follwoing multiplication must return always a whole number
+      // WARNING: This 'round' is only for the float problem (e.g. 57 = 56.9999...)
+      const frame = Math.round(progress * (frameCount - 1));
+      setSelectedFrame(frame);
+    },
+    [frameCount, setSelectedFrame],
+  );
 
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
@@ -380,6 +379,7 @@ const Epitopes = () => {
           <NGLViewerWithControls
             className={style.container}
             components={[component]}
+            onProgress={handleFrameProgress}
             ref={viewerRef}
           />
         ) : (
@@ -404,7 +404,7 @@ const Epitopes = () => {
           roundcents={false}
           //mean
           //standardDeviation
-          onSelect={setSelectedFrame}
+          onSelect={handleFrameSelection}
           selected={selectedFrame}
           dataDisplay={dataDisplay}
         />
