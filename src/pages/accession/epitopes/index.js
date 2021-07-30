@@ -221,7 +221,7 @@ const Epitopes = () => {
       const newRepresentation = {
         name: epitopeData.name,
         selection: epitopeData.selection,
-        type: epitopesData.small ? 'licorice' : 'cartoon',
+        type: epitopeData.small ? 'licorice' : 'cartoon',
         color: hoveredEpitopeColor,
       };
       representations.push(newRepresentation);
