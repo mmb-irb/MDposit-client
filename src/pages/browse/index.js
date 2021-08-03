@@ -345,7 +345,9 @@ const Browse = ({ location, history, setProject }) => {
                   >
                     <MenuItem value="">All</MenuItem>
                     {Object.keys(unitPreview).map(key => (
-                      <MenuItem value={key}>{key}</MenuItem>
+                      <MenuItem value={key} key={key}>
+                        {key}
+                      </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
