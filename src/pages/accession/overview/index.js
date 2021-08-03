@@ -203,13 +203,13 @@ export default React.memo(() => {
             <Typography variant="h6">Ligands</Typography>
             {metadata.LIGANDS.map(ligand => (
               <div key={ligand.name} className={style['summary-list']}>
-                {(ligand.chembl || ligand.accession) && (
+                {(ligand.chembl || ligand.drugbank) && (
                   <LazyImg
                     src={
                       ligand.chembl
                         ? `https://www.ebi.ac.uk/chembl/api/data/image/${ligand.chembl}.svg`
-                        : ligand.accession
-                        ? `https://www.drugbank.ca/structures/${ligand.accession}/image.svg`
+                        : ligand.drugbank
+                        ? `https://www.drugbank.ca/structures/${ligand.drugbank}/image.svg`
                         : null
                     }
                     width="200"
@@ -219,15 +219,15 @@ export default React.memo(() => {
                   />
                 )}
                 <div>- {ligand.name || 'Not available'}</div>
-                {ligand.accession && (
+                {ligand.drugbank && (
                   <div>
                     <span>DrugBank: </span>
                     <a
-                      href={'https://www.drugbank.ca/drugs/' + ligand.accession}
+                      href={'https://www.drugbank.ca/drugs/' + ligand.drugbank}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      {ligand.accession}
+                      {ligand.drugbank}
                     </a>
                   </div>
                 )}
