@@ -16,7 +16,6 @@ import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 import Legend from '../../../components/legend';
 
 import InteractionSelector from '../../../components/interaction-selector';
-import LigandSelector from '../../../components/ligand-selector';
 
 import style from './style.module.css';
 
@@ -56,75 +55,55 @@ const Energies = () => {
   );
 
   // The interaction to be displayed
-  const [
-    selectedInteractionOrLigand,
-    setSelectedInteractionOrLigand,
-  ] = useState(0);
+  const [selectedInteraction, setSelectedInteraction] = useState(0);
 
   // This is a toggle state for which agent data is shown
   const [selectedOrder, setSelectedOrder] = useState(true);
 
-  // Set when one point in the graph is selected
+  // Track when one point in the graph is selected
   const [selected, setSelected] = useState(null);
+
+  // Track the corresponding residue when one point in the graph is selected
+  const [selectedResidues, setSelectedResidues] = useState(null);
 
   // Set which data is displayed: all, start, end or any combination of them
   const [display, setDisplay] = useState({ all: true, start: true, end: true });
 
-  const ligands = metadata && metadata.LIGANDS;
   const interactions = metadata && metadata.INTERACTIONS;
 
-  const { data, isOld, dataError, representations } = useMemo(() => {
+  const { data, dataError, representations } = useMemo(() => {
     // Return if the payload is not ready
     if (!payload) return {};
 
     let data;
     let guestSelection;
 
-    // DANI: hardcodeado para que pueda soportar ambos formatos de energies: el viejo y el nuevo
-    const isOld = payload.data[0].agent1 ? false : true;
+    // Get the selected interaction
+    const interaction = interactions[selectedInteraction];
 
-    if (isOld) {
-      // Get the selected ligand
-      const ligand = ligands[selectedInteractionOrLigand];
+    const agent = selectedOrder ? 'agent1' : 'agent2';
 
-      // Get the data whose name matches the ligand name
-      data = payload.data.find(dataset => {
-        return dataset.name === ligand.name;
-      });
-      if (!data) {
-        const dataError = `Dataset for the ligand "${ligand.name}" not found`;
-        return { data: null, isOld: null, dataError };
-      }
-      // Set the guest NGL selection
-      guestSelection = ligand.nglSelection;
-    } else {
-      // Get the selected interaction
-      const interaction = interactions[selectedInteractionOrLigand];
-
-      const agent = selectedOrder ? 'agent1' : 'agent2';
-
-      // Get the data whose name matches the interaction name
-      const dataset = payload.data.find(dataset => {
-        return dataset.name === interaction.name;
-      });
-      if (!dataset) {
-        const dataError = `Dataset for the interaction "${interaction.name}" not found`;
-        return { data: null, isOld: null, dataError };
-      }
-      data = dataset[agent];
-      if (!data) {
-        const dataError = `Data for the interaction "${interaction.name}" not found`;
-        return { data: null, isOld: null, dataError };
-      }
-      // Set the guest NGL selection
-      const guestResidues = selectedOrder
-        ? interaction.interface_2
-        : interaction.interface_1;
-      const { rangedSelection: parsedResidues } = complexSelectionRanger(
-        guestResidues,
-      );
-      guestSelection = parsedResidues;
+    // Get the data whose name matches the interaction name
+    const dataset = payload.data.find(dataset => {
+      return dataset.name === interaction.name;
+    });
+    if (!dataset) {
+      const dataError = `Dataset for the interaction "${interaction.name}" not found`;
+      return { data: null, dataError };
     }
+    data = dataset[agent];
+    if (!data) {
+      const dataError = `Data for the interaction "${interaction.name}" not found`;
+      return { data: null, dataError };
+    }
+    // Set the guest NGL selection
+    const guestResidues = selectedOrder
+      ? interaction.interface_2
+      : interaction.interface_1;
+    const { rangedSelection: parsedResidues } = complexSelectionRanger(
+      guestResidues,
+    );
+    guestSelection = parsedResidues;
 
     data.xTags = [];
     for (const residue of data.labels) {
@@ -144,12 +123,11 @@ const Energies = () => {
       },
     ];
 
-    return { data, isOld, dataError, representations };
+    return { data, dataError, representations };
   }, [
     payload,
     interactions,
-    ligands,
-    selectedInteractionOrLigand,
+    selectedInteraction,
     selectedOrder,
     pdbData,
     defaultRepresentations,
@@ -167,32 +145,21 @@ const Energies = () => {
   return (
     <Suspense fallback={<Loading />}>
       <Card className={style.card}>
-        {isOld ? (
-          <CardContent className={style.horizontal}>
-            <Typography variant="h6">Ligand:</Typography>
-            <LigandSelector
-              ligands={ligands}
-              selectedLigand={selectedInteractionOrLigand}
-              setSelectedLigand={setSelectedInteractionOrLigand}
-            />
-          </CardContent>
-        ) : (
-          <CardContent className={style.horizontal}>
-            <Typography variant="h6">Interaction:</Typography>
-            <InteractionSelector
-              interactions={interactions}
-              selectedInteraction={selectedInteractionOrLigand}
-              setSelectedInteraction={setSelectedInteractionOrLigand}
-              selectedOrder={selectedOrder}
-              setSelectedOrder={setSelectedOrder}
-              firstOrderLabel={'Host'}
-              firstOrderTooltip={'Interactor whose energies are to be shown'}
-              secondOrderLabel={'Guest'}
-              secondOrderTooltip={'Interactor with the opposite energies'}
-              toggleOrderTooltip={'Toggle interactors'}
-            />
-          </CardContent>
-        )}
+        <CardContent className={style.horizontal}>
+          <Typography variant="h6">Interaction:</Typography>
+          <InteractionSelector
+            interactions={interactions}
+            selectedInteraction={selectedInteraction}
+            setSelectedInteraction={setSelectedInteraction}
+            selectedOrder={selectedOrder}
+            setSelectedOrder={setSelectedOrder}
+            firstOrderLabel={'Host'}
+            firstOrderTooltip={'Interactor whose energies are to be shown'}
+            secondOrderLabel={'Guest'}
+            secondOrderTooltip={'Interactor with the opposite energies'}
+            toggleOrderTooltip={'Toggle interactors'}
+          />
+        </CardContent>
         {dataError ? null : (
           <CardContent>
             <legend>Overall energies summatory</legend>
@@ -281,7 +248,8 @@ const Energies = () => {
                 // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
                 const num = nglNumerationParser(xValue);
                 const source = model2sourceResidue(num, pdbData.file);
-                setSelected([source.numeration]);
+                setSelected(xIndex);
+                setSelectedResidues([source.numeration]);
               }}
               dataDisplay={{
                 esi: display.start,
@@ -304,7 +272,8 @@ const Energies = () => {
                 // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
                 const num = nglNumerationParser(xValue);
                 const source = model2sourceResidue(num, pdbData.file);
-                setSelected([source.numeration]);
+                setSelected(xIndex);
+                setSelectedResidues([source.numeration]);
               }}
               dataDisplay={{
                 vdwi: display.start,
@@ -331,7 +300,8 @@ const Energies = () => {
                 // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
                 const num = nglNumerationParser(xValue);
                 const source = model2sourceResidue(num, pdbData.file);
-                setSelected([source.numeration]);
+                setSelected(xIndex);
+                setSelectedResidues([source.numeration]);
               }}
               dataDisplay={{
                 bothi: display.start,
@@ -360,27 +330,35 @@ const Energies = () => {
         )}
       </Card>
       <NGLViewerSpawner
-        // Set the new viewer or null if there is not a proper "selected" value
+        // Set the new viewer or null if there is not a proper "selectedResidues" value
         newViewer={
-          selected
+          selectedResidues
             ? {
                 accession: accession,
-                selectedResidues: selected,
+                selectedResidues: selectedResidues,
                 representations: representations,
               }
             : null
         }
-        // If the nailed/closed viewer is the current viewer then reset the 'selected'
+        // If the nailed/closed viewer is the current viewer then reset the 'selectedResidues'
         onNail={viewer =>
-          setSelected(previous => {
-            if (viewer.selectedResidues === previous) return null;
-            else return previous;
+          setSelectedResidues(previous => {
+            if (viewer.selectedResidues === previous) {
+              setSelected(null);
+              return null;
+            } else {
+              return previous;
+            }
           })
         }
         onClose={viewer =>
-          setSelected(previous => {
-            if (viewer.selectedResidues === previous) return null;
-            else return previous;
+          setSelectedResidues(previous => {
+            if (viewer.selectedResidues === previous) {
+              setSelected(null);
+              return null;
+            } else {
+              return previous;
+            }
           })
         }
       />
