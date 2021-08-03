@@ -151,8 +151,8 @@ const Epitopes = () => {
       const epitopeData = [];
       for (let i = 0; i < frameCount; i++) {
         const frameData = residuesData.map(residue => residue.saspf[i]);
-        const summatory = frameData.reduce((a, b) => a + b, 0);
-        epitopeData.push(summatory);
+        const average = frameData.reduce((a, b) => a + b, 0) / frameData.length;
+        epitopeData.push(average);
       }
       // Get also the NGL selection from the mapped residues
       const sourceResidues = mappedResidues.map(
@@ -308,7 +308,7 @@ const Epitopes = () => {
                     />
                   }
                 </TableCell>
-                <TableCell key={1}>{'Average SAS (Å²)'}</TableCell>
+                <TableCell key={1}>{'Average SAS per atom (Å²)'}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -398,7 +398,7 @@ const Epitopes = () => {
           xUnit={'frame'}
           xScaleFactor={1}
           xAxisLabel={'Frames'}
-          yAxisLabel={`SAS (Å²)`}
+          yAxisLabel={`Average SAS per atom (Å²)`}
           showPrecisionSlider={false}
           blockMaxPrecision={true}
           roundcents={false}

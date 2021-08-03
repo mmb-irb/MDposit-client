@@ -541,12 +541,13 @@ const documentation = [
         at right, over the overall structure in low opacity black color. Hover
         any epitope to display its residues in yellow color. Click on any
         epitope checkbox to display its residues in a specific color and also
-        the SAS of its residues together along the trajectory in the graph
-        below. Several epitopes may be selected in order to compare them. Note
-        that if overlapping epitopes are selected then epitopes above in the
-        list will eclipse epitops below in the viewer. Click on the overall
-        pockets checkbox to represent the overall epitopes representation. Click
-        anywhere on the graph to change the viewer trajectory frame.
+        the average SAS per atom of its residues together along the trajectory
+        in the graph below. Several epitopes may be selected in order to compare
+        them. Note that if overlapping epitopes are selected then epitopes above
+        in the list will eclipse epitopes below in the viewer. Click on the
+        overall pockets checkbox to represent the overall epitopes
+        representation. Click anywhere on the graph to change the viewer
+        trajectory frame.
       </>
     ),
     body: (
