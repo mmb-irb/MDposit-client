@@ -48,48 +48,27 @@ export default React.memo(() => {
     citation = compiled;
   }
 
-  const thanks = metadata.THANKS;
-
   return (
     <>
-      <Card className={style.card}>
-        <CardContent className={style['card-content']}>
-          <Typography variant="h6">MD information</Typography>
-          <div className={style['summary-list']}>
-            <div>
-              Authors: {(metadata && metadata.AUTHORS) || 'Not available'}
+      {metadata && (
+        <Card className={style.card}>
+          <CardContent className={style['card-content']}>
+            <Typography variant="h6">{metadata.NAME || 'Unnamed'}</Typography>
+            <div className={style['summary-list']}>
+              {metadata.DESCRIPTION && <div>{metadata.DESCRIPTION}</div>}
+              {metadata.AUTHORS && <div>Authors: {metadata.AUTHORS}</div>}
+              {metadata.GROUPS && <div>Groups: {metadata.GROUPS}</div>}
+              {metadata.CONTACT && <div>Contact: {metadata.CONTACT}</div>}
+              {metadata.PROGRAM && <div>Program: {metadata.PROGRAM}</div>}
+              {metadata.VERSION && <div>Version: {metadata.VERSION}</div>}
+              {metadata.METHOD && <div>MD method: {metadata.METHOD}</div>}
             </div>
-            <div>
-              Groups: {(metadata && metadata.GROUPS) || 'Not available'}
-            </div>
-            {metadata && metadata.CONTACT && (
-              <div>Contact: {metadata.CONTACT}</div>
-            )}
-            <div>
-              Program: {(metadata && metadata.PROGRAM) || 'Not available'}
-            </div>
-            <div>
-              Version: {(metadata && metadata.VERSION) || 'Not available'}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      <Card className={style.card}>
-        <CardContent className={style['card-content']}>
-          <Typography variant="h6">Molecule information</Typography>
-          <div className={style['summary-list']}>
-            <div>Name: {(metadata && metadata.NAME) || 'Not available'}</div>
-            <div>
-              Description:{' '}
-              {(metadata && metadata.DESCRIPTION) || 'Not available'}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
       {pdbInfo && pdbInfo.length > 0 && (
         <Card className={style.card}>
           <CardContent className={style['card-content']}>
-            <Typography variant="h6">PDB information</Typography>
             {pdbInfo.map((pdb, i) => {
               const pdbId = pdb && pdb._id.toLowerCase();
               // Set the url to get the pdb image
@@ -113,7 +92,7 @@ export default React.memo(() => {
                 publishDate = new Date(pdb.ascDate);
               }
               return (
-                <>
+                <div key={i}>
                   {i !== 0 && <hr style={{ color: 'lightGrey' }} />}
                   <CardContent style={{ height: 380 }}>
                     <div>
@@ -125,11 +104,12 @@ export default React.memo(() => {
                         alt={`3D view of the ${pdb._id} structure`}
                       />
                       <div className={style['summary-list']}>
-                        <div>{pdb.title}</div>
+                        <div style={{ fontWeight: 'bold' }}>{pdb.title}</div>
                         <div>
                           PDB Accession: {pdb._id}
                           {pdb.replaces && ` (replaces ${pdb.replaces})`}
                         </div>
+                        <Typography variant="h6">{pdb.compound}</Typography>
                         <div>
                           {pdb.status &&
                             pdb.status !== 'CURRENT' &&
@@ -211,7 +191,7 @@ export default React.memo(() => {
                       </Button>
                     </CardActions>
                   </CardContent>
-                </>
+                </div>
               );
             })}
           </CardContent>
@@ -285,33 +265,27 @@ export default React.memo(() => {
             </a>
           </div>
         </CardContent>
-      </Card>
-      {citation && (
-        <Card className={style.card}>
+        {citation && (
           <CardContent className={style['card-content']}>
             <Typography variant="h6">Citation</Typography>
-            <div>
-              The use of any trajectory data in any reports or publications of
-              results obtained with the trajectory data should be acknowledged
-              by including a citation to:
-            </div>
             <div className={style['summary-list']}>
+              <div>
+                The use of any trajectory data in any reports or publications of
+                results obtained with the trajectory data should be acknowledged
+                by including a citation to:
+              </div>
               <div>{citation}</div>
             </div>
           </CardContent>
-        </Card>
-      )}
-      {thanks && (
-        <Card className={style.card}>
+        )}
+        {metadata.THANKS && (
           <CardContent className={style['card-content']}>
             <Typography variant="h6">Acknowledgements</Typography>
             <div className={style['summary-list']}>
-              <div>{thanks}</div>
+              <div>{metadata.THANKS}</div>
             </div>
           </CardContent>
-        </Card>
-      )}
-      <Card className={style.card}>
+        )}
         <CardContent className={style['card-content']}>
           <Typography variant="h6">Project information</Typography>
           <div className={style['summary-list']}>
