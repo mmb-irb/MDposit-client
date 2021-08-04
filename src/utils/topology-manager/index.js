@@ -479,6 +479,11 @@ export const source2absoluteResidue = (
   );
 };
 
+// Get the total number of residues in topology
+export const getResiduesCount = topology => {
+  return topology.residueStore.count;
+};
+
 // Transform an absolute residue number to the model corresponding chain and chain residue
 export const absolute2modelResidue = (
   residue,
