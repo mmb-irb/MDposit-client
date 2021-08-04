@@ -44,11 +44,7 @@ const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
 
 // Set the color of each residue in the NGL representation
 // WARNING: Grey looks better than white because the background may be white and resdiues are hard to see
-const greyColorPlan = ['grey', 'yellow', 'red'];
-
-// Set the color of each residue letter in the residue selector
-// WARNING: White looks better than grey because the background is white and the contrast would be notable
-const whiteColorPlan = ['white', 'yellow', 'red'];
+const nglColorPlan = ['grey', 'yellow', 'red'];
 
 // Set the custom highlighted types
 // In this analysis, since the default representation is spacefill, all highligths must be spacefill
@@ -102,8 +98,8 @@ const Sasa = () => {
     const min = Math.min(...means);
 
     // Set the color scale according to the maximum and minimum means
-    const greyColorScale = scaleLinear()
-      .range(greyColorPlan)
+    const nglColorScale = scaleLinear()
+      .range(nglColorPlan)
       .domain([min, (min + max) / 2, max]);
 
     // Set each residue color in the ngl representation according to the color cale
@@ -123,7 +119,7 @@ const Sasa = () => {
         const mean = dataResidue.mean;
         // Calculate the interpolated rgb for this value
         // The interpolated color comes in rbg format
-        const hexColor = d3color(greyColorScale(mean)).formatHex();
+        const hexColor = d3color(nglColorScale(mean)).formatHex();
         // The color interpolation returns a string like '#000000'
         // We remove the first character ('#') and parse it to integer from hexadecimal
         const color = parseInt(hexColor.substring(1), 16);
@@ -229,6 +225,33 @@ const Sasa = () => {
     [framesNumber, setSelectedFrame],
   );
 
+  // When a residue is selected
+  const handleSelect = useCallback(
+    residue => {
+      const data = residue.data;
+      data.color = residue.tagcolor;
+      setSelectedResidues(previous => [...previous, data]);
+    },
+    [setSelectedResidues],
+  );
+  // When a residue is deselected
+  const handleDeselect = useCallback(
+    residue => {
+      const data = residue.data;
+      setSelectedResidues(previous => {
+        const newState = [...previous];
+        const index = newState.indexOf(data);
+        newState.splice(index, 1);
+        return newState;
+      });
+    },
+    [setSelectedResidues],
+  );
+  // When the clean all residues button is clicked
+  const handleClean = useCallback(() => {
+    setSelectedResidues([]);
+  }, [setSelectedResidues]);
+
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
   else if (error) return error.toString();
@@ -242,10 +265,10 @@ const Sasa = () => {
       <Card>
         <ResidueSelector
           sequences={sequences}
-          selectedResidues={selectedResidues}
-          selectedResiduesSetter={setSelectedResidues}
-          colorPlan={whiteColorPlan}
           legendTitle={'Average SAS per atom (Å²)'}
+          onSelect={handleSelect}
+          onDeselect={handleDeselect}
+          onClean={handleClean}
         />
       </Card>
       <Card className={style.graphcard}>

@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useRef } from 'react';
+import React, { useMemo, useEffect, useRef, useState } from 'react';
 
 import style from './style.module.css';
 
@@ -25,38 +25,46 @@ const addPointer = target => {
   return pointer;
 };
 
-// The 'topology' input must be the ngl parsed topology (usually the pdbData.file)
-// Input format:
-/*
-sequences = [
-  { 
-    name: string,
-    residues: [
-      {
-        letter: string,
-        data: (whatever is to be 'set' on click)
-        tooltip: string,
-        value: string, (used to color the residue and set the legend numbers)
-      },
-      ...
-    ],
-  },
-  ...
-]
-*/
+// Set the color of each residue letter in the residue selector by default
+// WARNING: White looks better as minimum color because the background is white so the contrast is low
+const defaultColorPlan = ['white', 'yellow', 'red'];
+
 // Render a flexible sequence of numerated residues which is also interactive
-// WARNING: The color marks implementation requires de 'selectedResidues' state to be an array of objects
 const ResidueSelector = ({
+  // Main input format:
+  // sequences = [
+  //   {
+  //     name: string,
+  //     residues: [
+  //       {
+  //         letter: string,
+  //         tooltip: string,
+  //         value: float, (used to color the residue and set the legend numbers)
+  //         ... (add as many extra fields as desired; they will be returned on selection)
+  //       },
+  //       ...
+  //     ],
+  //   },
+  //   ...
+  // ]
   sequences,
-  colorPlan,
-  selectedResidues,
-  selectedResiduesSetter,
+  // Set how residues must be colored according to their 'value'
+  colorPlan = defaultColorPlan,
+  // Set the title for the color legend
   legendTitle,
+  // Use these callbacks to receive the selected/deselected residues and all its data
+  // WARNING: They must be memoized or strange things may happen
+  onSelect,
+  onDeselect,
+  onClean,
+  // Pass a whole useState to make it handle the selected residues
+  // This only makes sense if you want to control the residues selection from outside this tool in addition
+  forcedResiduesSelection,
 }) => {
   // Use the colors hook
   const [getColor, freeColor, freeAllColors] = useColors();
   // Save an array with all 'settable' values
-  const { residuesData, maxValue, minValue } = useMemo(() => {
+  const { residues, maxValue, minValue } = useMemo(() => {
     // Collect all residues in all sequences
     const residues = [];
     let count = 0;
@@ -67,8 +75,7 @@ const ResidueSelector = ({
         count += 1;
       });
     });
-    // Get all residues data
-    const residuesData = residues.map(residue => residue.data);
+    // Get all residues values to find out the minimum and maximum values
     const values = residues.map(residue => residue.value);
     const maxValue = Math.max(...values);
     const minValue = Math.min(...values);
@@ -84,11 +91,19 @@ const ResidueSelector = ({
       });
     }
 
-    return { residuesData, maxValue, minValue };
+    return { residues, maxValue, minValue };
   }, [sequences, colorPlan]);
 
   // Save all current pointers
   const pointersRef = useRef([]);
+
+  // Track when one point in the graph is selected (internal default state)
+  const internalResiduesSelection = useState([]);
+  // Track when one point in the graph is selected
+  // WARNING: The color marks implementation requires the 'selectedResidues' state to be an array of objects
+  const [selectedResidues, setSelectedResidues] = forcedResiduesSelection
+    ? forcedResiduesSelection
+    : internalResiduesSelection;
 
   // Add events to manage when the mouse hovers / outs / clicks on residues
   useEffect(() => {
@@ -104,50 +119,58 @@ const ResidueSelector = ({
       residue.removeChild(residue.lastChild);
     };
     const hadleMouseClick = event => {
-      const residue = event.target;
-      if (residue.lang !== 'residue') return;
+      const residueElement = event.target;
+      if (residueElement.lang !== 'residue') return;
       // Remove the hover pointer so it does not interfere with the click pointer
-      residue.removeChild(residue.lastChild);
+      residueElement.removeChild(residueElement.lastChild);
       // WARNING: This method does not allow to get objects and there is no easy way to do it
       // Thats why it is done this work around with the residue index
-      const residueIndex = residue.getAttribute('residueindex');
-      const data = residuesData[residueIndex];
+      const residueIndex = residueElement.getAttribute('residueindex');
+      const residue = residues[residueIndex];
+      // Get the residue tagcolor if it has one. Otherwise get an available tagcolor for it
+      let index;
       let selected;
-      let color;
-      if (selectedResiduesSetter)
-        selectedResiduesSetter(previous => {
-          const newState = [...previous];
-          const index = newState.indexOf(data);
-          if (index === -1) {
-            // Set an available color for this
-            color = getColor();
-            data.color = color;
-            newState.push(data);
-            selected = true;
-          } else {
-            data.color = null;
-            newState.splice(index, 1);
-            pointersRef.current.splice(index, 1);
-            selected = false;
-          }
-          return newState;
-        });
+      let tagcolor = residue.tagcolor ? residue.tagcolor : getColor();
+      setSelectedResidues(previous => {
+        const newState = [...previous];
+        index = newState.indexOf(residue);
+        selected = index === -1;
+        // When it is selected
+        if (selected) {
+          residue.tagcolor = tagcolor;
+          newState.push(residue);
+          // Call the 'onSelect' function passing the current selected residue object
+          if (onSelect) onSelect(residue);
+        }
+        // When it is deselected
+        else {
+          residue.tagcolor = null;
+          newState.splice(index, 1);
+          // Call the 'onDeselect' function passing the current deselected residue object
+          if (onDeselect) onDeselect(residue);
+        }
+        return newState;
+      });
       // Add a pointer and color it
       if (selected) {
-        const pointer = addPointer(residue);
-        pointer.style['border-top-color'] = color;
+        const pointer = addPointer(residueElement);
+        pointer.style['border-top-color'] = tagcolor;
         pointersRef.current.push(pointer);
       }
       // Remove the pointer
       else {
-        const pivot = residue.lastChild;
-        const pointer = pivot.lastChild;
-        color = pointer.style['border-top-color'];
-        freeColor(color);
-        residue.removeChild(pivot);
+        const pivot = residueElement.lastChild;
+        //const pointer = pivot.lastChild;
+        //tagcolor = pointer.style['border-top-color'];
+        freeColor(tagcolor);
+        residueElement.removeChild(pivot);
+        // WARNING: Do not run this command inside 'setSelectedResidues' since it may be run twice
+        // This is not a problem however for the state itself
+        // The double run is a React conspiration to force you to keep updaters as pure functions
+        pointersRef.current.splice(index, 1);
       }
       // Set the hover pointer back
-      addPointer(residue);
+      addPointer(residueElement);
     };
 
     // Highlight the residue when the mouse is over
@@ -156,7 +179,7 @@ const ResidueSelector = ({
     manager.addEventListener('mouseout', handleMouseOut, true);
     // Set the selected residue when the mouse clicks
     manager.addEventListener('mousedown', hadleMouseClick, true);
-    // Remove all events and free all colors in the clean up function
+    // Remove all events and free all tagcolors in the clean up function
     return () => {
       manager.removeEventListener('mouseover', handleMouseOver, true);
       manager.removeEventListener('mouseout', handleMouseOut, true);
@@ -165,8 +188,10 @@ const ResidueSelector = ({
     };
   }, [
     sequences,
-    selectedResiduesSetter,
-    residuesData,
+    setSelectedResidues,
+    residues,
+    onSelect,
+    onDeselect,
     getColor,
     freeColor,
     freeAllColors,
@@ -181,7 +206,11 @@ const ResidueSelector = ({
     }
     pointersRef.current = [];
     freeAllColors();
-    selectedResiduesSetter([]);
+    selectedResidues.forEach(residue => {
+      residue.tagcolor = null;
+    });
+    setSelectedResidues([]);
+    if (onClean) onClean();
   };
 
   // Render
