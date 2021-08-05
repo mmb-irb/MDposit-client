@@ -150,7 +150,9 @@ const DistPerres = () => {
     const hasCA = residueHasCAlpha(absolute, pdbData.file);
     return {
       forResidue: source.numeration,
-      forDistance: hasCA ? source.residueNumber.toString() + '.CA' : null,
+      forDistance: hasCA
+        ? source.residueNumber.toString() + ':' + source.chain + '.CA'
+        : null,
     };
   };
 
