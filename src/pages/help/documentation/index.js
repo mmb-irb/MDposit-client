@@ -619,6 +619,32 @@ const documentation = [
     title: 'Tools',
   },
   {
+    id: 'browser',
+    header: 'Browser',
+    body: (
+      <>
+        Browser is useful to search a specific simulation when you know what you
+        are looking for
+        <br />
+        <br />
+        Browser searches the database by any total or partial coincidence with
+        the accesion number, simulation name, description, author or group
+        names.
+        <br />
+        <br />
+        In addition, internal accesions may be used to search a simulation. In
+        this case the id must be whole, not partial.
+      </>
+    ),
+    page: (
+      <>
+        Use the browser to search a specific simulation by its accesion number,
+        name, description, author or group names. Any total or partial
+        coincidence works.
+      </>
+    ),
+  },
+  {
     id: 'ngl-viewer',
     header: 'NGL viewer',
     body: (

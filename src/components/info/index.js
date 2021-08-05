@@ -17,6 +17,8 @@ const Info = ({
   reference,
   // Set if the info button must be placed in a corner
   corner = true,
+  // Set the logo color
+  color = 'primary',
 }) => {
   const [open, setOpen] = useState(false);
 
@@ -59,7 +61,7 @@ const Info = ({
         to={reference ? `/help#${reference}` : undefined}
         target={reference ? '_blank' : undefined}
         className={classes.button}
-        color={open ? 'secondary' : 'primary'}
+        color={open ? 'secondary' : color}
       >
         <FontAwesomeIcon icon={faInfoCircle} size={'lg'} />
       </IconButton>

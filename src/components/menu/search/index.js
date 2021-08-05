@@ -7,7 +7,12 @@ import TextField from '@material-ui/core/TextField';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
 
+import documentation from '../../../pages/help/documentation';
+import Info from '../../info';
+
 import style from './style.module.css';
+
+const browserDocsId = 'browser';
 
 const DEBOUNCE_DELAY = 500;
 
@@ -54,11 +59,12 @@ const Search = ({ history }) => {
     },
     [history],
   );
+  const docs = documentation.find(doc => doc.id === browserDocsId);
 
   return (
-    <span>
+    <span className={style.searchbar}>
       {/* Render the lens icon */}
-      <Icon>
+      <Icon className={style.rightmargin}>
         <FontAwesomeIcon
           icon={faSearch}
           className={value && style['search-active']}
@@ -70,6 +76,13 @@ const Search = ({ history }) => {
         onChange={handleChange}
         className={style.search}
         inputProps={inputProps}
+        placeholder={'e.g. remdesivir'}
+      />
+      <Info
+        reference={browserDocsId}
+        tooltip={docs.page}
+        color={'black'}
+        corner={false}
       />
     </span>
   );

@@ -7,3 +7,13 @@
   letter-spacing: 0.15ch;
   padding: 0.5ch;
 }
+
+.searchbar {
+  display: flex;
+  align-items: center;
+}
+
+.rightmargin {
+  margin-left: 0.4em;
+  margin-right: 0.4em;
+}
