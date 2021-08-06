@@ -53,10 +53,9 @@ const Mutations = () => {
     // Iterate over all residues in the topology to find their corresponding entropy
     // Organize the resiudes data by 'chains' according to the residue selector input format
     for (let i = 0; i < residuesCount; i++) {
-      const { name: toporefName, index: residueIndex } = absolute2reference(
-        i,
-        metadata,
-      );
+      const reference = absolute2reference(i, metadata);
+      if (!reference) continue;
+      const { name: toporefName, index: residueIndex } = reference;
       // We substract 1 from the residueIndex since it counts from 1 to n as toporefs do
       // However, entropies is a list, so their indexes count from 0 to n as usual
       const entropy = toporefData.find(data => data.name === toporefName)
