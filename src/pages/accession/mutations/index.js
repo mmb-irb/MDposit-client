@@ -60,6 +60,7 @@ const Mutations = () => {
       // However, entropies is a list, so their indexes count from 0 to n as usual
       const entropy = toporefData.find(data => data.name === toporefName)
         .entropies[residueIndex - 1];
+      if (!entropy) continue;
       const model = absolute2modelResidue(i, topology, metadata);
       const fResidue = {
         letter: model.letter,
