@@ -80,9 +80,10 @@ const useDefaultRepresentations = () => {
     }
 
     // DANI: Hardcodeado para trayectorias de Rebecca Wade
-    if (metadata.PDBID === '6ACC') {
+    // DANI: Y ahora también para las de Gumbart lab
+    if (metadata.PDBID === '6ACC' || metadata.AUTHORS === 'Gumbart lab') {
       reps.push({
-        name: 'Other',
+        name: 'Glycans',
         selection: 'not Protein',
         type: 'licorice',
         color: 'grey',
