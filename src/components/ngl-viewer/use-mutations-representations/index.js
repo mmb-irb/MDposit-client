@@ -75,6 +75,8 @@ const useMutationsRepresentations = () => {
         const entropies = entropiesPerToporef[toporefIndex];
         if (!entropies || entropies.length === 0) return parseInt('ffffff', 16);
         const entropy = entropies[mapedResidue - 1];
+        // If there is no entropy at this point probably there is something wrong with the map
+        if (!entropy) return parseInt('ffffff', 16);
         // Calculate the interpolated rgb for this value
         // The interpolated color comes in rbg format
         const hexColor = d3color(colorScale(entropy)).formatHex();
