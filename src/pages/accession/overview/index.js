@@ -94,7 +94,7 @@ export default React.memo(() => {
               return (
                 <div key={i}>
                   {i !== 0 && <hr style={{ color: 'lightGrey' }} />}
-                  <CardContent style={{ height: 380 }}>
+                  <CardContent style={{ 'min-height': 380 }}>
                     <div>
                       <LazyImg
                         src={imgSrc}
