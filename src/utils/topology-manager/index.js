@@ -530,8 +530,19 @@ export const absolute2sourceResidue = (
   // Formated selection to select this specific residue in NGL
   const numeration = chain + ':' + residueNumber + icode;
   const nglSelection = ':' + chain + ' and ' + residueNumber;
+  // Additional residue data
+  const type = getResidueType(residue, topology);
+  const letter = getResidueLetter(type);
   //console.log(residue + ' => ' + relativeresidue);
-  return { chain, residueNumber, icode, numeration, nglSelection };
+  return {
+    chain,
+    residueNumber,
+    icode,
+    numeration,
+    nglSelection,
+    type,
+    letter,
+  };
 };
 
 // This function converts absolute residue numbers to topology reference residue numbers

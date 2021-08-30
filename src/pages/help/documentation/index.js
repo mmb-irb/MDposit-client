@@ -515,7 +515,9 @@ const documentation = [
           viewer
         </a>{' '}
         below represents the entropy of each residue in a logarithmic color
-        scale which ranges from grey (low entropy) to red (high entropy).
+        scale which ranges from grey (low entropy) to red (high entropy). Use
+        the residue selector to highlight a specific residue and focus it with
+        the camera.
       </>
     ),
   },

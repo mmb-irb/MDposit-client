@@ -26,7 +26,7 @@ import { PdbCtx, ProjectCtx, ToporefsCtx } from '../../../contexts';
 import {
   getResiduesCount,
   absolute2reference,
-  absolute2modelResidue,
+  absolute2sourceResidue,
 } from '../../../utils/topology-manager';
 
 import ResidueSelector from '../../../components/residue-selector';
@@ -56,19 +56,21 @@ const Mutations = () => {
       const reference = absolute2reference(i, metadata);
       if (!reference) continue;
       const { name: toporefName, index: residueIndex } = reference;
+      const toporef = toporefData.find(data => data.name === toporefName);
       // We substract 1 from the residueIndex since it counts from 1 to n as toporefs do
       // However, entropies is a list, so their indexes count from 0 to n as usual
-      const entropy = toporefData.find(data => data.name === toporefName)
-        .entropies[residueIndex - 1];
-      if (!entropy) continue;
-      const model = absolute2modelResidue(i, topology, metadata);
+      const entropy = toporef.entropies[residueIndex - 1];
+      if (entropy === undefined) continue;
+      const logarithmicEntropy =
+        Math.round(Math.log(entropy + 0.0001) * 1000) / 1000;
+      const source = absolute2sourceResidue(i, topology, metadata);
       const fResidue = {
-        letter: model.letter,
-        numeration: model.numeration,
-        tooltip: `Entropy: ${entropy}`,
-        value: entropy,
+        letter: source.letter,
+        numeration: source.numeration,
+        tooltip: `Logarithmic entropy: ${logarithmicEntropy}`,
+        value: logarithmicEntropy,
       };
-      const chain = model.chain;
+      const chain = source.chain;
       const current = chains[chain];
       if (current) chains[chain].push(fResidue);
       else chains[chain] = [fResidue];
@@ -129,13 +131,15 @@ const Mutations = () => {
           <div style={{ height: '50vh' }} />
         )}
       </Card>
-      <ResidueSelector
-        sequences={sequences}
-        legendTitle={'Entropy'}
-        onSelect={handleSelect}
-        onDeselect={handleDeselect}
-        onClean={handleClean}
-      />
+      <Card>
+        <ResidueSelector
+          sequences={sequences}
+          legendTitle={'Logarithmic entropy'}
+          onSelect={handleSelect}
+          onDeselect={handleDeselect}
+          onClean={handleClean}
+        />
+      </Card>
     </Suspense>
   );
 };
