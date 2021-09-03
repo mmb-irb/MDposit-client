@@ -697,12 +697,11 @@ const Graph2 = ({
           .selectAll('g.dot-group')
           // Set the y position of the dot
           .attr('transform', d => {
-            const offsetDown =
-              d === 'x'
-                ? // The x bottom axis for the x value
-                  height - offset.bottom
-                : // Just over the correspondong line for other values
-                  (y(data[d].data[closestIndex]) || 0) + 2.5;
+            // The x bottom axis for the x value
+            if (d === 'x') return `translate(0, ${height - offset.bottom})`;
+            if (!labels[d]) return;
+            // Just over the correspondong line for other values
+            const offsetDown = (y(data[d].data[closestIndex]) || 0) + 2.5;
             // Record the current offset down
             dotDownOffsets[d] = offsetDown;
             return `translate(0, ${offsetDown})`;
@@ -711,6 +710,7 @@ const Graph2 = ({
           .selectAll('text')
           .attr('transform', d => {
             if (d === 'x') return `translate(0, ${-3})`;
+            if (!labels[d]) return;
             // Find if an offset is too close to others and then move it to a better place (above)
             let dotDownOffset = dotDownOffsets[d];
             let extra = 0;
