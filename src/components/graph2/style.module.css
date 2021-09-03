@@ -1,23 +1,13 @@
 .graph {
-  height: 50vh;
+  min-height: 50vh;
 }
 
 .graph-container {
-  height: 100%;
+  min-height: 50vh;
 }
 
 .graph-container > svg,
 .graph-container > canvas {
-  cursor: crosshair;
-  position: absolute;
-}
-
-.graph-container-partial {
-  height: calc(100% - 42px);
-}
-
-.graph-container-partial > svg,
-.graph-container-partial > canvas {
   cursor: crosshair;
   position: absolute;
 }
@@ -30,4 +20,16 @@
 
 .graph-legend > * {
   margin: 0 1em;
+}
+
+.graph-display-legend {
+  margin: 0 1em;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.line-sample {
+  margin: 0.5em 1em;
 }

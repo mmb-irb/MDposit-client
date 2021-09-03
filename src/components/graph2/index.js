@@ -40,6 +40,8 @@ import { getAtom, getAtomResidue } from '../../utils/topology-manager';
 
 import style from './style.module.css';
 
+import LineSample from './line-sample';
+
 // Number of data points to be represented at the same time FOR EACH dataset
 // WARNING: The component would support quite more points with good performace
 // WARNING: However, more points would make the visualization less 'comfortable'
@@ -99,6 +101,7 @@ const trueEntries = keys => {
 //      data: [... the main data ...]
 //      average: float,
 //      color: 'red',
+//      dash: "5, 5",
 //    }
 //    dataset2:{...}
 // }
@@ -130,6 +133,7 @@ const Graph2 = ({
   selected,
   onSelect,
   selfLegend = false,
+  displayLegend = false,
   // Object with each dataset name and a value of true/false to set which data is displayed
   dataDisplay,
   setDataDisplay,
@@ -150,9 +154,9 @@ const Graph2 = ({
 
   const pdbData = useContext(PdbCtx);
 
-  // Referenced document element where the ngl is rendered
+  // Referenced document element where d3 is rendered
   const containerRef = useRef(null);
-  // Rferenced function which allows to update the cart without having to remake it
+  // Referenced function which allows to update the cart without having to remake it
   const drawRef = useRef(noop);
   const selectedRef = useRef(new Set());
   const pdbDataRef = useRef({});
@@ -181,7 +185,7 @@ const Graph2 = ({
     let yAxisValues = yEntries
       .map(([, dataset]) => dataset.data)
       .reduce((cv, nv) => cv.concat(nv));
-    // Round values if they are nomeric, since labels just reach x.00
+    // Round values if they are numeric, since labels just reach x.00
     yAxisValues = yAxisValues.map(v => Math.round(v * 100) / 100);
 
     // Measure the height of normal and text and labels
@@ -469,7 +473,8 @@ const Graph2 = ({
         g
           .attr('transform', `translate(${offset.left}, 0)`)
           .transition()
-          .call(axisLeft(y).ticks(8, '.2f'));
+          .call(axisLeft(y));
+      //.call(axisLeft(y).ticks(8, '.2f')); // Use this to force the number of decimals in labels
       axes.y.call(yAxis);
 
       // Set the y axis label
@@ -566,6 +571,9 @@ const Graph2 = ({
           // Update existing lines with the mapped data
           .merge(linesData)
           .attr('stroke', d => data[d].color || 'black')
+          .style('stroke-dasharray', d =>
+            data[d].dash ? data[d].dash : undefined,
+          )
           .attr('stroke-linejoin', 'round')
           .attr('stroke-linecap', 'round')
           .attr('d', d =>
@@ -874,19 +882,9 @@ const Graph2 = ({
 
   const handleButtonClick = useCallback(() => onSelect(new Set()), [onSelect]);
 
-  // Set if the grpah must give a few space for elements below (e.g. the legend)
-  const giveSpaceBelow = selfLegend || type === 'dash';
-
   return (
     <div className={className ? className : style.graph}>
-      <div
-        className={
-          giveSpaceBelow
-            ? style['graph-container-partial']
-            : style['graph-container']
-        }
-        ref={containerRef}
-      />
+      <div className={style['graph-container']} ref={containerRef} />
       {selfLegend && (
         <div className={style['graph-legend']}>
           {yEntries.map(([key]) => (
@@ -906,6 +904,19 @@ const Graph2 = ({
               label={NICE_NAMES.get(key) || key}
             />
           ))}
+        </div>
+      )}
+      {displayLegend && (
+        <div className={style['graph-display-legend']}>
+          {yEntries.map(([key, dataset], i) => {
+            if (lab[key] === false) return null;
+            return (
+              <div key={key} className={style['line-sample']}>
+                {key}
+                <LineSample color={dataset.color} dash={dataset.dash} />
+              </div>
+            );
+          })}
         </div>
       )}
       {type === 'dash' && (

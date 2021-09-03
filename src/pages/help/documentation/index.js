@@ -530,9 +530,10 @@ const documentation = [
         <br />
         <br />
         Epitopes present in the structure are listed left. The list includes the
-        PDB code of the corresponding human antibody and the average Solvent
-        Accessible Surface (SAS) of all epitope residues together. Epitopes can
-        be represented in the{' '}
+        PDB code of the corresponding SARS-CoV-2 + human antibody structure and
+        the average Solvent Accessible Surface (SAS) of all epitope residues
+        together along the trajectory for each chain. Epitopes can be
+        represented in the{' '}
         <a
           href="/help#/help#ngl-viewer"
           target="_blank"
@@ -543,13 +544,17 @@ const documentation = [
         at right, over the overall structure in low opacity black color. Hover
         any epitope to display its residues in yellow color. Click on any
         epitope checkbox to display its residues in a specific color and also
-        the average SAS per atom of its residues together along the trajectory
-        in the graph below. Several epitopes may be selected in order to compare
-        them. Note that if overlapping epitopes are selected then epitopes above
-        in the list will eclipse epitopes below in the viewer. Click on the
-        overall pockets checkbox to represent the overall epitopes
-        representation. Click anywhere on the graph to change the viewer
-        trajectory frame.
+        the average SAS of its residues together along the trajectory in the
+        graph below. Lines of each epitope are represented with a different
+        color. The line of each chain is represented with a different dash
+        pattern. Click anywhere on the graph to change the viewer trajectory
+        frame.
+        <br />
+        <br />
+        Several epitopes may be selected in order to compare them. Note that if
+        overlapping epitopes are selected then epitopes above in the list will
+        eclipse epitopes below in the viewer. Click on the overall pockets
+        checkbox to represent the overall epitopes representation.
       </>
     ),
     body: (

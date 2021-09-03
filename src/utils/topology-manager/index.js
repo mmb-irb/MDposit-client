@@ -432,6 +432,20 @@ export const getChainIndex = (chain, topology = PdbCtx._currentValue.file) => {
   return -1;
 };
 
+// Given a list of residues in absolute numeration, separate them by chain and return an object where keys are chain names
+// e.g. [ 1, 2, 3, 17 ] -> { 'A': [1,2,3], 'B': [17] }
+export const byChains = (residues, topology = PdbCtx._currentValue.file) => {
+  const chained = {};
+  residues.forEach(residue => {
+    const chainIndex = topology.residueStore.chainIndex[residue];
+    const chain = topology.chainStore.getChainname(chainIndex);
+    const current = chained[chain];
+    if (current) current.push(residue);
+    else chained[chain] = [residue];
+  });
+  return chained;
+};
+
 // This function converts topology residue numbers to the model chain name and chain residue numeration
 export const source2modelResidue = (
   { chain, residue, icode },
@@ -477,6 +491,14 @@ export const source2absoluteResidue = (
       icode +
       ') did not match any residue',
   );
+};
+
+// Get the total number of atoms from a resiude absolute number
+export const getAtomsCount = (
+  residue,
+  topology = PdbCtx._currentValue.file,
+) => {
+  return topology.residueStore.atomCount[residue];
 };
 
 // Get the total number of residues in topology

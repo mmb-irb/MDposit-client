@@ -48,10 +48,21 @@ import {
   absolute2sourceResidue,
   complexSelectionRanger,
   reference2absolute,
+  getAtomsCount,
+  byChains,
 } from '../../../utils/topology-manager';
 
 const hoveredEpitopeColor = 'yellow';
 const defaultRepresentationsColor = 'black';
+
+const dashStyles = [
+  null,
+  '10, 4',
+  '4, 4',
+  '10, 4, 1, 4',
+  '10, 4, 1, 4, 1, 4',
+  '1, 4',
+];
 
 const Graph2 = lazy(() =>
   import(/* webpackChunkName: 'graph2' */ '../../../components/graph2'),
@@ -144,26 +155,48 @@ const Epitopes = () => {
       );
       // In case the epitope is not found in the current structure we do not push it
       if (mappedResidues.length === 0) return {};
-      // Get the SAS values for each residue and add them along frames
-      const residuesData = mappedResidues.map(
-        residueIndex => data[residueIndex],
-      );
-      const epitopeData = [];
-      for (let i = 0; i < frameCount; i++) {
-        const frameData = residuesData.map(residue => residue.saspf[i]);
-        const average = frameData.reduce((a, b) => a + b, 0) / frameData.length;
-        epitopeData.push(average);
-      }
+      const chainedResidues = byChains(mappedResidues, topology);
+      const chains = Object.keys(chainedResidues);
+      // Get the SAS values for each residue in each chain
+      const chainedResiduesData = {};
+      Object.entries(chainedResidues).forEach(([chain, residues]) => {
+        const residuesData = residues.map(residueIndex => {
+          const residueData = data[residueIndex];
+          residueData.atoms = getAtomsCount(residueIndex, topology);
+          return residueData;
+        });
+        chainedResiduesData[chain] = residuesData;
+      });
+      // Add SAS values along frames for each chain
+      // Calculate the averages of each chain and prepare a string summary for display
+      const chainedFramedData = {};
+      const summary = [];
+      Object.entries(chainedResiduesData).forEach(([chain, residuesData]) => {
+        const framedData = [];
+        for (let i = 0; i < frameCount; i++) {
+          const residuesSAS = residuesData.map(
+            residue => residue.saspf[i] * residue.atoms,
+          );
+          const totalSAS = residuesSAS.reduce((a, b) => a + b, 0);
+          framedData.push(totalSAS);
+        }
+        const chainSummary = chain + ': ' + roundedAvg(framedData);
+        summary.push(chainSummary);
+        chainedFramedData[chain] = framedData;
+      });
       // Get also the NGL selection from the mapped residues
+      // This is not separated in chains so the selection is for all chains together
       const sourceResidues = mappedResidues.map(
         residue => absolute2sourceResidue(residue, topology).numeration,
       );
       const { rangedSelection, small } = complexSelectionRanger(sourceResidues);
       epitopesData.push({
         name: epitopeName,
-        data: epitopeData,
+        data: chainedFramedData,
         selection: rangedSelection,
         small: small,
+        chains: chains,
+        summary: summary.join('\n'),
       });
     });
 
@@ -187,8 +220,8 @@ const Epitopes = () => {
   }, [accession, metadata, frameStep]);
 
   // Use this hook to get the memoized NGL default representations
-  // We need to access the default representations from here to know the number of representations
   const defaultRepresentations = useDefaultRepresentations();
+  // Use this hook to get the memoized NGL epitopes representations
   const allEpitopesRepresentations = useEpitopesRepresentations();
 
   // Set the main component to be passed to NGL
@@ -249,11 +282,16 @@ const Epitopes = () => {
     epitopesData.forEach(({ name, data }, i) => {
       const color = selectedEpitopes[i];
       // Graph
-      graphInputData[name] = {
-        data: data,
-        color: color,
-      };
-      dataDisplay[name] = selectedEpitopes[i] ? true : false;
+      Object.entries(data).forEach(([chain, chainData], index) => {
+        const tag = name + '-' + chain;
+        const dash = dashStyles[index];
+        graphInputData[tag] = {
+          data: chainData,
+          color: color,
+          dash: dash,
+        };
+        dataDisplay[tag] = selectedEpitopes[i] ? true : false;
+      });
     });
 
     return { graphInputData, dataDisplay };
@@ -308,67 +346,65 @@ const Epitopes = () => {
                     />
                   }
                 </TableCell>
-                <TableCell key={1}>{'Average SAS per atom (Å²)'}</TableCell>
+                <TableCell key={1}>{'Average SAS (Å²)'}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {epitopesData.map(
-                ({ name: epitopeName, data: epitopeData }, e) => {
-                  return (
-                    <TableRow
-                      key={epitopeName}
-                      role="checkbox"
-                      className={
-                        e === hoveredEpitope ? style.selectedrow : undefined
-                      }
-                      onMouseOver={() => setHoveredEpitope(e)}
-                      onMouseOut={() =>
-                        setHoveredEpitope(previous =>
-                          previous === e ? null : previous,
-                        )
-                      }
-                    >
-                      {[
-                        <FormControlLabel
-                          data-key={epitopeName}
-                          key={epitopeName}
-                          onMouseOver={() => {
-                            blockRef.current = e;
-                          }}
-                          onMouseOut={() => {
-                            blockRef.current = null;
-                          }}
-                          onChange={() =>
-                            setSelectedEpitopes(previous => {
-                              if (!previous[e]) previous[e] = getColor();
-                              else {
-                                freeColor(previous[e]);
-                                previous[e] = null;
-                              }
-                              return [...previous];
-                            })
-                          }
-                          control={
-                            <Checkbox
-                              checked={selectedEpitopes[e] ? true : false}
-                              style={{
-                                color: selectedEpitopes[e]
-                                  ? selectedEpitopes[e]
-                                  : 'black',
-                              }}
-                              inputProps={{ 'data-key': epitopeName }}
-                            />
-                          }
-                          label={epitopeName}
-                        />,
-                        roundedAvg(epitopeData),
-                      ].map(cell => (
-                        <TableCell key={cell}>{cell}</TableCell>
-                      ))}
-                    </TableRow>
-                  );
-                },
-              )}
+              {epitopesData.map(({ name: epitopeName, summary }, e) => {
+                return (
+                  <TableRow
+                    key={epitopeName}
+                    role="checkbox"
+                    className={
+                      e === hoveredEpitope ? style.selectedrow : style.row
+                    }
+                    onMouseOver={() => setHoveredEpitope(e)}
+                    onMouseOut={() =>
+                      setHoveredEpitope(previous =>
+                        previous === e ? null : previous,
+                      )
+                    }
+                  >
+                    {[
+                      <FormControlLabel
+                        data-key={epitopeName}
+                        key={epitopeName}
+                        onMouseOver={() => {
+                          blockRef.current = e;
+                        }}
+                        onMouseOut={() => {
+                          blockRef.current = null;
+                        }}
+                        onChange={() =>
+                          setSelectedEpitopes(previous => {
+                            if (!previous[e]) previous[e] = getColor();
+                            else {
+                              freeColor(previous[e]);
+                              previous[e] = null;
+                            }
+                            return [...previous];
+                          })
+                        }
+                        control={
+                          <Checkbox
+                            checked={selectedEpitopes[e] ? true : false}
+                            style={{
+                              color: selectedEpitopes[e]
+                                ? selectedEpitopes[e]
+                                : 'black',
+                            }}
+                            inputProps={{ 'data-key': epitopeName }}
+                          />
+                        }
+                        label={epitopeName}
+                      />,
+                      summary,
+                    ].map(cell => (
+                      <TableCell key={cell}>{cell}</TableCell>
+                    ))}
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
@@ -386,7 +422,7 @@ const Epitopes = () => {
           <div style={{ height: '50vh' }} />
         )}
       </Card>
-      <Card className={style.graph}>
+      <Card>
         {selectedEpitopes.every(epitope => epitope === null) && (
           <div className={style['graph-placeholder']}>
             <Typography variant="h6">No epitope selected</Typography>
@@ -398,15 +434,14 @@ const Epitopes = () => {
           xUnit={'frame'}
           xScaleFactor={1}
           xAxisLabel={'Frames'}
-          yAxisLabel={`Average SAS per atom (Å²)`}
+          yAxisLabel={`Average SAS (Å²)`}
           showPrecisionSlider={false}
           blockMaxPrecision={true}
           roundcents={false}
-          //mean
-          //standardDeviation
           onSelect={handleFrameSelection}
           selected={selectedFrame}
           dataDisplay={dataDisplay}
+          displayLegend
         />
       </Card>
     </>
