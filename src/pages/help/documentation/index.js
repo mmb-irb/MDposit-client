@@ -142,7 +142,7 @@ const documentation = [
       <>
         The RMSD (Root Mean Squared Deviation) per residue analysis computes the
         mean and standard deviation distance between the original position of
-        each residue and their positions along each frame.
+        each residue (first frame) and their positions along each frame.
         <br />
         <br />
         This analysis is powered by{' '}
@@ -157,12 +157,13 @@ const documentation = [
         This is the RMSd per residue analysis.
         <br />
         <br />
-        First panel is the residue selector. Residues are divided by chains.
-        Chains are delimited by their titles and residues may be expanded or
-        compressed for each chain independently. Each residue is represented by
-        a single letter. The 'X' letter represents non-standard residues (i.e.
-        not natural aminoacids). Residues sequence is split and numerated every
-        10 resiudes. Each residue is coloured according to its RMSD value. The
+        RMSd values are calculated against the trajectory first frame. First
+        panel is the residue selector. Residues are divided by chains. Chains
+        are delimited by their titles and residues may be expanded or compressed
+        for each chain independently. Each residue is represented by a single
+        letter. The 'X' letter represents non-standard residues (i.e. not
+        natural aminoacids). Residues sequence is split and numerated every 10
+        resiudes. Each residue is coloured according to its RMSD value. The
         color scale ranges from white (lowest values) to red (highest values).
         <span style={{ color: 'lightGreen' }}> Click any residue </span> to
         display its RMSD along the trajectory and highlight its atoms on the NGL

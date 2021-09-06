@@ -3,6 +3,12 @@ import { useMemo, useContext } from 'react';
 
 import { ProjectCtx, PdbCtx } from '../../../contexts';
 
+import {
+  getResiduesCount,
+  nglSelection2absolute,
+  absolute2nglSelection,
+} from '../../../utils/topology-manager';
+
 // Use this hook to get the memoized NGL default representations
 const useDefaultRepresentations = () => {
   // Get the current project metadata and chains
@@ -10,6 +16,7 @@ const useDefaultRepresentations = () => {
   // Get current structure
   const pdbData = useContext(PdbCtx);
   const structure = pdbData && pdbData.file;
+  //console.log(structure.residueMap.get(0).isCg());
   // Set the chains to be represented in the NGL viewer by default
   // WARNING: This is experimental and may have some bugs
   const defaultRepresentations = useMemo(() => {
@@ -60,8 +67,8 @@ const useDefaultRepresentations = () => {
           name: name,
           selection: ':' + chain,
           type: 'licorice',
-          color: 'grey',
-          opacity: 0.3,
+          color: 'purple',
+          opacity: 0.5,
         });
       });
     }
@@ -79,12 +86,34 @@ const useDefaultRepresentations = () => {
       });
     }
 
-    // DANI: Hardcodeado para trayectorias de Rebecca Wade
-    // DANI: Y ahora también para las de Gumbart lab
-    if (metadata.PDBID === '6ACC' || metadata.AUTHORS === 'Gumbart lab') {
+    // Get all residues which are not already included on any previous section
+    // Get also all residues which are represented as cartoon but are not protein or nucleic acid
+    // i.e. residues which would not be represented by now
+    const representedResidues = [];
+    reps.forEach(rep => {
+      const isCartoon = rep.type === undefined || rep.type === 'cartoon';
+      const residues = nglSelection2absolute(
+        rep.selection,
+        isCartoon,
+        structure,
+      );
+      representedResidues.push(...residues);
+    });
+    const residuesCount = getResiduesCount(structure);
+    const nonRepresentedResidues = [];
+    for (let i = 0; i < residuesCount; i++) {
+      if (representedResidues.indexOf(i) === -1) nonRepresentedResidues.push(i);
+    }
+
+    // Represent those "Other" residues in low opacity grey licorice
+    if (nonRepresentedResidues.length > 0) {
+      const otherSelection = absolute2nglSelection(
+        nonRepresentedResidues,
+        structure,
+      );
       reps.push({
-        name: 'Glycans',
-        selection: 'not Protein',
+        name: 'Other',
+        selection: otherSelection,
         type: 'licorice',
         color: 'grey',
         opacity: 0.3,

@@ -1,5 +1,6 @@
 import { ProjectCtx, PdbCtx } from '../../contexts';
 import { range } from 'lodash-es';
+const ngl = require('ngl');
 
 // Topology manager
 // Many functions to handle atom/residue/chain numeration conversions and more
@@ -635,4 +636,49 @@ export const model2sourceResidue = (
   const absolute = model2absoluteResidue({ chain, residue }, topology);
   const source = absolute2sourceResidue(absolute, topology);
   return source;
+};
+
+// Check if an NGL residues is cartoon supported or not
+// e.g. check if it is recognized by NGL as a protein, RNA or DNA residue
+export const isCartoonSupported = nglResidue => {
+  return nglResidue.isProtein() || nglResidue.isRna() || nglResidue.isDna();
+};
+
+// Convert a ngl selection string into an array with the absolute residue indices
+// If the 'onlyCartoonSupported' parameter is passed then it will return only cartoon supported residues
+export const nglSelection2absolute = (
+  nglSelection,
+  onlyCartoonSupported = false,
+  topology = PdbCtx._currentValue.file,
+) => {
+  const residues = [];
+  // Save the selection in ngl format (structureComponent)
+  const selection = new ngl.Selection(nglSelection);
+  // Save the data from structure which corresponds to the selection atoms
+  const view = topology.getView(selection);
+  if (onlyCartoonSupported) {
+    view.eachResidue(residue => {
+      if (isCartoonSupported(residue)) residues.push(residue.index);
+    });
+  } else {
+    view.eachResidue(residue => {
+      residues.push(residue.index);
+    });
+  }
+
+  return residues;
+};
+
+// Convert an array of absolute residue indices to an ngl selection
+// This NGL selection is as short as possible by using rnaged syntax
+// e.g. [0, 1, 2, 3, 4] -> ':A and 1-5'
+export const absolute2nglSelection = (
+  residues,
+  topology = PdbCtx._currentValue.file,
+) => {
+  const nglResidues = residues.map(
+    residue => absolute2sourceResidue(residue, topology).numeration,
+  );
+  const rangedSelection = complexSelectionRanger(nglResidues).rangedSelection;
+  return rangedSelection;
 };
