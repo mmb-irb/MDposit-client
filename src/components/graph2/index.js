@@ -883,53 +883,55 @@ const Graph2 = ({
   const handleButtonClick = useCallback(() => onSelect(new Set()), [onSelect]);
 
   return (
-    <div className={className ? className : style.graph}>
-      <div className={style['graph-container']} ref={containerRef} />
-      {selfLegend && (
-        <div className={style['graph-legend']}>
-          {yEntries.map(([key]) => (
-            <FormControlLabel
-              data-key={key}
-              key={key}
-              onChange={handleChange}
-              onMouseOver={handleMouseOver}
-              onMouseOut={handleMouseOut}
-              control={
-                <Checkbox
-                  checked={lab[key]}
-                  style={{ color: yData[key].color || 'black' }}
-                  inputProps={{ 'data-key': key }}
-                />
-              }
-              label={NICE_NAMES.get(key) || key}
-            />
-          ))}
-        </div>
-      )}
-      {displayLegend && (
-        <div className={style['graph-display-legend']}>
-          {yEntries.map(([key, dataset], i) => {
-            if (lab[key] === false) return null;
-            return (
-              <div key={key} className={style['line-sample']}>
-                {key}
-                <LineSample color={dataset.color} dash={dataset.dash} />
-              </div>
-            );
-          })}
-        </div>
-      )}
-      {type === 'dash' && (
-        <Button
-          variant="contained"
-          disabled={selected instanceof Set && !selected.size}
-          onClick={handleButtonClick}
-        >
-          <FontAwesomeIcon icon={faTrashAlt} />
-          &nbsp;
-          <span>Clear selection</span>
-        </Button>
-      )}
+    <div className={className ? className : style.default}>
+      <div className={style.flexible}>
+        <div className={style['graph-container']} ref={containerRef} />
+        {selfLegend && (
+          <div className={style['graph-legend']}>
+            {yEntries.map(([key]) => (
+              <FormControlLabel
+                data-key={key}
+                key={key}
+                onChange={handleChange}
+                onMouseOver={handleMouseOver}
+                onMouseOut={handleMouseOut}
+                control={
+                  <Checkbox
+                    checked={lab[key]}
+                    style={{ color: yData[key].color || 'black' }}
+                    inputProps={{ 'data-key': key }}
+                  />
+                }
+                label={NICE_NAMES.get(key) || key}
+              />
+            ))}
+          </div>
+        )}
+        {displayLegend && (
+          <div className={style['graph-display-legend']}>
+            {yEntries.map(([key, dataset], i) => {
+              if (lab[key] === false) return null;
+              return (
+                <div key={key} className={style['line-sample']}>
+                  {key}
+                  <LineSample color={dataset.color} dash={dataset.dash} />
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {type === 'dash' && (
+          <Button
+            variant="contained"
+            disabled={selected instanceof Set && !selected.size}
+            onClick={handleButtonClick}
+          >
+            <FontAwesomeIcon icon={faTrashAlt} />
+            &nbsp;
+            <span>Clear selection</span>
+          </Button>
+        )}
+      </div>
     </div>
   );
 };
