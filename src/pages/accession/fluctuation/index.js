@@ -60,6 +60,8 @@ const FluctuationAnalysis = () => {
   // Handle when we get the atom index after clicking in the graph
   const handleAtomsSelection = atomIndex => {
     setSelectedAtoms(previous => {
+      // In case the atom is no an atom index but an empty set it means the selection has been cleaned
+      if (atomIndex instanceof Set) return atomIndex;
       const newSet = new Set(previous);
       newSet[newSet.has(atomIndex) ? 'delete' : 'add'](atomIndex);
       return newSet;
