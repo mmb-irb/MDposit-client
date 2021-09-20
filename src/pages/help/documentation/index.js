@@ -644,13 +644,8 @@ const documentation = [
         this case the id must be whole, not partial.
       </>
     ),
-    page: (
-      <>
-        Use the browser to search a specific simulation by its accesion number,
-        name, description, author or group names. Any total or partial
-        coincidence works.
-      </>
-    ),
+    text:
+      'Use the browser to search a specific simulation by its accesion number, name, description, author or group names. Any total or partial coincidence works.',
   },
   {
     id: 'ngl-viewer',

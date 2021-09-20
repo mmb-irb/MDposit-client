@@ -8,7 +8,6 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
 
 import documentation from '../../../pages/help/documentation';
-import Info from '../../info';
 
 import style from './style.module.css';
 
@@ -72,17 +71,12 @@ const Search = ({ history }) => {
       </Icon>
       {/* Render the search bar text field */}
       <TextField
+        title={docs.text}
         value={value || ''}
         onChange={handleChange}
         className={style.search}
         inputProps={inputProps}
         placeholder={'e.g. remdesivir'}
-      />
-      <Info
-        reference={browserDocsId}
-        tooltip={docs.page}
-        color={'black'}
-        corner={false}
       />
     </span>
   );
