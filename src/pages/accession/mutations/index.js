@@ -57,9 +57,11 @@ const Mutations = () => {
       if (!reference) continue;
       const { name: toporefName, index: residueIndex } = reference;
       const toporef = toporefData.find(data => data.name === toporefName);
+      const entropies = toporef.entropies;
+      if (!entropies) continue;
       // We substract 1 from the residueIndex since it counts from 1 to n as toporefs do
       // However, entropies is a list, so their indexes count from 0 to n as usual
-      const entropy = toporef.entropies[residueIndex - 1];
+      const entropy = entropies[residueIndex - 1];
       if (entropy === undefined) continue;
       const logarithmicEntropy =
         Math.round(Math.log(entropy + 0.0001) * 1000) / 1000;
