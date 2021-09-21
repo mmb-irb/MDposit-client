@@ -10,35 +10,26 @@ import { faInfoCircle } from '@fortawesome/free-solid-svg-icons';
 
 import { makeStyles } from '@material-ui/core/styles';
 
+import style from './style.module.css';
+
 const Info = ({
   // Message to be displayed when the mouse is over the info icon
   tooltip,
   // Link to be linked when the the icon is clicked
   reference,
-  // Set if the info button must be placed in a corner
-  corner = true,
+  // Set a custom styling
+  className,
 }) => {
   const [open, setOpen] = useState(false);
 
-  // Some styling parameters has no effect through the classic css way
+  // WARNING: Some styling parameters has no effect through the classic css way
   // They must be declared this way
-  const useStyles = makeStyles(theme => ({
+  const useStyles = makeStyles(() => ({
     tooltip: {
       fontSize: '1em',
       maxWidth: '100%',
-      margin: '1em',
+      margin: '0',
     },
-    button: corner
-      ? {
-          margin: theme.spacing(1),
-          position: 'absolute',
-          right: 0,
-          'z-index': 10000,
-          cursor: 'help',
-        }
-      : {
-          cursor: 'help',
-        },
   }));
   const classes = useStyles();
 
@@ -58,7 +49,7 @@ const Info = ({
         component={reference ? Link : undefined}
         to={reference ? `/help#${reference}` : undefined}
         target={reference ? '_blank' : undefined}
-        className={classes.button}
+        className={className || style.default}
         color={open ? 'secondary' : 'primary'}
       >
         <FontAwesomeIcon icon={faInfoCircle} size={'lg'} />

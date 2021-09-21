@@ -10,4 +10,10 @@
 
 .link-to-api {
   flex-shrink: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.info {
+  padding: 0.1em 0.5em;
 }

@@ -437,7 +437,7 @@ export default ({ location, match, setProject }) => {
           {accession} - {NICE_NAMES.get(page) || page}
           {isJson ? ' (raw data)' : ''}
           {!isJson && docs && docs.page && (
-            <Info reference={page} tooltip={docs.page} corner={false} />
+            <Info reference={page} tooltip={docs.page} className={style.info} />
           )}
         </Typography>
         {/* Render a button which links to the API */}
