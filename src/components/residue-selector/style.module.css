@@ -1,7 +1,11 @@
+.default {
+  height: 300px;
+}
+
 .horizontal {
   display: flex;
   flex-direction: row;
-  height: 300px;
+  height: 100%;
 }
 
 .thin {

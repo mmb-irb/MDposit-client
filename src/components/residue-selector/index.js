@@ -60,6 +60,8 @@ const ResidueSelector = ({
   // Pass a whole useState to make it handle the selected residues
   // This only makes sense if you want to control the residues selection from outside this tool in addition
   forcedResiduesSelection,
+  // To force a styling
+  className,
 }) => {
   // Use the colors hook
   const [getColor, freeColor, freeAllColors] = useColors();
@@ -215,77 +217,79 @@ const ResidueSelector = ({
 
   // Render
   return (
-    <div className={style.horizontal}>
-      {colorPlan && (
-        <ColorLegend
-          title={legendTitle}
-          minValue={minValue}
-          maxValue={maxValue}
-          colorPlan={colorPlan}
-          vertical={true}
-          className={style.thin}
-        />
-      )}
-      <CardContent className={style.scroll} id="manager">
-        {sequences.map(sequence => {
-          return (
-            <details open key={sequence.name}>
-              <summary style={{ cursor: 'pointer' }}>{sequence.name}</summary>
-              <span className={style.flexible}>
-                {sequence.residues
-                  .reduce((residueGroups, currentResidue, currentIndex) => {
-                    const isTen = currentIndex % 10 === 0;
-                    if (isTen) residueGroups.push([]);
-                    const lastGroup = residueGroups[residueGroups.length - 1];
-                    lastGroup.push(currentResidue);
-                    return residueGroups;
-                  }, [])
-                  .map((residueGroup, groupIndex) => {
-                    const letters = residueGroup.map((residue, index) => {
-                      return (
-                        <span
-                          lang={'residue'}
-                          key={index}
-                          className={style['normal']}
-                          title={residue.tooltip}
-                          residueindex={residue.index}
-                        >
+    <div className={className || style.default}>
+      <div className={style.horizontal}>
+        {colorPlan && (
+          <ColorLegend
+            title={legendTitle}
+            minValue={minValue}
+            maxValue={maxValue}
+            colorPlan={colorPlan}
+            vertical={true}
+            className={style.thin}
+          />
+        )}
+        <CardContent className={style.scroll} id="manager">
+          {sequences.map(sequence => {
+            return (
+              <details open key={sequence.name}>
+                <summary style={{ cursor: 'pointer' }}>{sequence.name}</summary>
+                <span className={style.flexible}>
+                  {sequence.residues
+                    .reduce((residueGroups, currentResidue, currentIndex) => {
+                      const isTen = currentIndex % 10 === 0;
+                      if (isTen) residueGroups.push([]);
+                      const lastGroup = residueGroups[residueGroups.length - 1];
+                      lastGroup.push(currentResidue);
+                      return residueGroups;
+                    }, [])
+                    .map((residueGroup, groupIndex) => {
+                      const letters = residueGroup.map((residue, index) => {
+                        return (
                           <span
-                            className={style['letter']}
-                            style={{ backgroundColor: residue.color }}
+                            lang={'residue'}
+                            key={index}
+                            className={style['normal']}
+                            title={residue.tooltip}
+                            residueindex={residue.index}
                           >
-                            {residue.letter}
-                          </span>
-                        </span>
-                      );
-                    });
-                    return (
-                      <span key={groupIndex} className={style['margined']}>
-                        {letters}
-                        {letters.length === 10 && (
-                          <span className={style['extra-right-margin']}>
-                            <span className={style['small-up-number']}>
-                              {(groupIndex + 1) * 10}
+                            <span
+                              className={style['letter']}
+                              style={{ backgroundColor: residue.color }}
+                            >
+                              {residue.letter}
                             </span>
                           </span>
-                        )}
-                      </span>
-                    );
-                  })}
-              </span>
-            </details>
-          );
-        })}
-      </CardContent>
-      {selectedResidues.length > 0 && (
-        <IconButton
-          title="Clean selections"
-          onClick={cleanSelections}
-          className={style.button}
-        >
-          <FontAwesomeIcon icon={faTrash} />
-        </IconButton>
-      )}
+                        );
+                      });
+                      return (
+                        <span key={groupIndex} className={style['margined']}>
+                          {letters}
+                          {letters.length === 10 && (
+                            <span className={style['extra-right-margin']}>
+                              <span className={style['small-up-number']}>
+                                {(groupIndex + 1) * 10}
+                              </span>
+                            </span>
+                          )}
+                        </span>
+                      );
+                    })}
+                </span>
+              </details>
+            );
+          })}
+        </CardContent>
+        {selectedResidues.length > 0 && (
+          <IconButton
+            title="Clean selections"
+            onClick={cleanSelections}
+            className={style.button}
+          >
+            <FontAwesomeIcon icon={faTrash} />
+          </IconButton>
+        )}
+      </div>
     </div>
   );
 };
