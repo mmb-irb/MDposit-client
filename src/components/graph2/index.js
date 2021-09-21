@@ -146,6 +146,8 @@ const Graph2 = ({
   // DANI: Todavía no está implementado pero se usa para calcular márgenes
   // Set if values in x axis is horizontal (false) or vertical (true)
   flippedXAxisValues = false,
+  // If true, draw all points in the graph no matter how many points are there
+  fullPrecision = false,
   // Force a classname for the overall component element
   className,
 }) => {
@@ -367,9 +369,11 @@ const Graph2 = ({
       // Set the number of points to be represented
       // The maximum precision is always 1
       // i.e. When zoom is at maximum value all points in the window range must be shown
-      const precisionScale = scaleLog().range([Math.ceil(maxZoomExtent), 1]);
+      const precisionScale = scaleLog().range(
+        fullPrecision ? [1, 1] : [Math.ceil(maxZoomExtent), minZoomExtent],
+      );
 
-      precisionScale.domain([1, maxZoomExtent]);
+      precisionScale.domain([minZoomExtent, maxZoomExtent]);
 
       // Get the precision to be used according to the zoom value
       // The zoom value is a numeric value which ranges from minZoomExtent (default) to maxZoomExtent

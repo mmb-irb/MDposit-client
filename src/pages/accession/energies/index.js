@@ -257,6 +257,7 @@ const Energies = () => {
                 es: display.all,
               }}
               selected={selected}
+              fullPrecision
             />
             <Graph2
               yData={{
@@ -281,6 +282,7 @@ const Energies = () => {
                 vdw: display.all,
               }}
               selected={selected}
+              fullPrecision
             />
             <Graph2
               yData={{
@@ -309,6 +311,7 @@ const Energies = () => {
                 both: display.all,
               }}
               selected={selected}
+              fullPrecision
             />
             <Legend
               entries={[
