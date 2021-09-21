@@ -302,7 +302,7 @@ const Pockets = () => {
     <>
       <Card className={style.tablecard}>
         <div className={style.paper}>
-          <Table stickyHeader>
+          <Table stickyHeader size="small" padding="checkbox">
             <TableHead>
               <TableRow>
                 <TableCell key={0}>
@@ -423,6 +423,7 @@ const Pockets = () => {
           //standardDeviation
           onSelect={setSelectedFrame}
           selected={selectedFrame}
+          className={style.graph}
         />
       </Card>
     </>
