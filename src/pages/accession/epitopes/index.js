@@ -434,7 +434,7 @@ const Epitopes = () => {
           xUnit={'frame'}
           xScaleFactor={1}
           xAxisLabel={'Frames'}
-          yAxisLabel={`Average SAS (Å²)`}
+          yAxisLabel={`SAS (Å²)`}
           showPrecisionSlider={false}
           blockMaxPrecision={true}
           roundcents={false}
