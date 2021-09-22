@@ -334,7 +334,7 @@ const Epitopes = () => {
     <>
       <Card className={style.tablecard}>
         <div className={style.paper}>
-          <Table stickyHeader>
+          <Table stickyHeader size="small">
             <TableHead>
               <TableRow>
                 <TableCell key={0}>
@@ -422,7 +422,7 @@ const Epitopes = () => {
           <div style={{ height: '50vh' }} />
         )}
       </Card>
-      <Card>
+      <Card className={style.graph}>
         {selectedEpitopes.every(epitope => epitope === null) && (
           <div className={style['graph-placeholder']}>
             <Typography variant="h6">No epitope selected</Typography>
@@ -442,6 +442,7 @@ const Epitopes = () => {
           selected={selectedFrame}
           dataDisplay={dataDisplay}
           displayLegend
+          className={style.graph}
         />
       </Card>
     </>

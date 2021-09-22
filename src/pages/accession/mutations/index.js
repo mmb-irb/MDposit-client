@@ -140,6 +140,7 @@ const Mutations = () => {
           onSelect={handleSelect}
           onDeselect={handleDeselect}
           onClean={handleClean}
+          className={style.selector}
         />
       </Card>
     </Suspense>
