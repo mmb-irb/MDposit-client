@@ -141,26 +141,26 @@ const ResidueSelector = ({
         if (selected) {
           residue.tagcolor = tagcolor;
           newState.push(residue);
-          // Call the 'onSelect' function passing the current selected residue object
-          if (onSelect) onSelect(residue);
         }
         // When it is deselected
         else {
           residue.tagcolor = null;
           newState.splice(index, 1);
-          // Call the 'onDeselect' function passing the current deselected residue object
-          if (onDeselect) onDeselect(residue);
         }
         return newState;
       });
       // Add a pointer and color it
       if (selected) {
+        // Call the 'onSelect' function passing the current selected residue object
+        if (onSelect) onSelect(residue);
         const pointer = addPointer(residueElement);
         pointer.style['border-top-color'] = tagcolor;
         pointersRef.current.push(pointer);
       }
       // Remove the pointer
       else {
+        // Call the 'onDeselect' function passing the current deselected residue object
+        if (onDeselect) onDeselect(residue);
         const pivot = residueElement.lastChild;
         //const pointer = pivot.lastChild;
         //tagcolor = pointer.style['border-top-color'];
