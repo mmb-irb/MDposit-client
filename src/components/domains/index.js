@@ -13,8 +13,6 @@ import style from './style.module.css';
 
 import Loading from '../loading';
 
-import Info from '../info';
-
 import {
   rangedSelectionParser,
   absolute2sourceResidue,
@@ -238,17 +236,6 @@ const Domains = ({ setter }) => {
     <Suspense fallback={<Loading />}>
       {domains && domains.length > 0 && (
         <Card className={style.card}>
-          <Info
-            reference={'domain-selection'}
-            tooltip={
-              <>
-                Suggested interesting domains
-                <br />
-                <br />
-                Click any domain to highlight it in the NGL viewer.
-              </>
-            }
-          />
           <CardContent>
             {'Domains: '}
             {domains.map((dom, d) => (

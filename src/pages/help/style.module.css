@@ -27,3 +27,19 @@
   margin-top: 1.5em;
   color: lightGrey;
 }
+
+.section {
+  margin: 1em 0;
+}
+
+.summary {
+  font-size: large;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.space {
+  display: block;
+  content: '';
+  margin-top: 0.5em;
+}

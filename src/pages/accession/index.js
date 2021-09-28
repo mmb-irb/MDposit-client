@@ -16,7 +16,7 @@ import ErrorBoundary from '../../components/error-boundary'; // Catch errors in 
 import Loading from '../../components/loading'; // Displays an animated "loading" circle
 import Info from '../../components/info';
 
-import documentation from '../help/documentation';
+import { docs } from '../help/documentation';
 
 // Load the 3 contexts
 import { AccessionCtx, ProjectCtx, PdbCtx, ToporefsCtx } from '../../contexts';
@@ -426,7 +426,23 @@ export default ({ location, match, setProject }) => {
   const isJson = fullpath.substr(fullpath.length - 5) === '/json';
   const accession = match.params.accession;
   const page = match.params.subPage;
-  const docs = documentation.find(doc => doc.id === page);
+  const doc = docs.find(doc => doc.id === page);
+  const tooltip = doc.page && (
+    <>
+      {doc.page}
+      <br />
+      <br />
+      To learn more about this page and how data is obtained please{' '}
+      <a
+        href={`/help#/help#${doc.id}`}
+        target="_blank"
+        rel="noreferrer noopener"
+      >
+        {'click here'}
+      </a>
+      .
+    </>
+  );
   const dataUrl = getDataURL(accession, page);
   return (
     // Set the accession context, which is used by different scripts including this
@@ -436,8 +452,8 @@ export default ({ location, match, setProject }) => {
         <Typography variant="h6" className={style.title}>
           {accession} - {NICE_NAMES.get(page) || page}
           {isJson ? ' (raw data)' : ''}
-          {!isJson && docs && docs.page && (
-            <Info reference={page} tooltip={docs.page} className={style.info} />
+          {!isJson && doc && doc.page && (
+            <Info tooltip={tooltip} className={style.info} />
           )}
         </Typography>
         {/* Render a button which links to the API */}

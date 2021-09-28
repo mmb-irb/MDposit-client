@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 
-import { IconButton, Tooltip } from '@material-ui/core';
-
-import { Link } from 'react-router-dom';
+import { IconButton, Tooltip, ClickAwayListener } from '@material-ui/core';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
@@ -15,12 +13,13 @@ import style from './style.module.css';
 const Info = ({
   // Message to be displayed when the mouse is over the info icon
   tooltip,
-  // Link to be linked when the the icon is clicked
-  reference,
   // Set a custom styling
   className,
 }) => {
   const [open, setOpen] = useState(false);
+
+  const toogleOpen = () => setOpen(previous => !previous);
+  const closeIt = () => setOpen(false);
 
   // WARNING: Some styling parameters has no effect through the classic css way
   // They must be declared this way
@@ -35,26 +34,26 @@ const Info = ({
 
   // Render
   return (
-    <Tooltip
-      title={tooltip}
-      classes={{ tooltip: classes.tooltip }}
-      onOpen={() => setOpen(true)}
-      onClose={() => setOpen(false)}
-      // Make the tooltip stay when the mose is over it and its text selectable
-      interactive
-      // Makes the tooltip stay fro 0,2 seconds after the mouse is out
-      leaveDelay={200}
-    >
-      <IconButton
-        component={reference ? Link : undefined}
-        to={reference ? `/help#${reference}` : undefined}
-        target={reference ? '_blank' : undefined}
-        className={className || style.default}
-        color={open ? 'secondary' : 'primary'}
+    <ClickAwayListener onClickAway={closeIt}>
+      <Tooltip
+        title={tooltip}
+        classes={{ tooltip: classes.tooltip }}
+        // Make the tooltip links work
+        interactive
+        disableFocusListener
+        disableHoverListener
+        disableTouchListener
+        open={open}
       >
-        <FontAwesomeIcon icon={faInfoCircle} size={'lg'} />
-      </IconButton>
-    </Tooltip>
+        <IconButton
+          className={className || style.default}
+          color={open ? 'secondary' : 'primary'}
+          onClick={toogleOpen}
+        >
+          <FontAwesomeIcon icon={faInfoCircle} size={'lg'} />
+        </IconButton>
+      </Tooltip>
+    </ClickAwayListener>
   );
 };
 

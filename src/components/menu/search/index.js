@@ -7,11 +7,9 @@ import TextField from '@material-ui/core/TextField';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
 
-import documentation from '../../../pages/help/documentation';
+import { docs } from '../../../pages/help/documentation';
 
 import style from './style.module.css';
-
-const browserDocsId = 'browser';
 
 const DEBOUNCE_DELAY = 500;
 
@@ -58,7 +56,7 @@ const Search = ({ history }) => {
     },
     [history],
   );
-  const docs = documentation.find(doc => doc.id === browserDocsId);
+  const doc = docs.find(doc => doc.id === 'browser');
 
   return (
     <span className={style.searchbar}>
@@ -71,7 +69,7 @@ const Search = ({ history }) => {
       </Icon>
       {/* Render the search bar text field */}
       <TextField
-        title={docs.text}
+        title={doc.text}
         value={value || ''}
         onChange={handleChange}
         className={style.search}
