@@ -45,7 +45,7 @@ import {
   faUnlock,
 } from '@fortawesome/free-solid-svg-icons';
 
-import RepresentationsManager from '../representations-manager';
+import RepresentationsManager from './representations-manager';
 
 import { get, setAsync } from '../../utils/storage';
 import NGLViewer from '../ngl-viewer';

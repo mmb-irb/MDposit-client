@@ -1,7 +1,6 @@
 import React, { memo } from 'react';
 
 import {
-  Checkbox,
   Chip,
   Table,
   TableBody,
@@ -11,7 +10,9 @@ import {
   TextField,
   Select,
   Slider,
+  IconButton,
 } from '@material-ui/core';
+import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlusCircle } from '@fortawesome/free-solid-svg-icons';
 
@@ -162,19 +163,21 @@ const RepresentationsManager = memo(
                 </TableCell>
                 {/* Show */}
                 <TableCell align="right">
-                  <Checkbox
-                    key={rep.name}
-                    checked={showRepresentations[index]}
-                    onChange={() =>
+                  <IconButton
+                    title="Show/Hide representation"
+                    onClick={() =>
                       setShowRepresentations(previous => {
                         const newState = [...previous];
                         newState[index] = !newState[index];
                         return newState;
                       })
                     }
-                    style={{ color: 'black' }}
-                    inputProps={{ 'data-key': rep.name }}
-                  />
+                    color={'primary'}
+                  >
+                    <FontAwesomeIcon
+                      icon={showRepresentations[index] ? faEye : faEyeSlash}
+                    />
+                  </IconButton>
                 </TableCell>
                 {/* Selection */}
                 <TableCell align="right">
