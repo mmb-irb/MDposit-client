@@ -62,6 +62,19 @@ export default React.memo(() => {
               {metadata.PROGRAM && <div>Program: {metadata.PROGRAM}</div>}
               {metadata.VERSION && <div>Version: {metadata.VERSION}</div>}
               {metadata.METHOD && <div>MD method: {metadata.METHOD}</div>}
+              {metadata.LINKS &&
+                metadata.LINKS.map(link => (
+                  <div>
+                    {link.name}:{' '}
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                    >
+                      {link.url}
+                    </a>
+                  </div>
+                ))}
             </div>
           </CardContent>
         </Card>
