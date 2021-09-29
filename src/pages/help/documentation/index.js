@@ -180,7 +180,7 @@ export const documentation = [
         header: 'Overview page',
         body: (
           <>
-            Data in this mage is mostly provided by the simulation authors.
+            Data in this page is mostly provided by the simulation authors.
             Additional details about the original pdb structure are mined from
             the <Link name={'PDB web page'} url={'https://www.rcsb.org/'} />.
           </>
