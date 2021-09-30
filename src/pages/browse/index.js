@@ -254,17 +254,23 @@ const Row = ({ project, highlight, index, setProject }) => {
 };
 
 const Browse = ({ location, history, setProject }) => {
-  // The 'unit' tab selection
-  const [unitFilter, setUnitFilter] = useState('');
-  const currentUnit = unitFilter.replace('&filter=metadata.UNIT+*', '');
-
   // Convert the URL string into an object
   // This "parse" comes from the "qs" library
   // WARNING: The default "parse" decoding behaviour has a strong conflict between '+' and blank space character
   // This workaround first decodes and then parses without decoding
   // The 'decoder' option is necessary for not decoding
   const decoded = decodeURIComponent(location.search);
-  const search = parse(decoded + unitFilter, {
+  const search = parse(decoded, {
+    ignoreQueryPrefix: true,
+    decoder: c => c,
+  });
+
+  // The 'unit' tab selection
+  const [selectedUnit, setSelectedUnit] = useState(search.unit);
+  const unitFilter = selectedUnit
+    ? '&filter=metadata.UNIT+*' + selectedUnit
+    : '';
+  const unit = parse(unitFilter, {
     ignoreQueryPrefix: true,
     decoder: c => c,
   });
@@ -274,7 +280,7 @@ const Browse = ({ location, history, setProject }) => {
     search: search.search,
     page: search.page || DEFAULT_PAGE,
     limit: search.limit || DEFAULT_LIMIT,
-    filter: search.filter,
+    filter: unit.filter,
   });
 
   // Scroll up when the page is changed
@@ -328,21 +334,19 @@ const Browse = ({ location, history, setProject }) => {
                   <InputLabel id="label">unit</InputLabel>
                   <Select
                     id="select"
-                    value={currentUnit}
+                    value={selectedUnit}
                     onChange={event => {
+                      const newUnit = event.target.value;
                       // Update the history to reset the page
                       history.push({
                         ...location,
                         search: stringify({
                           search: search.search,
+                          unit: newUnit ? newUnit : undefined,
                         }),
                       });
-                      // Update the unit state
-                      setUnitFilter(
-                        event.target.value
-                          ? '&filter=metadata.UNIT+*' + event.target.value
-                          : '',
-                      );
+                      // Update the selected unit state
+                      setSelectedUnit(newUnit);
                     }}
                   >
                     <MenuItem value="">All</MenuItem>
