@@ -130,7 +130,7 @@ const PCA = () => {
             {/* Show a brief explanation about selected projection and their explained variance accounting */}
             <p>{plainTextExplanation(projections, explanation)}</p>
           </CardContent>
-          {/* When only 1 frame is selected use the regula ngl viewer */}
+          {/* When only 1 eigenvector is selected use the regula ngl viewer */}
           {projections.length === 1 && (
             <Suspense fallback={nglPlaceholder}>
               <CardContent className={style['ngl-card']}>
@@ -146,7 +146,7 @@ const PCA = () => {
               </CardContent>
             </Suspense>
           )}
-          {/* When only 2 frames are selected use the projections graph */}
+          {/* When only 2 eigenvectors are selected use the projections graph */}
           {projections.length === 2 && (
             <Suspense fallback={projectionPlaceholder}>
               <CardContent>
