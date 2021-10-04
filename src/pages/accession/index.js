@@ -426,8 +426,8 @@ export default ({ location, match, setProject }) => {
   const isJson = fullpath.substr(fullpath.length - 5) === '/json';
   const accession = match.params.accession;
   const page = match.params.subPage;
-  const doc = docs.find(doc => doc.id === page);
-  const tooltip = doc.page && (
+  const doc = docs.find(doc => doc.id === page); // doc may not exist
+  const tooltip = doc && doc.page && (
     <>
       {doc.page}
       <br />
