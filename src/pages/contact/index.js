@@ -10,12 +10,18 @@ const Contact = () => (
   <Card className={style.card}>
     <CardContent className={style['card-content']}>
       <Typography variant="h5">Get in touch with us</Typography>
+      See on the{' '}
       <a
         href="http://mmb.irbbarcelona.org/www/locationmap"
         target="_blank"
         rel="noopener noreferrer"
       >
-        See on the IRB Molecular Modeling and Bioinformatics group website
+        IRB Molecular Modeling and Bioinformatics group website
+      </a>
+      <br />
+      Send a mail to{' '}
+      <a href="mailto:daniel.beltran@irbbarcelona.org">
+        daniel.beltran@irbbarcelona.org
       </a>
     </CardContent>
   </Card>

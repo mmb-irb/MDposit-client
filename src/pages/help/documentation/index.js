@@ -53,6 +53,12 @@ export const documentation = [
         aim of this initiative is to ease and promote data sharing along the
         wide-world scientific community in order to contribute in the fight
         against COVID-19 disease.
+        <br />
+        <br />
+        For any doubt please contact{' '}
+        <a href="mailto:daniel.beltran@irbbarcelona.org">
+          daniel.beltran@irbbarcelona.org
+        </a>
       </>
     ),
     children: [
