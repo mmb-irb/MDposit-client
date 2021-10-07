@@ -12,17 +12,10 @@ import logoBSC from '../../images/logo-bsc.png';
 import logoBioExcel from '../../images/logo-bioexcel.png';
 import logoBSCWebP from '../../images/logo-bsc.webp';
 import logoBioExcelWebP from '../../images/logo-bioexcel.webp';
-
 import logoHBP from '../../images/logo-hbp.png';
 import logoHBPWebP from '../../images/logo-hbp.webp';
-
-// for (const img of [logoHBP, logoIRB]) {
-//   const el = document.createElement('link');
-//   el.rel = 'preload';
-//   el.as = 'image';
-//   el.href = img;
-//   document.head.appendChild(el);
-// }
+import logoEbrains from '../../images/logo-ebrains.png';
+import logoEbrainsWebP from '../../images/logo-ebrains.webp';
 
 // Show two images which are also links: Human Brain Project and IRB Barcelona
 const Footer = React.memo(() => (
@@ -82,6 +75,17 @@ const Footer = React.memo(() => (
               src={logoHBP}
               loading="lazy"
               alt="Human Brain Project website"
+            />
+          </picture>
+        </a>
+        <a href="https://ebrains.eu/" target="_blank" rel="noreferrer noopener">
+          <picture>
+            <source type="image/webp" srcSet={logoEbrainsWebP} />
+            <LazyImg
+              height="70px"
+              src={logoEbrains}
+              loading="lazy"
+              alt="EBRAINS website"
             />
           </picture>
         </a>
