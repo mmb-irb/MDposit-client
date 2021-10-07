@@ -62,6 +62,36 @@ exports[`<Home /> should render 1`] = `
       </strong>
        will contribute in the critical and essential work towards finding a cure against COVID-19.
     </WithStyles(ForwardRef(Typography))>
+    <div
+      className="acknowledgements"
+    >
+      <div
+        className="acknowledgements-text"
+      >
+        <WithStyles(ForwardRef(Typography))
+          variant="h5"
+        >
+          <strong>
+            Acknowledgements
+          </strong>
+        </WithStyles(ForwardRef(Typography))>
+        <br />
+        This open source software code was developed in part in BioExcel, funded from the European Union's Horizon 2020 Framework Programme for Research and Innovation under Specific Grant Agreements No. 675728 and No. 823830 (BioExcel and BioExcel-2).
+        <br />
+        <br />
+        This open source software code was developed in part in the Human Barin Project, funded from the European Union's Horizon 2020 Framework Programme for Research and Innovation under Specific Grant Agreements No. 720270 and No. 785907 (Human Brain Project SGA1 and SGA 2).
+      </div>
+      <div
+        className="acknowledgements-logo"
+      >
+        <LazyImg
+          alt=""
+          className="fill"
+          loading="lazy"
+          src="eu.png"
+        />
+      </div>
+    </div>
   </WithStyles(ForwardRef(CardContent))>
 </ForwardRef>
 `;
