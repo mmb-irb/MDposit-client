@@ -12,9 +12,12 @@ import {
   Slider,
   IconButton,
 } from '@material-ui/core';
-import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+import {
+  faEye,
+  faEyeSlash,
+  faPlusCircle,
+} from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlusCircle } from '@fortawesome/free-solid-svg-icons';
 
 import style from './style.module.css';
 
