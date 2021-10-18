@@ -266,7 +266,7 @@ const Browse = ({ location, history, setProject }) => {
   });
 
   // The 'unit' tab selection
-  const [selectedUnit, setSelectedUnit] = useState(search.unit);
+  const [selectedUnit, setSelectedUnit] = useState(search.unit || '');
   const unitFilter = selectedUnit
     ? '&filter=metadata.UNIT+*' + selectedUnit
     : '';
