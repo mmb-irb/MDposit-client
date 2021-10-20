@@ -40,8 +40,12 @@
 .no-results-card {
   position: absolute;
   z-index: 2;
-  margin: 1%;
-  width: 100%;
+  width: 96%;
+  top: 5em;
+}
+
+.minheight {
+  min-height: 12em;
 }
 
 .no-results-text {

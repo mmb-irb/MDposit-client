@@ -321,7 +321,17 @@ const Browse = ({ location, history, setProject }) => {
   // When success
   return (
     <Card>
-      <CardContent>
+      <CardContent className={style.minheight}>
+        {/* Render a 'no results' card when there are no results for the last search */}
+        {!loading && !payload ? (
+          <Card className={style['no-results-card']}>
+            <Typography variant="h5" className={style['no-results-text']}>
+              No results were found
+            </Typography>
+          </Card>
+        ) : (
+          []
+        )}
         <Table>
           {/*className={cn({ [style['invalid-results']]: !payload })} */}
           {/* Table head with the names of each colum */}
@@ -361,16 +371,6 @@ const Browse = ({ location, history, setProject }) => {
               <TableCell>analyses</TableCell>
             </TableRow>
           </TableHead>
-          {/* Render a 'no results' card when there are no results for the last search */}
-          {!loading && !payload ? (
-            <Card className={style['no-results-card']}>
-              <Typography variant="h5" className={style['no-results-text']}>
-                No results were found
-              </Typography>
-            </Card>
-          ) : (
-            []
-          )}
           {/* Table body with the content, which is defined above in the Row constant */}
           {/* When the search has no results the table gets an opacity of 0.25 */}
           <TableBody
