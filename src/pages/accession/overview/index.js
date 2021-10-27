@@ -63,8 +63,8 @@ export default React.memo(() => {
               {metadata.VERSION && <div>Version: {metadata.VERSION}</div>}
               {metadata.METHOD && <div>MD method: {metadata.METHOD}</div>}
               {metadata.LINKS &&
-                metadata.LINKS.map(link => (
-                  <div>
+                metadata.LINKS.map((link, l) => (
+                  <div key={l}>
                     {link.name}:{' '}
                     <a
                       href={link.url}
