@@ -227,9 +227,9 @@ export const TrajectoryMetadata = memo(() => {
           />
           <TextField
             className={style['text-field']}
-            label="Force field"
-            title="Force field"
-            value={metadata.FF === null ? na : metadata.FF}
+            label="Force fields"
+            title="Force fields"
+            value={metadata.FF === null ? na : metadata.FF.join(', ')}
             disabled={metadata.FF === null}
           />
           <TextField

@@ -281,6 +281,7 @@ const Browse = ({ location, history, setProject }) => {
     page: search.page || DEFAULT_PAGE,
     limit: search.limit || DEFAULT_LIMIT,
     filter: unit.filter,
+    query: search.query,
   });
 
   // Scroll up when the page is changed

@@ -42,6 +42,12 @@ const Home = lazy(() => import(/* webpackChunkName: 'home' */ '../pages/home'));
 const Browse = lazy(() =>
   import(/* webpackChunkName: 'browse' */ '../pages/browse'),
 );
+const AdvancedSearch = lazy(() =>
+  import(/* webpackChunkName: 'advanced-search' */ '../pages/advanced-search'),
+);
+const CustomSearch = lazy(() =>
+  import(/* webpackChunkName: 'custom-search' */ '../pages/custom-search'),
+);
 const Help = lazy(() => import(/* webpackChunkName: 'help' */ '../pages/help'));
 const Accession = lazy(() =>
   import(/* webpackChunkName: 'accession' */ '../pages/accession'),
@@ -104,6 +110,24 @@ const Root = () => {
                   render={props => (
                     <Suspense fallback={null}>
                       <Browse {...props} setProject={setProject} />
+                    </Suspense>
+                  )}
+                />
+                <Route
+                  path="/search"
+                  exact
+                  render={props => (
+                    <Suspense fallback={null}>
+                      <CustomSearch {...props} setProject={setProject} />
+                    </Suspense>
+                  )}
+                />
+                <Route
+                  path="/advanced-search"
+                  exact
+                  render={props => (
+                    <Suspense fallback={null}>
+                      <AdvancedSearch {...props} setProject={setProject} />
                     </Suspense>
                   )}
                 />
