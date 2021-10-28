@@ -1,18 +1,121 @@
 // React logic
-import React, { useRef, useEffect, createRef } from 'react';
+import React, { useRef, useEffect, createRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 
 // Visual assets
 import { MenuList, MenuItem, Typography } from '@material-ui/core';
 
 // All text to be displayed is set previously here
-import { documentation, docs } from './documentation';
+import { documentation } from './documentation';
+
+import { BASE_PATH_PROJECTS } from '../../utils/constants';
+import useAPI from '../../hooks/use-api'; // API acces
 
 import style from './style.module.css';
 
+import { PieChart } from 'react-minimal-pie-chart';
+import distinctColors from 'distinct-colors';
+import SimpleLegend from '../../components/simple-legend';
+
+// Save the original introduction children
+const introductionChildren = [
+  ...documentation.find(doc => doc.id === 'introduction').children,
+];
+
+// Inject the summary object to the documentation
+const useStatistics = () => {
+  // Use the API to get the summary
+  const summaryUrl = `${BASE_PATH_PROJECTS}/summary`;
+  const { payload: summaryPayload, error: summaryError } = useAPI(summaryUrl);
+
+  // Use the API to get the unit options
+  const unitUrl = `${BASE_PATH_PROJECTS}/options?projection=metadata.UNIT`;
+  const { payload: unitPayload, error: unitError } = useAPI(unitUrl);
+
+  useMemo(() => {
+    // Set the data to be represented on the pie chart
+    const units = unitPayload && Object.entries(unitPayload['metadata.UNIT']);
+    if (units) units.sort((a, b) => b[1] - a[1]);
+    const colors = units && distinctColors({ count: units.length });
+    const pieChartData = units
+      ? units.map(([key, value], i) => ({
+          title: key,
+          value: value,
+          color: colors[i],
+        }))
+      : [{ title: 'Loading...', value: 1, color: 'lightgrey' }];
+
+    // Set the legend
+    const legendData =
+      units &&
+      units.map(([key, value], i) => ({
+        label: key + ' (' + value + ')',
+        color: colors[i],
+      }));
+
+    // Set the summary object
+    const summary = {
+      id: 'summary',
+      header: 'Data summary',
+      body: (
+        <>
+          Here is a summary of the database contents:
+          <br />
+          <br />
+          Total number of simulations:{' '}
+          {summaryPayload ? summaryPayload.projectsCount : 'Loading...'}
+          <br />
+          Total amount of simulation time (μs):{' '}
+          {summaryPayload
+            ? Math.round(summaryPayload.totalTime / 1000)
+            : 'Loading...'}
+          <br />
+          Total amount of frames:{' '}
+          {summaryPayload ? summaryPayload.totalFrames : 'Loading...'}
+          <br />
+          Total number of stored files:{' '}
+          {summaryPayload ? summaryPayload.totalFiles : 'Loading...'}
+          <br />
+          Total number of stored analyses:{' '}
+          {summaryPayload ? summaryPayload.totalAnalyses : 'Loading...'}
+          <br />
+          <br />
+          Simulations unit diversity:
+          <div className={style.horizontal}>
+            <PieChart
+              data={pieChartData}
+              //label={({ dataEntry }) => dataEntry.value}
+              className={style.piechart}
+            />
+            {legendData && (
+              <SimpleLegend entries={legendData} className={style.legend} />
+            )}
+          </div>
+        </>
+      ),
+    };
+
+    // Add summary to documentation
+    documentation.find(doc => doc.id === 'introduction').children = [
+      ...introductionChildren,
+      summary,
+    ];
+  }, [unitPayload, summaryPayload]);
+
+  if (summaryError) throw new Error(summaryError.toString());
+  if (unitError) throw new Error(unitError.toString());
+};
+
 const Help = ({ location }) => {
+  useStatistics();
+
   // References to all documentation blocks will be stored here
   const containerRefs = useRef();
+  const docs = documentation.reduce((previous, current) => {
+    previous.push(current);
+    current.children && current.children.forEach(child => previous.push(child));
+    return previous;
+  }, []);
   const docRefs = useRef(Array(docs.length).fill(createRef()));
 
   // Scroll down to the asked reference
@@ -55,16 +158,14 @@ const Help = ({ location }) => {
             ref={r => (docRefs.current[index] = r)}
             className={style.paragraph}
           >
-            {[
-              <Typography
-                variant={doc.title ? 'h5' : 'h6'}
-                className={style.header}
-                key={'header'}
-              >
-                {doc.title || doc.header}
-              </Typography>,
-              <div key={'text'}>{doc.body || doc.page}</div>,
-            ]}
+            <Typography
+              variant={doc.title ? 'h5' : 'h6'}
+              className={style.header}
+              key={'header'}
+            >
+              {doc.title || doc.header}
+            </Typography>
+            <div key={'text'}>{doc.body || doc.page}</div>
             <hr className={style.hr} />
           </div>
         ))}

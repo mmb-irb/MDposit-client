@@ -43,3 +43,13 @@
   content: '';
   margin-top: 0.5em;
 }
+
+.piechart {
+  width: 300px;
+  height: 300px;
+  margin: 1em;
+}
+
+.legend {
+  margin: 1em;
+}

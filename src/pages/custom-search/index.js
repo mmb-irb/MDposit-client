@@ -72,7 +72,6 @@ const CustomSearch = () => {
   const projectionQuery = projectionStrings.join('&');
 
   // Build the API URL for the request
-  // Limit is set to 0, whcih means there is no limit
   const apiUrl = `${BASE_PATH_PROJECTS}/options?${projectionQuery}`;
   const { payload, error } = useAPI(apiUrl);
 

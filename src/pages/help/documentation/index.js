@@ -25,7 +25,7 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Icon } from '@material-ui/core';
 
-// Ser a simpler link component
+// Set a simpler link component
 const Link = ({ name, id, url }) => (
   <>
     <a
@@ -155,7 +155,6 @@ export const documentation = [
       },
     ],
   },
-
   {
     id: 'features',
     title: 'Features',
