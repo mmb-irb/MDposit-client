@@ -1130,7 +1130,7 @@ export const documentation = [
             trajectory. Each line is colored corresponding to both table and
             viewer colors. Left axis represents the pocket volume in cubic
             Ångstroms (Å<sup>{3}</sup>). Horizontal axis represents trajectory
-            frames. The graph is
+            frames. The graph is{' '}
             <span style={{ color: 'lightGreen' }}>interactive</span>. Click any
             point to represent the corresponding frame in the viewer.
           </>
