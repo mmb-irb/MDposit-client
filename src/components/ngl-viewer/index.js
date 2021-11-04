@@ -17,7 +17,7 @@ import { autoLoad, Stage, ColormakerRegistry, Matrix4 } from 'ngl';
 
 import { frame } from 'timing-functions';
 
-import payloadToNGLFile from './payload-to-ngl-file';
+import { setNGLFile, updateNGLFile } from './payload-to-ngl-file';
 import getFrames from './get-frames';
 
 import { AccessionCtx, ProjectCtx, PdbCtx } from '../../contexts';
@@ -38,11 +38,11 @@ import style from './style.module.css';
 // To get frames
 import { BASE_PATH_PROJECTS } from '../../utils/constants';
 
-// A tool to download the trajectory data (https://www.npmjs.com/package/axios)
-import axios from 'axios';
-
 // Make a deep copy of an object even with cyclic references
 import { cloneDeep } from 'lodash-es';
+
+import https from 'https';
+import url from 'url';
 
 const DEFAULT_NUMBER_OF_FRAMES = 25;
 const DEFAULT_ORIENTATION_TRANSITION_DURATION = 750; // 750 ms
@@ -78,6 +78,11 @@ function appendBuffer(buffer1, buffer2) {
   return tmp.buffer;
 }
 
+// Set the number of bytes per element in trajectory data
+const BYTES_PER_COORDINATE = 4; // float 32
+const COORDINATES_PER_ATOM = 3; // x, y and z
+const BYTES_PER_ATOM = BYTES_PER_COORDINATE * COORDINATES_PER_ATOM;
+
 const defaultHighlightTypes = {
   atoms: 'spacefill',
   residues: 'ball+stick',
@@ -94,7 +99,7 @@ const NGLViewer = memo(
         spinning,
         smooth,
         onProgress,
-        projection,
+        onLoad,
         bounce = false, // Set if the animation, when finished, starts again (false) or goes back (true)
         nFrames = DEFAULT_NUMBER_OF_FRAMES, // The number of frames to be represented
         setNFrames, // The setter for the number of frames to be represented
@@ -268,9 +273,6 @@ const NGLViewer = memo(
       // First we find all trajectory URLs (i.e. all requests to API)
       // Then we ask the API skipping repeated URLs
 
-      // Find out if this is a PCA projection
-      const isProjection = Number.isFinite(projection);
-
       // Set a function to modify an url by adding the frames range according to nFrames
       // The only exception are those trajectories whose frame number is lower than nFrames
 
@@ -311,10 +313,6 @@ const NGLViewer = memo(
             comp.frameCount = 0;
 
             urls.forEach((url, u) => {
-              // Frames are added to any url which is missing the frames range according to nFrames
-              // The only exception are those trajectories whose frame number is lower than nFrames
-              let finalUrl = url;
-
               // Check if the url is already framed
               const framed = parseFrameRange(url);
 
@@ -352,14 +350,26 @@ const NGLViewer = memo(
                   `Only the main component is allowed to load multiple frames`,
                 );
 
-              // Now modify the url if it is not framed yet
-              if (!framed) {
+              // Frames are added to any url which is missing the frames range according to nFrames
+              // The only exception are those trajectories whose frame number is lower than nFrames
+              let finalUrl = url;
+              // Get the expected number of frames returned, which may not be exactly the requested number
+              let returnedFrames;
+              // In case the url is already frammed
+              if (framed) {
+                // Find maximum number of frames to be returned (trajectory frames or requetsed frames)
+                const maximumFrames = Math.min(trajectoryFrames, framed.end);
+                returnedFrames = Math.ceil(maximumFrames / framed.step);
+              }
+              // Modify the url if it is not framed yet
+              else {
                 // Get the string frames range according to nFrames
-                const framesRange = getFrames(
+                const { range: framesRange, frames: framesCount } = getFrames(
                   trajectoryFrames,
                   requestedFrames,
                   requestedFrame,
                 );
+                returnedFrames = framesCount;
 
                 // Add the frames range to the original url
                 if (framesRange) finalUrl = url + `?frames=${framesRange}`;
@@ -384,7 +394,7 @@ const NGLViewer = memo(
               if (!current) {
                 newTrajectories.push({
                   url: finalUrl,
-                  frames: requestedFrames,
+                  frames: returnedFrames,
                   // Add also the atoms number, which is used further
                   atoms: trajectoryMetadata.atoms,
                   loading: true,
@@ -411,12 +421,7 @@ const NGLViewer = memo(
 
       // Download the requested trajectory data (frames)
       useEffect(() => {
-        // Ask the API through axios
-        // Some extra load features are passed through axios
-        // Set a cancel 'token'
-        const source = axios.CancelToken.source();
-        let didCancel = false;
-
+        let request;
         requestedTrajectories.forEach(trajectory => {
           // Check if the requested url has the data already downloaded
           // If so, skip this request
@@ -427,60 +432,65 @@ const NGLViewer = memo(
 
           // Set the loading status as true
           trajectory.loading = true;
-
           trajectory.progress = 0;
-          // Set a function to track the download progress
-          const onDownloadProgress = progressEvent => {
-            // Check if progress is measurable. If so, mesure it.
-            if (progressEvent.lengthComputable)
-              trajectory.progress = progressEvent.loaded / progressEvent.total;
-            // Then calculate the avreage progress in all loading trajectories and update the progress state
-            const overallProgress =
-              requestedTrajectories
-                .map(trajectory => trajectory.progress)
-                .reduce((a, b) => a + b, 0) / requestedTrajectories.length;
-            setTrajectoriesLoadingProgress(overallProgress);
-          };
 
-          // Send a request to the API in a Promise/await manner
-          axios(trajectory.url, {
-            cancelToken: source.token,
-            onDownloadProgress,
-            responseType: 'arraybuffer',
-          })
-            // If the request has succeed
-            .then(response => {
-              if (didCancel) return;
-              // Save the main data in the ref
-              trajectory.loading = false;
-              // Then check the loading state of all requested trajectories and update the overall loading state
-              const anyLoading = requestedTrajectories.some(
-                trajectory => trajectory.loading,
-              );
-              setAnyLoadingTrajectory(anyLoading);
-              // We create a new object to force the trajectory data load in ngl (trajectories dependent)
-              setTrajectories(previousTrajectories => {
-                const newTrajectory = {
-                  url: trajectory.url,
-                  frames: trajectory.frames,
-                  atoms: trajectory.atoms,
-                  payload: response.data,
-                };
-                return [...previousTrajectories, newTrajectory];
-              });
-            })
-            // Otherwise
-            .catch(error => {
-              if (didCancel) return;
-              console.error('Error while loading the trajectory: ' + error);
+          // Request the API
+          request = https.get(url.parse(trajectory.url), response => {
+            const totalBytes = response.headers['content-length'];
+            // Set the new trajectory
+            setTrajectories(previousTrajectories => {
+              const newTrajectory = {
+                url: trajectory.url,
+                frames: trajectory.frames,
+                atoms: trajectory.atoms,
+                payload: new ArrayBuffer(0),
+                progress: 0,
+              };
+              return [...previousTrajectories, newTrajectory];
             });
+            // Track the amout of bytes already downloaded
+            let byteCount = 0;
+            response
+              .on('data', chunk => {
+                byteCount += chunk.byteLength;
+                trajectory.progress = byteCount / totalBytes;
+                // Then calculate the average progress in all loading trajectories and update the progress state
+                const overallProgress =
+                  requestedTrajectories
+                    .map(trajectory => trajectory.progress)
+                    .reduce((a, b) => a + b, 0) / requestedTrajectories.length;
+                setTrajectoriesLoadingProgress(overallProgress);
+                if (onLoad) onLoad(overallProgress);
+                // Update trajectories with the current partial data we have
+                setTrajectories(previousTrajectories => {
+                  const currentTrajectory = previousTrajectories.find(
+                    t => t.url === trajectory.url,
+                  );
+                  currentTrajectory.payload = appendBuffer(
+                    currentTrajectory.payload,
+                    chunk,
+                  );
+                  currentTrajectory.progress = trajectory.progress;
+                  return [...previousTrajectories];
+                });
+              })
+              .on('end', () => {
+                // Save the main data in the ref
+                trajectory.loading = false;
+                // Then check the loading state of all requested trajectories and update the overall loading state
+                const anyLoading = requestedTrajectories.some(
+                  trajectory => trajectory.loading,
+                );
+                setAnyLoadingTrajectory(anyLoading);
+              });
+          });
         });
         return () => {
           // Cancel the request
-          source.cancel();
-          didCancel = true;
+          // DANI: No he llegado comprobar si esto funciona para la API :/
+          request.abort();
         };
-      }, [requestedTrajectories]);
+      }, [requestedTrajectories, onLoad]);
 
       // Stage creation and removal on mounting and unmounting
       useEffect(() => {
@@ -551,16 +561,19 @@ const NGLViewer = memo(
       // Update the controls progress
       const handleFrameChange = useCallback(
         frame => {
+          //console.log('FRAME: ' + frame);
           if (noTrajectory) return; // En pruebas
           if (!stageRef.current.compList[0].trajList[0]) return;
           if (!onProgress) return;
-          const frameCount =
-            stageRef.current.compList[0].trajList[0].trajectory.frameCount;
+          const frameCount = trajectories.reduce(
+            (acc, curr) => acc + curr.frames,
+            0,
+          );
           //console.log('NGL frameCount: ' + frameCount);
           const progress = clamp(frame / (frameCount - 1), 0, 1);
           onProgress(progress);
         },
-        [noTrajectory, onProgress],
+        [noTrajectory, onProgress, trajectories],
       );
 
       // Resize logic
@@ -814,7 +827,6 @@ const NGLViewer = memo(
         });
       }, [
         pdbFile,
-        isProjection,
         comps,
         drawingMethods,
         coloringMethods,
@@ -1060,20 +1072,6 @@ const NGLViewer = memo(
         });
       }, [pdbFile, selectedAngles, darkBackground]);
 
-      // pause on loading
-      // Make the NGL static while loading after user changes the frame number
-      useEffect(() => {
-        if (
-          !(
-            pdbFile &&
-            stageRef.current.compList[0] &&
-            stageRef.current.compList[0].trajList[0]
-          )
-        )
-          return;
-        stageRef.current.compList[0].trajList[0].trajectory.player.pause();
-      }, [pdbFile, anyLoadingTrajectory]);
-
       // DCD file, trajectory
       // Once the trajectories are downloaded, load them in corresponding NGL representations
       // Every time the trajectory payloads change this useEffect must be rerun
@@ -1092,13 +1090,14 @@ const NGLViewer = memo(
 
           // Find the trajectory payload from the component urls and join them
           const trajectoryPayloads = [];
-          // Save the combined urls of all trajectories
+          // Save the combined urls of all trajectories and their lengths
           // This is used in further renders to know if current trajectory is new or the same
           let combinedURL = '';
+          let combinedProgress = '';
           // Record also the atoms for each trajectory and check that they match
-          let atoms;
+          let trajectoryAtoms;
+          let trajectoryFinalExpectedFrames = 0;
           // Record also the frames for each trajectory and add them
-          //let trajectoryFrames = 0;
           for (const url of comp.framedURLs) {
             const trajectory = trajectories.find(trajectory => {
               return trajectory.url === url;
@@ -1107,63 +1106,116 @@ const NGLViewer = memo(
             if (!trajectory) return;
 
             // Get atom counts from different trajectories and check they match
-            if (!atoms) atoms = trajectory.atoms;
-            if (atoms !== trajectory.atoms)
+            if (!trajectoryAtoms) trajectoryAtoms = trajectory.atoms;
+            if (trajectoryAtoms !== trajectory.atoms)
               throw new Error(
                 `Atoms number in the different trajectories do not match`,
               );
-
+            // Add the final expected frames for all frames in the component
+            trajectoryFinalExpectedFrames += trajectory.frames;
             // Add the main data to the array of payloads
-            trajectoryPayloads.push(trajectory.payload);
+            // Substract data from not completed frames
+            const payload = trajectory.payload;
+            const bytesPerFrame = trajectoryAtoms * BYTES_PER_ATOM;
+            const fitLength =
+              Math.floor(payload.byteLength / bytesPerFrame) * bytesPerFrame;
+            const fitPayload = payload.slice(0, fitLength);
+            trajectoryPayloads.push(fitPayload);
             combinedURL += url;
+            combinedProgress += '/' + trajectory.progress;
           }
 
           // If both URL are matching then exit here
-          if (stageComp.combinedURL === combinedURL) {
+          if (
+            stageComp.combinedURL === combinedURL &&
+            stageComp.combinedProgress === combinedProgress
+          ) {
             return;
           }
 
           // Save current URL in the staged component
           stageComp.combinedURL = combinedURL;
+          stageComp.combinedProgress = combinedProgress;
 
+          // Join all payloads into a single trajectory
           let totalPayload;
           if (trajectoryPayloads.length === 1)
             totalPayload = trajectoryPayloads[0];
-          // Join all payloads into a single trajectory
           else
             totalPayload = trajectoryPayloads.reduce((cb, nb) =>
               appendBuffer(cb, nb),
             );
+          // If the total payload is empty then stop here
+          if (totalPayload.byteLength === 0) return;
+          // Calculate how many frames are there in total
+          const bytesPerFrame = trajectoryAtoms * BYTES_PER_ATOM;
+          const totalFrames = totalPayload.byteLength / bytesPerFrame;
 
           // remove all possibly already existing trajectories
           // This return an error in console: "updateStructure: traj disposed"
           // This may be a bug but it is actually working
           // See https://github.com/arose/ngl/issues/680
-          stageComp.trajList.forEach(
-            stageComp.removeTrajectory.bind(stageComp),
-          );
+          // stageComp.trajList.forEach(
+          //   stageComp.removeTrajectory.bind(stageComp),
+          // );
 
-          // Transform the binary trajectory data to an NGL friendly format
-          const file = payloadToNGLFile(
-            pdbFile,
-            totalPayload,
-            atoms,
-            comp.frameCount,
-            isProjection,
-          );
-
-          if (file) {
-            const trajectoryFrames = stageComp.addTrajectory(file);
+          // If there is a trajectory already update it with new data
+          const compTrajectories = stageComp.trajList;
+          if (compTrajectories.length > 0) {
+            // There must be only one trajectory
+            if (compTrajectories.length > 1)
+              throw new Error(`Multiple trajectories in one component`);
+            const nglTrajectory = compTrajectories[0].trajectory;
+            updateNGLFile(
+              nglTrajectory,
+              pdbFile,
+              totalPayload,
+              trajectoryAtoms,
+              totalFrames,
+            );
+            //console.log(nglTrajectory.player);
+            //console.log('mode: ' + nglTrajectory.player.parameters.mode + ', frame: ' + nglTrajectory.player._currentStep);
+            // Adjust some parameters after the trajectory data has been changed
+            nglTrajectory._frameCount = totalFrames;
+            const completedTrajectory =
+              totalFrames === trajectoryFinalExpectedFrames;
+            nglTrajectory.player.setParameters({
+              end: totalFrames - 1,
+              interpolateStep: 100 / trajectoryFinalExpectedFrames, // This must be set every time
+              mode: completedTrajectory ? 'loop' : 'once',
+            });
+            nglTrajectory.setFrame(totalFrames - 1);
+            if (completedTrajectory) nglTrajectory.player.play();
+            // if (nglTrajectory.player._currentStep < totalFrames && !nglTrajectory.player.isRunning) {
+            //   nglTrajectory.player.play();
+            // }
+          }
+          // If there is not trajectory yet then create a new NGL trajectory
+          else {
+            // Transform the binary trajectory data to an NGL friendly format
+            const file = setNGLFile(
+              pdbFile,
+              totalPayload,
+              trajectoryAtoms,
+              totalFrames,
+            );
+            if (!file) return;
+            const nglFile = stageComp.addTrajectory(file);
+            const nglTrajectory = nglFile.trajectory;
             // Count the real numer of frames in the current trajectory and reset the 'nFrames'
             if (setNFrames && c === 0) {
-              const frameCount = trajectoryFrames.trajectory.frameCount;
+              const frameCount = nglTrajectory.frameCount;
               setNFrames(frameCount);
             }
             // Add the frame change handler only if it is the main component
-            if (c === 0)
-              trajectoryFrames.signals.frameChanged.add(handleFrameChange);
-            trajectoryFrames.trajectory.setFrame(0);
-            frames.push(trajectoryFrames);
+            if (c === 0) nglFile.signals.frameChanged.add(handleFrameChange);
+            nglTrajectory.setFrame(0);
+            // Set animation player parameters
+            nglTrajectory.player.setParameters({
+              interpolateStep: 100 / trajectoryFinalExpectedFrames,
+              mode: 'once',
+            });
+            frames.push(nglFile);
           }
         });
 
@@ -1176,14 +1228,7 @@ const NGLViewer = memo(
             frame.signals.frameChanged.remove(handleFrameChange),
           );
         */
-      }, [
-        pdbFile,
-        trajectories,
-        handleFrameChange,
-        isProjection,
-        comps,
-        setNFrames,
-      ]);
+      }, [pdbFile, trajectories, handleFrameChange, comps, setNFrames]);
 
       // play/pause
       const mainTraj =

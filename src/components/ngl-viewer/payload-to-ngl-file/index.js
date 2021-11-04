@@ -1,136 +1,258 @@
 import { Frames } from 'ngl';
 
-const COORDINATES_NUMBER = 3;
+// Set the number of bytes per element in trajectory data
+const BYTES_PER_COORDINATE = 4; // float 32
+const COORDINATES_PER_ATOM = 3; // x, y and z
+const BYTES_PER_ATOM = BYTES_PER_COORDINATE * COORDINATES_PER_ATOM;
 
-const payloadToNGLFile = (
-  pdbFile,
-  dcdPayload,
-  atoms,
-  nFrames,
-  isProjection,
-  isOneFrame,
+// This converts the trajectory payload (i.e. atom coordinates in raw binary data) into NGL formatted coordinates
+const payloadToNGLCoordinates = (
+  trajectoryData,
+  trajectoryAtoms,
+  trajectoryFrames,
 ) => {
-  if (!(pdbFile && dcdPayload)) return;
-
-  const singleFrame = isOneFrame || nFrames === 1;
-
-  const view = new Float32Array(dcdPayload);
-
-  const file = new Frames('Dynamically generated trajectory', '');
-
-  let length = nFrames;
-  let format = '';
-  if (isProjection) {
-    // This is a standard: PCA projections have 20 frames
-    length = 20;
-    // PCA projections are asumed to not have atoms of membrane, solvent, ions, etc.
-    // PCA projections may have only heavy atoms or the backbone and this data is not explicit
-    // Try to deduct which atoms are in the PCA projection by counting atoms and coordinatess
-    // First, calculate the number of atoms in the pca projection
-    const viewAtoms = view.length / (length * COORDINATES_NUMBER);
-    // Then count different combinations of atoms in the pdbFile
-    let k = 0;
-    let backboneAtoms = 0;
-    let heavyAtoms = 0;
-    for (let a = 0; a < pdbFile.atomCount; a++) {
-      // DANI: He probado a quitar esta condición. hay que probar que funcione bien en la vieja model
-      // DANI: En las trayectorias del Shaw el 'isProtein' no funcionaba y devolvía siempre 'false'
-      //if (!pdbFile.getAtomProxy(a).isProtein()) break;
-      if (k >= atoms) break;
-      if (
-        pdbFile.getAtomProxy(a).atomname === 'C' ||
-        pdbFile.getAtomProxy(a).atomname === 'CA' ||
-        pdbFile.getAtomProxy(a).atomname === 'N'
-      ) {
-        backboneAtoms += 1;
-      }
-      if (pdbFile.getAtomProxy(a).element !== 'H') {
-        heavyAtoms += 1;
-      }
-    }
-    // Finally check which count matches the expected number of atoms
-    if (viewAtoms === backboneAtoms) format = 'backbone';
-    else if (viewAtoms === heavyAtoms) format = 'heavy';
-    else
-      console.error(
-        `Number of atoms in PCA projection does not match any defined atoms selection
-        Number of atoms: ${viewAtoms}
-        Expected backbone atoms: ${backboneAtoms}
-        Expected heavy atoms: ${heavyAtoms}`,
-      );
-  } else if (singleFrame) {
-    length = 1;
-  }
+  // Parse binary to coordinates
+  const trajectoryCoordinates = new Float32Array(trajectoryData);
   try {
-    for (let i = 0; i < length; i++) {
+    // Save all coordinates here
+    // This array is to be returned at the end
+    const overallCoordinates = [];
+    for (let i = 0; i < trajectoryFrames; i++) {
       // Create a new array with the length of the number of atoms in the pdbFile * 3
       const coordinates = new Float32Array(
-        pdbFile.atomCount * COORDINATES_NUMBER,
+        trajectoryAtoms * COORDINATES_PER_ATOM,
       );
-      let k = 0;
-      // If it is a PCA projection
-      if (isProjection) {
-        // Create our own trajectory with coordinates only for the specified atoms
-        // The coordinates of the excluded atoms are set to 0
-        // This makes the trajectory compatible with the pdbFile
-        if (format === 'backbone') {
-          for (let j = 0; j < pdbFile.atomCount; j++) {
-            if (k >= atoms) break;
-            if (
-              pdbFile.getAtomProxy(j).atomname === 'C' ||
-              pdbFile.getAtomProxy(j).atomname === 'CA' ||
-              pdbFile.getAtomProxy(j).atomname === 'N'
-            ) {
-              coordinates[j * COORDINATES_NUMBER] =
-                view[i * atoms * COORDINATES_NUMBER + k * COORDINATES_NUMBER];
-              coordinates[j * COORDINATES_NUMBER + 1] =
-                view[
-                  i * atoms * COORDINATES_NUMBER + k * COORDINATES_NUMBER + 1
-                ];
-              coordinates[j * COORDINATES_NUMBER + 2] =
-                view[
-                  i * atoms * COORDINATES_NUMBER + k * COORDINATES_NUMBER + 2
-                ];
-              k++;
-            }
-          }
-        }
-        if (format === 'heavy') {
-          for (let j = 0; j < pdbFile.atomCount; j++) {
-            if (k >= atoms) break;
-            if (pdbFile.getAtomProxy(j).element !== 'H') {
-              coordinates[j * COORDINATES_NUMBER] =
-                view[i * atoms * COORDINATES_NUMBER + k * COORDINATES_NUMBER];
-              coordinates[j * COORDINATES_NUMBER + 1] =
-                view[
-                  i * atoms * COORDINATES_NUMBER + k * COORDINATES_NUMBER + 1
-                ];
-              coordinates[j * COORDINATES_NUMBER + 2] =
-                view[
-                  i * atoms * COORDINATES_NUMBER + k * COORDINATES_NUMBER + 2
-                ];
-              k++;
-            }
-          }
-        }
-      } else {
-        // if it is not a PCA projection
-        coordinates.set(
-          view.subarray(
-            i * atoms * COORDINATES_NUMBER,
-            (i + 1) * atoms * COORDINATES_NUMBER,
-          ),
-        );
-      }
+      coordinates.set(
+        trajectoryCoordinates.subarray(
+          i * trajectoryAtoms * COORDINATES_PER_ATOM,
+          (i + 1) * trajectoryAtoms * COORDINATES_PER_ATOM,
+        ),
+      );
       // Push the new coordinates each frame
-      file.coordinates.push(coordinates);
+      overallCoordinates.push(coordinates);
     }
-    return file;
+    return overallCoordinates;
   } catch (error) {
-    console.error(error);
-    // If this fails the topology may not match the trajectory
-    throw new Error(`Topology and trajectory data may not match`);
+    // If this fails the topology may not match the trajectory in atom number
+    return null;
   }
 };
 
-export default payloadToNGLFile;
+// This converts the trajectory payload (i.e. atom coordinates in raw binary data) into NGL formatted coordinates
+// This alternative function is used when the trajectory has less atoms than the payload
+// This may happen when trajectory data contains only heavy or backbone atoms
+const payloadToNGLCoordinatesAlternative = (
+  pdbFile,
+  trajectoryData,
+  trajectoryAtoms,
+  trajectoryFrames,
+) => {
+  // Parse binary to coordinates
+  const trajectoryCoordinates = new Float32Array(trajectoryData);
+  // Check atom number to be as expected
+  if (
+    trajectoryCoordinates.length / COORDINATES_PER_ATOM / trajectoryFrames !==
+    trajectoryAtoms
+  )
+    throw new Error(`Trajectory atom number is wrong`);
+
+  let format = '';
+
+  // Then count different combinations of atoms in the pdbFile
+  let k = 0;
+  let backboneAtoms = 0;
+  let heavyAtoms = 0;
+  for (let a = 0; a < pdbFile.atomCount; a++) {
+    // DANI: He probado a quitar esta condición. hay que probar que funcione bien en la vieja model
+    // DANI: En las trayectorias del Shaw el 'isProtein' no funcionaba y devolvía siempre 'false'
+    //if (!pdbFile.getAtomProxy(a).isProtein()) break;
+    if (k >= trajectoryAtoms) break;
+    if (
+      pdbFile.getAtomProxy(a).atomname === 'C' ||
+      pdbFile.getAtomProxy(a).atomname === 'CA' ||
+      pdbFile.getAtomProxy(a).atomname === 'N'
+    ) {
+      backboneAtoms += 1;
+    }
+    if (pdbFile.getAtomProxy(a).element !== 'H') {
+      heavyAtoms += 1;
+    }
+  }
+  // Finally check which count matches the expected number of atoms
+  if (trajectoryAtoms === backboneAtoms) format = 'backbone';
+  else if (trajectoryAtoms === heavyAtoms) format = 'heavy';
+  else
+    console.error(
+      `Number of atoms does not match any defined atoms selection
+      Number of atoms: ${trajectoryAtoms}
+      Expected backbone atoms: ${backboneAtoms}
+      Expected heavy atoms: ${heavyAtoms}`,
+    );
+  try {
+    // Save all coordinates here
+    // This array is to be returned at the end
+    const overallCoordinates = [];
+    for (let i = 0; i < trajectoryFrames; i++) {
+      // Create a new array with the length of the number of atoms in the pdbFile * 3
+      const coordinates = new Float32Array(
+        pdbFile.atomCount * COORDINATES_PER_ATOM,
+      );
+      let k = 0;
+      // Create our own trajectory with coordinates only for the specified atoms
+      // The coordinates of the excluded atoms are set to 0
+      // This makes the trajectory compatible with the pdbFile
+      if (format === 'backbone') {
+        for (let j = 0; j < pdbFile.atomCount; j++) {
+          if (k >= trajectoryAtoms) break;
+          if (
+            pdbFile.getAtomProxy(j).atomname === 'C' ||
+            pdbFile.getAtomProxy(j).atomname === 'CA' ||
+            pdbFile.getAtomProxy(j).atomname === 'N'
+          ) {
+            coordinates[j * COORDINATES_PER_ATOM] =
+              trajectoryCoordinates[
+                i * trajectoryAtoms * COORDINATES_PER_ATOM +
+                  k * COORDINATES_PER_ATOM
+              ];
+            coordinates[j * COORDINATES_PER_ATOM + 1] =
+              trajectoryCoordinates[
+                i * trajectoryAtoms * COORDINATES_PER_ATOM +
+                  k * COORDINATES_PER_ATOM +
+                  1
+              ];
+            coordinates[j * COORDINATES_PER_ATOM + 2] =
+              trajectoryCoordinates[
+                i * trajectoryAtoms * COORDINATES_PER_ATOM +
+                  k * COORDINATES_PER_ATOM +
+                  2
+              ];
+            k++;
+          }
+        }
+      }
+      if (format === 'heavy') {
+        for (let j = 0; j < pdbFile.atomCount; j++) {
+          if (k >= trajectoryAtoms) break;
+          if (pdbFile.getAtomProxy(j).element !== 'H') {
+            coordinates[j * COORDINATES_PER_ATOM] =
+              trajectoryCoordinates[
+                i * trajectoryAtoms * COORDINATES_PER_ATOM +
+                  k * COORDINATES_PER_ATOM
+              ];
+            coordinates[j * COORDINATES_PER_ATOM + 1] =
+              trajectoryCoordinates[
+                i * trajectoryAtoms * COORDINATES_PER_ATOM +
+                  k * COORDINATES_PER_ATOM +
+                  1
+              ];
+            coordinates[j * COORDINATES_PER_ATOM + 2] =
+              trajectoryCoordinates[
+                i * trajectoryAtoms * COORDINATES_PER_ATOM +
+                  k * COORDINATES_PER_ATOM +
+                  2
+              ];
+            k++;
+          }
+        }
+      }
+      // Push the new coordinates each frame
+      overallCoordinates.push(coordinates);
+    }
+    return overallCoordinates;
+  } catch (e) {
+    // If this fails the topology may not match the trajectory in atom number
+    return null;
+  }
+};
+
+// This converts the trajectory payload (i.e. atom coordinates in raw binary data) into an NGL object
+// This object can be further added to a NGL stage component
+export const setNGLFile = (
+  pdbFile,
+  trajectoryData,
+  trajectoryAtoms,
+  trajectoryFrames,
+) => {
+  if (!(pdbFile && trajectoryData)) return;
+
+  let coordinates;
+  // In case topology and trajectory atoms match go for the canonical parsing
+  if (trajectoryAtoms === pdbFile.atomCount)
+    coordinates = payloadToNGLCoordinates(
+      trajectoryData,
+      trajectoryAtoms,
+      trajectoryFrames,
+    );
+  // Otherwise it may mean the trajectory has only heavy/backbone atoms
+  // Then parse it taking this in count
+  // DANI: Esto es más un arreglo que no algo permanente
+  // DANI: Lo suyo sería que en estos casos se pida la estructura solo con los átomos que hacen falta
+  else
+    coordinates = payloadToNGLCoordinatesAlternative(
+      pdbFile,
+      trajectoryData,
+      trajectoryAtoms,
+      trajectoryFrames,
+    );
+
+  // If we do not have coordinates at this point it may mean the topology and trajectory are not matching in atom number
+  if (!coordinates)
+    throw new Error(`Topology and trajectory data may not match`);
+
+  // Finally build the NGL object and add the parsed coordinates
+  const file = new Frames('Dynamically generated trajectory', '');
+  file.coordinates = coordinates;
+  return file;
+};
+
+// This updates an already set NGL object by adding new trajectory data
+export const updateNGLFile = (
+  file,
+  pdbFile,
+  trajectoryData,
+  trajectoryAtoms,
+  trajectoryFrames,
+) => {
+  if (!(file && pdbFile && trajectoryData)) return;
+
+  // The NGL file may already have trajectory data
+  // There is no need to process those coordinates again, so they must discarded from the parsing
+
+  // Find out how many frames are already loaded
+  const currentFrames = file.frames.length;
+
+  // If there are as many frames already as the new trajectory frames then we have nothing to do
+  if (currentFrames >= trajectoryFrames) return;
+
+  // Calculate how many bytes we must discard and discard them from the begining of the array buffer
+  const discardBytes = currentFrames * trajectoryAtoms * BYTES_PER_ATOM;
+  const newTrajectoryData = trajectoryData.slice(discardBytes);
+  const newTrajectoryFrames = trajectoryFrames - currentFrames;
+
+  let coordinates;
+  // In case topology and trajectory atoms match go for the canonical parsing
+  if (trajectoryAtoms === pdbFile.atomCount)
+    coordinates = payloadToNGLCoordinates(
+      newTrajectoryData,
+      trajectoryAtoms,
+      newTrajectoryFrames,
+    );
+  // Otherwise it may mean the trajectory has only heavy/backbone atoms
+  // Then parse it taking this in count
+  // DANI: Esto es más un arreglo que no algo permanente
+  // DANI: Lo suyo sería que en estos casos se pida la estructura solo con los átomos que hacen falta
+  else
+    coordinates = payloadToNGLCoordinatesAlternative(
+      pdbFile,
+      newTrajectoryData,
+      trajectoryAtoms,
+      newTrajectoryFrames,
+    );
+
+  // If we do not have coordinates at this point it may mean the topology and trajectory are not matching in atom number
+  if (!coordinates)
+    throw new Error(`Topology and trajectory data may not match`);
+
+  // Finally update the NGL file coordinates
+  file.frames = file.frames.concat(coordinates);
+};

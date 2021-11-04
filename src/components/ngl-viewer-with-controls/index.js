@@ -388,6 +388,7 @@ const NGLViewerWithControls = forwardRef(
 
     // states
     const [progress, setProgress] = useState(0);
+    const [load, setLoad] = useState(0);
     const [isFullscreen, setIsFullscreen] = useState(screenfull.isFullscreen);
     const [nFrames, setNFrames] = useState(
       useMemo(() => {
@@ -414,6 +415,14 @@ const NGLViewerWithControls = forwardRef(
         setProgress(prog);
       },
       [setProgress, onProgress],
+    );
+
+    // Handle the trajectory load
+    const handleLoad = useCallback(
+      load => {
+        setLoad(load);
+      },
+      [setLoad],
     );
 
     // handle click or click & drag progress bar
@@ -514,6 +523,7 @@ const NGLViewerWithControls = forwardRef(
                 spinning={spinning}
                 smooth={smooth}
                 onProgress={handleProgress}
+                onLoad={handleLoad}
                 ref={viewerRef}
                 noTrajectory={noTrajectory}
                 nFrames={nFrames}
@@ -669,9 +679,11 @@ const NGLViewerWithControls = forwardRef(
                 onMouseMove={handleManualProgress}
               >
                 <LinearProgress
-                  variant="determinate"
+                  //variant="determinate"
+                  variant="buffer"
                   color="secondary"
                   value={progress * 100}
+                  valueBuffer={load * 100}
                 />
               </div>
             )}
