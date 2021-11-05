@@ -1141,6 +1141,9 @@ const NGLViewer = memo(
           let totalPayload;
           if (trajectoryPayloads.length === 1)
             totalPayload = trajectoryPayloads[0];
+          // DANI: Esto no está bien ahora que hay streaming
+          // DANI: Si hubiese dos trayectorias combinadas sus frames quedarían entrelazadas
+          // DANI: Pero las trayectorias combinadas no se usan, así que no me merece la pena mantenerlo
           else
             totalPayload = trajectoryPayloads.reduce((cb, nb) =>
               appendBuffer(cb, nb),
@@ -1150,6 +1153,9 @@ const NGLViewer = memo(
           // Calculate how many frames are there in total
           const bytesPerFrame = trajectoryAtoms * BYTES_PER_ATOM;
           const totalFrames = totalPayload.byteLength / bytesPerFrame;
+          // Check if all required data is already downloaded
+          const completedTrajectory =
+            totalFrames === trajectoryFinalExpectedFrames;
 
           // remove all possibly already existing trajectories
           // This return an error in console: "updateStructure: traj disposed"
@@ -1173,22 +1179,18 @@ const NGLViewer = memo(
               trajectoryAtoms,
               totalFrames,
             );
-            //console.log(nglTrajectory.player);
-            //console.log('mode: ' + nglTrajectory.player.parameters.mode + ', frame: ' + nglTrajectory.player._currentStep);
             // Adjust some parameters after the trajectory data has been changed
             nglTrajectory._frameCount = totalFrames;
-            const completedTrajectory =
-              totalFrames === trajectoryFinalExpectedFrames;
-            nglTrajectory.player.setParameters({
+            const nglPlayer = nglTrajectory.player;
+            nglPlayer.setParameters({
               end: totalFrames - 1,
               interpolateStep: 100 / trajectoryFinalExpectedFrames, // This must be set every time
               mode: completedTrajectory ? 'loop' : 'once',
             });
-            nglTrajectory.setFrame(totalFrames - 1);
-            if (completedTrajectory) nglTrajectory.player.play();
-            // if (nglTrajectory.player._currentStep < totalFrames && !nglTrajectory.player.isRunning) {
-            //   nglTrajectory.player.play();
-            // }
+            if (nglPlayer.isRunning) {
+              nglTrajectory.setFrame(totalFrames - 1);
+              if (completedTrajectory) nglPlayer.play();
+            }
           }
           // If there is not trajectory yet then create a new NGL trajectory
           else {
@@ -1213,7 +1215,7 @@ const NGLViewer = memo(
             // Set animation player parameters
             nglTrajectory.player.setParameters({
               interpolateStep: 100 / trajectoryFinalExpectedFrames,
-              mode: 'once',
+              mode: completedTrajectory ? 'loop' : 'once',
             });
             frames.push(nglFile);
           }
