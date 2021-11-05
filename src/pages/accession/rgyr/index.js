@@ -65,7 +65,7 @@ const Rgyr = () => {
   const cents = num => Math.round(num * 100) / 100;
 
   const dataLength = payload.y['rgyr'].data.length;
-  const xAxesStep = (metadata.LENGTH / (dataLength - 1)) * 1000;
+  const xAxesStep = metadata.LENGTH / (dataLength - 1);
 
   // Render
   return (
