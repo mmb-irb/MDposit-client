@@ -1,4 +1,3 @@
-import { ProjectCtx, PdbCtx } from '../../contexts';
 import { range } from 'lodash-es';
 const ngl = require('ngl');
 
@@ -179,7 +178,7 @@ export const nglNumerationParser = numeration => {
 };
 
 // Get atom data from atom index
-export const getAtom = (index, topology = PdbCtx._currentValue.file) => {
+export const getAtom = (index, topology) => {
   const atomStore = topology.atomStore;
   // Get the atom number according to the topology. It usually ranges from 1 to n
   const serial = atomStore.serial[index];
@@ -193,7 +192,7 @@ export const getAtom = (index, topology = PdbCtx._currentValue.file) => {
 };
 
 // Return residue data whom the specified absolute atom number belongs to
-export const getAtomResidue = (atom, topology = PdbCtx._currentValue.file) => {
+export const getAtomResidue = (atom, topology) => {
   const index = topology.atomStore.residueIndex[atom];
   const residueStore = topology.residueStore;
   const atomCount = residueStore.atomCount[index];
@@ -208,20 +207,14 @@ export const getAtomResidue = (atom, topology = PdbCtx._currentValue.file) => {
 // Get first atom absolute number from resiude absolute number
 // DANI: Hay que revisar esos -1 y +1
 // DANI: Creo que esto ya no se usa. Borralo si te apura
-export const getResidueFirstAtom = (
-  residue,
-  topology = PdbCtx._currentValue.file,
-) => {
+export const getResidueFirstAtom = (residue, topology) => {
   const atom = topology.residueStore.atomOffset[residue - 1] + 1;
   //console.log(residue + ' => ' + atom);
   return atom;
 };
 
 // Return all atom absolute numbers from resiude absolute number
-export const getResidueAtoms = (
-  residue,
-  topology = PdbCtx._currentValue.file,
-) => {
+export const getResidueAtoms = (residue, topology) => {
   const firstAtom = topology.residueStore.atomOffset[residue];
   const atomCount = topology.residueStore.atomCount[residue];
   const atoms = [];
@@ -230,10 +223,7 @@ export const getResidueAtoms = (
   return atoms;
 };
 
-export const residueHasCAlpha = (
-  residue,
-  topology = PdbCtx._currentValue.file,
-) => {
+export const residueHasCAlpha = (residue, topology) => {
   const atoms = getResidueAtoms(residue, topology);
   for (const atom of atoms) {
     const name = getAtom(atom, topology).name;
@@ -244,10 +234,7 @@ export const residueHasCAlpha = (
 };
 
 // This function finds the residue type (e.g. TYR) from a residue absolute number
-export const getResidueType = (
-  residue,
-  topology = PdbCtx._currentValue.file,
-) => {
+export const getResidueType = (residue, topology) => {
   const typeId = topology.residueStore.residueTypeId[residue];
   const type = topology.residueMap.get(typeId).resname;
   //console.log(residue + ' => ' + type);
@@ -342,7 +329,7 @@ export const getResidueLetter = residueType => {
 
 // This function returns an array with all chains in topology
 // Specifically, it returns the string chain letters
-export const getTopologyChains = (topology = PdbCtx._currentValue.file) => {
+export const getTopologyChains = topology => {
   const chainCount = topology.chainStore.count;
   const chains = [];
   for (let chain = 0; chain < chainCount; chain++) {
@@ -353,11 +340,7 @@ export const getTopologyChains = (topology = PdbCtx._currentValue.file) => {
 };
 
 // This function returns the chain name from a chain letter (e.g 'A')
-export const getMetadataChainname = (
-  chain,
-  metadata = ProjectCtx._currentValue.metadata,
-  topology = PdbCtx._currentValue.file,
-) => {
+export const getMetadataChainname = (chain, metadata, topology) => {
   if (!metadata) throw new Error('There is no metadata');
   if (!topology) throw new Error('There is no topology');
   const metadataChainnames = metadata.CHAINNAMES;
@@ -384,11 +367,7 @@ export const getMetadataChainname = (
 
 // This function returns the chain names from an array with chain letters (e.g ['A','B'])
 // Results are collapsed according to unique chainnames
-export const getMetadataChainnames = (
-  chains,
-  metadata = ProjectCtx._currentValue.metadata,
-  topology = PdbCtx._currentValue.file,
-) => {
+export const getMetadataChainnames = (chains, metadata, topology) => {
   // Get unique chains
   chains = Array.from(new Set(chains));
   // Get the name of each chain individually
@@ -426,7 +405,7 @@ export const getMetadataChainnames = (
 
 // This function returns the chain index from a chain letter (e.g 'A')
 // Return -1 when the chain letter si not found
-export const getChainIndex = (chain, topology = PdbCtx._currentValue.file) => {
+export const getChainIndex = (chain, topology) => {
   const chainCount = topology.chainStore.count;
   for (let i = 0; i < chainCount; i++)
     if (topology.chainStore.getChainname(i) === chain) return i;
@@ -435,7 +414,7 @@ export const getChainIndex = (chain, topology = PdbCtx._currentValue.file) => {
 
 // Given a list of residues in absolute numeration, separate them by chain and return an object where keys are chain names
 // e.g. [ 1, 2, 3, 17 ] -> { 'A': [1,2,3], 'B': [17] }
-export const byChains = (residues, topology = PdbCtx._currentValue.file) => {
+export const byChains = (residues, topology) => {
   const chained = {};
   residues.forEach(residue => {
     const chainIndex = topology.residueStore.chainIndex[residue];
@@ -450,8 +429,8 @@ export const byChains = (residues, topology = PdbCtx._currentValue.file) => {
 // This function converts topology residue numbers to the model chain name and chain residue numeration
 export const source2modelResidue = (
   { chain, residue, icode },
-  topology = PdbCtx._currentValue.file,
-  metadata = ProjectCtx._currentValue.metadata,
+  topology,
+  metadata,
 ) => {
   // Check arguments to be valid
   check(chain, residue);
@@ -463,10 +442,7 @@ export const source2modelResidue = (
 };
 
 // This function converts topology residue numbers to absolute residue numbers
-export const source2absoluteResidue = (
-  { chain, residue, icode },
-  topology = PdbCtx._currentValue.file,
-) => {
+export const source2absoluteResidue = ({ chain, residue, icode }, topology) => {
   const chainIndexes = topology.residueStore.chainIndex;
   const resnos = topology.residueStore.resno;
   const inscodes = topology.residueStore.inscode;
@@ -495,10 +471,7 @@ export const source2absoluteResidue = (
 };
 
 // Get the total number of atoms from a resiude absolute number
-export const getAtomsCount = (
-  residue,
-  topology = PdbCtx._currentValue.file,
-) => {
+export const getAtomsCount = (residue, topology) => {
   return topology.residueStore.atomCount[residue];
 };
 
@@ -508,11 +481,7 @@ export const getResiduesCount = topology => {
 };
 
 // Transform an absolute residue number to the model corresponding chain and chain residue
-export const absolute2modelResidue = (
-  residue,
-  topology = PdbCtx._currentValue.file,
-  metadata = ProjectCtx._currentValue.metadata,
-) => {
+export const absolute2modelResidue = (residue, topology, metadata) => {
   const chainIndex = topology.residueStore.chainIndex[residue];
   const chain = topology.chainStore.getChainname(chainIndex); // e.g. 'A'
   const chainName = getMetadataChainname(chain, metadata, topology); // e.g. 'ACE2'
@@ -531,10 +500,7 @@ export const absolute2modelResidue = (
 };
 
 // This function converts absolute residue numbers to topology residue numbers
-export const absolute2sourceResidue = (
-  residue,
-  topology = PdbCtx._currentValue.file,
-) => {
+export const absolute2sourceResidue = (residue, topology) => {
   //console.log(topology);
   if (!Number.isInteger(residue))
     throw new Error(
@@ -572,10 +538,7 @@ export const absolute2sourceResidue = (
 // If the residue is not mapped for whatever the reason then return null
 // e.g. the topology map may be missing or the residue may be not protein
 // Note that each absolute residue may belong to only 1 reference
-export const absolute2reference = (
-  residue,
-  metadata = ProjectCtx._currentValue.metadata,
-) => {
+export const absolute2reference = (residue, metadata) => {
   const toporefs = metadata.TOPOREFS;
   if (!toporefs) return null;
   for (const toporef of toporefs) {
@@ -592,11 +555,7 @@ export const absolute2reference = (
 // The reference must be specified with the topology reference name, since there may be more than 1 reference
 // e.g. "SARS-CoV-2 spike"
 // Note that one residue in the reference may be more than once or not be in the current topology
-export const reference2absolute = (
-  reference,
-  residues,
-  metadata = ProjectCtx._currentValue.metadata,
-) => {
+export const reference2absolute = (reference, residues, metadata) => {
   const metadataToporef =
     metadata &&
     metadata.TOPOREFS &&
@@ -615,10 +574,7 @@ export const reference2absolute = (
 };
 
 // This function converts model residue numbers to absolute residue numbers
-export const model2absoluteResidue = (
-  { chain, residue },
-  topology = PdbCtx._currentValue.file,
-) => {
+export const model2absoluteResidue = ({ chain, residue }, topology) => {
   //console.log(topology);
   const chainIndex = getChainIndex(chain, topology);
   const residueOffest = topology.chainStore.residueOffset[chainIndex];
@@ -629,10 +585,7 @@ export const model2absoluteResidue = (
 };
 
 // This function converts model residue numbers to source residue numbers
-export const model2sourceResidue = (
-  { chain, residue },
-  topology = PdbCtx._currentValue.file,
-) => {
+export const model2sourceResidue = ({ chain, residue }, topology) => {
   const absolute = model2absoluteResidue({ chain, residue }, topology);
   const source = absolute2sourceResidue(absolute, topology);
   return source;
@@ -649,7 +602,7 @@ export const isCartoonSupported = nglResidue => {
 export const nglSelection2absolute = (
   nglSelection,
   onlyCartoonSupported = false,
-  topology = PdbCtx._currentValue.file,
+  topology,
 ) => {
   const residues = [];
   // Save the selection in ngl format (structureComponent)
@@ -672,10 +625,7 @@ export const nglSelection2absolute = (
 // Convert an array of absolute residue indices to an ngl selection
 // This NGL selection is as short as possible by using rnaged syntax
 // e.g. [0, 1, 2, 3, 4] -> ':A and 1-5'
-export const absolute2nglSelection = (
-  residues,
-  topology = PdbCtx._currentValue.file,
-) => {
+export const absolute2nglSelection = (residues, topology) => {
   const nglResidues = residues.map(
     residue => absolute2sourceResidue(residue, topology).numeration,
   );

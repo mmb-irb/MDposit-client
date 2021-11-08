@@ -95,12 +95,12 @@ const DistPerres = () => {
     // Convert the residues from topology numeration to model numeration to use them as labels
     const xLabels = residuesX.map(lab => {
       const numeration = complexNumerationParser(lab);
-      const mod = source2modelResidue(numeration, pdbData.file);
+      const mod = source2modelResidue(numeration, pdbData.file, metadata);
       return mod.ngl;
     });
     const yLabels = residuesY.map(lab => {
       const numeration = complexNumerationParser(lab);
-      const mod = source2modelResidue(numeration, pdbData.file);
+      const mod = source2modelResidue(numeration, pdbData.file, metadata);
       return mod.ngl;
     });
 

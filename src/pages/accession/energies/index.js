@@ -108,7 +108,7 @@ const Energies = () => {
     data.xTags = [];
     for (const residue of data.labels) {
       const numeration = complexNumerationParser(residue);
-      const mod = source2modelResidue(numeration, pdbData.file);
+      const mod = source2modelResidue(numeration, pdbData.file, metadata);
       data.xTags.push(mod.ngl);
     }
 
@@ -130,6 +130,7 @@ const Energies = () => {
     selectedInteraction,
     selectedOrder,
     pdbData,
+    metadata,
     defaultRepresentations,
   ]);
 

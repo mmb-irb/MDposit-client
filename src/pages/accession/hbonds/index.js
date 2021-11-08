@@ -116,19 +116,21 @@ const Hbonds = () => {
       filteredData.hydrogenAtomIndex.push(hydrogen);
 
       // Set a human readable label for this bond
-      const acceptorName = getAtom(acceptor).name;
-      const donorName = getAtom(donor).name;
-      const acceptorResidueIndex = getAtomResidue(acceptor).index;
-      const donorResidueIndex = getAtomResidue(donor).index;
-      const hydrogenName = getAtom(hydrogen).name;
+      const acceptorName = getAtom(acceptor, pdbData.file).name;
+      const donorName = getAtom(donor, pdbData.file).name;
+      const acceptorResidueIndex = getAtomResidue(acceptor, pdbData.file).index;
+      const donorResidueIndex = getAtomResidue(donor, pdbData.file).index;
+      const hydrogenName = getAtom(hydrogen, pdbData.file).name;
 
       const acceptorResidue = absolute2modelResidue(
         acceptorResidueIndex,
         pdbData.file,
+        metadata,
       );
       const donorResidue = absolute2modelResidue(
         donorResidueIndex,
         pdbData.file,
+        metadata,
       );
       filteredData.ylabels.push(
         acceptorResidue.ngl +
@@ -149,7 +151,7 @@ const Hbonds = () => {
       return 'No hydrogen bonds stable enough where found for this interaction';
 
     return filteredData;
-  }, [payload, pdbData, interactions, selectedInteraction, metadata.SNAPSHOTS]);
+  }, [payload, pdbData, metadata, interactions, selectedInteraction]);
 
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
