@@ -1189,8 +1189,8 @@ const NGLViewer = memo(
             });
             if (nglPlayer.isRunning) {
               nglTrajectory.setFrame(totalFrames - 1);
-              if (completedTrajectory) nglPlayer.play();
             }
+            if (completedTrajectory) nglPlayer.play();
           }
           // If there is not trajectory yet then create a new NGL trajectory
           else {
