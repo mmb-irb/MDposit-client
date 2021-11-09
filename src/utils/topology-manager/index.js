@@ -16,19 +16,18 @@ const ngl = require('ngl');
 //   Usual numeration in data representation for this web
 
 // This function is used by other functions to check whenever the arguments are valid
-const check = (chain, residue) => {
-  if (typeof chain !== 'string' || chain.length !== 1)
-    throw new Error(
-      'The "chain" argument must be a single letter (e.g. "A", "B", ...), not ' +
-        chain,
-    );
-
-  if (typeof residue !== 'number' || residue < 0)
-    throw new Error(
-      'The "residue" argument must be a real number (e.g. 0, 1, 17, ...), not ' +
-        residue,
-    );
-};
+// const check = (chain, residue) => {
+//   if (typeof chain !== 'string' || chain.length !== 1)
+//     throw new Error(
+//       'The "chain" argument must be a single letter (e.g. "A", "B", ...), not ' +
+//         chain,
+//     );
+//   if (typeof residue !== 'number' || residue < 0)
+//     throw new Error(
+//       'The "residue" argument must be a real number (e.g. 0, 1, 17, ...), not ' +
+//         residue,
+//     );
+// };
 
 // Transform a ranged selection of residues in complex numeration format to an array
 // e.g. "A:1, 3, 5-8 & B:2, 4" => ["A:1", "A:3", "A:5", "A:6", "A:7", "A:8", "B:2", "B:4"]
@@ -157,8 +156,7 @@ export const complexNumerationParser = numeration => {
   const icode = result[3] || '';
   // Formated selection to select this specific residue in NGL
   const nglSelection = ':' + chain + ' and ' + residue;
-  const nglChainSelection = ':' + chain;
-  return { chain, residue: +residue, icode, nglSelection, nglChainSelection };
+  return { chain, residue: +residue, icode, nglSelection };
 };
 
 // Harvest from a '[residue_type]residue:chain' string the chain letter and the residue number values
@@ -433,12 +431,27 @@ export const source2modelResidue = (
   metadata,
 ) => {
   // Check arguments to be valid
-  check(chain, residue);
+  //check(chain, residue);
   const absolute = source2absoluteResidue({ chain, residue, icode }, topology);
   const model = absolute2modelResidue(absolute, topology, metadata);
   //console.log(residue + ' => ' + modelResidue.chainResidue);
   // This object contains the chain, chain name, chain resiude number and residue type
   return model;
+};
+
+// This function converts topology residue numbers to the model chain name and chain residue numeration
+export const source2referenceResidue = (
+  { chain, residue, icode },
+  topology,
+  metadata,
+) => {
+  // Check arguments to be valid
+  //check(chain, residue);
+  const absolute = source2absoluteResidue({ chain, residue, icode }, topology);
+  const reference = absolute2reference(absolute, metadata);
+  //console.log(residue + ' => ' + modelResidue.chainResidue);
+  // This object contains the chain, chain name, chain resiude number and residue type
+  return reference;
 };
 
 // This function converts topology residue numbers to absolute residue numbers

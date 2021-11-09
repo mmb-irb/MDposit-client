@@ -20,11 +20,11 @@ import InteractionSelector from '../../../components/interaction-selector';
 import style from './style.module.css';
 
 import {
-  nglNumerationParser,
-  model2sourceResidue,
   complexNumerationParser,
-  source2modelResidue,
   complexSelectionRanger,
+  source2absoluteResidue,
+  absolute2reference,
+  getResidueType,
 } from '../../../utils/topology-manager';
 
 const Graph2 = lazy(() =>
@@ -105,12 +105,28 @@ const Energies = () => {
     );
     guestSelection = parsedResidues;
 
+    // Set the tags to be displayed on each graph x axis
     data.xTags = [];
-    for (const residue of data.labels) {
+    data.labels.forEach(residue => {
       const numeration = complexNumerationParser(residue);
-      const mod = source2modelResidue(numeration, pdbData.file, metadata);
-      data.xTags.push(mod.ngl);
-    }
+      const absolute = source2absoluteResidue(
+        numeration,
+        pdbData.file,
+        metadata,
+      );
+      const residueType = getResidueType(absolute, pdbData.file);
+      // Use the reference numeration to represent residues in
+      const ref = absolute2reference(absolute, metadata);
+      if (ref) {
+        const tag = ref.index + '(' + residueType + ')';
+        data.xTags.push(tag);
+        return;
+      }
+      // If we have no reference for this residue we use the source numeration
+      // Add a '*' to warn the user that the numeration is not "official"
+      const tag = numeration.residue + '*(' + residueType + ')';
+      data.xTags.push(tag);
+    });
 
     const representations = [
       ...defaultRepresentations,
@@ -141,6 +157,11 @@ const Energies = () => {
 
   // Check if there is only 1 residue
   const singleResidue = data && data.es.length === 1;
+
+  const handleResidueSelection = xIndex => {
+    setSelected(xIndex);
+    setSelectedResidues([data.labels[xIndex]]);
+  };
 
   // Render
   return (
@@ -244,14 +265,8 @@ const Energies = () => {
               xUnit={'residue'}
               title={'Electrostatic'}
               xScaleFactor={0.001}
-              yAxisLabel={'kcal/mol'}
-              onSelect={(xIndex, xValue) => {
-                // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
-                const num = nglNumerationParser(xValue);
-                const source = model2sourceResidue(num, pdbData.file);
-                setSelected(xIndex);
-                setSelectedResidues([source.numeration]);
-              }}
+              yAxisLabel={'Interaction energy (kcal/mol)'}
+              onSelect={handleResidueSelection}
               dataDisplay={{
                 esi: display.start,
                 esf: display.end,
@@ -269,14 +284,8 @@ const Energies = () => {
               title={'vdW'}
               xAxisValues={data.xTags}
               xUnit={'residue'}
-              yAxisLabel={'kcal/mol'}
-              onSelect={(xIndex, xValue) => {
-                // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
-                const num = nglNumerationParser(xValue);
-                const source = model2sourceResidue(num, pdbData.file);
-                setSelected(xIndex);
-                setSelectedResidues([source.numeration]);
-              }}
+              yAxisLabel={'Interaction energy (kcal/mol)'}
+              onSelect={handleResidueSelection}
               dataDisplay={{
                 vdwi: display.start,
                 vdwf: display.end,
@@ -295,17 +304,11 @@ const Energies = () => {
                 both: { data: data.both, color: 'black' },
               }}
               title={'Electrostatic+vdW'}
-              xAxisLabel={'Residue number'}
+              xAxisLabel={'Residue'}
               xAxisValues={data.xTags}
               xUnit={'residue'}
-              yAxisLabel={'kcal/mol'}
-              onSelect={(xIndex, xValue) => {
-                // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
-                const num = nglNumerationParser(xValue);
-                const source = model2sourceResidue(num, pdbData.file);
-                setSelected(xIndex);
-                setSelectedResidues([source.numeration]);
-              }}
+              yAxisLabel={'Interaction energy (kcal/mol)'}
+              onSelect={handleResidueSelection}
               dataDisplay={{
                 bothi: display.start,
                 bothf: display.end,

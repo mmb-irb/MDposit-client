@@ -1053,12 +1053,30 @@ export const documentation = [
         ),
         page: (
           <>
+            This is the energies analysis.
+            <br />
+            <br />
+            Use the interaction selector in the top of the page to select which
+            interaction energies analysis is to be displayed. The displayed
+            energy values and residues in the table and graphs below correspond
+            to the 'Host' when interacting with the 'Guest'. In order to switch
+            which interacting agent is the Host and which is the Guest use the
+            toggle button next to the interaction selector.
+            <br />
+            <br />
+            The overall energies summatory table shows the sum of all residue
+            energies together for each energy (Electrostatic, Van der Waals and
+            both) and each set (overall, initial and final).
+            <br />
+            <br />
             Graphs represent from top to bottom the electrostatic potential, the
             Van der Waals forces and the sum of both values per each residue
             respectively. Energy averages are calculated for the overall, start
             and end of the trajectory. These averages are represented in black,
-            red and blue colors respectively. Horizontal axes stand for the main
-            protein residues numbers. Vertical axes stand for the residue
+            red and blue colors respectively. Horizontal axes stand for the host
+            residues. Residue numeration is according to the reference topology.
+            Residues with no reference use the data source numeration and are
+            marked with a '*' symbol. Vertical axes stand for the residue
             potential in kcal/mol.
             <br />
             <br />
