@@ -313,7 +313,9 @@ const NGLViewerWithControls = forwardRef(
     useMemo(() => {
       if (
         inputs.current.components === components &&
-        inputs.current.representations === representations
+        components !== undefined &&
+        inputs.current.representations === representations &&
+        representations !== undefined
       ) {
         // 'show' values are set this way because they are booleans
         // We the other states syntax a 'false' boolean would be taken as a missing value
@@ -671,7 +673,7 @@ const NGLViewerWithControls = forwardRef(
               </div>
             )}
           </Card>
-          <CardContent className={style['bottom-controls']}>
+          <CardContent style={{ padding: 0 }}>
             {noTrajectory || (
               <div
                 className={cn(style.progress, { [style.dark]: darkBackground })}
@@ -679,11 +681,11 @@ const NGLViewerWithControls = forwardRef(
                 onMouseMove={handleManualProgress}
               >
                 <LinearProgress
-                  //variant="determinate"
                   variant="buffer"
                   color="secondary"
                   value={progress * 100}
                   valueBuffer={load * 100}
+                  style={{ height: '1ch' }}
                 />
               </div>
             )}

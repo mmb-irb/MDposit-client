@@ -168,7 +168,7 @@ const SummarySwitch = ({ setProject, subPage, dataUrl }) => {
   else if (!pdbData.file) return 'Something bad happened with the topology';
 
   if (toporefs.loading) return <Loading />;
-  else if (toporefs.error) return pdbData.error.toString();
+  else if (toporefs.error) return toporefs.error.toString();
   else if (!toporefs.payload)
     return 'Something bad happened with the toporefs data';
 

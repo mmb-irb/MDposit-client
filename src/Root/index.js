@@ -55,6 +55,9 @@ const Accession = lazy(() =>
 const Contact = lazy(() =>
   import(/* webpackChunkName: 'contact' */ '../pages/contact'),
 );
+const Embed = lazy(() =>
+  import(/* webpackChunkName: 'contact' */ '../pages/embed'),
+);
 
 const theme = createMuiTheme({
   typography: {
@@ -73,6 +76,99 @@ const theme = createMuiTheme({
   palette: { primary, secondary },
 });
 
+const Base = ({ setProject }) => {
+  return (
+    <Body>
+      <Header />
+      <Main>
+        <ErrorBoundary>
+          <Switch>
+            <Route
+              path="/"
+              exact
+              render={() => (
+                <Suspense fallback={null}>
+                  <Home />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/contact"
+              exact
+              render={() => (
+                <Suspense fallback={null}>
+                  <Contact />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse"
+              exact
+              render={props => (
+                <Suspense fallback={null}>
+                  <Browse {...props} setProject={setProject} />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/search"
+              exact
+              render={props => (
+                <Suspense fallback={null}>
+                  <CustomSearch {...props} setProject={setProject} />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/advanced-search"
+              exact
+              render={props => (
+                <Suspense fallback={null}>
+                  <AdvancedSearch {...props} setProject={setProject} />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/help"
+              exact
+              render={props => (
+                <Suspense fallback={null}>
+                  <Help {...props} />
+                </Suspense>
+              )}
+            />
+            <Redirect
+              from="/browse/:accession"
+              to="/browse/:accession/overview"
+              exact
+            />
+            <Route
+              path="/browse/:accession/:subPage"
+              render={props => (
+                <Suspense fallback={null}>
+                  <Accession
+                    location={props.location}
+                    match={props.match}
+                    setProject={setProject}
+                  />
+                </Suspense>
+              )}
+            />
+            <Route render={() => 404} />
+          </Switch>
+          {/*<Route path={['/:page', '/']} component={HomeFAB} />*/}
+        </ErrorBoundary>
+      </Main>
+      <Suspense fallback={null}>
+        <Footer />
+      </Suspense>
+      <Suspense fallback={null}>
+        <SnackBarContainer />
+      </Suspense>
+    </Body>
+  );
+};
+
 const Root = () => {
   // The 'ProjectCtx' content is defined here, since some childs use it
   // However, the project is not set by this script but the children
@@ -81,94 +177,18 @@ const Root = () => {
   return (
     <MuiThemeProvider theme={theme}>
       <ProjectCtx.Provider value={project}>
-        <Body>
-          <Header />
-          <Main>
-            <ErrorBoundary>
-              <Switch>
-                <Route
-                  path="/"
-                  exact
-                  render={() => (
-                    <Suspense fallback={null}>
-                      <Home />
-                    </Suspense>
-                  )}
-                />
-                <Route
-                  path="/contact"
-                  exact
-                  render={() => (
-                    <Suspense fallback={null}>
-                      <Contact />
-                    </Suspense>
-                  )}
-                />
-                <Route
-                  path="/browse"
-                  exact
-                  render={props => (
-                    <Suspense fallback={null}>
-                      <Browse {...props} setProject={setProject} />
-                    </Suspense>
-                  )}
-                />
-                <Route
-                  path="/search"
-                  exact
-                  render={props => (
-                    <Suspense fallback={null}>
-                      <CustomSearch {...props} setProject={setProject} />
-                    </Suspense>
-                  )}
-                />
-                <Route
-                  path="/advanced-search"
-                  exact
-                  render={props => (
-                    <Suspense fallback={null}>
-                      <AdvancedSearch {...props} setProject={setProject} />
-                    </Suspense>
-                  )}
-                />
-                <Route
-                  path="/help"
-                  exact
-                  render={props => (
-                    <Suspense fallback={null}>
-                      <Help {...props} />
-                    </Suspense>
-                  )}
-                />
-                <Redirect
-                  from="/browse/:accession"
-                  to="/browse/:accession/overview"
-                  exact
-                />
-                <Route
-                  path="/browse/:accession/:subPage"
-                  render={props => (
-                    <Suspense fallback={null}>
-                      <Accession
-                        location={props.location}
-                        match={props.match}
-                        setProject={setProject}
-                      />
-                    </Suspense>
-                  )}
-                />
-                <Route render={() => 404} />
-              </Switch>
-              {/*<Route path={['/:page', '/']} component={HomeFAB} />*/}
-            </ErrorBoundary>
-          </Main>
-          <Suspense fallback={null}>
-            <Footer />
-          </Suspense>
-          <Suspense fallback={null}>
-            <SnackBarContainer />
-          </Suspense>
-        </Body>
+        <Switch>
+          <Route
+            path="/embed/:accession"
+            exact
+            render={props => (
+              <Suspense fallback={null}>
+                <Embed {...props} projectState={[project, setProject]} />
+              </Suspense>
+            )}
+          />
+          <Route render={() => <Base setProject={setProject} />} />
+        </Switch>
       </ProjectCtx.Provider>
     </MuiThemeProvider>
   );
