@@ -318,7 +318,7 @@ const residueLetters = {
   VALC: 'V',
 };
 
-export const getResidueLetter = residueType => {
+export const getResidueTypeLetter = residueType => {
   if (!residueType) return;
   const letter = residueLetters[residueType];
   if (letter) return letter;
@@ -501,7 +501,7 @@ export const absolute2modelResidue = (residue, topology, metadata) => {
   const offset = topology.chainStore.residueOffset[chainIndex];
   const chainResidue = residue - offset + 1;
   const type = getResidueType(residue, topology);
-  const letter = getResidueLetter(type);
+  const letter = getResidueTypeLetter(type);
   // Formated string representations used in model labels
   const numeration = chain + ':' + chainResidue;
   const tag = chain + '(' + chainName + '):' + chainResidue + '(' + type + ')';
@@ -512,13 +512,55 @@ export const absolute2modelResidue = (residue, topology, metadata) => {
   return { chain, chainName, chainResidue, type, letter, numeration, tag, ngl };
 };
 
+// This function finds all requested metadata from a residue absolute number
+// Requests is an object with all the names of the fields to be requested as keys and all of them with true values
+// Available fields:
+// - type
+// - letter
+// - chain
+// - number
+// - icode
+// - ngl
+// - label
+export const getResidueSourceMetadata = (residue, topology, requests) => {
+  const output = {};
+  if (requests.type || requests.letter) {
+    const typeId = topology.residueStore.residueTypeId[residue];
+    const type = topology.residueMap.get(typeId).resname;
+    if (requests.type) output.type = type;
+    if (requests.letter) output.letter = getResidueTypeLetter(type);
+  }
+  let source = {};
+  if (requests.chain || requests.ngl || requests.label) {
+    const chainIndex = topology.residueStore.chainIndex[residue];
+    const chain = topology.chainStore.getChainname(chainIndex);
+    if (requests.chain) output.chain = chain;
+    if (requests.ngl || requests.label) source.chain = chain;
+  }
+  if (requests.number || requests.ngl || requests.label) {
+    const number = topology.residueStore.resno[residue];
+    if (requests.number) output.number = number;
+    if (requests.ngl || requests.label) source.number = number;
+  }
+  if (requests.icode || requests.label) {
+    const charIcode = topology.residueStore.inscode[residue];
+    const icode = charIcode ? String.fromCharCode(charIcode) : '';
+    if (requests.icode) output.icode = icode;
+    if (requests.label) source.icode = icode;
+  }
+  if (requests.ngl) {
+    const ngl = ':' + source.chain + ' and ' + source.number;
+    output.ngl = ngl;
+  }
+  if (requests.label) {
+    const label = source.chain + ':' + source.number + source.icode;
+    output.label = label;
+  }
+  return output;
+};
+
 // This function converts absolute residue numbers to topology residue numbers
 export const absolute2sourceResidue = (residue, topology) => {
-  //console.log(topology);
-  if (!Number.isInteger(residue))
-    throw new Error(
-      `The residue value must be an integer. ${residue} is not valid`,
-    );
   const count = topology.residueStore.count;
   if (residue >= count)
     throw new Error(
@@ -534,7 +576,7 @@ export const absolute2sourceResidue = (residue, topology) => {
   const nglSelection = ':' + chain + ' and ' + residueNumber;
   // Additional residue data
   const type = getResidueType(residue, topology);
-  const letter = getResidueLetter(type);
+  const letter = getResidueTypeLetter(type);
   //console.log(residue + ' => ' + relativeresidue);
   return {
     chain,
@@ -584,6 +626,16 @@ export const reference2absolute = (reference, residues, metadata) => {
       }, []),
     ),
   );
+};
+
+// Get the standard numeration from a residue in absolute numeration
+// Standard numeration is the numeration to be displayed in figures
+// It is the reference numeration, when possible, and the source numeration when not
+export const absolute2standard = (residue, topology, metadata) => {
+  const ref = absolute2reference(residue, metadata);
+  if (ref !== null) return { num: ref.index, isRef: true };
+  const source = absolute2sourceResidue(residue, topology);
+  return { num: source.residueNumber, isRef: false };
 };
 
 // This function converts model residue numbers to absolute residue numbers

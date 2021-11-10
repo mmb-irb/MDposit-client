@@ -17,7 +17,8 @@ import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 import {
   getAtom,
   getAtomResidue,
-  absolute2modelResidue,
+  absolute2standard,
+  getResidueSourceMetadata,
 } from '../../../utils/topology-manager';
 
 import InteractionSelector from '../../../components/interaction-selector';
@@ -116,33 +117,30 @@ const Hbonds = () => {
       filteredData.hydrogenAtomIndex.push(hydrogen);
 
       // Set a human readable label for this bond
-      const acceptorName = getAtom(acceptor, pdbData.file).name;
-      const donorName = getAtom(donor, pdbData.file).name;
-      const acceptorResidueIndex = getAtomResidue(acceptor, pdbData.file).index;
-      const donorResidueIndex = getAtomResidue(donor, pdbData.file).index;
-      const hydrogenName = getAtom(hydrogen, pdbData.file).name;
 
-      const acceptorResidue = absolute2modelResidue(
-        acceptorResidueIndex,
-        pdbData.file,
-        metadata,
-      );
-      const donorResidue = absolute2modelResidue(
-        donorResidueIndex,
-        pdbData.file,
-        metadata,
-      );
+      // Fist set both acceptor and donor atom labels
+      const [acceptorLabel, donorLabel] = [acceptor, donor].map(atomIndex => {
+        const atomName = getAtom(atomIndex, pdbData.file).name;
+        const residueIndex = getAtomResidue(atomIndex, pdbData.file).index;
+        const { num: residueNumber, isRef } = absolute2standard(
+          residueIndex,
+          pdbData.file,
+          metadata,
+        );
+        const {
+          type: residueType,
+          chain: residueChain,
+        } = getResidueSourceMetadata(residueIndex, pdbData.file, {
+          type: true,
+          chain: true,
+        });
+        return `[${residueType}]${residueNumber}${
+          isRef ? '' : '*'
+        }:${residueChain}.${atomName}`;
+      });
+      const hydrogenName = getAtom(hydrogen, pdbData.file).name;
       filteredData.ylabels.push(
-        acceptorResidue.ngl +
-          '.' +
-          acceptorName +
-          ' - ' +
-          donorResidue.ngl +
-          '.' +
-          donorName +
-          ' (' +
-          hydrogenName +
-          ')',
+        `${acceptorLabel} - ${donorLabel} (${hydrogenName})`,
       );
     }
 
