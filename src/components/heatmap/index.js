@@ -138,7 +138,7 @@ const Heatmap = ({
           colorPlan={colorPlan}
           xAxisLabel={xTitle}
           yAxisLabel={yTitle}
-          onClick={onClick ? d => onClick(d.x, d.y) : undefined}
+          onClick={onClick ? (d, x, y) => onClick(d.x, d.y, x, y) : undefined}
           onTooltip={d =>
             d.x + ' - ' + d.y + '\n' + Math.round(d.v * 100) / 100
           }

@@ -338,8 +338,10 @@ const D3HeatmapGrid = memo(
 
       // Handle when a cell is clicked
       if (onClick) {
-        const mouseclick = d => {
-          onClick(d);
+        const mouseclick = (d, n) => {
+          const x = n % xAxisValues.length;
+          const y = Math.floor(n / xAxisValues.length);
+          onClick(d, x, y);
         };
 
         // Add events to cells

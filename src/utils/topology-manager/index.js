@@ -580,6 +580,7 @@ export const absolute2sourceResidue = (residue, topology) => {
   //console.log(residue + ' => ' + relativeresidue);
   return {
     chain,
+    residue: residueNumber, // In order to solve incompatibilities between funcions
     residueNumber,
     icode,
     numeration,
@@ -630,12 +631,51 @@ export const reference2absolute = (reference, residues, metadata) => {
 
 // Get the standard numeration from a residue in absolute numeration
 // Standard numeration is the numeration to be displayed in figures
+// The equivalent source residue may be passed to skip having to calculate it again
+export const absolute2standard = (
+  absolute,
+  topology,
+  metadata,
+  source = null,
+) => {
+  // Use the reference numeration, when possible, and the source numeration when not
+  // When no referenced, add a '*' to warn the user that the numeration is not "official"
+  let number;
+  let labelNumber;
+  const ref = absolute2reference(absolute, metadata);
+  if (ref !== null) {
+    number = ref.index;
+    labelNumber = `${number}`;
+  } else {
+    if (!source) source = absolute2sourceResidue(absolute, topology);
+    number = source.residue;
+    labelNumber = `${number}*`;
+  }
+  // Get the type and the chain of the residue
+  let { type, chain } = getResidueSourceMetadata(absolute, topology, {
+    type: true,
+    chain: true,
+  });
+  // Check if there is only one chain and, if so, skip the chain in the label
+  let labelChain;
+  if (metadata.CHAINNAMES.length === 1) labelChain = ``;
+  else labelChain = `${chain}:`;
+  // If the residue has a type then surround it with parenthesis
+  // Residues usually have it
+  let labelType;
+  if (type) labelType = `(${type})`;
+  else labelType = ``;
+  // Build the label to be shown
+  const label = labelChain + labelNumber + labelType;
+  return { label, chain, number, type };
+};
+
+// Get the standard numeration from a residue in source format
+// Standard numeration is the numeration to be displayed in figures
 // It is the reference numeration, when possible, and the source numeration when not
-export const absolute2standard = (residue, topology, metadata) => {
-  const ref = absolute2reference(residue, metadata);
-  if (ref !== null) return { num: ref.index, isRef: true };
-  const source = absolute2sourceResidue(residue, topology);
-  return { num: source.residueNumber, isRef: false };
+export const source2standard = (source, topology, metadata) => {
+  const absolute = source2absoluteResidue(source, topology);
+  return absolute2standard(absolute, topology, metadata, source);
 };
 
 // This function converts model residue numbers to absolute residue numbers

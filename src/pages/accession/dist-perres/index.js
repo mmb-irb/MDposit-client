@@ -14,11 +14,9 @@ import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 import {
   complexNumerationParser,
-  nglNumerationParser,
-  source2modelResidue,
-  model2absoluteResidue,
-  absolute2sourceResidue,
   residueHasCAlpha,
+  source2standard,
+  source2absoluteResidue,
 } from '../../../utils/topology-manager';
 
 //import Selector from '../../../components/selector';
@@ -92,17 +90,14 @@ const DistPerres = () => {
       }
     }
 
-    // Convert the residues from topology numeration to model numeration to use them as labels
-    const xLabels = residuesX.map(lab => {
-      const numeration = complexNumerationParser(lab);
-      const mod = source2modelResidue(numeration, pdbData.file, metadata);
-      return mod.ngl;
-    });
-    const yLabels = residuesY.map(lab => {
-      const numeration = complexNumerationParser(lab);
-      const mod = source2modelResidue(numeration, pdbData.file, metadata);
-      return mod.ngl;
-    });
+    // Convert the residues from topology numeration to standard numeration to use them as labels
+    const [xLabels, yLabels] = [residuesX, residuesY].map(residues =>
+      residues.map(residue => {
+        const source = complexNumerationParser(residue);
+        const { label } = source2standard(source, pdbData.file, metadata);
+        return label;
+      }),
+    );
 
     // Get the titles from the interaction data
     const xTitle = interaction['agent_1'];
@@ -111,6 +106,8 @@ const DistPerres = () => {
     return {
       mean: means,
       stdv: stdvs,
+      residuesX,
+      residuesY,
       xLabels,
       yLabels,
       xTitle,
@@ -138,20 +135,21 @@ const DistPerres = () => {
     setDisplay(newValue);
   };
 
-  // Transform the model numeration in a single string format (e.g. 'B:1') to source numeration
+  // Transform the raw reside tag to source numeration
   // Also retrieve the absolute residue number, since it is used to ask for the distance representation
   // http://nglviewer.org/ngl/api/class/src/representation/distance-representation.js~DistanceRepresentation.html
-  const parseLabel = label => {
-    const model = nglNumerationParser(label);
-    const absolute = model2absoluteResidue(model, pdbData.file);
-    const source = absolute2sourceResidue(absolute, pdbData.file);
+  const parseResidue = residue => {
+    const source = complexNumerationParser(residue);
+    const absolute = source2absoluteResidue(source, pdbData.file);
     // We must check the residue has an alpha carbon
     // If not, there is no atom to use a distance reference, so return null
     const hasCA = residueHasCAlpha(absolute, pdbData.file);
+    // Set the numeration
+    const numeration = source.chain + ':' + source.residue + source.icode;
     return {
-      forResidue: source.numeration,
+      forResidue: numeration,
       forDistance: hasCA
-        ? source.residueNumber.toString() + ':' + source.chain + '.CA'
+        ? source.residue.toString() + ':' + source.chain + '.CA'
         : null,
     };
   };
@@ -194,9 +192,9 @@ const DistPerres = () => {
               xLabels: filteredData['xLabels'],
               yLabels: filteredData['yLabels'],
             }}
-            onClick={(x, y) => {
-              const px = parseLabel(x);
-              const py = parseLabel(y);
+            onClick={(xLabel, yLabel, x, y) => {
+              const px = parseResidue(filteredData.residuesX[x]);
+              const py = parseResidue(filteredData.residuesY[y]);
               setSelected({
                 residues: [px.forResidue, py.forResidue],
                 // There is no values "for distance" when any residues has no alpha carbon
