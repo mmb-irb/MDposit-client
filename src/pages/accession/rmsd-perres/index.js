@@ -27,8 +27,8 @@ import style from './style.module.css';
 
 import {
   complexNumerationParser,
-  source2modelResidue,
   absolute2sourceResidue,
+  getSourceResidueMetadata,
 } from '../../../utils/topology-manager';
 
 import { ColormakerRegistry } from 'ngl';
@@ -163,16 +163,19 @@ const RmsdPerres = () => {
     // Parse the selection string into a numeric array
     const availableResidues = data;
 
-    // Get a list with all residues converted from source to model format
-    const modelResidues = availableResidues.map(residue => {
-      const numeration = complexNumerationParser(residue.name);
-      const model = source2modelResidue(numeration, pdbData.file, metadata);
-      return model;
+    // Get a list with all parsed residues
+    const parsedResidues = availableResidues.map(residue => {
+      const source = complexNumerationParser(residue.name);
+      const { letter } = getSourceResidueMetadata(source, pdbData.file, {
+        letter: true,
+      });
+      source.letter = letter;
+      return source;
     });
 
     // Separate the residues in chains and format them residues according to residue selector input format
     const chains = {};
-    modelResidues.forEach((residue, index) => {
+    parsedResidues.forEach((residue, index) => {
       const residueData = availableResidues[index];
       const fResidue = {
         letter: residue.letter,

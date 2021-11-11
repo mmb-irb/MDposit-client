@@ -18,7 +18,6 @@ import {
   getAtom,
   getAtomResidue,
   absolute2standard,
-  getResidueSourceMetadata,
 } from '../../../utils/topology-manager';
 
 import InteractionSelector from '../../../components/interaction-selector';
@@ -122,21 +121,12 @@ const Hbonds = () => {
       const [acceptorLabel, donorLabel] = [acceptor, donor].map(atomIndex => {
         const atomName = getAtom(atomIndex, pdbData.file).name;
         const residueIndex = getAtomResidue(atomIndex, pdbData.file).index;
-        const { num: residueNumber, isRef } = absolute2standard(
+        const { label } = absolute2standard(
           residueIndex,
           pdbData.file,
           metadata,
         );
-        const {
-          type: residueType,
-          chain: residueChain,
-        } = getResidueSourceMetadata(residueIndex, pdbData.file, {
-          type: true,
-          chain: true,
-        });
-        return `[${residueType}]${residueNumber}${
-          isRef ? '' : '*'
-        }:${residueChain}.${atomName}`;
+        return `${label}.${atomName}`;
       });
       const hydrogenName = getAtom(hydrogen, pdbData.file).name;
       filteredData.ylabels.push(

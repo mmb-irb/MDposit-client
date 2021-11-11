@@ -22,9 +22,7 @@ import style from './style.module.css';
 import {
   complexNumerationParser,
   complexSelectionRanger,
-  source2absoluteResidue,
-  absolute2reference,
-  getResidueType,
+  source2standard,
 } from '../../../utils/topology-manager';
 
 const Graph2 = lazy(() =>
@@ -108,24 +106,9 @@ const Energies = () => {
     // Set the tags to be displayed on each graph x axis
     data.xTags = [];
     data.labels.forEach(residue => {
-      const numeration = complexNumerationParser(residue);
-      const absolute = source2absoluteResidue(
-        numeration,
-        pdbData.file,
-        metadata,
-      );
-      const residueType = getResidueType(absolute, pdbData.file);
-      // Use the reference numeration to represent residues in
-      const ref = absolute2reference(absolute, metadata);
-      if (ref) {
-        const tag = ref.index + '(' + residueType + ')';
-        data.xTags.push(tag);
-        return;
-      }
-      // If we have no reference for this residue we use the source numeration
-      // Add a '*' to warn the user that the numeration is not "official"
-      const tag = numeration.residue + '*(' + residueType + ')';
-      data.xTags.push(tag);
+      const source = complexNumerationParser(residue);
+      const { label } = source2standard(source, pdbData.file, metadata);
+      data.xTags.push(label);
     });
 
     const representations = [

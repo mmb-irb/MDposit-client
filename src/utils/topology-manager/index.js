@@ -6,13 +6,14 @@ const ngl = require('ngl');
 // All these functions which need the topology are able to read the context topology
 // However, it may be better to pass them the topology as an argument since the context may be null
 
-// There are 3 different residue numeration types in the client:
+// There are 4 different residue numeration types in the client:
 // - Absolute: From 0 to 'n'
 //   Used in some internal managments
 // - Source: The numbers in the original topology file
 //   Source numbers may be repeated, have gaps or do not start at 0 or 1. May include icodes.
 //   They are also the usual numeration in analyses from the database
-// - Model: From 1 to 'n' for each chain
+// - Reference: The number in a reference topology, which is a standard
+// - (DEPRECATED) Model: From 1 to 'n' for each chain
 //   Usual numeration in data representation for this web
 
 // This function is used by other functions to check whenever the arguments are valid
@@ -424,22 +425,7 @@ export const byChains = (residues, topology) => {
   return chained;
 };
 
-// This function converts topology residue numbers to the model chain name and chain residue numeration
-export const source2modelResidue = (
-  { chain, residue, icode },
-  topology,
-  metadata,
-) => {
-  // Check arguments to be valid
-  //check(chain, residue);
-  const absolute = source2absoluteResidue({ chain, residue, icode }, topology);
-  const model = absolute2modelResidue(absolute, topology, metadata);
-  //console.log(residue + ' => ' + modelResidue.chainResidue);
-  // This object contains the chain, chain name, chain resiude number and residue type
-  return model;
-};
-
-// This function converts topology residue numbers to the model chain name and chain residue numeration
+// Get the reference numeration from a source formatted resiude
 export const source2referenceResidue = (
   { chain, residue, icode },
   topology,
@@ -449,8 +435,6 @@ export const source2referenceResidue = (
   //check(chain, residue);
   const absolute = source2absoluteResidue({ chain, residue, icode }, topology);
   const reference = absolute2reference(absolute, metadata);
-  //console.log(residue + ' => ' + modelResidue.chainResidue);
-  // This object contains the chain, chain name, chain resiude number and residue type
   return reference;
 };
 
@@ -493,25 +477,6 @@ export const getResiduesCount = topology => {
   return topology.residueStore.count;
 };
 
-// Transform an absolute residue number to the model corresponding chain and chain residue
-export const absolute2modelResidue = (residue, topology, metadata) => {
-  const chainIndex = topology.residueStore.chainIndex[residue];
-  const chain = topology.chainStore.getChainname(chainIndex); // e.g. 'A'
-  const chainName = getMetadataChainname(chain, metadata, topology); // e.g. 'ACE2'
-  const offset = topology.chainStore.residueOffset[chainIndex];
-  const chainResidue = residue - offset + 1;
-  const type = getResidueType(residue, topology);
-  const letter = getResidueTypeLetter(type);
-  // Formated string representations used in model labels
-  const numeration = chain + ':' + chainResidue;
-  const tag = chain + '(' + chainName + '):' + chainResidue + '(' + type + ')';
-  // WARNING: This is the ngl standard syntax for residue display (e.g. in the tooltip): [AAA]NN:C
-  // However, ngl does not show or read resiudes in 'model' format, but in 'source' format
-  const ngl = '[' + type + ']' + chainResidue + ':' + chain;
-  //console.log(residue + ' -> ' + chainResidue);
-  return { chain, chainName, chainResidue, type, letter, numeration, tag, ngl };
-};
-
 // This function finds all requested metadata from a residue absolute number
 // Requests is an object with all the names of the fields to be requested as keys and all of them with true values
 // Available fields:
@@ -522,7 +487,7 @@ export const absolute2modelResidue = (residue, topology, metadata) => {
 // - icode
 // - ngl
 // - label
-export const getResidueSourceMetadata = (residue, topology, requests) => {
+export const getAbsoluteResidueMetadata = (residue, topology, requests) => {
   const output = {};
   if (requests.type || requests.letter) {
     const typeId = topology.residueStore.residueTypeId[residue];
@@ -559,6 +524,12 @@ export const getResidueSourceMetadata = (residue, topology, requests) => {
   return output;
 };
 
+// Same function that above but for residues in source format
+export const getSourceResidueMetadata = (residue, topology, requests) => {
+  const absolute = source2absoluteResidue(residue, topology);
+  return getAbsoluteResidueMetadata(absolute, topology, requests);
+};
+
 // This function converts absolute residue numbers to topology residue numbers
 export const absolute2sourceResidue = (residue, topology) => {
   const count = topology.residueStore.count;
@@ -580,6 +551,7 @@ export const absolute2sourceResidue = (residue, topology) => {
   //console.log(residue + ' => ' + relativeresidue);
   return {
     chain,
+    residue: residueNumber, // In order to solve incompatibilities between funcions
     residueNumber,
     icode,
     numeration,
@@ -630,14 +602,56 @@ export const reference2absolute = (reference, residues, metadata) => {
 
 // Get the standard numeration from a residue in absolute numeration
 // Standard numeration is the numeration to be displayed in figures
-// It is the reference numeration, when possible, and the source numeration when not
-export const absolute2standard = (residue, topology, metadata) => {
-  const ref = absolute2reference(residue, metadata);
-  if (ref !== null) return { num: ref.index, isRef: true };
-  const source = absolute2sourceResidue(residue, topology);
-  return { num: source.residueNumber, isRef: false };
+// The equivalent source residue may be passed to skip having to calculate it again
+export const absolute2standard = (
+  absolute,
+  topology,
+  metadata,
+  source = null,
+) => {
+  // Use the reference numeration, when possible, and the source numeration when not
+  // When no referenced, add a '*' to warn the user that the numeration is not "official"
+  let number;
+  let labelNumber;
+  const ref = absolute2reference(absolute, metadata);
+  if (ref !== null) {
+    number = ref.index;
+    labelNumber = `${number}`;
+  } else {
+    if (!source) source = absolute2sourceResidue(absolute, topology);
+    number = source.residue;
+    labelNumber = `${number}*`;
+  }
+  // Get the type and the chain of the residue
+  let { type, chain } = getAbsoluteResidueMetadata(absolute, topology, {
+    type: true,
+    chain: true,
+  });
+  // Check if there is only one chain and, if so, skip the chain in the label
+  let labelChain;
+  if (metadata.CHAINNAMES.length === 1) labelChain = ``;
+  else labelChain = `${chain}:`;
+  // If the residue has a type then surround it with parenthesis
+  // Residues usually have it
+  let labelType;
+  if (type) labelType = `(${type})`;
+  else labelType = ``;
+  // Build the label to be shown
+  const label = labelChain + labelNumber + labelType;
+  return { label, chain, number, type };
 };
 
+// Get the standard numeration from a residue in source format
+// Standard numeration is the numeration to be displayed in figures
+// It is the reference numeration, when possible, and the source numeration when not
+export const source2standard = (source, topology, metadata) => {
+  const absolute = source2absoluteResidue(source, topology);
+  return absolute2standard(absolute, topology, metadata, source);
+};
+
+// DEPRECATED
+// WARNING: Model format is used to solve a situation where the NGL output numeration is in model format
+// WARNING: This is totally by chance
 // This function converts model residue numbers to absolute residue numbers
 export const model2absoluteResidue = ({ chain, residue }, topology) => {
   //console.log(topology);
@@ -649,6 +663,9 @@ export const model2absoluteResidue = ({ chain, residue }, topology) => {
   return residueNumber;
 };
 
+// DEPRECATED
+// WARNING: Model format is used to solve a situation where the NGL output numeration is in model format
+// WARNING: This is totally by chance
 // This function converts model residue numbers to source residue numbers
 export const model2sourceResidue = ({ chain, residue }, topology) => {
   const absolute = model2absoluteResidue({ chain, residue }, topology);

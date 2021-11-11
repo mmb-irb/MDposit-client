@@ -26,9 +26,9 @@ import {
   getAtomResidue,
   absolute2sourceResidue,
   complexNumerationParser,
-  source2modelResidue,
   model2sourceResidue,
   absolute2reference,
+  getMetadataChainname,
 } from '../../utils/topology-manager';
 
 import { setTooltipPosition } from '../../utils/tooltip-position-manager';
@@ -1423,21 +1423,17 @@ const NGLViewer = memo(
             atom.residueIndex,
             pdbFile,
           );
-          const model = source2modelResidue(
-            {
-              chain: sourceResidue.chain,
-              residue: sourceResidue.residueNumber,
-              icode: sourceResidue.icode,
-            },
-            pdbFile,
+          const chainName = getMetadataChainname(
+            sourceResidue.chain,
             metadata,
+            pdbFile,
           );
           const reference = absolute2reference(atom.residueIndex, metadata);
           return (
             <>
               {`Atom ${atom.index} (${atom.atomname})
             Chain ${sourceResidue.chain} ${
-                model ? '(' + model.chainName + ')' : ''
+                chainName ? '(' + chainName + ')' : ''
               }
             Residue ${sourceResidue.residueNumber} (${atom.resname})`}
               {reference ? (
