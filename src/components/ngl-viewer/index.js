@@ -1153,6 +1153,7 @@ const NGLViewer = memo(
           // Calculate how many frames are there in total
           const bytesPerFrame = trajectoryAtoms * BYTES_PER_ATOM;
           const totalFrames = totalPayload.byteLength / bytesPerFrame;
+          const lastFrameIndex = totalFrames - 1;
           // Check if all required data is already downloaded
           const completedTrajectory =
             totalFrames === trajectoryFinalExpectedFrames;
@@ -1183,14 +1184,18 @@ const NGLViewer = memo(
             nglTrajectory._frameCount = totalFrames;
             const nglPlayer = nglTrajectory.player;
             nglPlayer.setParameters({
-              end: totalFrames - 1,
+              end: lastFrameIndex,
               interpolateStep: 100 / trajectoryFinalExpectedFrames, // This must be set every time
               mode: completedTrajectory ? 'loop' : 'once',
             });
-            if (nglPlayer.isRunning) {
-              nglTrajectory.setFrame(totalFrames - 1);
+            // If the trajectory was paused because it had no more frames to load then resume it
+            if (!noTrajectory && playing && !nglPlayer.isRunning) {
+              const currentFrame = nglTrajectory._currentFrame;
+              const endingFrame = lastFrameIndex;
+              if (currentFrame < endingFrame) {
+                nglPlayer.play();
+              }
             }
-            if (completedTrajectory) nglPlayer.play();
           }
           // If there is not trajectory yet then create a new NGL trajectory
           else {
@@ -1230,7 +1235,20 @@ const NGLViewer = memo(
             frame.signals.frameChanged.remove(handleFrameChange),
           );
         */
-      }, [pdbFile, trajectories, handleFrameChange, comps, setNFrames]);
+      }, [
+        pdbFile,
+        trajectories,
+        handleFrameChange,
+        comps,
+        setNFrames,
+        noTrajectory,
+        // This playing here is just to avoid the warning
+        // I can't disable the warning with "// eslint-disable-line react-hooks/exhaustive-deps"
+        // This is because the automatic formatter puts the warning one line down because it is stupid
+        // Anyway the warning is also stupid, because using the playing as dependency is counterproductive
+        // To sum up: when eslint gets smarter and stops complaining you can remove playing from dependencies
+        playing,
+      ]);
 
       // play/pause
       const mainTraj =
