@@ -418,12 +418,10 @@ const NGLViewer = memo(
       useEffect(() => {
         let request;
         requestedTrajectories.forEach(trajectory => {
-          // Check if the requested url has the data already downloaded
+          // Check if the trajectory has been requested already
           // If so, skip this request
-          if (trajectory && trajectory.payload) return;
-
-          // If the trajectory failed to load do not try it again
-          if (trajectory && trajectory.error) return;
+          if (trajectory && trajectory.requested) return;
+          trajectory.requested = true;
 
           // Set the loading status as true
           trajectory.loading = true;
@@ -1066,6 +1064,8 @@ const NGLViewer = memo(
         });
       }, [pdbFile, selectedAngles, darkBackground]);
 
+      const [mainNglFile, setMainNglFile] = useState(null);
+
       // DCD file, trajectory
       // Once the trajectories are downloaded, load them in corresponding NGL representations
       // Every time the trajectory payloads change this useEffect must be rerun
@@ -1074,7 +1074,6 @@ const NGLViewer = memo(
         if (!trajectories || trajectories.length === 0) return;
 
         let frames = [];
-        let handleStop;
 
         comps.forEach((comp, c) => {
           const stageComp = stageRef.current.compList[c];
@@ -1120,13 +1119,21 @@ const NGLViewer = memo(
             combinedProgress += '/' + trajectory.progress;
           }
 
-          // If both URL are matching then exit here
-          if (
-            stageComp.combinedURL === combinedURL &&
-            stageComp.combinedProgress === combinedProgress
-          ) {
+          // Check if we are loading the same trajectory than before
+          const sameTrajectory = stageComp.combinedURL === combinedURL;
+
+          // If we are loading a different trajectory then remove all possibly already existing trajectories
+          // This return an error in console: "updateStructure: traj disposed"
+          // This may be a bug but it is actually working
+          // See https://github.com/arose/ngl/issues/680
+          if (!sameTrajectory)
+            stageComp.trajList.forEach(
+              stageComp.removeTrajectory.bind(stageComp),
+            );
+
+          // If both URL and progress are matching then exit here
+          if (sameTrajectory && stageComp.combinedProgress === combinedProgress)
             return;
-          }
 
           // Save current URL in the staged component
           stageComp.combinedURL = combinedURL;
@@ -1153,16 +1160,10 @@ const NGLViewer = memo(
           const completedTrajectory =
             totalFrames === trajectoryFinalExpectedFrames;
 
-          // remove all possibly already existing trajectories
-          // This return an error in console: "updateStructure: traj disposed"
-          // This may be a bug but it is actually working
-          // See https://github.com/arose/ngl/issues/680
-          // stageComp.trajList.forEach(
-          //   stageComp.removeTrajectory.bind(stageComp),
-          // );
+          // Get the current NGL loaded trajectories
+          const compTrajectories = stageComp.trajList;
 
           // If there is a trajectory already update it with new data
-          const compTrajectories = stageComp.trajList;
           if (compTrajectories.length > 0) {
             // There must be only one trajectory
             if (compTrajectories.length > 1)
@@ -1210,31 +1211,20 @@ const NGLViewer = memo(
               setNFrames(frameCount);
             }
             // Add the frame change handler only if it is the main component
-            if (c === 0) nglFile.signals.frameChanged.add(handleFrameChange);
+            if (c === 0) {
+              nglFile.signals.frameChanged.add(handleFrameChange);
+              // Set animation player parameters
+              nglTrajectory.player.setParameters({
+                interpolateStep: 100 / trajectoryFinalExpectedFrames,
+                mode: completedTrajectory ? 'loop' : 'once',
+              });
+              // Update the main NGL file
+              setMainNglFile(nglFile);
+            }
             nglTrajectory.setFrame(0);
-            // Set animation player parameters
-            nglTrajectory.player.setParameters({
-              interpolateStep: 100 / trajectoryFinalExpectedFrames,
-              mode: completedTrajectory ? 'loop' : 'once',
-            });
-            // Set a function to make the trajectory never stop at any interpolation step
-            // If it is stopped in the middle of an interpolation then jump to the next frame
-            handleStop = () => {
-              const currentFrame = nglTrajectory._currentFrame;
-              nglTrajectory.setFrame(currentFrame);
-            };
-            nglTrajectory.player.signals.haltedRunning.add(handleStop);
             frames.push(nglFile);
           }
         });
-
-        // It is important to remove these handlers or a fatal error may be raised when closing NGL
-        // DANI: Por lo menos el handleStop
-        return () =>
-          frames.forEach(frame => {
-            frame.signals.frameChanged.remove(handleFrameChange);
-            frame.trajectory.player.signals.haltedRunning.remove(handleStop);
-          });
       }, [
         pdbFile,
         trajectories,
@@ -1248,7 +1238,22 @@ const NGLViewer = memo(
         // Anyway the warning is also stupid, because using the playing as dependency is counterproductive
         // To sum up: when eslint gets smarter and stops complaining you can remove playing from dependencies
         playing,
+        setMainNglFile,
       ]);
+
+      // Add a signaled handler to the main NGl file, which contains the mian trajectory
+      // It is mandatory to remove this handler in the cleanup function or the NGL will raise a fatal error
+      useEffect(() => {
+        // Set a function to make the trajectory never stop at any interpolation step
+        // If it is stopped in the middle of an interpolation then jump to the next frame
+        if (!mainNglFile) return;
+        const nglTrajectory = mainNglFile.trajectory;
+        nglTrajectory.player.signals.haltedRunning.add(() => {
+          const currentFrame = nglTrajectory._currentFrame;
+          nglTrajectory.setFrame(currentFrame);
+        });
+        return () => nglTrajectory.player.signals.haltedRunning.removeAll();
+      }, [mainNglFile]);
 
       // play/pause
       const mainTraj =
