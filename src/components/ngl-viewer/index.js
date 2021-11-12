@@ -1074,6 +1074,7 @@ const NGLViewer = memo(
         if (!trajectories || trajectories.length === 0) return;
 
         let frames = [];
+        let handleStop;
 
         comps.forEach((comp, c) => {
           const stageComp = stageRef.current.compList[c];
@@ -1218,23 +1219,22 @@ const NGLViewer = memo(
             });
             // Set a function to make the trajectory never stop at any interpolation step
             // If it is stopped in the middle of an interpolation then jump to the next frame
-            nglTrajectory.player.signals.haltedRunning.add(() => {
+            handleStop = () => {
               const currentFrame = nglTrajectory._currentFrame;
               nglTrajectory.setFrame(currentFrame);
-            });
+            };
+            nglTrajectory.player.signals.haltedRunning.add(handleStop);
             frames.push(nglFile);
           }
         });
 
-        // DANI: No las tengo todas de que haber quitado esto sea seguro
-        // DANI: En principio las trayectorias a las que esto les quita el handler
-        // DANI: son eliminadas en el siguiente render, pero habría que chequear
-        /*
+        // It is important to remove these handlers or a fatal error may be raised when closing NGL
+        // DANI: Por lo menos el handleStop
         return () =>
-          frames.forEach(frame =>
-            frame.signals.frameChanged.remove(handleFrameChange),
-          );
-        */
+          frames.forEach(frame => {
+            frame.signals.frameChanged.remove(handleFrameChange);
+            frame.trajectory.player.signals.haltedRunning.remove(handleStop);
+          });
       }, [
         pdbFile,
         trajectories,
