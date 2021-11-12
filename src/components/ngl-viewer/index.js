@@ -413,11 +413,6 @@ const NGLViewer = memo(
 
       // Set a state to store trajectories data
       const [trajectories, setTrajectories] = useState([]);
-      // Set also a state to track the progress of the overall trajectories downloading
-      const [
-        trajectoriesLoadingProgress,
-        setTrajectoriesLoadingProgress,
-      ] = useState(0);
 
       // Download the requested trajectory data (frames)
       useEffect(() => {
@@ -459,7 +454,6 @@ const NGLViewer = memo(
                   requestedTrajectories
                     .map(trajectory => trajectory.progress)
                     .reduce((a, b) => a + b, 0) / requestedTrajectories.length;
-                setTrajectoriesLoadingProgress(overallProgress);
                 if (onLoad) onLoad(overallProgress);
                 // Update trajectories with the current partial data we have
                 setTrajectories(previousTrajectories => {
@@ -1614,13 +1608,9 @@ const NGLViewer = memo(
                 : !pdbFile
                 ? `No structure available`
                 : anyLoadingTrajectory
-                ? `Loading ${
-                    loadingPDB
-                      ? 'structure'
-                      : `trajectory (${Math.round(
-                          trajectoriesLoadingProgress * 100,
-                        )}%)`
-                  }…`
+                ? loadingPDB
+                  ? 'Loading structure'
+                  : ''
                 : !requestedTrajectories.length && !noTrajectory
                 ? `No trajectory available`
                 : stageRef.current && stageRef.current.tasks.count > 0
