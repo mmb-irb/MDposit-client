@@ -1216,6 +1216,12 @@ const NGLViewer = memo(
               interpolateStep: 100 / trajectoryFinalExpectedFrames,
               mode: completedTrajectory ? 'loop' : 'once',
             });
+            // Set a function to make the trajectory never stop at any interpolation step
+            // If it is stopped in the middle of an interpolation then jump to the next frame
+            nglTrajectory.player.signals.haltedRunning.add(() => {
+              const currentFrame = nglTrajectory._currentFrame;
+              nglTrajectory.setFrame(currentFrame);
+            });
             frames.push(nglFile);
           }
         });
