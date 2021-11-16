@@ -33,6 +33,5 @@ export const setTooltipPosition = (parent, tooltip, reference, offset = 0) => {
   // After this, apply the parent offset
   y -= limits.top;
   // Return the coordinates
-  //return { x, y };
   return { x, y };
 };

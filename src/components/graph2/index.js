@@ -276,6 +276,7 @@ const Graph2 = ({
   // The graph content is updated through the 'drawRef' referenced function
   useEffect(() => {
     // Set the d3 base
+    // Use canvas to display the dash blocks since d3 is not as efficient
     let canvas;
     let canvasContext;
     if (type === 'dash') {

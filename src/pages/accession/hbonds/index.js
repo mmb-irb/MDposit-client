@@ -172,32 +172,30 @@ const Hbonds = () => {
         <Card className={style.margined}>
           <CardContent>
             <ChainsLegend />
-            <div className={style.heatmap}>
-              <D3HeatmapGrid
-                data={filteredData.hbonds}
-                xAxisValues={filteredData.xlabels}
-                yAxisValues={filteredData.ylabels}
-                xAxisLabel={'Frames'}
-                yAxisLabel={'Hydrogen bonds'}
-                onTooltip={d => d.y}
-                onClick={d => {
-                  const index = filteredData.ylabels.indexOf(d.y);
-                  // Convert the clicked bar index to the corresponding atom indexes
-                  if (index < 0) return;
-                  const acceptor = filteredData.acceptorAtomIndex[index];
-                  const donor = filteredData.donorAtomIndex[index];
-                  const hydrogen = filteredData.hydrogenAtomIndex[index];
-                  setSelectedHB({
-                    index,
-                    selectedAtoms: [acceptor, donor],
-                    selectedDistances: [[acceptor, donor]],
-                    selectedAngles: [[acceptor, hydrogen, donor]],
-                  });
-                }}
-                verticalPadding={0.2}
-                colorPlan={['#f0f0f0', 'blue']}
-              />
-            </div>
+            <D3HeatmapGrid
+              data={filteredData.hbonds}
+              xAxisValues={filteredData.xlabels}
+              yAxisValues={filteredData.ylabels}
+              xAxisLabel={'Frames'}
+              yAxisLabel={'Hydrogen bonds'}
+              onTooltip={({ yAxisValue }) => yAxisValue}
+              onClick={({ yIndex: index }) => {
+                // Convert the clicked bar index to the corresponding atom indexes
+                if (index < 0) return;
+                const acceptor = filteredData.acceptorAtomIndex[index];
+                const donor = filteredData.donorAtomIndex[index];
+                const hydrogen = filteredData.hydrogenAtomIndex[index];
+                setSelectedHB({
+                  index,
+                  selectedAtoms: [acceptor, donor],
+                  selectedDistances: [[acceptor, donor]],
+                  selectedAngles: [[acceptor, hydrogen, donor]],
+                });
+              }}
+              verticalPadding={0.2}
+              colorPlan={['#f0f0f0', 'blue']}
+              className={style.heatmap}
+            />
           </CardContent>
         </Card>
       )}

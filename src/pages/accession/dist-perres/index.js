@@ -192,9 +192,17 @@ const DistPerres = () => {
               xLabels: filteredData['xLabels'],
               yLabels: filteredData['yLabels'],
             }}
-            onClick={(xLabel, yLabel, x, y) => {
-              const px = parseResidue(filteredData.residuesX[x]);
-              const py = parseResidue(filteredData.residuesY[y]);
+            onTooltip={({ value, xAxisValue, yAxisValue }) =>
+              xAxisValue +
+              ' - ' +
+              yAxisValue +
+              '\n' +
+              Math.round(value * 100) / 100 +
+              ' Å'
+            }
+            onClick={({ xIndex, yIndex }) => {
+              const px = parseResidue(filteredData.residuesX[xIndex]);
+              const py = parseResidue(filteredData.residuesY[yIndex]);
               setSelected({
                 residues: [px.forResidue, py.forResidue],
                 // There is no values "for distance" when any residues has no alpha carbon

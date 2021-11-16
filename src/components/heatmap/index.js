@@ -9,12 +9,13 @@ import D3HeatmapGrid from '../d3-heatmap-grid';
 import ColorLegend from '../color-legend';
 
 const Heatmap = ({
-  // The API url to load the main data
-  // The expected data format is an array of arrays, where each array is a heatmap row
+  // The expected data format is an complex object
   inputData,
   // Maximum number of x and y cells
   xMaxCells = 110,
   yMaxCells = 260,
+  // Function to set what text must appear in the hover tooltip
+  onTooltip,
   // Function to be called when the user clicks in a heatmap cell
   onClick,
   // Title to be rendered over the legend
@@ -130,20 +131,17 @@ const Heatmap = ({
   // Render
   return (
     <Suspense fallback={<div className={style.loading}>Loading...</div>}>
-      <div className={style.heatmap}>
-        <D3HeatmapGrid
-          data={data}
-          xAxisValues={xLabels}
-          yAxisValues={yLabels}
-          colorPlan={colorPlan}
-          xAxisLabel={xTitle}
-          yAxisLabel={yTitle}
-          onClick={onClick ? (d, x, y) => onClick(d.x, d.y, x, y) : undefined}
-          onTooltip={d =>
-            d.x + ' - ' + d.y + '\n' + Math.round(d.v * 100) / 100
-          }
-        />
-      </div>
+      <D3HeatmapGrid
+        data={data}
+        xAxisValues={xLabels}
+        yAxisValues={yLabels}
+        colorPlan={colorPlan}
+        xAxisLabel={xTitle}
+        yAxisLabel={yTitle}
+        onClick={onClick}
+        onTooltip={onTooltip}
+        className={style.heatmap}
+      />
       {legendTitle && (
         <CardContent>
           <ColorLegend

@@ -217,7 +217,17 @@ const RmsdPairwise = () => {
               xLabels: AxesValues,
               yLabels: AxesValues,
             }}
-            onClick={(x, y) => setSelected([x, y])}
+            onTooltip={({ value, xAxisValue, yAxisValue }) =>
+              xAxisValue +
+              ' - ' +
+              yAxisValue +
+              '\n' +
+              Math.round(value * 100) / 100 +
+              ' Å'
+            }
+            onClick={({ xAxisValue, yAxisValue }) =>
+              setSelected([xAxisValue, yAxisValue])
+            }
             legendTitle={'RMSD (Å)'}
             maxColor={'red'}
             minColor={'blue'}

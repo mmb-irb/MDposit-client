@@ -1,6 +1,4 @@
-import React, { Suspense, useRef, useEffect, useState, memo } from 'react';
-
-import Loading from '../loading';
+import React, { useRef, useEffect, useState, memo } from 'react';
 
 import { getTextWidth, getTextSizeDOM } from '../../utils/document-measurer';
 
@@ -32,6 +30,7 @@ const D3HeatmapGrid = memo(
     onClick, // Function to be called when clicking on the heatmap
     flippedXAxisValues = true, // Set if values in x axis is horizontal (false) or vertical (true)
     margin = { top: 10, right: 10, bottom: 10, left: 10 },
+    className,
   }) => {
     if (!data)
       throw new Error(
@@ -79,9 +78,7 @@ const D3HeatmapGrid = memo(
     const previousCharts = useRef(null);
 
     // Use a state as a workaround to force rerenders on window resize
-    const [currentWindow, setCurrentWindow] = useState(null);
-    if (currentWindow)
-      console.log(currentWindow.innerWidth + ' / ' + currentWindow.innerHeight);
+    const [, setCurrentWindow] = useState(null);
 
     // ----------------------------------------------------------------------------------------
 
@@ -168,6 +165,26 @@ const D3HeatmapGrid = memo(
       // Estimate how many labels we must skip to reach the desired number
       const xstep = Math.ceil(xAxisValues.length / xSlots);
       const ystep = Math.ceil(yAxisValues.length / ySlots);
+
+      // Use canvas to display the heatmap blocks since d3 is not as efficient
+      // Canvas is set this way so we can access this specific element later
+      // WARNING: Using the 'document.getElementById' is risky since there may be more
+      // WARNING: e.g. the color legend
+      const canvasElement = document.createElement('CANVAS');
+      select(container)
+        .node()
+        .appendChild(canvasElement);
+      const canvas = select(canvasElement)
+        .attr('id', 'canvas')
+        .attr('width', bodyWidth)
+        .attr('height', bodyHeight)
+        .style('position', 'absolute')
+        .style('top', offset.top + 'px')
+        .style('left', offset.left + 'px')
+        .style('cursor', onClick ? 'pointer' : undefined);
+      const canvasContext = canvas
+        .node()
+        .getContext('2d' /*, {desynchronized: true}*/);
 
       // append the svg object to the body of the page
       const svg = select(container)
@@ -258,28 +275,42 @@ const D3HeatmapGrid = memo(
             .range(colorPlan)
             .domain([minv, (minv + maxv) / 2, maxv]);
 
-      // Draw the heatmap cells
-      const cellsContainer = svg.append('g').attr('id', 'cells-container');
+      // Get cell size according to d3 scale band
+      const cellWidth = x.bandwidth();
+      const cellHeight = y.bandwidth();
 
-      const cellsContainerElement = document.getElementById('cells-container');
+      // Display heatmap cells using canvas
+      data.forEach((row, cy) => {
+        const yPosition = y(yAxisValues[cy]) - offset.top;
+        row.forEach((value, cx) => {
+          const xPosition = x(xAxisValues[cx]) - offset.left;
+          canvasContext.fillStyle = myColor(value);
+          canvasContext.fillRect(xPosition, yPosition, cellWidth, cellHeight);
+        });
+      });
 
-      const cells = cellsContainer
-        .selectAll()
-        .data(fdata)
-        .enter()
-        .append('rect')
-        .attr('x', d => x(d.x))
-        .attr('y', d => y(d.y))
-        .attr('width', x.bandwidth()) // This * 1.05 is to remove the small gap between cells
-        .attr('height', y.bandwidth()) // Padding is 0 but it is still there
-        .style('fill', (d, i) => myColor(d.v))
-        .style('cursor', onClick ? 'pointer' : undefined);
+      // Get the current mouse position in a standard format
+      const getMousePosition = e => {
+        // Get canvas current position
+        // WARNING: This line must be inside the function since canvas position may change when scrolling
+        const canvasRect = canvasElement.getBoundingClientRect();
+        // Get the exact mouse positions
+        const xPosition = e.clientX - canvasRect.left;
+        const yPosition = e.clientY - canvasRect.top;
+        // Calculate the equivalent x and y indexes
+        const xIndex = Math.floor(xPosition / x.step());
+        const yIndex = Math.floor(yPosition / y.step());
+        // Get also the equivalent axis values and the cell value
+        const xAxisValue = xAxisValues[xIndex];
+        const yAxisValue = yAxisValues[yIndex];
+        const value = data[yIndex][xIndex];
+        return { xIndex, yIndex, value, xAxisValue, yAxisValue };
+      };
 
-      // Create a tooltip
+      // In case there is a tooltip, handle how to show it
       let tooltip;
-      let handleMouseOver;
-      let handleMouseOut;
       if (onTooltip) {
+        // Set up the tooltip, which is hidden by default
         tooltip = document.createElement('div');
         Object.assign(tooltip.style, {
           display: 'none',
@@ -292,61 +323,43 @@ const D3HeatmapGrid = memo(
         });
         container.appendChild(tooltip);
 
-        // Handle tooltip text when it moves
-        // WARNING: Arrow function here makes it crash. I dont know why
-        const mousemove = function(d) {
-          tooltip.innerText = onTooltip(d);
-        };
-
-        // Add events to cells
-        cells.on('mousemove', mousemove);
-
-        // Set the tooltip position when it is inside the heatmap
-        handleMouseOver = event => {
+        canvasElement.onmousemove = e => {
+          // Get current mouse position
+          const mousePosition = getMousePosition(e);
+          // Set the tooltip text
+          tooltip.innerText = onTooltip(mousePosition);
+          //console.log(xIndex + ',' + yIndex);
+          // Set the tooltip position inside the heatmap
           tooltip.style.display = 'inline-block';
-          const mpx = event.clientX;
-          const mpy = event.clientY;
-          const { x, y } = setTooltipPosition(
+          const {
+            x: xTooltipPosition,
+            y: yTooltipPosition,
+          } = setTooltipPosition(
             container,
             tooltip,
-            { x: mpx, y: mpy },
+            { x: e.clientX, y: e.clientY },
             3,
           );
-          tooltip.style.left = x + 'px';
-          tooltip.style.top = y + 'px';
+          tooltip.style.left = xTooltipPosition + 'px';
+          tooltip.style.top = yTooltipPosition + 'px';
         };
-
-        // Hide the tooltip
-        handleMouseOut = () => {
+        canvasElement.onmouseleave = () => {
           tooltip.style.display = 'none';
         };
-
-        // Add the handlers for tooltip position
-        cellsContainerElement.addEventListener(
-          'mouseover',
-          handleMouseOver,
-          true,
-        );
-        cellsContainerElement.addEventListener(
-          'mouseleave',
-          handleMouseOut,
-          true,
-        );
       }
-
-      previousCharts.current = tooltip ? [svg, tooltip] : [svg];
 
       // Handle when a cell is clicked
       if (onClick) {
-        const mouseclick = (d, n) => {
-          const x = n % xAxisValues.length;
-          const y = Math.floor(n / xAxisValues.length);
-          onClick(d, x, y);
+        canvasElement.onmousedown = e => {
+          // Get current mouse position
+          const mousePosition = getMousePosition(e);
+          // Call the on click function
+          onClick(mousePosition);
         };
-
-        // Add events to cells
-        cells.on('click', mouseclick);
       }
+
+      // Record all elements which must be removed manually when re-rendering
+      previousCharts.current = tooltip ? [svg, canvas, tooltip] : [svg, canvas];
 
       const handleResize = () => {
         setCurrentWindow({
@@ -358,32 +371,25 @@ const D3HeatmapGrid = memo(
 
       // Cleaning function
       return () => {
-        if (onTooltip) {
-          cellsContainerElement.removeEventListener(
-            'mouseover',
-            handleMouseOver,
-            true,
-          );
-          cellsContainerElement.removeEventListener(
-            'mouseleave',
-            handleMouseOut,
-            true,
-          );
-        }
         window.removeEventListener('resize', handleResize);
       };
     }); // This useEffect has no dependencies
 
     // Finally, render the heatmap
     return (
-      <Suspense fallback={<Loading />}>
+      // It is important to specify a height value
+      // Otherwise canvas and svg may be not coordinated
+      <div
+        className={className}
+        style={className ? undefined : { height: '600px', width: '600px' }}
+      >
         <div
           ref={containerRef}
           id={'container'}
           // WARNING: This width 100% may seem redundant, but chrome needs it
           style={{ position: 'relative', width: '100%', height: '100%' }}
         />
-      </Suspense>
+      </div>
     );
   },
 );
