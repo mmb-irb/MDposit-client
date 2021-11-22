@@ -62,7 +62,9 @@ const ColorLegend = ({
         yAxisValues={vertical ? legendLabels : ['']}
         colorPlan={colorPlan}
         flippedXAxisValues={false}
-        className={style.heatmap}
+        className={
+          vertical ? style['heatmap-vertical'] : style['heatmap-horizontal']
+        }
       />
     </CardContent>
   );

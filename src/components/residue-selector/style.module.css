@@ -10,6 +10,8 @@
 
 .thin {
   width: 110px;
+  display: flex;
+  flex-direction: column;
 }
 
 .scroll {
