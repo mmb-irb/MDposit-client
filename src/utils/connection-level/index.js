@@ -2,6 +2,8 @@ export const LOW = Symbol('low');
 export const MEDIUM = Symbol('medium');
 export const HIGH = Symbol('high');
 
+// Check how fast the connection is and send the corresponding symbol
+// WARNING: This is done for Chrome. i.e. Firefox will always return MEDIUM
 const connectionLevel = () => {
   if (!(navigator && navigator.connection)) return MEDIUM;
   const { effectiveType, saveData } = navigator.connection;

@@ -83,6 +83,21 @@ const BYTES_PER_COORDINATE = 4; // float 32
 const COORDINATES_PER_ATOM = 3; // x, y and z
 const BYTES_PER_ATOM = BYTES_PER_COORDINATE * COORDINATES_PER_ATOM;
 
+// Set the NGL player speed limits
+// The actual 'speed' input limits are 0-100
+// The speed set as the time to wait before moving to the next frame in miliseconds
+const minimumSpeed = 0;
+const maximumSpeed = 100;
+const slowestTimeout = 1000;
+const fastestTimeout = 50;
+const interpolateSpeed = speed => {
+  return (
+    slowestTimeout +
+    (speed - minimumSpeed) *
+      ((fastestTimeout - slowestTimeout) / (maximumSpeed - minimumSpeed))
+  );
+};
+
 const defaultHighlightTypes = {
   atoms: 'spacefill',
   residues: 'ball+stick',
@@ -101,8 +116,7 @@ const NGLViewer = memo(
         onProgress,
         onLoad,
         bounce = false, // Set if the animation, when finished, starts again (false) or goes back (true)
-        nFrames = DEFAULT_NUMBER_OF_FRAMES, // The number of frames to be represented
-        setNFrames, // The setter for the number of frames to be represented
+        requestedFramesNumber = DEFAULT_NUMBER_OF_FRAMES, // The number of frames to be represented
         selectedAtoms, // Atom index of the atom and residue to be represented
         selectedResidues, // Residue complex numerations from residues to be represented
         selectedChains, // Chain letters from chains to be represented
@@ -273,8 +287,8 @@ const NGLViewer = memo(
       // First we find all trajectory URLs (i.e. all requests to API)
       // Then we ask the API skipping repeated URLs
 
-      // Set a function to modify an url by adding the frames range according to nFrames
-      // The only exception are those trajectories whose frame number is lower than nFrames
+      // Set a function to modify an url by adding the frames range according to requestedFramesNumber
+      // The only exception are those trajectories whose frame number is lower than requestedFramesNumber
 
       // Set a state to store requested trajectories and their loading status
       const [requestedTrajectories, setRequestedTrajectories] = useState([]);
@@ -339,8 +353,8 @@ const NGLViewer = memo(
               const trajectoryFrames = trajectoryMetadata.frames;
 
               // Set the number of frames to be requested from the whole trajectory
-              let requestedFrames = nFrames;
-              if (nFrames > trajectoryFrames)
+              let requestedFrames = requestedFramesNumber;
+              if (requestedFramesNumber > trajectoryFrames)
                 requestedFrames = trajectoryFrames;
               if (Number.isFinite(requestedFrame)) requestedFrames = 1;
               else if (framed) requestedFrames = framed.frames;
@@ -350,8 +364,8 @@ const NGLViewer = memo(
                   `Only the main component is allowed to load multiple frames`,
                 );
 
-              // Frames are added to any url which is missing the frames range according to nFrames
-              // The only exception are those trajectories whose frame number is lower than nFrames
+              // Frames are added to any url which is missing the frames range according to requestedFramesNumber
+              // The only exception are those trajectories whose frame number is lower than requestedFramesNumber
               let finalUrl = url;
               // Get the expected number of frames returned, which may not be exactly the requested number
               let returnedFrames;
@@ -363,7 +377,7 @@ const NGLViewer = memo(
               }
               // Modify the url if it is not framed yet
               else {
-                // Get the string frames range according to nFrames
+                // Get the string frames range according to requestedFramesNumber
                 const { range: framesRange, frames: framesCount } = getFrames(
                   trajectoryFrames,
                   requestedFrames,
@@ -409,10 +423,41 @@ const NGLViewer = memo(
           // Otherwise we return the previous array to do no trigger dependencies
           return currentTrajectories;
         });
-      }, [accession, comps, files, nFrames]);
+      }, [accession, comps, files, requestedFramesNumber]);
 
       // Set a state to store trajectories data
       const [trajectories, setTrajectories] = useState([]);
+
+      // Set a function to update the current loading progress
+      const updateLoadingProgress = useCallback(() => {
+        const mainComp = comps[0];
+        // Get all trajectories to be used as the current main trajecotry
+        const mainTrajectories = [];
+        // Get the current trajectories state using a trick
+        // DANI: si intentas acceder a un state dentro de un callback te da el valor del state cuando se hizo el callback
+        // DANI: Absurdo, pero es así, y esta es la forma de sortear el problema
+        let trajectoriesState;
+        setTrajectories(current => {
+          trajectoriesState = current;
+          return current;
+        });
+        mainComp.framedURLs.forEach(url => {
+          const trajectory = trajectoriesState.find(trajectory => {
+            return trajectory.url === url;
+          });
+          if (trajectory) mainTrajectories.push(trajectory);
+        });
+        if (mainTrajectories.length === 0) return;
+        // Then calculate the average progress in all loading trajectories and update the progress state
+        const overallFrames = mainTrajectories
+          .map(trajectory => trajectory.frames)
+          .reduce((a, b) => a + b, 0);
+        const overallProgress =
+          mainTrajectories
+            .map(trajectory => trajectory.progress * trajectory.frames)
+            .reduce((a, b) => a + b, 0) / overallFrames;
+        onLoad(overallProgress);
+      }, [comps, setTrajectories, onLoad]);
 
       // Download the requested trajectory data (frames)
       useEffect(() => {
@@ -448,11 +493,13 @@ const NGLViewer = memo(
                 byteCount += chunk.byteLength;
                 trajectory.progress = byteCount / totalBytes;
                 // Then calculate the average progress in all loading trajectories and update the progress state
-                const overallProgress =
-                  requestedTrajectories
-                    .map(trajectory => trajectory.progress)
-                    .reduce((a, b) => a + b, 0) / requestedTrajectories.length;
-                if (onLoad) onLoad(overallProgress);
+                // const overallFrames = requestedTrajectories
+                //   .map(trajectory =>  trajectory.frames)
+                //   .reduce((a, b) => a + b, 0);
+                // const overallProgress = requestedTrajectories
+                //   .map(trajectory => trajectory.progress * trajectory.frames)
+                //   .reduce((a, b) => a + b, 0) / overallFrames;
+                // if (onLoad) onLoad(overallProgress);
                 // Update trajectories with the current partial data we have
                 setTrajectories(previousTrajectories => {
                   const currentTrajectory = previousTrajectories.find(
@@ -465,6 +512,7 @@ const NGLViewer = memo(
                   currentTrajectory.progress = trajectory.progress;
                   return [...previousTrajectories];
                 });
+                updateLoadingProgress();
               })
               .on('end', () => {
                 // Save the main data in the ref
@@ -482,7 +530,7 @@ const NGLViewer = memo(
           // DANI: No he llegado comprobar si esto funciona para la API :/
           request.abort();
         };
-      }, [requestedTrajectories, onLoad]);
+      }, [requestedTrajectories, updateLoadingProgress]);
 
       // Stage creation and removal on mounting and unmounting
       useEffect(() => {
@@ -554,18 +602,16 @@ const NGLViewer = memo(
       const handleFrameChange = useCallback(
         frame => {
           //console.log('FRAME: ' + frame);
-          if (noTrajectory) return; // En pruebas
-          if (!stageRef.current.compList[0].trajList[0]) return;
           if (!onProgress) return;
-          const frameCount = trajectories.reduce(
-            (acc, curr) => acc + curr.frames,
-            0,
-          );
+          if (noTrajectory) return;
+          if (!stageRef.current.compList[0].trajList[0]) return;
+          const frameCount =
+            stageRef.current.compList[0].trajList[0].expectedFrames;
           //console.log('NGL frameCount: ' + frameCount);
           const progress = clamp(frame / (frameCount - 1), 0, 1);
           onProgress(progress);
         },
-        [noTrajectory, onProgress, trajectories],
+        [noTrajectory, onProgress],
       );
 
       // Resize logic
@@ -1168,7 +1214,8 @@ const NGLViewer = memo(
             // There must be only one trajectory
             if (compTrajectories.length > 1)
               throw new Error(`Multiple trajectories in one component`);
-            const nglTrajectory = compTrajectories[0].trajectory;
+            const nglFile = compTrajectories[0];
+            const nglTrajectory = nglFile.trajectory;
             updateNGLFile(
               nglTrajectory,
               pdbFile,
@@ -1178,18 +1225,26 @@ const NGLViewer = memo(
             );
             // Adjust some parameters after the trajectory data has been changed
             nglTrajectory._frameCount = totalFrames;
-            const nglPlayer = nglTrajectory.player;
-            nglPlayer.setParameters({
-              end: lastFrameIndex,
-              interpolateStep: 100 / trajectoryFinalExpectedFrames, // This must be set every time
-              mode: completedTrajectory ? 'loop' : 'once',
-            });
-            // If the trajectory was paused because it had no more frames to load then resume it
-            if (!noTrajectory && playing && !nglPlayer.isRunning) {
-              const currentFrame = nglTrajectory._currentFrame;
-              const endingFrame = lastFrameIndex;
-              if (currentFrame < endingFrame) {
-                nglPlayer.play();
+            if (c === 0) {
+              // Save the expected frames number here in the NGL file
+              // This is further use by the frame change handler
+              nglFile.expectedFrames = trajectoryFinalExpectedFrames;
+              const nglPlayer = nglTrajectory.player;
+              // Set animation player parameters
+              const timeout = interpolateSpeed(speed);
+              nglPlayer.setParameters({
+                end: lastFrameIndex,
+                interpolateStep: 100 / trajectoryFinalExpectedFrames, // This must be set every time
+                mode: completedTrajectory ? 'loop' : 'once',
+                timeout: timeout,
+              });
+              // If the trajectory was paused because it had no more frames to load then resume it
+              if (!noTrajectory && playing && !nglPlayer.isRunning) {
+                const currentFrame = nglTrajectory._currentFrame;
+                const endingFrame = lastFrameIndex;
+                if (currentFrame < endingFrame) {
+                  nglPlayer.play();
+                }
               }
             }
           }
@@ -1205,18 +1260,26 @@ const NGLViewer = memo(
             if (!file) return;
             const nglFile = stageComp.addTrajectory(file);
             const nglTrajectory = nglFile.trajectory;
-            // Count the real numer of frames in the current trajectory and reset the 'nFrames'
-            if (setNFrames && c === 0) {
-              const frameCount = nglTrajectory.frameCount;
-              setNFrames(frameCount);
-            }
+            // Count the real numer of frames in the current trajectory and reset the 'requestedFramesNumber'
+            // DANI: Esto lo he quitado porque creo que podría dar problemas
+            // DANI: Las requestedFramesNumber son el número de frames que se piden, no el real
+            // DANI: Si hay que mostrar el número real en algún punto mejor crea otro state
+            // if (setRequestedFramesNumber && c === 0) {
+            //   const frameCount = nglTrajectory.frameCount;
+            //   setRequestedFramesNumber(frameCount);
+            // }
             // Add the frame change handler only if it is the main component
             if (c === 0) {
+              // Save the expected frames number here in the NGL file
+              // This is further use by the frame change handler
+              nglFile.expectedFrames = trajectoryFinalExpectedFrames;
               nglFile.signals.frameChanged.add(handleFrameChange);
               // Set animation player parameters
+              const timeout = interpolateSpeed(speed);
               nglTrajectory.player.setParameters({
                 interpolateStep: 100 / trajectoryFinalExpectedFrames,
                 mode: completedTrajectory ? 'loop' : 'once',
+                timeout: timeout,
               });
               // Update the main NGL file
               setMainNglFile(nglFile);
@@ -1230,15 +1293,19 @@ const NGLViewer = memo(
         trajectories,
         handleFrameChange,
         comps,
-        setNFrames,
         noTrajectory,
+        setMainNglFile,
+        // The requestedFramesNumber dependency may seem redundant but it is not
+        // It is useful to switch between previously downloaded trajectories with different number of frames
+        requestedFramesNumber,
         // This playing here is just to avoid the warning
         // I can't disable the warning with "// eslint-disable-line react-hooks/exhaustive-deps"
         // This is because the automatic formatter puts the warning one line down because it is stupid
         // Anyway the warning is also stupid, because using the playing as dependency is counterproductive
         // To sum up: when eslint gets smarter and stops complaining you can remove playing from dependencies
         playing,
-        setMainNglFile,
+        // It is the same with the speed that with the playing
+        speed,
       ]);
 
       // Add a signaled handler to the main NGl file, which contains the mian trajectory
@@ -1281,16 +1348,18 @@ const NGLViewer = memo(
       // If the topology is too big to reach the required speed it will work as fast as possible
       useEffect(() => {
         // Get the current trajectory
-        const traj =
+        const nglFile =
           stageRef.current &&
           stageRef.current.compList[0] &&
-          stageRef.current.compList[0].trajList[0] &&
-          stageRef.current.compList[0].trajList[0].trajectory;
-        if (!traj) return;
-        // Set the speed
-        const timeout = 500 / (Math.log2(speed + 1) + 1);
-        traj.player.setParameters({ timeout: timeout });
-      }, [speed, anyLoadingTrajectory]);
+          stageRef.current.compList[0].trajList[0];
+        if (!nglFile) return;
+        // Set the player speed
+        // The 'speed' input ranges from 0 to 100
+        // The NGL 'timeout' parameter stands from the time to wait before moving to the next frame in miliseconds
+        //const timeout = 500 / (Math.log2(speed + 1) + 1);
+        const timeout = interpolateSpeed(speed);
+        nglFile.trajectory.player.setParameters({ timeout: timeout });
+      }, [speed]);
 
       // spinning
       useEffect(() => {

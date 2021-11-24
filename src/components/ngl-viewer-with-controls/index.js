@@ -392,7 +392,7 @@ const NGLViewerWithControls = forwardRef(
     const [progress, setProgress] = useState(0);
     const [load, setLoad] = useState(0);
     const [isFullscreen, setIsFullscreen] = useState(screenfull.isFullscreen);
-    const [nFrames, setNFrames] = useState(
+    const [requestedFramesNumber, setRequestedFramesNumber] = useState(
       useMemo(() => {
         switch (connectionLevel()) {
           case HIGH:
@@ -528,8 +528,7 @@ const NGLViewerWithControls = forwardRef(
                 onLoad={handleLoad}
                 ref={viewerRef}
                 noTrajectory={noTrajectory}
-                nFrames={nFrames}
-                setNFrames={framesSelect ? undefined : setNFrames}
+                requestedFramesNumber={requestedFramesNumber}
                 darkBackground={darkBackground}
                 perspective={perspective}
                 speed={speed}
@@ -564,7 +563,6 @@ const NGLViewerWithControls = forwardRef(
                             : 'on (may display artifacts for simulation box border atoms)'
                         }`}
                         onClick={toggleSmooth}
-                        disabled={!playing}
                       >
                         <FontAwesomeIcon icon={smooth ? faImages : faVideo} />
                       </IconButton>
@@ -636,8 +634,10 @@ const NGLViewerWithControls = forwardRef(
                       {framesSelect ? (
                         <Slider
                           title="Select frame number"
-                          value={nFrames}
-                          onChange={(_, value) => setNFrames(value)}
+                          value={requestedFramesNumber}
+                          onChange={(_, value) =>
+                            setRequestedFramesNumber(value)
+                          }
                           aria-labelledby="discrete-slider-restrict"
                           step={null}
                           valueLabelDisplay="auto"
@@ -645,7 +645,7 @@ const NGLViewerWithControls = forwardRef(
                         />
                       ) : (
                         // DANI: Esto puede que no esté bien. Deberían ser 20 frames cuando es una PCA projection
-                        ' ' + nFrames
+                        ' ' + requestedFramesNumber
                       )}
                     </div>
                   )}
