@@ -140,12 +140,13 @@ export const documentation = [
             <br />
             <b>Mapping</b>
             <br />
-            Protein aminoacid sequences are mapped against the{' '}
+            Protein aminoacid sequences are mapped against their corresponding
+            reference sequences. (e.g. spike proteins are mapped against the{' '}
             <Link
               name={'Wuhan-Hu-1/2019'}
               url={'https://www.ncbi.nlm.nih.gov/nuccore/MN908947'}
             />{' '}
-            reference sequence. This allows to number residues in the structure
+            reference sequence). This allows to number residues in the structure
             according to the widely know reference numeration (which may not
             match the original topology numeration). In addition, this mapping
             allows to show residue-related bibliographic data for residues in
