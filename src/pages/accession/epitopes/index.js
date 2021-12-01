@@ -206,34 +206,35 @@ const Epitopes = () => {
     return { data, epitopesData, frameStep, frameCount };
   }, [payload, metadata, pdbData, epitopes]);
 
-  // Set the main component to be passed to NGL
-  const component = useMemo(() => {
-    // Load the required frames from the main trajectory
-    const trajectoryURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory?frames=1:${metadata.SNAPSHOTS}:${frameStep}`;
-
-    // The main component, which will include everything
-    const component = {
-      trajectoryURLs: [trajectoryURL],
-    };
-
-    return component;
-  }, [accession, metadata, frameStep]);
-
   // Use this hook to get the memoized NGL default representations
   const defaultRepresentations = useDefaultRepresentations();
   // Use this hook to get the memoized NGL epitopes representations
   const allEpitopesRepresentations = useEpitopesRepresentations();
 
   // Set the main component to be passed to NGL
-  const representations = useMemo(() => {
-    if (!epitopesData) return;
+  const components = useMemo(() => {
+    // Load the required frames from the main trajectory
+    const trajectoryURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory?frames=1:${metadata.SNAPSHOTS}:${frameStep}`;
     // Reduce the opacity of all default representations and set their color as black
     defaultRepresentations.forEach(representation => {
       representation.opacity = 0.3;
       representation.color = defaultRepresentationsColor;
     });
+
+    // The main component, which will include everything
+    const mainComponent = {
+      trajectoryURLs: [trajectoryURL],
+      representations: defaultRepresentations,
+    };
+
+    return [mainComponent];
+  }, [accession, metadata, frameStep, defaultRepresentations]);
+
+  // Set the main component to be passed to NGL
+  const snapRepresentations = useMemo(() => {
+    if (!epitopesData) return;
     // Set representations with the defualt representations by the moment
-    const representations = [...defaultRepresentations];
+    const representations = [];
     // In case there are selected epitopes add an extra representation for each one
     selectedEpitopes.forEach((color, i) => {
       if (color === null) return;
@@ -265,11 +266,8 @@ const Epitopes = () => {
     selectedEpitopes,
     showAllEpitopes,
     hoveredEpitope,
-    defaultRepresentations,
     allEpitopesRepresentations,
   ]);
-
-  component.representations = representations;
 
   // Set the graph parameters
   const { graphInputData, dataDisplay } = useMemo(() => {
@@ -414,7 +412,8 @@ const Epitopes = () => {
         {isNglVisible ? (
           <NGLViewerWithControls
             className={style.container}
-            components={[component]}
+            components={components}
+            snapRepresentations={snapRepresentations}
             onProgress={handleFrameProgress}
             ref={viewerRef}
           />

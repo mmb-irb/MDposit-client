@@ -124,6 +124,7 @@ const NGLViewer = memo(
         selectedDistances, // Groups of 2 atoms or residues to be represented as a distance
         selectedAngles, // Groups of 3 atoms to be represented as an angle
         selectedRepresentation, // String name of a representation to be painted in yellow color (only 1)
+        snapRepresentations,
         noTrajectory, // True when only specific frames must be loaded
         initialFocus, // The ngl selection to be focused by the camera initially
         darkBackground,
@@ -528,7 +529,8 @@ const NGLViewer = memo(
         return () => {
           // Cancel the request
           // DANI: No he llegado comprobar si esto funciona para la API :/
-          request.abort();
+          console.log('NOS FUIMOS');
+          request && request.abort();
         };
       }, [requestedTrajectories, updateLoadingProgress]);
 
@@ -1027,6 +1029,33 @@ const NGLViewer = memo(
       }, [pdbFile, selectedChains, highlightTypes]);
 
       // Highlight specific free NGL selections
+      useEffect(() => {
+        if (!pdbFile || !snapRepresentations) return;
+        const currentComponent = stageRef.current.compList[0];
+        const currentRepresentations = currentComponent.reprList;
+        snapRepresentations.forEach(snapRepresentation => {
+          currentComponent.addRepresentation(snapRepresentation.type, {
+            sele: snapRepresentation.selection,
+            name: snapRepresentation.name,
+            color: snapRepresentation.color,
+          });
+        });
+        return () => {
+          snapRepresentations.forEach(snapRepresentation => {
+            // Find if the current snap representation already exists by its name
+            const previousSnapRepresentation = currentRepresentations.find(
+              currentRepresentation =>
+                currentRepresentation.name === snapRepresentation.name,
+            );
+            // If so, remove it
+            if (previousSnapRepresentation)
+              currentComponent.removeRepresentation(previousSnapRepresentation);
+          });
+        };
+      }, [pdbFile, snapRepresentations]);
+
+      // Add specific NGL representations which are added or removed apart from the main component
+      // They are faster to update but they are not shown in the representations manager
       useEffect(() => {
         if (!pdbFile || !selectedCustom) {
           return;
