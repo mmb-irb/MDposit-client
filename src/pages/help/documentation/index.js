@@ -514,7 +514,7 @@ export const documentation = [
             average structure of the whole trajectory. RMSd analyses have been
             run over different protein atom selections: all protein atoms
             (protein), heavy atoms (protein-h), backbone and alpha carbon
-            (c-alpha). The RMSd value of the sturcutre is stored for up to 5000
+            (c-alpha). The RMSd value of the structure is stored for up to 5000
             frames along the trajectory.
             <br />
             <br />
@@ -530,7 +530,7 @@ export const documentation = [
           <>
             TM score analyses are run against the first frame and against the
             average structure of the whole trajectory. TM score analyses are run
-            over alpha carbon atoms. The TM score value of the sturcutre is
+            over alpha carbon atoms. The TM score value of the structure is
             stored on up to 100 frames along the trajectory.
             <br />
             <br />
