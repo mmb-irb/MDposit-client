@@ -428,6 +428,7 @@ const NGLViewer = memo(
 
       // Set a state to store trajectories data
       const [trajectories, setTrajectories] = useState([]);
+      const currentRequests = useRef([]);
 
       // Set a function to update the current loading progress
       const updateLoadingProgress = useCallback(() => {
@@ -462,7 +463,6 @@ const NGLViewer = memo(
 
       // Download the requested trajectory data (frames)
       useEffect(() => {
-        let request;
         requestedTrajectories.forEach(trajectory => {
           // Check if the trajectory has been requested already
           // If so, skip this request
@@ -474,7 +474,7 @@ const NGLViewer = memo(
           trajectory.progress = 0;
 
           // Request the API
-          request = https.get(url.parse(trajectory.url), response => {
+          const request = https.get(url.parse(trajectory.url), response => {
             const totalBytes = response.headers['content-length'];
             // Set the new trajectory
             setTrajectories(previousTrajectories => {
@@ -525,14 +525,21 @@ const NGLViewer = memo(
                 setAnyLoadingTrajectory(anyLoading);
               });
           });
+          currentRequests.current.push(request);
         });
-        return () => {
-          // Cancel the request
-          // DANI: No he llegado comprobar si esto funciona para la API :/
-          console.log('NOS FUIMOS');
-          request && request.abort();
-        };
       }, [requestedTrajectories, updateLoadingProgress]);
+
+      // If the whole component is removed then abort all requests in case they were not finished
+      // DANI: No he verificado que esto funcione bien a nivel de API
+      useEffect(() => {
+        // I save it in a constant to avoid a non-sense warning
+        const redundantList = currentRequests.current;
+        return () => {
+          redundantList.forEach(request => {
+            request.abort();
+          });
+        };
+      }, []);
 
       // Stage creation and removal on mounting and unmounting
       useEffect(() => {
