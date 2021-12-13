@@ -7,6 +7,7 @@ import React, {
   useMemo,
   forwardRef,
   useImperativeHandle,
+  useContext,
 } from 'react';
 import cn from 'classnames';
 import screenfull from 'screenfull';
@@ -63,9 +64,23 @@ import reducedMotion from '../../utils/reduced-motion';
 
 import style from './style.module.css';
 
+import { ProjectCtx } from '../../contexts';
+
 // Decide that the default should be to play the trajectory only on "big enough"
 // screens (as a proxy for performance and low-end device detection)
 const defaultStartsPlaying = !reducedMotion() && window.innerWidth > 750;
+
+const defualtFrameNumber = (() => {
+  switch (connectionLevel()) {
+    case HIGH:
+      return 50;
+    case MEDIUM:
+      return 25;
+    case LOW:
+    default:
+      return 10;
+  }
+})();
 
 // I set the paint icon here as constant because if it is defined as paints index it triggers the unnecessary paints rerender
 // DANI: Habría que chequear que esto no pase en otros
@@ -73,7 +88,7 @@ const defaultStartsPlaying = !reducedMotion() && window.innerWidth > 750;
 
 // Set the possible number of frames the user can request
 // DANI: Por algún motivo estos sliders parece que no pasan de 100
-const frameNumbers = [
+const defaultFrameNumbers = [
   {
     value: 10,
     label: '10',
@@ -153,6 +168,28 @@ const NGLViewerWithControls = forwardRef(
     },
     ref,
   ) => {
+    // Get project metadata
+    const { metadata } = useContext(ProjectCtx);
+    // Use metadata to limit available frmaes number
+    const frameNumbers = useMemo(() => {
+      const maximumSnapshots = metadata.SNAPSHOTS;
+      const frameNumbers = [...defaultFrameNumbers];
+      // Remove values over the maximim number of frames
+      for (let i = frameNumbers.length - 1; i >= 0; i--) {
+        if (frameNumbers[i].value > maximumSnapshots) frameNumbers.pop();
+        else break;
+      }
+      // In case no value was removed we are done
+      if (frameNumbers.length === defaultFrameNumbers.length)
+        return frameNumbers;
+      // Otherwise, if the maximum number of frames is not one of the options already, then add it
+      if (frameNumbers[frameNumbers.length - 1].value !== maximumSnapshots)
+        frameNumbers.push({
+          value: maximumSnapshots,
+          label: maximumSnapshots.toString(),
+        });
+      return frameNumbers;
+    }, [metadata.SNAPSHOTS]);
     // Use this hook to get the memoized NGL default representations
     const defaultRepresentations = useDefaultRepresentations();
 
@@ -393,17 +430,7 @@ const NGLViewerWithControls = forwardRef(
     const [load, setLoad] = useState(0);
     const [isFullscreen, setIsFullscreen] = useState(screenfull.isFullscreen);
     const [requestedFramesNumber, setRequestedFramesNumber] = useState(
-      useMemo(() => {
-        switch (connectionLevel()) {
-          case HIGH:
-            return 50;
-          case MEDIUM:
-            return 25;
-          case LOW:
-          default:
-            return 10;
-        }
-      }, []),
+      Math.min(defualtFrameNumber, metadata.SNAPSHOTS),
     );
     const [speed, setSpeed] = useState(useMemo(() => get('speed', 50), []));
     const [settings, openSettings] = useState(false);
@@ -642,6 +669,7 @@ const NGLViewerWithControls = forwardRef(
                           step={null}
                           valueLabelDisplay="auto"
                           marks={frameNumbers}
+                          max={frameNumbers[frameNumbers.length - 1].value}
                         />
                       ) : (
                         // DANI: Esto puede que no esté bien. Deberían ser 20 frames cuando es una PCA projection
