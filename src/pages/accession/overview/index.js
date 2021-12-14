@@ -7,7 +7,10 @@ import {
   Chip,
 } from '@material-ui/core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLink } from '@fortawesome/free-solid-svg-icons';
+import {
+  faLink,
+  faExclamationTriangle,
+} from '@fortawesome/free-solid-svg-icons';
 
 import Card from '../../../components/animated-card';
 import LazyImg from '../../../components/lazy-img';
@@ -73,6 +76,13 @@ export default React.memo(() => {
                     >
                       {link.url}
                     </a>
+                  </div>
+                ))}
+              {metadata.warnings &&
+                metadata.warnings.map((warning, w) => (
+                  <div key={w} style={{ fontWeight: 'bold' }}>
+                    <FontAwesomeIcon icon={faExclamationTriangle} size={'lg'} />
+                    {' ' + warning.message}
                   </div>
                 ))}
             </div>
