@@ -7,19 +7,23 @@ import { ProjectCtx, PdbCtx } from '../../contexts';
 // Set an easy legend with all chains and chainnames
 // Results are collapsed according to unique chainnames
 const ChainsLegend = () => {
+  // Harvest chains in topology
+  // WARNING: Do not use project.chains since only protein chains are included
   const chainTopology = useContext(PdbCtx).file.chainStore;
+  const topologyChainnames = [];
+  for (let c = 0; c < chainTopology.count; c++) {
+    topologyChainnames.push(chainTopology.getChainname(c));
+  }
+  // Remove duplicates
+  const chains = topologyChainnames.filter(
+    (value, index, self) => self.indexOf(value) === index,
+  );
   const chainnames = Object.values(useContext(ProjectCtx).metadata.CHAINNAMES);
   // Number of chains must match
-  if (chainTopology.count !== chainnames.length)
+  if (chains.length !== chainnames.length)
     throw new Error(
       `The numbers of chains in metadata (${chainnames.length}) and topology (${chainTopology.count}) does not match`,
     );
-  // Harvest chains in topology
-  // WARNING: Do not use project.chains since only protein chains are included
-  const chains = [];
-  for (let c = 0; c < chainnames.length; c++) {
-    chains.push(chainTopology.getChainname(c));
-  }
   // Collapse the results
   const uniqueChainnames = Array.from(new Set(chainnames));
   const collapsedChains = [];
@@ -28,9 +32,10 @@ const ChainsLegend = () => {
     let collapsed;
     for (let c = 0; c < chainnames.length; c++) {
       const name = chainnames[c];
-      if (unique === name)
+      if (unique === name) {
         if (collapsed) collapsed += ', ' + chains[c];
         else collapsed = chains[c];
+      }
     }
     collapsedChains[u] = collapsed;
   }
