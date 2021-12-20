@@ -235,6 +235,15 @@ const Pockets = () => {
     return { graphInputData, dataDisplay };
   }, [data, metadata, selectedPockets]);
 
+  // Set the mark for selected
+  const marks = useMemo(() => {
+    const selectedMark = {
+      x: selectedFrame,
+      attr: { fill: '#c8c8c8' },
+    };
+    return [selectedMark];
+  }, [selectedFrame]);
+
   // Handle the change of frame
   useEffect(() => {
     if (!viewerRef.current) return;
@@ -422,8 +431,8 @@ const Pockets = () => {
           //mean
           //standardDeviation
           onSelect={setSelectedFrame}
-          selected={selectedFrame}
           className={style.graph}
+          marks={marks}
         />
       </Card>
     </>

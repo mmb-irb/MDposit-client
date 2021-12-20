@@ -212,6 +212,15 @@ const RmsdPerres = () => {
     return { selectedData, selectedResidueNames };
   }, [selectedResidues]);
 
+  // Set the mark for selected
+  const marks = useMemo(() => {
+    const selectedMark = {
+      x: selectedFrame,
+      attr: { fill: '#c8c8c8' },
+    };
+    return [selectedMark];
+  }, [selectedFrame]);
+
   // When the user clicks on the graph
   const handleFrameSelection = useCallback(frame => {
     viewerRef.current.togglePlaying(false);
@@ -286,8 +295,8 @@ const RmsdPerres = () => {
             xAxisLabel={'Time (ns)'}
             yAxisLabel={'RMSd (Å)'}
             onSelect={handleFrameSelection}
-            selected={selectedFrame}
             className={style.graph}
+            marks={marks}
           />
         ) : (
           <div className={style['graph-placeholder']}>

@@ -20,9 +20,7 @@ import {
   event,
 } from 'd3';
 
-import { FormControlLabel, Checkbox, Button } from '@material-ui/core';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrashAlt } from '@fortawesome/free-regular-svg-icons';
+import { FormControlLabel, Checkbox } from '@material-ui/core';
 
 import { PdbCtx } from '../../contexts';
 import { NICE_NAMES, COLORS } from '../../utils/constants';
@@ -130,7 +128,6 @@ const Graph2 = ({
   type = 'line',
   // React hooks
   onHover,
-  selected,
   onSelect,
   selfLegend = false,
   displayLegend = false,
@@ -150,6 +147,14 @@ const Graph2 = ({
   fullPrecision = false,
   // Force a classname for the overall component element
   className,
+  // Mark x values by displaying a vertical line in their positions
+  // Marks is an array where each mark has the following format
+  // {
+  //   x: the position of the mark according to the x axis
+  //   attr: object with all the attribute names (keys) and their values according to d3
+  //   style: object with all the style names (keys) and their values according to d3
+  // }
+  marks,
 }) => {
   // Set a fake dataset to allow the grapgh to work when no data is passed
   if (!yData || Object.keys(yData).length === 0) yData = yDataPlaceholder;
@@ -160,7 +165,7 @@ const Graph2 = ({
   const containerRef = useRef(null);
   // Referenced function which allows to update the cart without having to remake it
   const drawRef = useRef(noop);
-  const selectedRef = useRef(new Set());
+  const marksRef = useRef(noop);
   const pdbDataRef = useRef({});
   const dataRef = useRef(yDataPlaceholder);
 
@@ -268,6 +273,10 @@ const Graph2 = ({
   const prevYAxisLabel = useRef(yAxisLabel);
   const prevXAxisValues = useRef(xAxisValues);
 
+  const prevMarks = useRef(marks);
+  const prevX = useRef(null);
+  const prevWidth = useRef(null);
+
   useEffect(() => {
     drawRef.current && pdbData && pdbData.file && drawRef.current();
   }, [pdbData]);
@@ -295,19 +304,10 @@ const Graph2 = ({
     // mask opacity
     const [startMaskURL, endMaskURL] = addMasks(defs);
 
-    const main = graph.append('g');
+    // Me set the marks node now, so they are not placed over the graph
+    const marksNode = graph.append('g');
 
-    // Set the vertical line that shows up when we select a point in the graph
-    const selectedRect =
-      selected instanceof Set
-        ? null
-        : main
-            .append('rect')
-            .attr('x', 0)
-            .attr('y', 0)
-            .attr('width', 0)
-            .attr('height', '100%')
-            .attr('fill', '#c8c8c8');
+    const main = graph.append('g');
 
     // Set the dots in the graph
     const allDotGroups = main.append('g');
@@ -338,13 +338,13 @@ const Graph2 = ({
       data = dataRef.current,
       hovered,
       labels = prevLabels.current,
-      selected = selectedRef.current,
       pdbData = pdbDataRef.current,
       step = prevStep.current,
       xAxisLabel = prevXAxisLabel.current,
       yAxisLabel = prevYAxisLabel.current,
       currentZoom = prevZoom.current,
       xAxisValues = prevXAxisValues.current,
+      marks = prevMarks.current,
     } = {}) => {
       // container size
       const { clientWidth: width, clientHeight: height } = containerRef.current;
@@ -589,17 +589,6 @@ const Graph2 = ({
           .attr('stroke-width', d => (hovered === d ? 3 : 1.5));
         // Remove lines which are not required anymore according to the mapped data
         linesData.exit().remove();
-
-        // Place the vertical line in the selected data point position
-        if (selectedRect) {
-          const width = Math.max(1, x(precision * step) - x(0));
-          selectedRect
-            .attr('width', () => width)
-            .attr('x', () =>
-              Number.isInteger(selected) ? x(selected * step) - width / 2 : 0,
-            )
-            .attr('opacity', selected === null ? 0 : 1);
-        }
       }
       // In case it is a dash graph
       else if (type === 'dash' && canvasContext) {
@@ -608,18 +597,6 @@ const Graph2 = ({
         canvasContext.clearRect(0, 0, width, height);
         for (const [key, { data }] of yEntries) {
           if (!labels[key]) continue;
-          // selected areas
-          canvasContext.fillStyle = '#c8c8c8';
-          for (const atom of selected || []) {
-            // skip the ones not in view
-            if (atom < minIndex || atom > maxIndex) continue;
-            canvasContext.fillRect(
-              (x(atom * step * precision) - dashWidth / 2) * dPR,
-              0,
-              dashWidth * dPR,
-              height * dPR,
-            );
-          }
           canvasContext.fillStyle = COLORS.get(key) || '#000000';
           const maxInView = Math.min(data.length - 1, maxIndex);
           // each atom in view
@@ -651,6 +628,11 @@ const Graph2 = ({
           }
         }
       }
+
+      // Calculate the width of a vertical lines used to highlight specific x values
+      const markWidth = Math.max(1, x(precision * step) - x(0));
+      // Place vertical lines for specified marks
+      marksRef.current({ marks, x, width: markWidth, step });
 
       // dots over the selected vertical line
       // Here we just delete previous dots and start again instead of updating them
@@ -815,6 +797,53 @@ const Graph2 = ({
       prevYAxisLabel.current = yAxisLabel;
       prevZoom.current = currentZoom;
       prevXAxisValues.current = xAxisValues;
+      prevMarks.current = marks;
+    };
+
+    // Place marks in the graph
+    marksRef.current = ({
+      marks = prevMarks.current,
+      x = prevX.current,
+      width = prevWidth.current,
+      step = prevStep.current,
+    } = {}) => {
+      // In case we dont have all the arguments yet we stop here
+      if (x === null || width === null || step === null) return;
+
+      // Remove previous marks
+      if (prevMarks.current)
+        prevMarks.current.forEach(prevMark =>
+          marksNode.select('#mark' + prevMark.x).remove(),
+        );
+      // If there are no new marks then return here
+      if (!marks) return;
+
+      // Add a vertical band for each mark
+      marks.forEach(mark => {
+        const markRect = marksNode
+          .append('rect')
+          .attr('id', 'mark' + mark.x)
+          .attr('x', () =>
+            Number.isInteger(mark.x) ? x(mark.x * step) - width / 2 : 0,
+          )
+          .attr('y', 0)
+          .attr('height', '100%')
+          .attr('width', () => width);
+        if (mark.attr)
+          Object.entries(mark.attr).forEach(([key, value]) => {
+            markRect.attr(key, value);
+          });
+        if (mark.style)
+          Object.entries(mark.style).forEach(([key, value]) => {
+            markRect.style(key, value);
+          });
+      });
+
+      // Update previous refs
+      prevMarks.current = marks;
+      prevX.current = x;
+      prevWidth.current = width;
+      prevStep.current = step;
     };
 
     window.addEventListener('resize', drawRef.current);
@@ -823,20 +852,23 @@ const Graph2 = ({
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Maybe might need to double-check that and remove the exception
 
+  // Handle when marks change
+  useEffect(() => {
+    marksRef.current({ marks });
+  }, [marks]);
+
   // Handle when data changes or the selected x unit changes
   useEffect(() => {
-    selectedRef.current = selected;
     pdbDataRef.current = pdbData || pdbDataRef.current;
     drawRef.current({
       data: yData,
-      selected,
       pdbData,
       step,
       xAxisLabel,
       yAxisLabel,
       xAxisValues,
     });
-  }, [selected, pdbData, yData, step, xAxisLabel, yAxisLabel, xAxisValues]);
+  }, [pdbData, yData, step, xAxisLabel, yAxisLabel, xAxisValues]);
 
   useEffect(() => drawRef.current({ labels: lab }), [lab]);
 
@@ -885,8 +917,6 @@ const Graph2 = ({
     [lab, type],
   );
 
-  const handleButtonClick = useCallback(() => onSelect(new Set()), [onSelect]);
-
   return (
     <div className={className ? className : style.default}>
       <div className={style.flexible}>
@@ -924,17 +954,6 @@ const Graph2 = ({
               );
             })}
           </div>
-        )}
-        {type === 'dash' && (
-          <Button
-            variant="contained"
-            disabled={selected instanceof Set && !selected.size}
-            onClick={handleButtonClick}
-          >
-            <FontAwesomeIcon icon={faTrashAlt} />
-            &nbsp;
-            <span>Clear selection</span>
-          </Button>
         )}
       </div>
     </div>

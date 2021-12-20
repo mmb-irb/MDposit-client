@@ -105,6 +105,15 @@ const Rmsds = () => {
   // Set when one point in the graph is selected
   const [selected, setSelected] = useState(null);
 
+  // Set the mark for selected
+  const marks = useMemo(() => {
+    const selectedMark = {
+      x: selected,
+      attr: { fill: '#c8c8c8' },
+    };
+    return [selectedMark];
+  }, [selected]);
+
   // Render loading or error messages according with the API response
   if (rmsdsLoading || tmscoresLoading) return <Loading />;
   else if (rmsdsError) return rmsdsError.toString();
@@ -187,9 +196,9 @@ const Rmsds = () => {
             xScaleFactor={1}
             yAxisLabel={yAxisLabel}
             onSelect={setSelected}
-            selected={selected}
             selfLegend={false}
             dataDisplay={display}
+            marks={marks}
           />
         </CardContent>
       </Card>

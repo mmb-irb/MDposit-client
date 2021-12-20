@@ -14,6 +14,10 @@ import Card from '../../../components/animated-card';
 import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 import Loading from '../../../components/loading';
 
+import { Button } from '@material-ui/core';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrashAlt } from '@fortawesome/free-regular-svg-icons';
+
 import useAPI from '../../../hooks/use-api';
 
 import { AccessionCtx } from '../../../contexts';
@@ -50,6 +54,14 @@ const FluctuationAnalysis = () => {
   // Set when one point in the graph (which stands for an atom) is selected
   const [selectedAtoms, setSelectedAtoms] = useState(new Set());
 
+  // Set the mark for selected
+  const marks = useMemo(() => {
+    return Array.from(selectedAtoms).map(atom => ({
+      x: atom,
+      attr: { fill: '#c8c8c8' },
+    }));
+  }, [selectedAtoms]);
+
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
   else if (error) return error.toString();
@@ -67,6 +79,8 @@ const FluctuationAnalysis = () => {
       return newSet;
     });
   };
+
+  const handleButtonClick = () => setSelectedAtoms(new Set());
 
   // Render
   return (
@@ -103,10 +117,21 @@ const FluctuationAnalysis = () => {
             type={'dash'}
             onHover={setHoveredAtom}
             onSelect={handleAtomsSelection}
-            selected={selectedAtoms}
             mean={true}
             standardDeviation={true}
+            marks={marks}
           />
+          <div className={style.right}>
+            <Button
+              variant="contained"
+              disabled={!selectedAtoms.size}
+              onClick={handleButtonClick}
+            >
+              <FontAwesomeIcon icon={faTrashAlt} />
+              &nbsp;
+              <span>Clear selection</span>
+            </Button>
+          </div>
         </CardContent>
       </Card>
       <NGLViewerSpawner

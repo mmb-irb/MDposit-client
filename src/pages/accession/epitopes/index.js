@@ -295,6 +295,15 @@ const Epitopes = () => {
     return { graphInputData, dataDisplay };
   }, [data, metadata, epitopesData, selectedEpitopes]);
 
+  // Set the mark for selected
+  const marks = useMemo(() => {
+    const selectedMark = {
+      x: selectedFrame,
+      attr: { fill: '#c8c8c8' },
+    };
+    return [selectedMark];
+  }, [selectedFrame]);
+
   // Handle the change of frame
   useEffect(() => {
     if (!viewerRef.current) return;
@@ -438,10 +447,10 @@ const Epitopes = () => {
           blockMaxPrecision={true}
           roundcents={false}
           onSelect={handleFrameSelection}
-          selected={selectedFrame}
           dataDisplay={dataDisplay}
           displayLegend
           className={style.graph}
+          marks={marks}
         />
       </Card>
     </>

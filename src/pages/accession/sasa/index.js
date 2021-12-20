@@ -208,6 +208,15 @@ const Sasa = () => {
     return { selectedData, selectedResidueNames };
   }, [selectedResidues]);
 
+  // Set the mark for selected
+  const marks = useMemo(() => {
+    const selectedMark = {
+      x: selectedFrame,
+      attr: { fill: '#c8c8c8' },
+    };
+    return [selectedMark];
+  }, [selectedFrame]);
+
   // When the user clicks on the graph
   const handleFrameSelection = useCallback(frame => {
     viewerRef.current.togglePlaying(false);
@@ -283,8 +292,8 @@ const Sasa = () => {
             xAxisLabel={'Time (ns)'}
             yAxisLabel={'SAS per atom (Å²)'}
             onSelect={handleFrameSelection}
-            selected={selectedFrame}
             className={style.graph}
+            marks={marks}
           />
         ) : (
           <div className={style['graph-placeholder']}>

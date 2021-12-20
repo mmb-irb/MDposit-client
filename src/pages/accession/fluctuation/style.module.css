@@ -1,3 +1,8 @@
 .card {
   margin: 1em 0;
 }
+
+.right {
+  display: flex;
+  justify-content: flex-end;
+}

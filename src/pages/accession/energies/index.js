@@ -20,8 +20,10 @@ import InteractionSelector from '../../../components/interaction-selector';
 import style from './style.module.css';
 
 import {
+  absolute2standard,
   complexNumerationParser,
   complexSelectionRanger,
+  getAtomResidue,
   source2standard,
 } from '../../../utils/topology-manager';
 
@@ -69,7 +71,15 @@ const Energies = () => {
 
   const interactions = metadata && metadata.INTERACTIONS;
 
-  const { data, dataError, representations } = useMemo(() => {
+  const {
+    data,
+    dataError,
+    representations,
+    strongBondMarks,
+    esData,
+    vdwData,
+    bothData,
+  } = useMemo(() => {
     // Return if the payload is not ready
     if (!payload) return {};
 
@@ -95,13 +105,13 @@ const Energies = () => {
       return { data: null, dataError };
     }
     // Set the guest NGL selection
-    const guestResidues = selectedOrder
+    const guestInterfaceResidues = selectedOrder
       ? interaction.interface_2
       : interaction.interface_1;
-    const { rangedSelection: parsedResidues } = complexSelectionRanger(
-      guestResidues,
-    );
-    guestSelection = parsedResidues;
+    const {
+      rangedSelection: rangedInterfaceResiduesSelection,
+    } = complexSelectionRanger(guestInterfaceResidues);
+    guestSelection = rangedInterfaceResiduesSelection;
 
     // Set the tags to be displayed on each graph x axis
     data.xTags = [];
@@ -111,6 +121,7 @@ const Energies = () => {
       data.xTags.push(label);
     });
 
+    // Set the NGL representations
     const representations = [
       ...defaultRepresentations,
       {
@@ -122,7 +133,58 @@ const Energies = () => {
       },
     ];
 
-    return { data, dataError, representations };
+    // In case of strong bonds, find the implicated residues and their position in the x axis
+    // They will be marked in the graph
+    const strongBonds = interaction['strong_bonds'];
+    const strongBondAtoms = [].concat.apply([], strongBonds);
+    const strongBondResidueIndexes = strongBondAtoms.map(
+      atom => getAtomResidue(atom, pdbData.file).index,
+    );
+    const strongBondResidues = strongBondResidueIndexes.map(
+      residue => absolute2standard(residue, pdbData.file, metadata).label,
+    );
+    const strongBondMarks = [];
+    strongBondResidues.forEach(residue => {
+      const xPosition = data.xTags.indexOf(residue);
+      if (xPosition !== -1)
+        strongBondMarks.push({
+          x: xPosition,
+          attr: {
+            fill: 'orange',
+            opacity: 0.5,
+          },
+        });
+    });
+
+    // Set the dataset for each graph
+    const esData = {
+      esi: { data: data.ies, color: 'red' },
+      esf: { data: data.fes, color: 'blue' },
+      es: { data: data.es, color: 'black' },
+    };
+    const vdwData = {
+      vdwi: { data: data.ivdw, color: 'red' },
+      vdwf: { data: data.fvdw, color: 'blue' },
+      vdw: { data: data.vdw, color: 'black' },
+    };
+    const bothData = {
+      bothi: {
+        data: data.iboth,
+        color: 'red',
+      },
+      bothf: { data: data.fboth, color: 'blue' },
+      both: { data: data.both, color: 'black' },
+    };
+
+    return {
+      data,
+      dataError,
+      representations,
+      strongBondMarks,
+      esData,
+      vdwData,
+      bothData,
+    };
   }, [
     payload,
     interactions,
@@ -132,6 +194,36 @@ const Energies = () => {
     metadata,
     defaultRepresentations,
   ]);
+
+  // Memoize the marks
+  const marks = useMemo(() => {
+    if (selected === null) return strongBondMarks;
+    const selectedMark = {
+      x: selected,
+      attr: { fill: '#c8c8c8' },
+    };
+    return [selectedMark, ...strongBondMarks];
+  }, [selected, strongBondMarks]);
+
+  // Memoize the display parameters for each graph
+  const { esDisplay, vdwDisplay, bothDisplay } = useMemo(() => {
+    const esDisplay = {
+      esi: display.start,
+      esf: display.end,
+      es: display.all,
+    };
+    const vdwDisplay = {
+      vdwi: display.start,
+      vdwf: display.end,
+      vdw: display.all,
+    };
+    const bothDisplay = {
+      bothi: display.start,
+      bothf: display.end,
+      both: display.all,
+    };
+    return { esDisplay, vdwDisplay, bothDisplay };
+  }, [display]);
 
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
@@ -239,66 +331,39 @@ const Energies = () => {
         ) : (
           <CardContent>
             <Graph2
-              yData={{
-                esi: { data: data.ies, color: 'red' },
-                esf: { data: data.fes, color: 'blue' },
-                es: { data: data.es, color: 'black' },
-              }}
+              yData={esData}
               xAxisValues={data.xTags}
               xUnit={'residue'}
               title={'Electrostatic'}
               xScaleFactor={0.001}
               yAxisLabel={'Interaction energy (kcal/mol)'}
               onSelect={handleResidueSelection}
-              dataDisplay={{
-                esi: display.start,
-                esf: display.end,
-                es: display.all,
-              }}
-              selected={selected}
+              dataDisplay={esDisplay}
               fullPrecision
+              marks={marks}
             />
             <Graph2
-              yData={{
-                vdwi: { data: data.ivdw, color: 'red' },
-                vdwf: { data: data.fvdw, color: 'blue' },
-                vdw: { data: data.vdw, color: 'black' },
-              }}
+              yData={vdwData}
               title={'vdW'}
               xAxisValues={data.xTags}
               xUnit={'residue'}
               yAxisLabel={'Interaction energy (kcal/mol)'}
               onSelect={handleResidueSelection}
-              dataDisplay={{
-                vdwi: display.start,
-                vdwf: display.end,
-                vdw: display.all,
-              }}
-              selected={selected}
+              dataDisplay={vdwDisplay}
               fullPrecision
+              marks={marks}
             />
             <Graph2
-              yData={{
-                bothi: {
-                  data: data.iboth,
-                  color: 'red',
-                },
-                bothf: { data: data.fboth, color: 'blue' },
-                both: { data: data.both, color: 'black' },
-              }}
+              yData={bothData}
               title={'Electrostatic+vdW'}
               xAxisLabel={'Residue'}
               xAxisValues={data.xTags}
               xUnit={'residue'}
               yAxisLabel={'Interaction energy (kcal/mol)'}
               onSelect={handleResidueSelection}
-              dataDisplay={{
-                bothi: display.start,
-                bothf: display.end,
-                both: display.all,
-              }}
-              selected={selected}
+              dataDisplay={bothDisplay}
               fullPrecision
+              marks={marks}
             />
             <Legend
               entries={[

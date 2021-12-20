@@ -57,6 +57,15 @@ const Rgyr = () => {
   // Set when one point in the graph is selected
   const [selected, setSelected] = useState(null);
 
+  // Set the mark for selected
+  const marks = useMemo(() => {
+    const selectedMark = {
+      x: selected,
+      attr: { fill: '#c8c8c8' },
+    };
+    return [selectedMark];
+  }, [selected]);
+
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
   else if (error) return error.toString();
@@ -118,10 +127,10 @@ const Rgyr = () => {
             xScaleFactor={1}
             yAxisLabel={'Rgyr (Å)'}
             onSelect={setSelected}
-            selected={selected}
             selfLegend={true}
             mean={true}
             standardDeviation={true}
+            marks={marks}
           />
         </CardContent>
       </Card>

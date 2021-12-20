@@ -1042,7 +1042,11 @@ export const documentation = [
             of the trajectory. The start and end averages are calculated from
             the first 20% and last 20% of frames of the previous subset.
             Energies are calculated for each atom individually and then added by
-            residues.
+            residues. In case of strong bonds (e.g. covalend bonds) between two
+            interacting agents the storng bond itself will be ignored. Both
+            atoms implicated in the bond will be exlucded from the analysis.
+            Strong bonds are guessed by atoms distance and radius, using the{' '}
+            <Link name={'VMD'} id={'vmd'} /> logic.
             <br />
             <br />
             This analysis requires atomic charges to work and thus it will not
@@ -1078,7 +1082,8 @@ export const documentation = [
             residues. Residue numeration is according to the reference topology.
             Residues with no reference use the data source numeration and are
             marked with a '*' symbol. Vertical axes stand for the residue
-            potential in kcal/mol.
+            potential in kcal/mol. Strong bonds between the host and the guest
+            are marked in light orange color.
             <br />
             <br />
             Graphs are <span style={{ color: 'lightGreen' }}>interactive</span>.
@@ -1373,6 +1378,16 @@ export const documentation = [
             Software for Processing and Analysis of Molecular Dynamics
             Trajectory Data. Daniel R. Roe and Thomas E. Cheatham, III. Journal
             of Chemical Theory and Computation 2013 9 (7), 3084-3095
+          </>
+        ),
+      },
+      {
+        id: 'vmd',
+        header: 'VMD',
+        body: (
+          <>
+            Humphrey, W., Dalke, A. and Schulten, K., "VMD - Visual Molecular
+            Dynamics", J. Molec. Graphics, 1996, vol. 14, pp. 33-38.
           </>
         ),
       },
