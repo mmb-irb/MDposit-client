@@ -342,7 +342,14 @@ const Graph2 = ({
       xAxisValues = previousValues.current.xAxisValues,
       onSelect = previousValues.current.onSelect,
       marks = previousValues.current.marks,
+      offset = previousValues.current.offset,
+      labelsHeight = previousValues.current.labelsHeight,
+      requiredBottomOffset = previousValues.current.requiredBottomOffset,
+      yAxisLabelHegiht = previousValues.current.yAxisLabelHegiht,
     } = {}) => {
+      // Change the graph size according to the left offset
+      graph.attr('width', offset.left);
+
       // container size
       const { clientWidth: width, clientHeight: height } = containerRef.current;
 
@@ -798,6 +805,10 @@ const Graph2 = ({
       previousValues.current.yAxisLabel = yAxisLabel;
       previousValues.current.currentZoom = currentZoom;
       previousValues.current.xAxisValues = xAxisValues;
+      previousValues.current.offset = offset;
+      previousValues.current.labelsHeight = labelsHeight;
+      previousValues.current.requiredBottomOffset = requiredBottomOffset;
+      previousValues.current.yAxisLabelHegiht = yAxisLabelHegiht;
     };
 
     onSelectRef.current = ({ onSelect } = {}) => {
@@ -894,7 +905,7 @@ const Graph2 = ({
     marksRef.current({ marks });
   }, [marks]);
 
-  // Handle when data changes or the selected x unit changes
+  // Handle when some parameter change requires a whole re-draw of the graph
   useEffect(() => {
     drawRef.current({
       data: yData,
@@ -904,8 +915,24 @@ const Graph2 = ({
       yAxisLabel,
       xAxisValues,
       labels: lab,
+      offset,
+      labelsHeight,
+      requiredBottomOffset,
+      yAxisLabelHegiht,
     });
-  }, [pdbData, yData, step, xAxisLabel, yAxisLabel, xAxisValues, lab]);
+  }, [
+    pdbData,
+    yData,
+    step,
+    xAxisLabel,
+    yAxisLabel,
+    xAxisValues,
+    lab,
+    offset,
+    labelsHeight,
+    requiredBottomOffset,
+    yAxisLabelHegiht,
+  ]);
 
   // Handle when user clicks on legend checkboxes
   const handleChange = useCallback(

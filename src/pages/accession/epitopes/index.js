@@ -270,14 +270,14 @@ const Epitopes = () => {
   ]);
 
   // Set the graph parameters
-  const { graphInputData, dataDisplay } = useMemo(() => {
+  const graphInputData = useMemo(() => {
     // Wait for data and metadata to be ready
-    if (!data || !metadata) return {};
+    if (!data || !metadata) return;
 
     // Set the input objets for the graph and when they must be displayed
     const graphInputData = {};
-    const dataDisplay = {};
     epitopesData.forEach(({ name, data }, i) => {
+      if (!selectedEpitopes[i]) return;
       const color = selectedEpitopes[i];
       // Graph
       Object.entries(data).forEach(([chain, chainData], index) => {
@@ -288,11 +288,10 @@ const Epitopes = () => {
           color: color,
           dash: dash,
         };
-        dataDisplay[tag] = selectedEpitopes[i] ? true : false;
       });
     });
 
-    return { graphInputData, dataDisplay };
+    return graphInputData;
   }, [data, metadata, epitopesData, selectedEpitopes]);
 
   // Set the mark for selected
@@ -447,7 +446,6 @@ const Epitopes = () => {
           blockMaxPrecision={true}
           roundcents={false}
           onSelect={handleFrameSelection}
-          dataDisplay={dataDisplay}
           displayLegend
           className={style.graph}
           marks={marks}
