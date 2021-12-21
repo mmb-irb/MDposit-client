@@ -4,7 +4,6 @@ import React, {
   useState,
   useRef,
   useMemo,
-  useEffect,
   useCallback,
 } from 'react';
 // A hook to track whenever some element is on screen
@@ -109,8 +108,10 @@ const Epitopes = () => {
   // This blockRef is a workaround to avoid selecting a row when clicking on the checkbox
   const blockRef = useRef(null);
 
-  // Set a ref to the ngl which allows access to the ngl viewer exposed methods
+  // Set a ref to the ngl which allows access to its exposed methods
   const viewerRef = useRef(null);
+  // Set a ref to the graph which allows access to its exposed methods
+  const graphRef = useRef(null);
 
   // Use the colors hook
   const [getColor, freeColor] = useColors();
@@ -122,9 +123,6 @@ const Epitopes = () => {
   const [hoveredEpitope, setHoveredEpitope] = useState(null);
   // Track which epitope is selected by the user
   const [selectedEpitopes, setSelectedEpitopes] = useState([]);
-
-  // Set when one point in the graph is selected
-  const [selectedFrame, setSelectedFrame] = useState(0);
 
   // Send a request to the API with the url of the rgyr analysis
   const { loading, payload, error } = useAPI(
@@ -294,29 +292,13 @@ const Epitopes = () => {
     return graphInputData;
   }, [data, metadata, epitopesData, selectedEpitopes]);
 
-  // Set the mark for selected
-  const marks = useMemo(() => {
-    const selectedMark = {
-      x: selectedFrame,
-      attr: { fill: '#c8c8c8' },
-    };
-    return [selectedMark];
-  }, [selectedFrame]);
-
-  // Handle the change of frame
-  useEffect(() => {
-    if (!viewerRef.current) return;
-    viewerRef.current.currentFrame = selectedFrame;
-  }, [selectedFrame]);
-
   // When the user clicks on the graph
   const handleFrameSelection = useCallback(frame => {
     viewerRef.current.togglePlaying(false);
     viewerRef.current.currentFrame = frame;
-    //setSelectedFrame(frame);
   }, []);
 
-  // When the ngl is playing
+  // When the ngl frame changes
   const handleFrameProgress = useCallback(
     progress => {
       // Process is a float number which ranges from 0 to 1
@@ -324,9 +306,14 @@ const Epitopes = () => {
       // WARNING: The follwoing multiplication must return always a whole number
       // WARNING: This 'round' is only for the float problem (e.g. 57 = 56.9999...)
       const frame = Math.round(progress * (frameCount - 1));
-      setSelectedFrame(frame);
+      graphRef.current.marks = [
+        {
+          x: frame,
+          attr: { fill: '#c8c8c8' },
+        },
+      ];
     },
-    [frameCount, setSelectedFrame],
+    [frameCount],
   );
 
   // Render loading or error messages according with the API response
@@ -448,7 +435,7 @@ const Epitopes = () => {
           onSelect={handleFrameSelection}
           displayLegend
           className={style.graph}
-          marks={marks}
+          ref={graphRef}
         />
       </Card>
     </>

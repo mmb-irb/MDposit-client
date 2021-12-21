@@ -5,6 +5,8 @@ import React, {
   useEffect,
   useContext,
   useMemo,
+  forwardRef,
+  useImperativeHandle,
 } from 'react';
 import { noop, flatten } from 'lodash-es';
 import {
@@ -104,59 +106,19 @@ const trueEntries = keys => {
 //    dataset2:{...}
 // }
 
-const Graph2 = ({
-  // The main data
-  yData,
-  // Optional x tags
-  xAxisValues,
-  // The difference beyween x values
-  step = 1,
-  // Graph title
-  title,
-  // The x axis label text
-  xAxisLabel,
-  // The y axis label text
-  yAxisLabel,
-  //
-  xScaleFactor = 1,
-  // Define the unit (and also the magnitude implicitly) of the x axis
-  // This is used to show the right text when the mouse is over it
+const Graph2 = forwardRef(({ // The main data
+  yData, xAxisValues, step = 1, title, xAxisLabel, yAxisLabel, xScaleFactor = 1, // This is used to show the right text when the mouse is over it // Optional x tags // The difference beyween x values // Graph title // The x axis label text // The y axis label text // // Define the unit (and also the magnitude implicitly) of the x axis
   // Accepted values: ns, frame, atom
-  xUnit = 'ns',
-  // Set the type of grapg to render
-  // Accepted values: line, dash
-  type = 'line',
-  // React hooks
-  onHover,
-  onSelect,
-  selfLegend = false,
-  displayLegend = false,
-  // Object with each dataset name and a value of true/false to set which data is displayed
-  dataDisplay,
-  setDataDisplay,
-  // Display the mean line in the graph
-  mean = false,
-  // Display the standard deviation area in the graph
-  standardDeviation = false,
-  // Set an extra margin around the graph
-  margin = defaultMargins,
-  // DANI: Todavía no está implementado pero se usa para calcular márgenes
-  // Set if values in x axis is horizontal (false) or vertical (true)
-  flippedXAxisValues = false,
-  // If true, draw all points in the graph no matter how many points are there
-  fullPrecision = false,
-  // Force a classname for the overall component element
-  className,
-  // Mark x values by displaying a vertical line in their positions
-  // Marks is an array where each mark has the following format
+  xUnit = 'ns', // Accepted values: line, dash // Set the type of grapg to render
+  type = 'line', onHover, onSelect, selfLegend = false, displayLegend = false, dataDisplay, setDataDisplay, mean = false, standardDeviation = false, margin = defaultMargins, // Set if values in x axis is horizontal (false) or vertical (true) // React hooks // Object with each dataset name and a value of true/false to set which data is displayed // Display the mean line in the graph // Display the standard deviation area in the graph // Set an extra margin around the graph // DANI: Todavía no está implementado pero se usa para calcular márgenes
+  flippedXAxisValues = false, fullPrecision = false, className, // Marks is an array where each mark has the following format // If true, draw all points in the graph no matter how many points are there // Force a classname for the overall component element // Mark x values by displaying a vertical line in their positions
   // {
   //   x: the position of the mark according to the x axis
   //   attr: object with all the attribute names (keys) and their values according to d3
   //   style: object with all the style names (keys) and their values according to d3
   // }
-  marks,
-}) => {
-  // Set a fake dataset to allow the grapgh to work when no data is passed
+  marks }, ref) => {
+  // Set a fake dataset to allow the graph to work when no data is passed
   if (!yData || Object.keys(yData).length === 0) yData = yDataPlaceholder;
 
   const pdbData = useContext(PdbCtx);
@@ -979,6 +941,17 @@ const Graph2 = ({
     [lab, type],
   );
 
+  // Expose public methods and getters/setters
+  useImperativeHandle(
+    ref,
+    () => ({
+      set marks(value) {
+        marksRef.current({ marks: value });
+      },
+    }),
+    [],
+  );
+
   return (
     <div className={className ? className : style.default}>
       <div className={style.flexible}>
@@ -1020,6 +993,6 @@ const Graph2 = ({
       </div>
     </div>
   );
-};
+});
 
 export default Graph2;

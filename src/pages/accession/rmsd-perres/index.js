@@ -71,16 +71,15 @@ const RmsdPerres = () => {
   // Get the default representations
   const defaultRepresentations = useDefaultRepresentations();
 
-  // Set a ref to the ngl which allows access to the ngl viewer exposed methods
+  // Set a ref to the ngl which allows access to its exposed methods
   const viewerRef = useRef(null);
+  // Set a ref to the graph which allows access to its exposed methods
+  const graphRef = useRef(null);
 
   // Send a request to the API with the url of the specific analysis
   const { loading, payload, error } = useAPI(
     `${BASE_PATH_PROJECTS}${accession}/analyses/rmsd-perres/`,
   );
-
-  // Set when one point in the graph is selected
-  const [selectedFrame, setSelectedFrame] = useState(null);
 
   // Set when one point in the graph is selected
   const [selectedResidues, setSelectedResidues] = useState([]);
@@ -212,33 +211,29 @@ const RmsdPerres = () => {
     return { selectedData, selectedResidueNames };
   }, [selectedResidues]);
 
-  // Set the mark for selected
-  const marks = useMemo(() => {
-    const selectedMark = {
-      x: selectedFrame,
-      attr: { fill: '#c8c8c8' },
-    };
-    return [selectedMark];
-  }, [selectedFrame]);
-
   // When the user clicks on the graph
   const handleFrameSelection = useCallback(frame => {
     viewerRef.current.togglePlaying(false);
     viewerRef.current.currentFrame = frame;
-    //setSelectedFrame(frame);
   }, []);
 
   // When the ngl is playing
   const handleFrameProgress = useCallback(
     progress => {
+      if (!graphRef.current) return;
       // Process is a float number which ranges from 0 to 1
       // Guess the frame number which belongs to the process
       // WARNING: The follwoing multiplication must return always a whole number
       // WARNING: This 'round' is only for the float problem (e.g. 57 = 56.9999...)
       const frame = Math.round(progress * (framesNumber - 1));
-      setSelectedFrame(frame);
+      graphRef.current.marks = [
+        {
+          x: frame,
+          attr: { fill: '#c8c8c8' },
+        },
+      ];
     },
-    [framesNumber, setSelectedFrame],
+    [framesNumber],
   );
 
   // When a residue is selected
@@ -296,7 +291,7 @@ const RmsdPerres = () => {
             yAxisLabel={'RMSd (Å)'}
             onSelect={handleFrameSelection}
             className={style.graph}
-            marks={marks}
+            ref={graphRef}
           />
         ) : (
           <div className={style['graph-placeholder']}>
