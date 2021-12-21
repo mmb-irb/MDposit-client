@@ -165,9 +165,9 @@ const Graph2 = ({
   const containerRef = useRef(null);
   // Referenced function which allows to update the cart without having to remake it
   const drawRef = useRef(noop);
+  const onSelectRef = useRef(noop);
   const marksRef = useRef(noop);
-  const pdbDataRef = useRef({});
-  const dataRef = useRef(yDataPlaceholder);
+  const hoveredRef = useRef(noop);
 
   // Get each dataset
   const { yEntries, yKeys } = useMemo(() => {
@@ -266,20 +266,17 @@ const Graph2 = ({
     ? [dataDisplay, setDataDisplay]
     : [internalDataDisplay, setInternalDataDisplay];
 
-  const prevLabels = useRef(lab);
-  const prevZoom = useRef({ k: 1, x: 0, rescaleX: scale => scale });
-  const prevStep = useRef(step);
-  const prevXAxisLabel = useRef(xAxisLabel);
-  const prevYAxisLabel = useRef(yAxisLabel);
-  const prevXAxisValues = useRef(xAxisValues);
-
-  const prevMarks = useRef(marks);
-  const prevX = useRef(null);
-  const prevWidth = useRef(null);
-
-  useEffect(() => {
-    drawRef.current && pdbData && pdbData.file && drawRef.current();
-  }, [pdbData]);
+  const previousValues = useRef({
+    data: yDataPlaceholder,
+    labels: lab,
+    currentZoom: { k: 1, x: 0, rescaleX: scale => scale },
+    xAxisLabel,
+    yAxisLabel,
+    xAxisValues,
+    onSelect,
+    step,
+    marks,
+  });
 
   // This useEffect must be run only once
   // The graph content is updated through the 'drawRef' referenced function
@@ -304,7 +301,7 @@ const Graph2 = ({
     // mask opacity
     const [startMaskURL, endMaskURL] = addMasks(defs);
 
-    // Me set the marks node now, so they are not placed over the graph
+    // Set the marks node now, so they are not placed over the graph
     const marksNode = graph.append('g');
 
     const main = graph.append('g');
@@ -335,25 +332,22 @@ const Graph2 = ({
 
     // This ref allows to update the graph without having to remake the whole graph
     drawRef.current = ({
-      data = dataRef.current,
-      hovered,
-      labels = prevLabels.current,
-      pdbData = pdbDataRef.current,
-      step = prevStep.current,
-      xAxisLabel = prevXAxisLabel.current,
-      yAxisLabel = prevYAxisLabel.current,
-      currentZoom = prevZoom.current,
-      xAxisValues = prevXAxisValues.current,
-      marks = prevMarks.current,
+      data = previousValues.current.data,
+      labels = previousValues.current.labels,
+      pdbData = previousValues.current.pdbData,
+      step = previousValues.current.step,
+      xAxisLabel = previousValues.current.xAxisLabel,
+      yAxisLabel = previousValues.current.yAxisLabel,
+      currentZoom = previousValues.current.currentZoom,
+      xAxisValues = previousValues.current.xAxisValues,
+      onSelect = previousValues.current.onSelect,
+      marks = previousValues.current.marks,
     } = {}) => {
       // container size
       const { clientWidth: width, clientHeight: height } = containerRef.current;
 
       const dataEntries = Object.entries(data);
       const dataKeys = dataEntries.map(([key]) => key);
-
-      //console.log(data);
-      //console.log(dataKeys);
 
       // ----------------------------------------------------------------------------
 
@@ -400,6 +394,9 @@ const Graph2 = ({
       const precision = type === 'dash' ? 1 : getZoomPrecision(k);
       const rescaleX = currentZoom.rescaleX.bind(currentZoom);
 
+      // Save precision for further reference
+      previousValues.current.precision = precision;
+
       // ----------------------------------------------------------------------------
 
       // DANI: Esto es mio (experimental)
@@ -428,15 +425,22 @@ const Graph2 = ({
           .text(title);
       }
 
+      // Set the x minimum and maximum limits
       const xMin = 0;
       const xMax = dataEntries[0][1].data.length * step;
 
-      // x axis
+      // Save this values to further reference
+      previousValues.current.xMin = xMin;
+      previousValues.current.xMax = xMax;
+
+      // Set the x scale and save it to further reference
       const x = rescaleX(
         scaleLinear()
           .domain([xMin, xMax])
           .range([offset.left, width - offset.right]),
       );
+      previousValues.current.x = x;
+
       const xAxis = g =>
         g.attr('transform', `translate(0, ${height - offset.bottom})`).call(
           // DANI: Estos ticks los he puesto a mano tras comprobar que quedaban bien
@@ -586,9 +590,11 @@ const Graph2 = ({
           )
           .transition()
           .attr('opacity', d => (labels[d] ? 1 : 0))
-          .attr('stroke-width', d => (hovered === d ? 3 : 1.5));
+          .attr('stroke-width', 1.5);
         // Remove lines which are not required anymore according to the mapped data
         linesData.exit().remove();
+        // Save this node for further reference
+        previousValues.current.linesData = linesData;
       }
       // In case it is a dash graph
       else if (type === 'dash' && canvasContext) {
@@ -630,9 +636,10 @@ const Graph2 = ({
       }
 
       // Calculate the width of a vertical lines used to highlight specific x values
-      const markWidth = Math.max(1, x(precision * step) - x(0));
+      const xUnitWidth = Math.max(1, x(precision * step) - x(0));
+      previousValues.current.xUnitWidth = xUnitWidth;
       // Place vertical lines for specified marks
-      marksRef.current({ marks, x, width: markWidth, step });
+      marksRef.current({ marks, x, xUnitWidth, step });
 
       // dots over the selected vertical line
       // Here we just delete previous dots and start again instead of updating them
@@ -769,66 +776,84 @@ const Graph2 = ({
         }
       });
       // When click in the graph
-      if (onSelect) {
-        graph.on('click', (_, index, nodes) => {
-          const [xValue] = mouse(nodes[index]);
-          // Get the closest x axis index to the current mouse position
-          const closestIndex =
-            Math.round(x.invert(xValue) / precision / step) * precision;
-          if (closestIndex * step < xMin || closestIndex * step >= xMax) {
-            return;
-          }
-          onSelect(
-            closestIndex,
-            xAxisValues ? xAxisValues[closestIndex] : null,
-          );
-        });
-      }
+      onSelectRef.current({
+        onSelect,
+        x,
+        precision,
+        step,
+        xMin,
+        xMax,
+        xAxisValues,
+      });
 
       graph.on('mouseout', () => {
         allDotGroups.selectAll('g.dot-group').attr('opacity', 0);
         if (onHover) onHover(null);
       });
 
-      dataRef.current = data;
-      prevLabels.current = labels;
-      prevStep.current = step;
-      prevXAxisLabel.current = xAxisLabel;
-      prevYAxisLabel.current = yAxisLabel;
-      prevZoom.current = currentZoom;
-      prevXAxisValues.current = xAxisValues;
-      prevMarks.current = marks;
+      // Save current values for further reference
+      previousValues.current.data = data;
+      previousValues.current.labels = labels;
+      previousValues.current.xAxisLabel = xAxisLabel;
+      previousValues.current.yAxisLabel = yAxisLabel;
+      previousValues.current.currentZoom = currentZoom;
+      previousValues.current.xAxisValues = xAxisValues;
+    };
+
+    onSelectRef.current = ({ onSelect } = {}) => {
+      // Get some reference values
+      const x = previousValues.current.x;
+      const precision = previousValues.current.precision;
+      const step = previousValues.current.step;
+      const xMin = previousValues.current.xMin;
+      const xMax = previousValues.current.xMax;
+      const xAxisValues = previousValues.current.xAxisValues;
+      // In case we dont have the previous values yet we stop here
+      if (x === undefined) return;
+      // If there is no 'onSelect' function then return here
+      if (!onSelect) return;
+      // When click in the graph
+      graph.on('click', (_, index, nodes) => {
+        const [xValue] = mouse(nodes[index]);
+        // Get the closest x axis index to the current mouse position
+        const closestIndex =
+          Math.round(x.invert(xValue) / precision / step) * precision;
+        if (closestIndex * step < xMin || closestIndex * step >= xMax) {
+          return;
+        }
+        onSelect(closestIndex, xAxisValues ? xAxisValues[closestIndex] : null);
+      });
+      // Update previous refs
+      previousValues.current.onSelect = onSelect;
+      previousValues.current.precision = precision;
     };
 
     // Place marks in the graph
-    marksRef.current = ({
-      marks = prevMarks.current,
-      x = prevX.current,
-      width = prevWidth.current,
-      step = prevStep.current,
-    } = {}) => {
+    marksRef.current = ({ marks } = {}) => {
+      // Get some reference values
+      const x = previousValues.current.x;
+      const xUnitWidth = previousValues.current.xUnitWidth;
+      const step = previousValues.current.step;
       // In case we dont have all the arguments yet we stop here
-      if (x === null || width === null || step === null) return;
-
+      if (x === undefined) return;
       // Remove previous marks
-      if (prevMarks.current)
-        prevMarks.current.forEach(prevMark =>
+      if (previousValues.current.marks)
+        previousValues.current.marks.forEach(prevMark =>
           marksNode.select('#mark' + prevMark.x).remove(),
         );
       // If there are no new marks then return here
       if (!marks) return;
-
       // Add a vertical band for each mark
       marks.forEach(mark => {
         const markRect = marksNode
           .append('rect')
           .attr('id', 'mark' + mark.x)
           .attr('x', () =>
-            Number.isInteger(mark.x) ? x(mark.x * step) - width / 2 : 0,
+            Number.isInteger(mark.x) ? x(mark.x * step) - xUnitWidth / 2 : 0,
           )
           .attr('y', 0)
           .attr('height', '100%')
-          .attr('width', () => width);
+          .attr('width', () => xUnitWidth);
         if (mark.attr)
           Object.entries(mark.attr).forEach(([key, value]) => {
             markRect.attr(key, value);
@@ -838,12 +863,19 @@ const Graph2 = ({
             markRect.style(key, value);
           });
       });
-
       // Update previous refs
-      prevMarks.current = marks;
-      prevX.current = x;
-      prevWidth.current = width;
-      prevStep.current = step;
+      previousValues.current.marks = marks;
+    };
+
+    hoveredRef.current = ({ hovered } = {}) => {
+      // Get some reference values
+      const linesData = previousValues.current.linesData;
+      // Change the whole dataset line stroke width
+      linesData
+        .transition()
+        .attr('stroke-width', d => (hovered === d ? 3 : 1.5));
+      // Update previous refs
+      previousValues.current.hovered = hovered;
     };
 
     window.addEventListener('resize', drawRef.current);
@@ -852,6 +884,11 @@ const Graph2 = ({
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Maybe might need to double-check that and remove the exception
 
+  // Handle when the 'onSelect' function changes
+  useEffect(() => {
+    onSelectRef.current({ onSelect });
+  }, [onSelect]);
+
   // Handle when marks change
   useEffect(() => {
     marksRef.current({ marks });
@@ -859,7 +896,6 @@ const Graph2 = ({
 
   // Handle when data changes or the selected x unit changes
   useEffect(() => {
-    pdbDataRef.current = pdbData || pdbDataRef.current;
     drawRef.current({
       data: yData,
       pdbData,
@@ -867,10 +903,9 @@ const Graph2 = ({
       xAxisLabel,
       yAxisLabel,
       xAxisValues,
+      labels: lab,
     });
-  }, [pdbData, yData, step, xAxisLabel, yAxisLabel, xAxisValues]);
-
-  useEffect(() => drawRef.current({ labels: lab }), [lab]);
+  }, [pdbData, yData, step, xAxisLabel, yAxisLabel, xAxisValues, lab]);
 
   // Handle when user clicks on legend checkboxes
   const handleChange = useCallback(
@@ -900,7 +935,7 @@ const Graph2 = ({
       },
     }) => {
       if (!key || !lab[key] || type === 'dash') return;
-      drawRef.current({ hovered: key, labels: lab });
+      hoveredRef.current({ hovered: key });
     },
     [lab, type],
   );
@@ -912,7 +947,7 @@ const Graph2 = ({
       },
     }) => {
       if (!key || !lab[key] || type === 'dash') return;
-      drawRef.current({ labels: lab });
+      hoveredRef.current({ hovered: null });
     },
     [lab, type],
   );
