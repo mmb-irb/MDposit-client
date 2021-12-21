@@ -107,13 +107,7 @@ const trueEntries = keys => {
 // }
 
 const Graph2 = forwardRef(({ // The main data
-  yData, xAxisValues, step = 1, title, xAxisLabel, yAxisLabel, xScaleFactor = 1, // This is used to show the right text when the mouse is over it // Optional x tags // The difference beyween x values // Graph title // The x axis label text // The y axis label text // // Define the unit (and also the magnitude implicitly) of the x axis
-  // Accepted values: ns, frame, atom
-  xUnit = 'ns', // Accepted values: line, dash // Set the type of grapg to render
-  type = 'line', onHover, onSelect, selfLegend = false, displayLegend = false, dataDisplay, setDataDisplay, mean = false, standardDeviation = false, margin = defaultMargins, // Set if values in x axis is horizontal (false) or vertical (true) // React hooks // Object with each dataset name and a value of true/false to set which data is displayed // Display the mean line in the graph // Display the standard deviation area in the graph // Set an extra margin around the graph // DANI: Todavía no está implementado pero se usa para calcular márgenes
-  flippedXAxisValues = false, fullPrecision = false, className, // Marks is an array where each mark has the following format // If true, draw all points in the graph no matter how many points are there // Force a classname for the overall component element // Mark x values by displaying a vertical line in their positions
-  // {
-  //   x: the position of the mark according to the x axis
+  yData, xAxisValues, step = 1, title, xAxisLabel, yAxisLabel, xScaleFactor = 1, xUnit = 'ns', type = 'line', onHover, onSelect, selfLegend = false, displayLegend = false, dataDisplay, setDataDisplay, mean = false, standardDeviation = false, margin = defaultMargins, flippedXAxisValues = false, fullPrecision = false, className, //   x: the position of the mark according to the x axis // Accepted values: ns, frame, atom // This is used to show the right text when the mouse is over it // Optional x tags // The difference beyween x values // Graph title // The x axis label text // The y axis label text // // Define the unit (and also the magnitude implicitly) of the x axis // { // Accepted values: line, dash // Set the type of grapg to render // Set if values in x axis is horizontal (false) or vertical (true) // React hooks // Object with each dataset name and a value of true/false to set which data is displayed // Display the mean line in the graph // Display the standard deviation area in the graph // Set an extra margin around the graph // DANI: Todavía no está implementado pero se usa para calcular márgenes // Marks is an array where each mark has the following format // If true, draw all points in the graph no matter how many points are there // Force a classname for the overall component element // Mark x values by displaying a vertical line in their positions
   //   attr: object with all the attribute names (keys) and their values according to d3
   //   style: object with all the style names (keys) and their values according to d3
   // }
@@ -311,6 +305,11 @@ const Graph2 = forwardRef(({ // The main data
     } = {}) => {
       // Change the graph size according to the left offset
       graph.attr('width', offset.left);
+
+      // Save a few values for further reference
+      // These values must be saved at frist since other noop references read them from the reference
+      previousValues.current.step = step;
+      previousValues.current.xAxisValues = xAxisValues;
 
       // container size
       const { clientWidth: width, clientHeight: height } = containerRef.current;
@@ -608,7 +607,7 @@ const Graph2 = forwardRef(({ // The main data
       const xUnitWidth = Math.max(1, x(precision * step) - x(0));
       previousValues.current.xUnitWidth = xUnitWidth;
       // Place vertical lines for specified marks
-      marksRef.current({ marks, x, xUnitWidth, step });
+      marksRef.current({ marks });
 
       // dots over the selected vertical line
       // Here we just delete previous dots and start again instead of updating them
@@ -745,15 +744,7 @@ const Graph2 = forwardRef(({ // The main data
         }
       });
       // When click in the graph
-      onSelectRef.current({
-        onSelect,
-        x,
-        precision,
-        step,
-        xMin,
-        xMax,
-        xAxisValues,
-      });
+      onSelectRef.current({ onSelect });
 
       graph.on('mouseout', () => {
         allDotGroups.selectAll('g.dot-group').attr('opacity', 0);
@@ -766,7 +757,6 @@ const Graph2 = forwardRef(({ // The main data
       previousValues.current.xAxisLabel = xAxisLabel;
       previousValues.current.yAxisLabel = yAxisLabel;
       previousValues.current.currentZoom = currentZoom;
-      previousValues.current.xAxisValues = xAxisValues;
       previousValues.current.offset = offset;
       previousValues.current.labelsHeight = labelsHeight;
       previousValues.current.requiredBottomOffset = requiredBottomOffset;
