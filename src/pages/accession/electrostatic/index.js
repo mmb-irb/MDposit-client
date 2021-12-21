@@ -160,6 +160,10 @@ const Electrostatic = () => {
 
   if (!metadata || !pdbData.file) return <Loading />;
 
+  const handleToggleOrder = () => {
+    setSelectedOrder(previous => !previous);
+  };
+
   return (
     <>
       <Card>
@@ -170,7 +174,7 @@ const Electrostatic = () => {
             selectedInteraction={selectedInteraction}
             setSelectedInteraction={setSelectedInteraction}
             selectedOrder={selectedOrder}
-            setSelectedOrder={setSelectedOrder}
+            handleToggleOrder={handleToggleOrder}
             firstOrderLabel={'Surfaced interface'}
             firstOrderTooltip={
               'Interface residues to be represented in electorstatic surface mode'

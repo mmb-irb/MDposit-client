@@ -238,6 +238,11 @@ const Energies = () => {
     setSelectedResidues([data.labels[xIndex]]);
   };
 
+  const handleToggleOrder = () => {
+    setSelectedOrder(previous => !previous);
+    setSelected(null);
+  };
+
   // Render
   return (
     <Suspense fallback={<Loading />}>
@@ -249,7 +254,7 @@ const Energies = () => {
             selectedInteraction={selectedInteraction}
             setSelectedInteraction={setSelectedInteraction}
             selectedOrder={selectedOrder}
-            setSelectedOrder={setSelectedOrder}
+            handleToggleOrder={handleToggleOrder}
             firstOrderLabel={'Host'}
             firstOrderTooltip={'Interactor whose energies are to be shown'}
             secondOrderLabel={'Guest'}

@@ -38,7 +38,7 @@ const InteractionSelector = ({
   selectedResidues,
   setSelectedResidues,
   selectedOrder,
-  setSelectedOrder,
+  handleToggleOrder,
   firstOrderLabel, // The label to be represented over the first order rectangle
   firstOrderTooltip, // The tooltip to be shown for the first order rectangle
   secondOrderLabel, // The label to be represented over the second order rectangle
@@ -54,7 +54,7 @@ const InteractionSelector = ({
   };
 
   const changeOrder = () => {
-    setSelectedOrder(previous => !previous);
+    handleToggleOrder();
   };
 
   const currentInteraction = interactions[selectedInteraction];
