@@ -64,7 +64,7 @@ const Rmsds = () => {
   const [selectedTab, setSelectedTab] = useState(tabs[0]);
 
   // Format the data
-  const { rmsds, xAxesStep } = useMemo(() => {
+  const { rmsds, frameStep, xAxesStep } = useMemo(() => {
     let payload;
     const type = selectedTab.type;
     const reference = selectedTab.reference;
@@ -90,8 +90,9 @@ const Rmsds = () => {
     // Get the frames step
     // WARNING: We want the time step in nanoseconds (ns)
     // WARNING: Frequency is divided by 1000 since it is in picoseconds (ps)
-    const xAxesStep = payload.step * (metadata.FREQUENCY / 1000);
-    return { rmsds, xAxesStep };
+    const frameStep = payload.step;
+    const xAxesStep = frameStep * (metadata.FREQUENCY / 1000);
+    return { rmsds, frameStep, xAxesStep };
   }, [metadata, rmsdsPayload, tmscoresPayload, selectedTab]);
 
   // Set which rmsd is displayed
@@ -104,6 +105,7 @@ const Rmsds = () => {
 
   // Set when one point in the graph is selected
   const [selected, setSelected] = useState(null);
+  const selectedFrame = selected * frameStep;
 
   // Set the mark for selected
   const marks = useMemo(() => {
@@ -137,6 +139,7 @@ const Rmsds = () => {
             indicatorColor="secondary"
             textColor="secondary"
             onChange={(event, value) => {
+              setSelected(null);
               setSelectedTab(value);
             }}
             className={style['margined-bottom']}
@@ -208,7 +211,7 @@ const Rmsds = () => {
           typeof selected === 'number'
             ? {
                 accession: accession,
-                requestedFrame: selected,
+                requestedFrame: selectedFrame,
               }
             : null
         }
