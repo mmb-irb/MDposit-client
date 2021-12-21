@@ -351,8 +351,8 @@ const Epitopes = () => {
                     className={
                       e === hoveredEpitope ? style.selectedrow : style.row
                     }
-                    onMouseOver={() => setHoveredEpitope(e)}
-                    onMouseOut={() =>
+                    onMouseEnter={() => setHoveredEpitope(e)}
+                    onMouseLeave={() =>
                       setHoveredEpitope(previous =>
                         previous === e ? null : previous,
                       )
