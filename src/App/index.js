@@ -57,7 +57,14 @@ history.block(nextLocation => nextLocation.pathname);
 // Go to the Root script, where there is a switch/route section with all pages
 const App = () => {
   useEffect(() => {
-    ReactGA.initialize(googleAnalyticsId);
+    ReactGA.initialize(googleAnalyticsId, {
+      debug: false,
+      gaOptions: {
+        storage: 'none',
+        storeGac: false,
+      },
+    });
+    ReactGA.pageview('/somewhere');
   }, []);
   return (
     <Router history={history}>
