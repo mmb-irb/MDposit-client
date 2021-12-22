@@ -9,7 +9,7 @@ import Root from '../Root';
 import reducedMotion from '../utils/reduced-motion';
 
 // Get the Google Analytics id
-const googleAnalyticsId = process.env.GOOGLE_ANALYTICS_ID;
+const googleAnalyticsId = process.env.REACT_APP_GOOGLE_ANALYTICS_ID;
 
 // These keyframes are used for an animate()
 // An image opacity is iterated between 0 (invisible) and 1 (visible)
@@ -53,8 +53,6 @@ const history = createHashHistory({
 
 // Will call getUserConfirmation everytime location changes
 history.block(nextLocation => nextLocation.pathname);
-
-// end of hacky part with the history library
 
 // Go to the Root script, where there is a switch/route section with all pages
 const App = () => {
