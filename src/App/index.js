@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import ReactGA from 'react-ga';
 import { Router } from 'react-router-dom';
 import { createHashHistory } from 'history';
 import { sleep } from 'timing-functions';
@@ -52,10 +53,15 @@ history.block(nextLocation => nextLocation.pathname);
 // end of hacky part with the history library
 
 // Go to the Root script, where there is a switch/route section with all pages
-const App = () => (
-  <Router history={history}>
-    <Root />
-  </Router>
-);
+const App = () => {
+  useEffect(() => {
+    ReactGA.initialize('UA-215728637');
+  }, []);
+  return (
+    <Router history={history}>
+      <Root />
+    </Router>
+  );
+};
 
 export default App;

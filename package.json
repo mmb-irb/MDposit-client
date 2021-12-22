@@ -25,6 +25,7 @@
     "qs": "6.9.0",
     "react": "16.10.2",
     "react-dom": "16.10.2",
+    "react-ga": "^3.3.0",
     "react-heatmap-grid": "^0.8.2",
     "react-intersection-observer": "8.24.2",
     "react-minimal-pie-chart": "^8.2.0",
