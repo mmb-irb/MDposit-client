@@ -7,6 +7,10 @@ import { sleep } from 'timing-functions';
 import Root from '../Root';
 // It is used to check if the user has the reduced motion setting active
 import reducedMotion from '../utils/reduced-motion';
+
+// Get the Google Analytics id
+const googleAnalyticsId = process.env.GOOGLE_ANALYTICS_ID;
+
 // These keyframes are used for an animate()
 // An image opacity is iterated between 0 (invisible) and 1 (visible)
 const KEYFRAMES = {
@@ -55,7 +59,7 @@ history.block(nextLocation => nextLocation.pathname);
 // Go to the Root script, where there is a switch/route section with all pages
 const App = () => {
   useEffect(() => {
-    ReactGA.initialize('UA-297494202');
+    ReactGA.initialize(googleAnalyticsId);
   }, []);
   return (
     <Router history={history}>
