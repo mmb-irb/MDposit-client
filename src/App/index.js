@@ -64,7 +64,7 @@ const App = () => {
         storeGac: false,
       },
     });
-    ReactGA.pageview('/somewhere');
+    ReactGA.pageview(history.location.pathname);
   }, []);
   return (
     <Router history={history}>
