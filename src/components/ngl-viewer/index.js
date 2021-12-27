@@ -1677,8 +1677,9 @@ const NGLViewer = memo(
             if (!(pdbFile && requestedTrajectories.length)) return;
             try {
               const total = this.totalFrames;
-              let frame = value % total;
-              if (frame < 0) frame = total - 1;
+              let frame = value;
+              if (frame < 0) frame = 0;
+              if (frame >= total) frame = total - 1;
               stageRef.current.compList[0].trajList[0].trajectory.setFrame(
                 frame,
               );
@@ -1691,6 +1692,13 @@ const NGLViewer = memo(
             try {
               return stageRef.current.compList[0].trajList[0].trajectory.frames
                 .length;
+            } catch (_) {
+              return 1;
+            }
+          },
+          get totalExpectedFrames() {
+            try {
+              return stageRef.current.compList[0].trajList[0].expectedFrames;
             } catch (_) {
               return 1;
             }

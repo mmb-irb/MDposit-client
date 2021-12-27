@@ -466,7 +466,7 @@ const NGLViewerWithControls = forwardRef(
         // Change the ngl viewer current ref from its exposed setter
         // Then the ngl itself will update the 'progress' state
         viewerRef.current.currentFrame = Math.floor(
-          ((clientX - x) / width) * viewerRef.current.totalFrames,
+          ((clientX - x) / width) * viewerRef.current.totalExpectedFrames,
         );
       },
       [togglePlaying],
