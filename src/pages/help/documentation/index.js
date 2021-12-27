@@ -1107,10 +1107,15 @@ export const documentation = [
         header: 'Pockets',
         body: (
           <>
-            Pockets analysis searches for cavities along the trajectory. Then
-            the 10 biggest cavities are analyzed individually by computing their
-            volume for up to 100 frames along the trajectory. Atoms surrounding
-            each cavitiy are also found.
+            Pockets analysis searches for cavities along the trajectory. First,
+            a preliminar analysis is run in order to generate a
+            three-dimensional frequency grid of 1 Ångstrom resolution. Grid
+            points are considered only if they have an isovalue of 0.5 or
+            greater. Then pockets are defined as groups of connected grid points
+            with a minimum width of 3 points (i.e. 3 Ångstroms) in all three
+            dimensions. Finally, the first 10 biggest pockets are analyzed
+            individually by computing their volume for up to 100 frames along
+            the trajectory. Atoms surrounding each cavitiy are also found.
             <br />
             <br />
             This analysis is powered by{' '}
