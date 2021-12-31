@@ -70,12 +70,14 @@ const Graph2 = lazy(() =>
 // Define permanent options for the "useInView"
 const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
 
+// Get a number after rounding to decimals
+const decimalRound = value => Math.round(value * 10) / 10;
 // Set a function to calculate the average value from a values array
 const roundedAvg = values => {
   const sum = values.reduce((pv, cv) => pv + cv, 0);
   const length = values.length;
   const average = sum / length;
-  const rounded = Math.round(average * 10) / 10;
+  const rounded = decimalRound(average);
   return rounded;
 };
 
@@ -98,7 +100,7 @@ const Epitopes = () => {
       const toporefEpitopes = toporef.epitopes;
       if (!toporefEpitopes) return;
       const formattedEpitopes = Object.entries(toporefEpitopes).map(
-        ([name, residues]) => [toporef.name, name, residues],
+        ([name, epitope]) => [toporef.name, name, epitope.residues, epitope.mas],
       );
       epitopes.push(...formattedEpitopes);
     });
@@ -144,7 +146,7 @@ const Epitopes = () => {
       payload.step || Math.floor(metadata.SNAPSHOTS / (frameCount - 1));
     // Set the input objets for the graph
     const epitopesData = [];
-    epitopes.forEach(([toporefName, epitopeName, epitopeResidues]) => {
+    epitopes.forEach(([toporefName, epitopeName, epitopeResidues, epitopeSurface]) => {
       // Parse the reference residues list to a mapped NGL selection string
       const mappedResidues = reference2absolute(
         toporefName,
@@ -178,7 +180,7 @@ const Epitopes = () => {
           const totalSAS = residuesSAS.reduce((a, b) => a + b, 0);
           framedData.push(totalSAS);
         }
-        const chainSummary = chain + ': ' + roundedAvg(framedData);
+        const chainSummary = chain + ': ' + roundedAvg(framedData) + ' / ' + decimalRound(epitopeSurface);
         summary.push(chainSummary);
         chainedFramedData[chain] = framedData;
       });
