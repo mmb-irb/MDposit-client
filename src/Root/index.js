@@ -74,6 +74,11 @@ const theme = createMuiTheme({
     },
   },
   palette: { primary, secondary },
+  props: {
+    MuiTableCell: {
+      align: "center"
+    }
+  }
 });
 
 const Base = ({ setProject }) => {

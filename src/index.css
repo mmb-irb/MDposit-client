@@ -28,8 +28,3 @@ code {
   min-height: 100vh;
   overflow-x: hidden;
 }
-
-table th,
-table td {
-  text-align: center !important;
-}

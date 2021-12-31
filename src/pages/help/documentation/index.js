@@ -983,10 +983,10 @@ export const documentation = [
           <>
             Hydrogen bonds analysis computes whenever an hydrogen bond is formed
             for up to 200 frames along the trajectory. Only hydrogen bonds
-            between different interacting agents are observed. Two atoms are
-            considered to form an hydrogen bond when the distance between them
-            is inferior to 3 Ångstroms and the 'acceptor atom - hydrogen - donor
-            atom' angle is superior to 135 degrees.
+            between different interacting agents are observed. An acceptor and a
+            donor atom are considered to form an hydrogen bond when the distance
+            between them is inferior to 3 Ångstroms and the
+            'acceptor - hydrogen - donor' atoms angle is superior to 135 degrees.
             <br />
             <br />
             This analysis is powered by <Link name={'PyTraj'} id={'pytraj'} />.
@@ -1001,19 +1001,23 @@ export const documentation = [
             the 'Interaction' selector to switch between these analyses.
             <br />
             <br />
-            Graph below displays when the hydrogen bond was predicted to happen
-            (blue) or not (light grey) between each pair of atoms along the
-            trajectory. Pairs of hydrogen bridging atoms are listed in order of
-            stability. Hydrogen bonds which happen less than an 1% of the total
-            trajectory time are not listed. Left axis represents the different
-            hydrogen bonds. Labels describe the acceptor and donor atoms
-            respectively. Horizontal axis represents trajectory frames. Over the
-            graph there is a legend of chain names.
+            Table below lists hydrogen bonds. First three columns display the
+            first interacting agent atoms, hydrogen atoms and the second interacting
+            agent atoms respectively. Interacting agent atoms are labeled with the
+            format "chain : residue number (residue name) . atom name" while hydrogen atoms
+            are labeled with the atom name only. Hydrogen atoms are also represented
+            with a long hyphen pointing to the donor atom, which may be either the first
+            or the second interacting agent atom. The fourth column represents the hydrogen
+            bond status along the observed trajectory frames from the begining (left) to
+            the end (right). Blue regions stand for frames where the hydrogen bond happened
+            while ligth grey regions stand for frames where it did not.
+            Hydrogen bonds are grouped by both acceptor and donor atoms. Note that
+            some bonds may be repeated in two different groups for this reason.
+            Bond groups are sorted from most to least stability in the table.
             <br />
             <br />
-            The graph is{' '}
-            <span style={{ color: 'lightGreen' }}>interactive</span>. Click any
-            horizontal bar to open a{' '}
+            You can {' '} <span style={{ color: 'lightGreen' }}>click</span>{' '} in
+            the colored bar in order to open a{' '}
             <a
               href="/help#/help#ngl-viewer"
               target="_blank"
@@ -1021,12 +1025,9 @@ export const documentation = [
             >
               viewer
             </a>{' '}
-            showing the trajectory with the selected pair of atoms and their
-            residues highlighted. Also the distance between those atoms is
-            represented. In addition, the hydrogen which is expected to form the
-            hydrogen bond is also highlighted and the angle formed by the
-            acceptor atom, the bridging hydrogen and the donor atom is
-            represented.
+            showing the trajectory with both the acceptor and the donor atoms from the
+            selected bond and their residues highlighted. In addition, the distance between
+            these atoms and the 'acceptor - hydrogen - donor' atoms angle are represented.
           </>
         ),
       },
