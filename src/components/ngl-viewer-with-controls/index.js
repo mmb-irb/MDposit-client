@@ -492,6 +492,16 @@ const NGLViewerWithControls = forwardRef(
       return () => screenfull.off('change', handleFullscreenChange);
     }, [handleFullscreenChange]);
 
+    useEffect(() => {
+      const handleKeyPress = event => {
+        if (event.key === 'Escape') openSettings(false);
+        viewerRef.current.autoResize();
+      };
+      document.addEventListener('keydown', handleKeyPress, false);
+      return () =>
+        document.removeEventListener('keydown', handleKeyPress, false);
+    }, []);
+
     useImperativeHandle(
       ref,
       () => ({
