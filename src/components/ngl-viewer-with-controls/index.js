@@ -82,12 +82,7 @@ const defualtFrameNumber = (() => {
   }
 })();
 
-// I set the paint icon here as constant because if it is defined as paints index it triggers the unnecessary paints rerender
-// DANI: Habría que chequear que esto no pase en otros
-//const paintsIcon = <FontAwesomeIcon icon={faPaintBrush} />;
-
 // Set the possible number of frames the user can request
-// DANI: Por algún motivo estos sliders parece que no pasan de 100
 const defaultFrameNumbers = [
   {
     value: 10,
@@ -683,7 +678,7 @@ const NGLViewerWithControls = forwardRef(
                         />
                       ) : (
                         // DANI: Esto puede que no esté bien. Deberían ser 20 frames cuando es una PCA projection
-                        ' ' + requestedFramesNumber
+                        ' ' + viewerRef.current.totalExpectedFrames
                       )}
                     </div>
                   )}

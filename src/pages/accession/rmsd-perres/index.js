@@ -85,7 +85,12 @@ const RmsdPerres = () => {
   const [selectedResidues, setSelectedResidues] = useState([]);
 
   // Get the residues list in model notation
-  const { mainComponent, framesNumber, timeStep, sequences } = useMemo(() => {
+  const {
+    mainComponent,
+    analysisFrameCount,
+    timeStep,
+    sequences,
+  } = useMemo(() => {
     if (!pdbData.file || !metadata || !payload) return {};
 
     const data = payload.data;
@@ -142,16 +147,19 @@ const RmsdPerres = () => {
     });
 
     const firstResidue = data[0];
-    const framesNumber = firstResidue.rmsds.length;
+    const analysisFrameCount = firstResidue.rmsds.length;
+    const trajectoryFrameCount = metadata.SNAPSHOTS;
 
     // Guess the time step of the analysis from the number of frames
-    const timeStep = metadata.LENGTH / (framesNumber - 1);
+    const timeStep = metadata.LENGTH / (analysisFrameCount - 1);
 
     // Guess the frames step of the analysis from the number of frames
-    const frameStep = Math.floor(metadata.SNAPSHOTS / (framesNumber - 1));
+    const frameStep = Math.floor(
+      trajectoryFrameCount / (analysisFrameCount - 1),
+    );
 
     // Load the required frames from the main trajectory
-    const mainURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory?frames=1:${metadata.SNAPSHOTS}:${frameStep}`;
+    const mainURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory?frames=1:${trajectoryFrameCount}:${frameStep}`;
     const mainComponent = [
       {
         trajectoryURLs: [mainURL],
@@ -194,7 +202,7 @@ const RmsdPerres = () => {
       };
     });
 
-    return { mainComponent, framesNumber, timeStep, sequences };
+    return { mainComponent, analysisFrameCount, timeStep, sequences };
   }, [payload, pdbData, metadata, accession, defaultRepresentations]);
 
   // Get the residues list in model notation
@@ -225,7 +233,7 @@ const RmsdPerres = () => {
       // Guess the frame number which belongs to the process
       // WARNING: The follwoing multiplication must return always a whole number
       // WARNING: This 'round' is only for the float problem (e.g. 57 = 56.9999...)
-      const frame = Math.round(progress * (framesNumber - 1));
+      const frame = Math.round(progress * (analysisFrameCount - 1));
       graphRef.current.marks = [
         {
           x: frame,
@@ -233,7 +241,7 @@ const RmsdPerres = () => {
         },
       ];
     },
-    [framesNumber],
+    [analysisFrameCount],
   );
 
   // When a residue is selected
