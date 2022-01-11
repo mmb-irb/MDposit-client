@@ -1,12 +1,21 @@
-import React, { Suspense, useContext, useState, useMemo } from 'react';
+import React, { Suspense, useContext, useState, useMemo, Fragment, useRef } from 'react';
 
-import { CardContent, Typography } from '@material-ui/core';
+import {
+  CardContent,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  TablePagination,
+  TableFooter,
+  Typography
+} from '@material-ui/core';
 
 import Card from '../../../components/animated-card';
 import Loading from '../../../components/loading';
-import D3HeatmapGrid from '../../../components/d3-heatmap-grid';
+import BondStatus from './bond-status';
 import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
-import ChainsLegend from '../../../components/chains-legend';
 
 import useAPI from '../../../hooks/use-api';
 
@@ -18,11 +27,16 @@ import {
   getAtom,
   getAtomResidue,
   absolute2standard,
+  absolute2sourceResidue,
 } from '../../../utils/topology-manager';
 
 import InteractionSelector from '../../../components/interaction-selector';
 
 import style from './style.module.css';
+
+// Define non-changing props used by the table footer
+const rowsPerPageDefault = 25;
+const rowsPerPageOptions = [10, 25, 50, 100];
 
 const Hbonds = () => {
   // Get the accession
@@ -33,8 +47,21 @@ const Hbonds = () => {
   const { metadata } = useContext(ProjectCtx);
   const interactions = metadata.INTERACTIONS;
 
+  // Set a reference to the table element so we can scroll to it
+  const tableRef = useRef();
+
   // The interaction to be displayed
   const [selectedInteraction, setSelectedInteraction] = useState(0);
+
+  // The newest format has 4 fields: acceptors, donors, hydrogens and hbonds
+  // The hbonds includes arrays of true and false per frame
+  const interaction = interactions[selectedInteraction];
+
+  // The selected subset of bonds
+  const [selectedPage, setSelectedPage] = useState(0);
+
+  // The selected subset of bonds
+  const [selectedRowsPerPage, setSelectedRowsPerPage] = useState(rowsPerPageDefault);
 
   // The hydrogen bond bar which the mouse has clicked
   const [selectedHB, setSelectedHB] = useState(null);
@@ -45,16 +72,14 @@ const Hbonds = () => {
   // Send a request to the API with the url of the specific analysis
   const { loading, payload, error } = useAPI(url);
 
-  // Set the filtered data which will be displayed
-  const filteredData = useMemo(() => {
+  // Set the processed data which will be displayed
+  const processedData = useMemo(() => {
     // Return here if there is no payload or topology
     if (!payload || !pdbData || !pdbData.file) return;
 
+    // Get the data whose name matches the interaction name
     // The newest format has 4 fields: acceptors, donors, hydrogens and hbonds
     // The hbonds includes arrays of true and false per frame
-    const interaction = interactions[selectedInteraction];
-
-    // Get the data whose name matches the interaction name
     const data = payload.data.find(dataset => {
       return dataset.name === interaction.name;
     });
@@ -62,84 +87,142 @@ const Hbonds = () => {
       return `Dataset for the interaction "${interaction.name}" not found`;
 
     // If data is empty it means no hydrogen bonds where found for this interaction
-    if (!data.hbonds[0])
+    if (data.hbonds.length === 0)
       return 'No hydrogen bonds where found for this interaction';
 
-    const filteredData = {
-      hbonds: [],
-      acceptorAtomIndex: [],
-      donorAtomIndex: [],
-      hydrogenAtomIndex: [],
-      ylabels: [],
-    };
+    // Get the number of bonds
+    const bondCount = data.hbonds.length;
 
-    // Get the step
-    // DANI: Esto no es del todo correcto pero hace que los números de frames siempre cuadren
-    // DANI: Lo correcto sería hacer el hydrogen bonds con todas las frames y que el step fuese 1
-    // DANI: Osea quitar todo el código del step
-    // DANI: Esto es un apaño temporal porque algunos hydrogen bonds son de trayectorias reducidas
-    // DANI: Esto se debe a que con la trayectoria completa excedían el límite de 16Mb
-    // DANI: Lo correcto es implementar un nuevo sistema de carga de análisis sin límites
-    const dataLength = data.hbonds[0].length;
-    const step = Math.floor(metadata.SNAPSHOTS / (dataLength - 1));
-    // Calculate the frames labels
-    const xAxisValues = Array(dataLength)
-      .fill(undefined)
-      .map((v, i) => i * step);
-    filteredData.xlabels = xAxisValues;
+    // Group bonds with a common acceptor and then group bonds with a common donor
+    const acceptorGroups = {};
+    const donorGroups = {};
+    for (let i = 0; i < bondCount; i++) {
+      // Set the bond object
+      const acceptor = data.acceptors[i];
+      const donor = data.donors[i];
+      const hydrogen = data.hydrogens[i];
+      const status = data.hbonds[i];
+      const bond = { acceptor, donor, hydrogen, status };
+      // Add current bond to its corresponding acceptor group
+      const acceptorGroup = acceptorGroups[acceptor];
+      if (acceptorGroup) acceptorGroup.push(bond);
+      else acceptorGroups[acceptor] = [bond];
+      // Add current bond to its corresponding donor group
+      const donorGroup = donorGroups[donor];
+      if (donorGroup) donorGroup.push(bond);
+      else donorGroups[donor] = [bond];
+    }
 
-    // Find out the percent of frames where the bond is done along the trajectory for each bond
-    const percents = data.hbonds.map(hb => {
-      const totalFrames = hb.length;
-      const hbFrames = hb.filter(value => value).length;
-      return (hbFrames / totalFrames) * 100;
+    // Join all groups together discarding redundant groups
+    const groups = []
+    const commons = []
+    // Join unique acceptor groups
+    // Unique acceptor groups are those which have bonds with more than one different donor
+    Object.values(acceptorGroups).forEach(group => {
+      const donors = group.map(bond => bond.donor);
+      const uniqueDonors = new Set(donors);
+      if (uniqueDonors.size > 1) groups.push(group);
+      // Otherwise, add the group to the common groups list
+      else commons.push(group);
+    });
+    // Join unique donor groups
+    // Unique donor groups are those which have bonds with more than one different acceptor
+    Object.values(donorGroups).forEach(group => {
+      const acceptors = group.map(bond => bond.acceptor);
+      const uniqueAcceptors = new Set(acceptors);
+      if (uniqueAcceptors.size > 1) groups.push(group);
+      // WARNING: There is no need to add common groups to the list now
+      // They can only be repeater or redundant
+      // Repeated ones will be already in the list
+      // Redundant ones are discardes so we are not intereseted
+    });
+    // Common groups are thouse who have both an unique acceptor and an unique donor
+    // They will always be repeated or redundant (already included in bigger groups)
+    // If they are redundant then we are done
+    // Otherwise it means they are repeated so we only have to add it once to the list
+    commons.forEach(group => {
+      // Check if one of its bonds is included in any group already
+      const bondSample = group[0];
+      for (const group of groups) {
+        for (const bond of group) {
+          // In case the acceptor (or the donnor) matches is enought to discard the whole group
+          if (bond.acceptor === bondSample.acceptor) return;
+        }
+      }
+      // In case no coincidence was found we include the bond
+      groups.push(group);
     });
 
-    // Get the orderer index of 'hbonds' values greater than 1%
-    const orderedIndexes = Array.from(Array(percents.length).keys());
-    orderedIndexes.sort((a, b) => {
-      return percents[b] - percents[a];
+    // Sum up the groups in the list of atoms and status
+    // When all acceptors/donors/hydrogens are the same atom leave an unique value in the list
+    const processedData = groups.map(group => {
+      let acceptors = group.map(bond => bond.acceptor);
+      const uniqueAcceptors = new Set(acceptors);
+      if (uniqueAcceptors.size === 1) acceptors = [acceptors[0]];
+      let donors = group.map(bond => bond.donor);
+      const uniqueDonors = new Set(donors);
+      if (uniqueDonors.size === 1) donors = [donors[0]];
+      let hydrogens = group.map(bond => bond.hydrogen);
+      const uniqueHydrogens = new Set(hydrogens);
+      if (uniqueHydrogens.size === 1) hydrogens = [hydrogens[0]];
+      const status = group.map(bond => bond.status);
+      return { acceptors, donors, hydrogens, status };
     });
 
-    // Discard values lower than 1%
-    const indexes = orderedIndexes.filter(i => percents[i] > 1);
-
-    for (const hb of indexes) {
-      // Push the selected bond to the filteredData object
-      const hbonds = data.hbonds[hb];
-      filteredData.hbonds.push(hbonds);
-      const acceptor = data.acceptors[hb];
-      filteredData.acceptorAtomIndex.push(acceptor);
-      const donor = data.donors[hb];
-      filteredData.donorAtomIndex.push(donor);
-      const hydrogen = data.hydrogens[hb];
-      filteredData.hydrogenAtomIndex.push(hydrogen);
-
-      // Set a human readable label for this bond
-
-      // Fist set both acceptor and donor atom labels
-      const [acceptorLabel, donorLabel] = [acceptor, donor].map(atomIndex => {
-        const atomName = getAtom(atomIndex, pdbData.file).name;
-        const residueIndex = getAtomResidue(atomIndex, pdbData.file).index;
+    // Find out for each group which atoms (acceptors or donnors) belong to each interacting agent
+    // Then set the labels to be displayed in the corresponding agent 1 and 2 sections in the table
+    processedData.forEach(group => {
+      // Find out which agent does the acceptors belong to
+      const acceptorSample = group.acceptors[0];
+      const residueIndex = getAtomResidue(acceptorSample, pdbData.file).index;
+      const sourceResidue = absolute2sourceResidue(residueIndex, pdbData.file);
+      const isAcceptorFromAgent1 = interaction['interface_1'].indexOf(sourceResidue.numeration) !== -1;
+      group.isAcceptorFromAgent1 = isAcceptorFromAgent1;
+      // Set the acceptor, donor and hydrogen labels to be displayed in the table
+      const [ acceptorLabels, donorLabels ] = [ group.acceptors, group.donors ].map(atoms => atoms.map(atom => {
+        const atomName = getAtom(atom, pdbData.file).name;
+        const residueIndex = getAtomResidue(atom, pdbData.file).index;
         const { label } = absolute2standard(
           residueIndex,
           pdbData.file,
           metadata,
         );
         return `${label}.${atomName}`;
+      }));
+      const hydrogenLabels = group.hydrogens.map(atom => {
+        let atomName = getAtom(atom, pdbData.file).name;
+        if (isAcceptorFromAgent1) atomName = atomName + ' —';
+        else atomName = '— ' + atomName;
+        return atomName;
       });
-      const hydrogenName = getAtom(hydrogen, pdbData.file).name;
-      filteredData.ylabels.push(
-        `${acceptorLabel} - ${donorLabel} (${hydrogenName})`,
-      );
-    }
+      group.hydrogenLabels = hydrogenLabels;
+      // Now set the agent 1 and 2 labels
+      if (isAcceptorFromAgent1) {
+        group.agent1Labels = acceptorLabels;
+        group.agent2Labels = donorLabels;
+      } else {
+        group.agent1Labels = donorLabels;
+        group.agent2Labels = acceptorLabels;
+      }
+      // Set the group score according to the stability of all its bonds together
+      // This value is then used to sort groups
+      const stability = group.status.reduce((acc, cur) => acc += cur.filter(v => v === true).length, 0);
+      group.stability = stability;
+    });
 
-    // If data is empty it means no hydrogen bonds where found for this interaction
-    if (!filteredData.hbonds[0])
-      return 'No hydrogen bonds stable enough where found for this interaction';
+    // Sort bond groups by status (all status added together)
+    processedData.sort((a, b) => b.stability - a.stability);
 
-    return filteredData;
-  }, [payload, pdbData, metadata, interactions, selectedInteraction]);
+    return processedData;
+  }, [payload, pdbData, metadata, interaction]);
+
+  // Set all bonds to be displayed according to the current page and the number of bonds per page
+  const displayedBondGroups = useMemo(() => {
+    if (!processedData) return;
+    const firstBond = selectedPage * selectedRowsPerPage;
+    const lastBond = (selectedPage + 1) * selectedRowsPerPage;
+    return processedData.slice(firstBond, lastBond);
+  }, [processedData, selectedPage, selectedRowsPerPage]);
 
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
@@ -157,45 +240,110 @@ const Hbonds = () => {
           <InteractionSelector
             interactions={interactions}
             selectedInteraction={selectedInteraction}
-            setSelectedInteraction={setSelectedInteraction}
+            setSelectedInteraction={interaction => {
+              setSelectedInteraction(interaction);
+              setSelectedPage(0);
+            }}
           />
         </CardContent>
       </Card>
-      {typeof filteredData === 'string' && (
+      {typeof processedData === 'string' && (
         <Card>
           <CardContent>
-            <Typography variant="h6">{filteredData}</Typography>
+            <Typography variant="h6">{processedData}</Typography>
           </CardContent>
         </Card>
       )}
-      {typeof filteredData === 'object' && (
+      {typeof processedData === 'object' && (
         <Card className={style.margined}>
           <CardContent>
-            <ChainsLegend />
-            <D3HeatmapGrid
-              data={filteredData.hbonds}
-              xAxisValues={filteredData.xlabels}
-              yAxisValues={filteredData.ylabels}
-              xAxisLabel={'Frames'}
-              yAxisLabel={'Hydrogen bonds'}
-              onTooltip={({ yAxisValue }) => yAxisValue}
-              onClick={({ yIndex: index }) => {
-                // Convert the clicked bar index to the corresponding atom indexes
-                if (index < 0) return;
-                const acceptor = filteredData.acceptorAtomIndex[index];
-                const donor = filteredData.donorAtomIndex[index];
-                const hydrogen = filteredData.hydrogenAtomIndex[index];
-                setSelectedHB({
-                  index,
-                  selectedAtoms: [acceptor, donor],
-                  selectedDistances: [[acceptor, donor]],
-                  selectedAngles: [[acceptor, hydrogen, donor]],
-                });
-              }}
-              verticalPadding={0.2}
-              colorPlan={['#f0f0f0', 'blue']}
-              className={style.heatmap}
-            />
+            <Table ref={tableRef}>
+              {/* Setting column widths explicitly is important for the bond status chart to adapt its width */}
+              <colgroup>
+                <col style={{width:'12%'}}/>
+                <col style={{width:'12%'}}/>
+                <col style={{width:'12%'}}/>
+                <col style={{width:'64%'}}/>
+              </colgroup>
+              <TableHead className={style['table-head']}>
+                <TableRow>
+                  <TableCell>{interaction.agent_1}</TableCell>
+                  <TableCell>Hydrogen</TableCell>
+                  <TableCell>{interaction.agent_2}</TableCell>
+                  <TableCell>Bond status along trajectory</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {/* Create a row for each project in the payload*/}
+                {displayedBondGroups.map((bondGroup, b) => (
+                  <Fragment key={b}>
+                    {bondGroup.status.map((status, i) => (
+                      <TableRow key={i} >
+                        {/* agent 1 atom/s */}
+                        {bondGroup.agent1Labels[i] &&
+                          <TableCell rowSpan={bondGroup.status.length / bondGroup.agent1Labels.length}>
+                            {bondGroup.agent1Labels[i]}
+                          </TableCell>
+                        }
+                        {/* hydrogen */}
+                        {bondGroup.hydrogenLabels[i] &&
+                          <TableCell
+                            rowSpan={bondGroup.status.length / bondGroup.hydrogenLabels.length}
+                            align={bondGroup.isAcceptorFromAgent1 ? "right" : "left"}
+                          >
+                            {bondGroup.hydrogenLabels[i]}
+                          </TableCell>
+                        }
+                        {/* agent 2 atom */}
+                        {bondGroup.agent2Labels[i] &&
+                          <TableCell rowSpan={bondGroup.status.length / bondGroup.agent2Labels.length}>
+                            {bondGroup.agent2Labels[i]}
+                          </TableCell>
+                        }
+                        {/* bond status */}
+                        <TableCell>
+                          <BondStatus
+                            status={bondGroup.status[i]}
+                            onClick={() => {
+                              const acceptor = bondGroup.acceptors[i] || bondGroup.acceptors[0];
+                              const donor = bondGroup.donors[i] || bondGroup.donors[0];
+                              const hydrogen  = bondGroup.hydrogens[i] || bondGroup.hydrogens[0];
+                              setSelectedHB({
+                                selectedAtoms: [acceptor, donor],
+                                selectedDistances: [[acceptor, donor]],
+                                selectedAngles: [[acceptor, hydrogen, donor]],
+                              });
+                            }}
+                            className={style.status}/>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </Fragment>                  
+                ))}
+              </TableBody>
+              <TableFooter>
+                <TableRow>
+                  <TablePagination
+                    // IMPORTANT: Pagination is controled through the 'history', which may be updated from 'search'
+                    // Many of the following variables are methods from TablePagination (They are tagged as MTP). https://material-ui.com/api/table-pagination/
+                    rowsPerPageOptions={rowsPerPageOptions} // (MTP) Optional numbers of rows displayed in each page. It can be modified by the user.
+                    colSpan={4} // Set the anchor of columns which is taken as a reference for the horizontal position of the footer
+                    count={processedData.length} // (MTP) Total number of rows
+                    rowsPerPage={selectedRowsPerPage} // (MTP) The actual number of rows displayed
+                    page={selectedPage} // (MTP) The actual page
+                    onChangePage={(_, page) => {
+                      setSelectedPage(page);
+                      // Scroll to the top of the table
+                      tableRef.current.scrollIntoView();
+                    }}
+                    onChangeRowsPerPage={({ target: { value } }) => {
+                      setSelectedRowsPerPage(value);
+                      setSelectedPage(0);
+                    }}
+                  />
+                </TableRow>
+              </TableFooter>
+            </Table>
           </CardContent>
         </Card>
       )}
@@ -204,11 +352,11 @@ const Hbonds = () => {
         newViewer={
           selectedHB
             ? {
-                accession: accession,
-                selectedAtoms: selectedHB.selectedAtoms,
-                selectedDistances: selectedHB.selectedDistances,
-                selectedAngles: selectedHB.selectedAngles,
-              }
+              accession: accession,
+              selectedAtoms: selectedHB.selectedAtoms,
+              selectedDistances: selectedHB.selectedDistances,
+              selectedAngles: selectedHB.selectedAngles,
+            }
             : null
         }
         // If the nailed/closed viewer is the current viewer then reset the 'selected'
