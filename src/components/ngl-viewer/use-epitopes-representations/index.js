@@ -62,6 +62,7 @@ const useEpitopesRepresentations = () => {
     const { rangedSelection, small } = complexSelectionRanger(sourceResidues);
     const reps = [
       {
+        name: 'Epitopes',
         selection: rangedSelection || 'none',
         type: small ? 'licorice' : 'cartoon',
         color: 'purple',
