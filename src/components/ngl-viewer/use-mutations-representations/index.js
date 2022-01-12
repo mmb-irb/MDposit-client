@@ -87,7 +87,9 @@ const useMutationsRepresentations = () => {
       };
     });
 
-    const reps = [{ color: 'custom', customScheme: colorScheme }];
+    const reps = [
+      { name: 'Mutations', color: 'custom', customScheme: colorScheme },
+    ];
     return reps;
   }, [toporefData, metadata]);
 
