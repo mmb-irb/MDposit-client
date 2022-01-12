@@ -36,7 +36,10 @@ const useEpitopesRepresentations = () => {
       const toporefEpitopes = toporef.epitopes;
       if (!toporefEpitopes) return [];
       // Save all epitope residues together and eliminate duplicates
-      const allResidues = [].concat.apply([], Object.values(toporefEpitopes));
+      const epitopeResidues = Object.values(toporefEpitopes).map(
+        epitope => epitope.residues,
+      );
+      const allResidues = [].concat.apply([], epitopeResidues);
       const uniqueResidues = Array.from(new Set(allResidues));
       const mappedResidues = reference2absolute(
         toporefName,
@@ -59,7 +62,7 @@ const useEpitopesRepresentations = () => {
     const { rangedSelection, small } = complexSelectionRanger(sourceResidues);
     const reps = [
       {
-        selection: rangedSelection,
+        selection: rangedSelection || 'none',
         type: small ? 'licorice' : 'cartoon',
         color: 'purple',
       },
