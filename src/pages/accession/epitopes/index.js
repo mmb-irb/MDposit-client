@@ -15,6 +15,8 @@ import {
   TableRow,
   TableCell,
   TableBody,
+  TableFooter,
+  TablePagination,
   FormControlLabel,
   Checkbox,
   Typography,
@@ -51,6 +53,8 @@ import {
   byChains,
 } from '../../../utils/topology-manager';
 
+const pdbUrlBase = 'https://www.rcsb.org/structure/';
+
 const hoveredEpitopeColor = 'yellow';
 const defaultRepresentationsColor = 'black';
 
@@ -62,6 +66,9 @@ const dashStyles = [
   '10, 4, 1, 4, 1, 4',
   '1, 4',
 ];
+
+const rowsPerPageDefault = 10;
+const rowsPerPageOptions = [10, 25, 50, 100];
 
 const Graph2 = lazy(() =>
   import(/* webpackChunkName: 'graph2' */ '../../../components/graph2'),
@@ -100,7 +107,12 @@ const Epitopes = () => {
       const toporefEpitopes = toporef.epitopes;
       if (!toporefEpitopes) return;
       const formattedEpitopes = Object.entries(toporefEpitopes).map(
-        ([name, epitope]) => [toporef.name, name, epitope.residues, epitope.mas],
+        ([name, epitope]) => [
+          toporef.name,
+          name,
+          epitope.residues,
+          epitope.mas,
+        ],
       );
       epitopes.push(...formattedEpitopes);
     });
@@ -110,6 +122,8 @@ const Epitopes = () => {
   // This blockRef is a workaround to avoid selecting a row when clicking on the checkbox
   const blockRef = useRef(null);
 
+  // Set a ref to the table to access its scroll parameters
+  const tableRef = useRef(null);
   // Set a ref to the ngl which allows access to its exposed methods
   const viewerRef = useRef(null);
   // Set a ref to the graph which allows access to its exposed methods
@@ -125,6 +139,12 @@ const Epitopes = () => {
   const [hoveredEpitope, setHoveredEpitope] = useState(null);
   // Track which epitope is selected by the user
   const [selectedEpitopes, setSelectedEpitopes] = useState([]);
+
+  // Table pagination states
+  const [selectedPage, setSelectedPage] = useState(0);
+  const [selectedRowsPerPage, setSelectedRowsPerPage] = useState(
+    rowsPerPageDefault,
+  );
 
   // Send a request to the API with the url of the rgyr analysis
   const { loading, payload, error } = useAPI(
@@ -146,59 +166,71 @@ const Epitopes = () => {
       payload.step || Math.floor(metadata.SNAPSHOTS / (frameCount - 1));
     // Set the input objets for the graph
     const epitopesData = [];
-    epitopes.forEach(([toporefName, epitopeName, epitopeResidues, epitopeSurface]) => {
-      // Parse the reference residues list to a mapped NGL selection string
-      const mappedResidues = reference2absolute(
-        toporefName,
-        epitopeResidues,
-        metadata,
-      );
-      // In case the epitope is not found in the current structure we do not push it
-      if (mappedResidues.length === 0) return {};
-      const chainedResidues = byChains(mappedResidues, topology);
-      const chains = Object.keys(chainedResidues);
-      // Get the SAS values for each residue in each chain
-      const chainedResiduesData = {};
-      Object.entries(chainedResidues).forEach(([chain, residues]) => {
-        const residuesData = residues.map(residueIndex => {
-          const residueData = data[residueIndex];
-          residueData.atoms = getAtomsCount(residueIndex, topology);
-          return residueData;
+    epitopes.forEach(
+      ([toporefName, epitopeName, epitopeResidues, epitopeSurface]) => {
+        // Parse the reference residues list to a mapped NGL selection string
+        const mappedResidues = reference2absolute(
+          toporefName,
+          epitopeResidues,
+          metadata,
+        );
+        // In case the epitope is not found in the current structure we do not push it
+        if (mappedResidues.length === 0) return {};
+        const chainedResidues = byChains(mappedResidues, topology);
+        const chains = Object.keys(chainedResidues);
+        // Get the SAS values for each residue in each chain
+        const chainedResiduesData = {};
+        Object.entries(chainedResidues).forEach(([chain, residues]) => {
+          const residuesData = residues.map(residueIndex => {
+            const residueData = data[residueIndex];
+            residueData.atoms = getAtomsCount(residueIndex, topology);
+            return residueData;
+          });
+          chainedResiduesData[chain] = residuesData;
         });
-        chainedResiduesData[chain] = residuesData;
-      });
-      // Add SAS values along frames for each chain
-      // Calculate the averages of each chain and prepare a string summary for display
-      const chainedFramedData = {};
-      const summary = [];
-      Object.entries(chainedResiduesData).forEach(([chain, residuesData]) => {
-        const framedData = [];
-        for (let i = 0; i < frameCount; i++) {
-          const residuesSAS = residuesData.map(
-            residue => residue.saspf[i] * residue.atoms,
+        // Add SAS values along frames for each chain
+        // Calculate the averages of each chain and prepare a string summary for display
+        const chainedFramedData = {};
+        const summary = [];
+        Object.entries(chainedResiduesData).forEach(([chain, residuesData]) => {
+          const sasPerFrame = [];
+          const exposurePerFrame = [];
+          for (let i = 0; i < frameCount; i++) {
+            const residuesSAS = residuesData.map(
+              residue => residue.saspf[i] * residue.atoms,
+            );
+            const totalSAS = residuesSAS.reduce((a, b) => a + b, 0);
+            sasPerFrame.push(totalSAS);
+            const exposure = (totalSAS / epitopeSurface) * 100;
+            exposurePerFrame.push(exposure);
+          }
+          const averageSAS = roundedAvg(sasPerFrame);
+          const averageExposure = decimalRound(
+            (averageSAS / epitopeSurface) * 100,
           );
-          const totalSAS = residuesSAS.reduce((a, b) => a + b, 0);
-          framedData.push(totalSAS);
-        }
-        const chainSummary = chain + ': ' + roundedAvg(framedData) + ' / ' + decimalRound(epitopeSurface);
-        summary.push(chainSummary);
-        chainedFramedData[chain] = framedData;
-      });
-      // Get also the NGL selection from the mapped residues
-      // This is not separated in chains so the selection is for all chains together
-      const sourceResidues = mappedResidues.map(
-        residue => absolute2sourceResidue(residue, topology).numeration,
-      );
-      const { rangedSelection, small } = complexSelectionRanger(sourceResidues);
-      epitopesData.push({
-        name: epitopeName,
-        data: chainedFramedData,
-        selection: rangedSelection,
-        small: small,
-        chains: chains,
-        summary: summary.join('\n'),
-      });
-    });
+          const chainSummary = `${chain}:${averageSAS} Å² (${averageExposure}%)`;
+          summary.push(chainSummary);
+          //chainedFramedData[chain] = sasPerFrame;
+          chainedFramedData[chain] = exposurePerFrame;
+        });
+        // Get also the NGL selection from the mapped residues
+        // This is not separated in chains so the selection is for all chains together
+        const sourceResidues = mappedResidues.map(
+          residue => absolute2sourceResidue(residue, topology).numeration,
+        );
+        const { rangedSelection, small } = complexSelectionRanger(
+          sourceResidues,
+        );
+        epitopesData.push({
+          name: epitopeName,
+          data: chainedFramedData,
+          selection: rangedSelection,
+          small: small,
+          chains: chains,
+          summary: summary.join('\n'),
+        });
+      },
+    );
 
     // Instantiate the selected epitopes state using the number of epitopes data
     setSelectedEpitopes(new Array(epitopesData.length).fill(null));
@@ -215,26 +247,14 @@ const Epitopes = () => {
   const components = useMemo(() => {
     // Load the required frames from the main trajectory
     const trajectoryURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory?frames=1:${metadata.SNAPSHOTS}:${frameStep}`;
+    // Set the representations
+    const representations = [];
     // Reduce the opacity of all default representations and set their color as black
     defaultRepresentations.forEach(representation => {
       representation.opacity = 0.3;
       representation.color = defaultRepresentationsColor;
+      representations.push(representation);
     });
-
-    // The main component, which will include everything
-    const mainComponent = {
-      trajectoryURLs: [trajectoryURL],
-      representations: defaultRepresentations,
-    };
-
-    return [mainComponent];
-  }, [accession, metadata, frameStep, defaultRepresentations]);
-
-  // Set the main component to be passed to NGL
-  const snapRepresentations = useMemo(() => {
-    if (!epitopesData) return;
-    // Set representations with the defualt representations by the moment
-    const representations = [];
     // In case there are selected epitopes add an extra representation for each one
     selectedEpitopes.forEach((color, i) => {
       if (color === null) return;
@@ -249,25 +269,43 @@ const Epitopes = () => {
     });
     // In case the showAllEpitopes is marked show the all epitopes representation
     if (showAllEpitopes) representations.push(...allEpitopesRepresentations);
+
+    // The main component, which will include everything
+    const mainComponent = {
+      trajectoryURLs: [trajectoryURL],
+      representations: representations,
+    };
+
+    return [mainComponent];
+  }, [
+    accession,
+    metadata,
+    epitopesData,
+    frameStep,
+    defaultRepresentations,
+    selectedEpitopes,
+    showAllEpitopes,
+    allEpitopesRepresentations,
+  ]);
+
+  // Set the main component to be passed to NGL
+  const snapRepresentations = useMemo(() => {
+    if (!epitopesData) return;
+    const representations = [];
     // In case the showAllEpitopes is marked show the all epitopes representation
     if (hoveredEpitope !== null) {
       const epitopeData = epitopesData[hoveredEpitope];
       const newRepresentation = {
         name: epitopeData.name,
         selection: epitopeData.selection,
-        type: epitopeData.small ? 'licorice' : 'cartoon',
+        type: 'spacefill',
         color: hoveredEpitopeColor,
+        opacity: 0.15,
       };
       representations.push(newRepresentation);
     }
     return representations;
-  }, [
-    epitopesData,
-    selectedEpitopes,
-    showAllEpitopes,
-    hoveredEpitope,
-    allEpitopesRepresentations,
-  ]);
+  }, [epitopesData, hoveredEpitope]);
 
   // Set the graph parameters
   const graphInputData = useMemo(() => {
@@ -325,10 +363,13 @@ const Epitopes = () => {
 
   if (!metadata || !pdbData.file) return <Loading />;
 
+  const firstEpitopeIndex = selectedPage * selectedRowsPerPage;
+  const lastEpitopeIndex = (selectedPage + 1) * selectedRowsPerPage;
+
   return (
     <>
       <Card className={style.tablecard}>
-        <div className={style.paper}>
+        <div className={style.paper} ref={tableRef}>
           <Table stickyHeader size="small">
             <TableHead>
               <TableRow>
@@ -341,66 +382,97 @@ const Epitopes = () => {
                     />
                   }
                 </TableCell>
-                <TableCell key={1}>{'Average SAS (Å²)'}</TableCell>
+                <TableCell key={1}>{'Average SAS and exposure'}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {epitopesData.map(({ name: epitopeName, summary }, e) => {
-                return (
-                  <TableRow
-                    key={epitopeName}
-                    role="checkbox"
-                    className={
-                      e === hoveredEpitope ? style.selectedrow : style.row
-                    }
-                    onMouseEnter={() => setHoveredEpitope(e)}
-                    onMouseLeave={() =>
-                      setHoveredEpitope(previous =>
-                        previous === e ? null : previous,
-                      )
-                    }
-                  >
-                    {[
-                      <FormControlLabel
-                        data-key={epitopeName}
-                        key={epitopeName}
-                        onMouseOver={() => {
-                          blockRef.current = e;
-                        }}
-                        onMouseOut={() => {
-                          blockRef.current = null;
-                        }}
-                        onChange={() =>
-                          setSelectedEpitopes(previous => {
-                            if (!previous[e]) previous[e] = getColor();
-                            else {
-                              freeColor(previous[e]);
-                              previous[e] = null;
-                            }
-                            return [...previous];
-                          })
-                        }
-                        control={
-                          <Checkbox
-                            checked={selectedEpitopes[e] ? true : false}
-                            style={{
-                              color: selectedEpitopes[e]
-                                ? selectedEpitopes[e]
-                                : 'black',
-                            }}
-                            inputProps={{ 'data-key': epitopeName }}
-                          />
-                        }
-                        label={epitopeName}
-                      />,
-                      summary,
-                    ].map(cell => (
-                      <TableCell key={cell}>{cell}</TableCell>
-                    ))}
-                  </TableRow>
-                );
-              })}
+              {epitopesData
+                .slice(firstEpitopeIndex, lastEpitopeIndex)
+                .map(({ name: epitopeName, summary }, e) => {
+                  const num = selectedPage * selectedRowsPerPage + e;
+                  return (
+                    <TableRow
+                      key={epitopeName}
+                      role="checkbox"
+                      className={
+                        num === hoveredEpitope ? style.selectedrow : style.row
+                      }
+                      onMouseEnter={() => setHoveredEpitope(num)}
+                      onMouseLeave={() =>
+                        setHoveredEpitope(previous =>
+                          previous === num ? null : previous,
+                        )
+                      }
+                    >
+                      {[
+                        <FormControlLabel
+                          data-key={epitopeName}
+                          key={epitopeName}
+                          onMouseOver={() => {
+                            blockRef.current = num;
+                          }}
+                          onMouseOut={() => {
+                            blockRef.current = null;
+                          }}
+                          onChange={() =>
+                            setSelectedEpitopes(previous => {
+                              if (!previous[num]) previous[num] = getColor();
+                              else {
+                                freeColor(previous[num]);
+                                previous[num] = null;
+                              }
+                              return [...previous];
+                            })
+                          }
+                          control={
+                            <Checkbox
+                              checked={selectedEpitopes[num] ? true : false}
+                              style={{
+                                color: selectedEpitopes[num]
+                                  ? selectedEpitopes[num]
+                                  : 'black',
+                              }}
+                              inputProps={{ 'data-key': epitopeName }}
+                            />
+                          }
+                          label={
+                            <a
+                              href={pdbUrlBase + epitopeName}
+                              target="_blank"
+                              rel="noreferrer noopener"
+                            >
+                              {epitopeName}
+                            </a>
+                          }
+                        />,
+                        summary,
+                      ].map(cell => (
+                        <TableCell key={cell}>{cell}</TableCell>
+                      ))}
+                    </TableRow>
+                  );
+                })}
             </TableBody>
+            <TableFooter>
+              <TableRow>
+                <TablePagination
+                  rowsPerPageOptions={rowsPerPageOptions} // Optional numbers of rows displayed in each page. It can be modified by the user.
+                  colSpan={4} // Set the anchor of columns which is taken as a reference for the horizontal position of the footer
+                  count={epitopesData.length} // Total number of rows
+                  rowsPerPage={selectedRowsPerPage} // The actual number of rows displayed
+                  page={selectedPage} // The actual page
+                  onChangePage={(_, page) => {
+                    setSelectedPage(page);
+                    // Scroll to the top of the table
+                    tableRef.current.scrollTop = 0;
+                  }}
+                  onChangeRowsPerPage={({ target: { value } }) => {
+                    setSelectedRowsPerPage(value);
+                    setSelectedPage(0);
+                  }}
+                />
+              </TableRow>
+            </TableFooter>
           </Table>
         </div>
       </Card>
@@ -430,7 +502,7 @@ const Epitopes = () => {
           xUnit={'frame'}
           xScaleFactor={1}
           xAxisLabel={'Frames'}
-          yAxisLabel={`SAS (Å²)`}
+          yAxisLabel={`Exposure (%)`}
           showPrecisionSlider={false}
           blockMaxPrecision={true}
           roundcents={false}

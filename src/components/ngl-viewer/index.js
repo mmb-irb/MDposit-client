@@ -1045,6 +1045,7 @@ const NGLViewer = memo(
             sele: snapRepresentation.selection,
             name: snapRepresentation.name,
             color: snapRepresentation.color,
+            opacity: snapRepresentation.opacity,
           });
         });
         return () => {

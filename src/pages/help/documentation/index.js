@@ -985,8 +985,8 @@ export const documentation = [
             for up to 200 frames along the trajectory. Only hydrogen bonds
             between different interacting agents are observed. An acceptor and a
             donor atom are considered to form an hydrogen bond when the distance
-            between them is inferior to 3 Ångstroms and the
-            'acceptor - hydrogen - donor' atoms angle is superior to 135 degrees.
+            between them is inferior to 3 Ångstroms and the 'acceptor - hydrogen
+            - donor' atoms angle is superior to 135 degrees.
             <br />
             <br />
             This analysis is powered by <Link name={'PyTraj'} id={'pytraj'} />.
@@ -1002,22 +1002,24 @@ export const documentation = [
             <br />
             <br />
             Table below lists hydrogen bonds. First three columns display the
-            first interacting agent atoms, hydrogen atoms and the second interacting
-            agent atoms respectively. Interacting agent atoms are labeled with the
-            format "chain : residue number (residue name) . atom name" while hydrogen atoms
-            are labeled with the atom name only. Hydrogen atoms are also represented
-            with a long hyphen pointing to the donor atom, which may be either the first
-            or the second interacting agent atom. The fourth column represents the hydrogen
-            bond status along the observed trajectory frames from the begining (left) to
-            the end (right). Blue regions stand for frames where the hydrogen bond happened
-            while ligth grey regions stand for frames where it did not.
-            Hydrogen bonds are grouped by both acceptor and donor atoms. Note that
-            some bonds may be repeated in two different groups for this reason.
-            Bond groups are sorted from most to least stability in the table.
+            first interacting agent atoms, hydrogen atoms and the second
+            interacting agent atoms respectively. Interacting agent atoms are
+            labeled with the format "chain : residue number (residue name) .
+            atom name" while hydrogen atoms are labeled with the atom name only.
+            Hydrogen atoms are also represented with a long hyphen pointing to
+            the donor atom, which may be either the first or the second
+            interacting agent atom. The fourth column represents the hydrogen
+            bond status along the observed trajectory frames from the begining
+            (left) to the end (right). Blue regions stand for frames where the
+            hydrogen bond happened while ligth grey regions stand for frames
+            where it did not. Hydrogen bonds are grouped by both acceptor and
+            donor atoms. Note that some bonds may be repeated in two different
+            groups for this reason. Bond groups are sorted from most to least
+            stability in the table.
             <br />
             <br />
-            You can {' '} <span style={{ color: 'lightGreen' }}>click</span>{' '} in
-            the colored bar in order to open a{' '}
+            You can <span style={{ color: 'lightGreen' }}>click</span> in the
+            colored bar in order to open a{' '}
             <a
               href="/help#/help#ngl-viewer"
               target="_blank"
@@ -1025,9 +1027,10 @@ export const documentation = [
             >
               viewer
             </a>{' '}
-            showing the trajectory with both the acceptor and the donor atoms from the
-            selected bond and their residues highlighted. In addition, the distance between
-            these atoms and the 'acceptor - hydrogen - donor' atoms angle are represented.
+            showing the trajectory with both the acceptor and the donor atoms
+            from the selected bond and their residues highlighted. In addition,
+            the distance between these atoms and the 'acceptor - hydrogen -
+            donor' atoms angle are represented.
           </>
         ),
       },
@@ -1234,10 +1237,13 @@ export const documentation = [
             . A systematic search was performed with the parameters 'Source
             Organism Taxonomy Name' equals 'SARS-CoV-2' + 'Homo sapiens' and
             'Additional Structure Keywords' contains phrase 'antibody'. Last
-            search was performed on June 2021 with more than 150 results. For
-            each structure, SARS-CoV-2 interface residues with the human
-            antibody were captured by using a distance cutoff of 5 Ångstroms
-            between atoms.
+            search was performed on December 2021 with more than 260 results.
+            For each structure, SARS-CoV-2 interface residues with the human
+            antibody were found by using a distance cutoff of 5 Ångstroms
+            between atoms. In addition, the Solven Accessible Surface (SAS) was
+            calculated for these residues alone (removing all other resiudes).
+            This value is considered as the 100% exposition SAS and then used
+            for reference.
           </>
         ),
         page: (
@@ -1245,11 +1251,12 @@ export const documentation = [
             This is the epitopes viewer.
             <br />
             <br />
-            Epitopes present in the structure are listed left. The list includes
-            the PDB code of the corresponding SARS-CoV-2 + human antibody
-            structure and the average Solvent Accessible Surface (SAS) of all
-            epitope residues together along the trajectory for each chain.
-            Epitopes can be represented in the{' '}
+            Epitopes present in the structure are listed in the left table. Left
+            column lists the PDB code of the corresponding SARS-CoV-2 + human
+            antibody structure. Right column includes the average Solvent
+            Accessible Surface (SAS) of the epitope in Å² and its exposition in
+            percent along the trajectory for each chain. Epitopes can be
+            represented in the{' '}
             <a
               href="/help#/help#ngl-viewer"
               target="_blank"
@@ -1258,19 +1265,19 @@ export const documentation = [
               viewer
             </a>{' '}
             at right, over the overall structure in low opacity black color.
-            Hover any epitope to display its residues in yellow color. Click on
-            any epitope checkbox to display its residues in a specific color and
-            also the SAS of its residues together along the trajectory in the
-            graph below. Lines of each epitope are represented with a different
-            color. The line of each chain is represented with a different dash
-            pattern. Click anywhere on the graph to change the viewer trajectory
-            frame.
+            Click in the overall 'Epitopes' checkbox to show the region covered
+            by all epitopes together in purple color. Hover any epitope to
+            highlight its residues in yellow color. Click on any epitope
+            checkbox to display its residues in a specific color and its
+            exposition percent along the trajectory in the graph below. Lines of
+            each epitope are represented with a different color. The line of
+            each chain is represented with a different dash pattern. Click
+            anywhere on the graph to change the viewer trajectory frame.
             <br />
             <br />
             Several epitopes may be selected in order to compare them. Note that
             if overlapping epitopes are selected then epitopes above in the list
-            will eclipse epitopes below in the viewer. Click on the overall
-            pockets checkbox to represent the overall epitopes representation.
+            will eclipse epitopes below in the viewer.
           </>
         ),
       },

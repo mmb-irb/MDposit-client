@@ -1,4 +1,11 @@
-import React, { Suspense, useContext, useState, useMemo, Fragment, useRef } from 'react';
+import React, {
+  Suspense,
+  useContext,
+  useState,
+  useMemo,
+  Fragment,
+  useRef,
+} from 'react';
 
 import {
   CardContent,
@@ -9,7 +16,7 @@ import {
   TableRow,
   TablePagination,
   TableFooter,
-  Typography
+  Typography,
 } from '@material-ui/core';
 
 import Card from '../../../components/animated-card';
@@ -57,11 +64,11 @@ const Hbonds = () => {
   // The hbonds includes arrays of true and false per frame
   const interaction = interactions[selectedInteraction];
 
-  // The selected subset of bonds
+  // Table pagination states
   const [selectedPage, setSelectedPage] = useState(0);
-
-  // The selected subset of bonds
-  const [selectedRowsPerPage, setSelectedRowsPerPage] = useState(rowsPerPageDefault);
+  const [selectedRowsPerPage, setSelectedRowsPerPage] = useState(
+    rowsPerPageDefault,
+  );
 
   // The hydrogen bond bar which the mouse has clicked
   const [selectedHB, setSelectedHB] = useState(null);
@@ -114,8 +121,8 @@ const Hbonds = () => {
     }
 
     // Join all groups together discarding redundant groups
-    const groups = []
-    const commons = []
+    const groups = [];
+    const commons = [];
     // Join unique acceptor groups
     // Unique acceptor groups are those which have bonds with more than one different donor
     Object.values(acceptorGroups).forEach(group => {
@@ -176,19 +183,23 @@ const Hbonds = () => {
       const acceptorSample = group.acceptors[0];
       const residueIndex = getAtomResidue(acceptorSample, pdbData.file).index;
       const sourceResidue = absolute2sourceResidue(residueIndex, pdbData.file);
-      const isAcceptorFromAgent1 = interaction['interface_1'].indexOf(sourceResidue.numeration) !== -1;
+      const isAcceptorFromAgent1 =
+        interaction['interface_1'].indexOf(sourceResidue.numeration) !== -1;
       group.isAcceptorFromAgent1 = isAcceptorFromAgent1;
       // Set the acceptor, donor and hydrogen labels to be displayed in the table
-      const [ acceptorLabels, donorLabels ] = [ group.acceptors, group.donors ].map(atoms => atoms.map(atom => {
-        const atomName = getAtom(atom, pdbData.file).name;
-        const residueIndex = getAtomResidue(atom, pdbData.file).index;
-        const { label } = absolute2standard(
-          residueIndex,
-          pdbData.file,
-          metadata,
-        );
-        return `${label}.${atomName}`;
-      }));
+      const [acceptorLabels, donorLabels] = [group.acceptors, group.donors].map(
+        atoms =>
+          atoms.map(atom => {
+            const atomName = getAtom(atom, pdbData.file).name;
+            const residueIndex = getAtomResidue(atom, pdbData.file).index;
+            const { label } = absolute2standard(
+              residueIndex,
+              pdbData.file,
+              metadata,
+            );
+            return `${label}.${atomName}`;
+          }),
+      );
       const hydrogenLabels = group.hydrogens.map(atom => {
         let atomName = getAtom(atom, pdbData.file).name;
         if (isAcceptorFromAgent1) atomName = atomName + ' —';
@@ -206,7 +217,10 @@ const Hbonds = () => {
       }
       // Set the group score according to the stability of all its bonds together
       // This value is then used to sort groups
-      const stability = group.status.reduce((acc, cur) => acc += cur.filter(v => v === true).length, 0);
+      const stability = group.status.reduce(
+        (acc, cur) => (acc += cur.filter(v => v === true).length),
+        0,
+      );
       group.stability = stability;
     });
 
@@ -260,10 +274,10 @@ const Hbonds = () => {
             <Table ref={tableRef}>
               {/* Setting column widths explicitly is important for the bond status chart to adapt its width */}
               <colgroup>
-                <col style={{width:'12%'}}/>
-                <col style={{width:'12%'}}/>
-                <col style={{width:'12%'}}/>
-                <col style={{width:'64%'}}/>
+                <col style={{ width: '12%' }} />
+                <col style={{ width: '12%' }} />
+                <col style={{ width: '12%' }} />
+                <col style={{ width: '64%' }} />
               </colgroup>
               <TableHead className={style['table-head']}>
                 <TableRow>
@@ -278,59 +292,78 @@ const Hbonds = () => {
                 {displayedBondGroups.map((bondGroup, b) => (
                   <Fragment key={b}>
                     {bondGroup.status.map((status, i) => (
-                      <TableRow key={i} >
+                      <TableRow key={i}>
                         {/* agent 1 atom/s */}
-                        {bondGroup.agent1Labels[i] &&
-                          <TableCell rowSpan={bondGroup.status.length / bondGroup.agent1Labels.length}>
+                        {bondGroup.agent1Labels[i] && (
+                          <TableCell
+                            rowSpan={
+                              bondGroup.status.length /
+                              bondGroup.agent1Labels.length
+                            }
+                          >
                             {bondGroup.agent1Labels[i]}
                           </TableCell>
-                        }
+                        )}
                         {/* hydrogen */}
-                        {bondGroup.hydrogenLabels[i] &&
+                        {bondGroup.hydrogenLabels[i] && (
                           <TableCell
-                            rowSpan={bondGroup.status.length / bondGroup.hydrogenLabels.length}
-                            align={bondGroup.isAcceptorFromAgent1 ? "right" : "left"}
+                            rowSpan={
+                              bondGroup.status.length /
+                              bondGroup.hydrogenLabels.length
+                            }
+                            align={
+                              bondGroup.isAcceptorFromAgent1 ? 'right' : 'left'
+                            }
                           >
                             {bondGroup.hydrogenLabels[i]}
                           </TableCell>
-                        }
+                        )}
                         {/* agent 2 atom */}
-                        {bondGroup.agent2Labels[i] &&
-                          <TableCell rowSpan={bondGroup.status.length / bondGroup.agent2Labels.length}>
+                        {bondGroup.agent2Labels[i] && (
+                          <TableCell
+                            rowSpan={
+                              bondGroup.status.length /
+                              bondGroup.agent2Labels.length
+                            }
+                          >
                             {bondGroup.agent2Labels[i]}
                           </TableCell>
-                        }
+                        )}
                         {/* bond status */}
                         <TableCell>
                           <BondStatus
                             status={bondGroup.status[i]}
                             onClick={() => {
-                              const acceptor = bondGroup.acceptors[i] || bondGroup.acceptors[0];
-                              const donor = bondGroup.donors[i] || bondGroup.donors[0];
-                              const hydrogen  = bondGroup.hydrogens[i] || bondGroup.hydrogens[0];
+                              const acceptor =
+                                bondGroup.acceptors[i] ||
+                                bondGroup.acceptors[0];
+                              const donor =
+                                bondGroup.donors[i] || bondGroup.donors[0];
+                              const hydrogen =
+                                bondGroup.hydrogens[i] ||
+                                bondGroup.hydrogens[0];
                               setSelectedHB({
                                 selectedAtoms: [acceptor, donor],
                                 selectedDistances: [[acceptor, donor]],
                                 selectedAngles: [[acceptor, hydrogen, donor]],
                               });
                             }}
-                            className={style.status}/>
+                            className={style.status}
+                          />
                         </TableCell>
                       </TableRow>
                     ))}
-                  </Fragment>                  
+                  </Fragment>
                 ))}
               </TableBody>
               <TableFooter>
                 <TableRow>
                   <TablePagination
-                    // IMPORTANT: Pagination is controled through the 'history', which may be updated from 'search'
-                    // Many of the following variables are methods from TablePagination (They are tagged as MTP). https://material-ui.com/api/table-pagination/
-                    rowsPerPageOptions={rowsPerPageOptions} // (MTP) Optional numbers of rows displayed in each page. It can be modified by the user.
+                    rowsPerPageOptions={rowsPerPageOptions} // Optional numbers of rows displayed in each page. It can be modified by the user.
                     colSpan={4} // Set the anchor of columns which is taken as a reference for the horizontal position of the footer
-                    count={processedData.length} // (MTP) Total number of rows
-                    rowsPerPage={selectedRowsPerPage} // (MTP) The actual number of rows displayed
-                    page={selectedPage} // (MTP) The actual page
+                    count={processedData.length} // Total number of rows
+                    rowsPerPage={selectedRowsPerPage} // The actual number of rows displayed
+                    page={selectedPage} // The actual page
                     onChangePage={(_, page) => {
                       setSelectedPage(page);
                       // Scroll to the top of the table
@@ -352,11 +385,11 @@ const Hbonds = () => {
         newViewer={
           selectedHB
             ? {
-              accession: accession,
-              selectedAtoms: selectedHB.selectedAtoms,
-              selectedDistances: selectedHB.selectedDistances,
-              selectedAngles: selectedHB.selectedAngles,
-            }
+                accession: accession,
+                selectedAtoms: selectedHB.selectedAtoms,
+                selectedDistances: selectedHB.selectedDistances,
+                selectedAngles: selectedHB.selectedAngles,
+              }
             : null
         }
         // If the nailed/closed viewer is the current viewer then reset the 'selected'

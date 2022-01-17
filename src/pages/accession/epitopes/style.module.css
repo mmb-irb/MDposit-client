@@ -5,12 +5,12 @@
 
 .tablecard {
   display: inline-block;
-  width: 30%;
+  width: 40%;
 }
 
 .nglcard {
   display: inline-block;
-  width: 70%;
+  width: 60%;
   height: 55vh;
 }
 
