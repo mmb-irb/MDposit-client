@@ -112,33 +112,37 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
             {
               name: 'RMSDs',
               dir: 'rmsds',
-              cond: analyses.includes('rmsds'),
+              cond: analyses && analyses.includes('rmsds'),
             },
             {
               name: 'RMSD per residue',
               dir: 'rmsd-perres',
-              cond: analyses.includes('rmsd-perres'),
+              cond: analyses && analyses.includes('rmsd-perres'),
             },
             {
               name: 'RMSD pairwise',
               dir: 'rmsd-pairwise',
-              cond: analyses.includes('rmsd-pairwise'),
+              cond: analyses && analyses.includes('rmsd-pairwise'),
             },
             {
               name: 'Radius of gyration',
               dir: 'rgyr',
-              cond: analyses.includes('rgyr'),
+              cond: analyses && analyses.includes('rgyr'),
             },
             {
               name: 'Fluctuation',
               dir: 'fluctuation',
-              cond: analyses.includes('fluctuation'),
+              cond: analyses && analyses.includes('fluctuation'),
             },
-            { name: 'PCA', dir: 'pca', cond: analyses.includes('pca') },
+            {
+              name: 'PCA',
+              dir: 'pca',
+              cond: analyses && analyses.includes('pca'),
+            },
             {
               name: 'Solvent accessible surface',
               dir: 'sasa',
-              cond: analyses.includes('sasa'),
+              cond: analyses && analyses.includes('sasa'),
             },
           ],
         },
@@ -148,7 +152,7 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
             {
               name: 'Distance per residue',
               dir: 'dist-perres',
-              cond: analyses.includes('dist-perres'),
+              cond: analyses && analyses.includes('dist-perres'),
             },
             {
               name: 'Electrostatic potencial surface',
@@ -158,12 +162,12 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
             {
               name: 'Hydrogen bonds',
               dir: 'hbonds',
-              cond: analyses.includes('hbonds'),
+              cond: analyses && analyses.includes('hbonds'),
             },
             {
               name: 'Energies',
               dir: 'energies',
-              cond: analyses.includes('energies'),
+              cond: analyses && analyses.includes('energies'),
             },
           ],
         },
@@ -188,7 +192,7 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
             {
               name: 'Pockets',
               dir: 'pockets',
-              cond: analyses.includes('pockets'),
+              cond: analyses && analyses.includes('pockets'),
             },
           ],
         },
