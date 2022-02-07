@@ -85,6 +85,10 @@ const defualtFrameNumber = (() => {
 // Set the possible number of frames the user can request
 const defaultFrameNumbers = [
   {
+    value: 1,
+    label: '1',
+  },
+  {
     value: 10,
     label: '10',
   },
