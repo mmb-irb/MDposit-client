@@ -109,6 +109,7 @@ const availableColors = [
 
 // Check if a value exists inside the available values
 const coloringExists = value => {
+  if (value === 'custom') return true;
   for (const opt of availableColoringMethods) {
     if (opt.value === value) return true;
   }
@@ -241,6 +242,9 @@ const RepresentationsManager = memo(
                       <option value={coloringMethods[index]}>
                         {coloringMethods[index]}
                       </option>
+                    )}
+                    {rep.customScheme && (
+                      <option value={'custom'}>{'Custom'}</option>
                     )}
                     {availableColoringMethods.map((cm, i) => (
                       <option key={i} value={cm.value}>

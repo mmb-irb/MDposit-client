@@ -119,7 +119,10 @@ const Electrostatic = () => {
     };
 
     // Make the default representations transparent
-    defaultRepresentations.forEach(rep => (rep.opacity = 0.1));
+    defaultRepresentations.forEach(rep => {
+      rep.customScheme = colorScheme;
+      rep.opacity = 0.1;
+    });
 
     // Join all representations
     const representations = [
