@@ -41,8 +41,6 @@ const Electrostatic = () => {
   // Set a ref to the ngl which allows access to the ngl viewer exposed methods
   const viewerRef = useRef(null);
 
-  // Get the accession
-  //const accession = useContext(AccessionCtx);
   // Get the current project metadata
   const { metadata } = useContext(ProjectCtx);
   // Get the current topology
@@ -85,7 +83,10 @@ const Electrostatic = () => {
     }
 
     // Proceed to make representations for the current interaction
-    const interaction = metadata.INTERACTIONS[selectedInteraction];
+    const interactions = metadata.INTERACTIONS;
+    const interaction = interactions && interactions[selectedInteraction];
+
+    if (!interaction) return {};
 
     // Parse the interface selections to the NGL format
     const [nglInterface1, nglInterface2] = [
@@ -166,6 +167,9 @@ const Electrostatic = () => {
   const handleToggleOrder = () => {
     setSelectedOrder(previous => !previous);
   };
+
+  if (!metadata.INTERACTIONS || metadata.INTERACTIONS.length === 0)
+    return 'There are no interactions';
 
   return (
     <>

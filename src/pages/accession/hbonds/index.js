@@ -62,7 +62,7 @@ const Hbonds = () => {
 
   // The newest format has 4 fields: acceptors, donors, hydrogens and hbonds
   // The hbonds includes arrays of true and false per frame
-  const interaction = interactions[selectedInteraction];
+  const interaction = interactions && interactions[selectedInteraction];
 
   // Table pagination states
   const [selectedPage, setSelectedPage] = useState(0);
