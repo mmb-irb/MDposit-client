@@ -28,7 +28,15 @@ const Heatmap = ({
   yTitle,
 }) => {
   // Data processing
-  const { data, xLabels, yLabels, minValue, maxValue } = useMemo(() => {
+  const {
+    data,
+    xLabels,
+    yLabels,
+    minValue,
+    maxValue,
+    xstep,
+    ystep,
+  } = useMemo(() => {
     // Return if the payload is not ready
     if (!inputData || !inputData.data || inputData.data.length === 0) return;
 
@@ -119,6 +127,8 @@ const Heatmap = ({
       yLabels: yLabels,
       minValue: minValue,
       maxValue: maxValue,
+      xstep,
+      ystep,
     };
     // WARNING: Changes in 'inputData' may be not detected
   }, [inputData, xMaxCells, yMaxCells]);
@@ -127,6 +137,38 @@ const Heatmap = ({
   if (!inputData) return 'Heatmap Error: No "inputData" was provided';
   if (!inputData.data || inputData.data.length === 0)
     return 'Heatmap Error: The data field is empty or non existent';
+
+  // The main value and axes values are the same, but not the incides
+  // Since we reduced the dataset we must convert indices in order to match the original dataset
+  const convertMousePosition = ({
+    xIndex,
+    yIndex,
+    value,
+    xAxisValue,
+    yAxisValue,
+  }) => {
+    const realXIndex = xstep <= 1 ? xIndex : Math.round(xIndex * xstep);
+    const realYIndex = ystep <= 1 ? yIndex : Math.round(yIndex * ystep);
+    return {
+      xIndex: realXIndex,
+      yIndex: realYIndex,
+      value,
+      xAxisValue,
+      yAxisValue,
+    };
+  };
+
+  const handleMouseClick = e => {
+    if (!onClick) return;
+    const mousePosition = convertMousePosition(e);
+    return onClick(mousePosition);
+  };
+
+  const handleMouseTooltip = e => {
+    if (!onTooltip) return;
+    const mousePosition = convertMousePosition(e);
+    return onTooltip(mousePosition);
+  };
 
   // Render
   return (
@@ -138,8 +180,8 @@ const Heatmap = ({
         colorPlan={colorPlan}
         xAxisLabel={xTitle}
         yAxisLabel={yTitle}
-        onClick={onClick}
-        onTooltip={onTooltip}
+        onClick={handleMouseClick}
+        onTooltip={handleMouseTooltip}
         className={style.heatmap}
       />
       {legendTitle && (

@@ -298,8 +298,15 @@ const D3HeatmapGrid = memo(
         const xPosition = e.clientX - canvasRect.left;
         const yPosition = e.clientY - canvasRect.top;
         // Calculate the equivalent x and y indexes
-        const xIndex = Math.floor(xPosition / x.step());
-        const yIndex = Math.floor(yPosition / y.step());
+        let xIndex = Math.floor(xPosition / x.step());
+        let yIndex = Math.floor(yPosition / y.step());
+        // Sometimes it may happend in the borders of the heatmap that ihe index is out of range
+        const xLimit = data[0].length - 1;
+        if (xIndex < 0) xIndex = 0;
+        if (xIndex > xLimit) xIndex = xLimit;
+        const yLimit = data.length - 1;
+        if (yIndex < 0) yIndex = 0;
+        if (yIndex > yLimit) yIndex = yLimit;
         // Get also the equivalent axis values and the cell value
         const xAxisValue = xAxisValues[xIndex];
         const yAxisValue = yAxisValues[yIndex];
