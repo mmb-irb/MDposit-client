@@ -2,17 +2,16 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 // Get data from the API
-// The API will be queried only if the 'condition' is true
-// This is a wrokaround to call the API conditionally, since hooks can not be called conditionally
-const useAPI = (url, condition = true) => {
+const useAPI = url => {
   // Set the 'data' state object, which is returned at the end of this function
   const [data, setData] = useState({});
 
   // This react hook is responisble for sending the request to the API
   // This react hook has 'url' dependencies, so it is only runned once per request
   useEffect(() => {
-    // If the condition is false
-    if (condition === false) {
+    // In case there is no valid url
+    // This may be useful as a workaround to not call the API, since hooks can not be called conditionally
+    if (!url) {
       setData({
         url: url,
         loading: null,
@@ -58,7 +57,7 @@ const useAPI = (url, condition = true) => {
     };
 
     // 'useEffect' will only be called when the url change
-  }, [url, condition]);
+  }, [url]);
   // Data is returned this way
   // Data is returned only if the data.url matches the url from this request
   // These urls do not macth each first time 'useAPI' is called

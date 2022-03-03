@@ -124,13 +124,6 @@ const getDataURL = (accession, subPage) => {
   return `${BASE_PATH}current/projects/${accession}/${end}`;
 };
 
-// Return an error message and print the error in the console
-const Error = ({ error }) => {
-  console.error(error);
-  // returning a fragment here to avoid having typescript complaining
-  return <>Something wrong happened</>;
-};
-
 // Render the accession summary
 const SummarySwitch = ({ setProject, subPage, dataUrl }) => {
   // Get the accession ID from the accession context
@@ -141,12 +134,12 @@ const SummarySwitch = ({ setProject, subPage, dataUrl }) => {
   // Check if the project context is empty or not the right project
   const wrongProjectContext =
     project === null || (project && project.accession !== accession);
+  const projectURL = wrongProjectContext
+    ? `${BASE_PATH_PROJECTS}${accession}/`
+    : null;
 
-  // Get project data from the API if the current context data is wrong. 'payload' contains the main data.
-  let { loading, payload, error } = useAPI(
-    `${BASE_PATH_PROJECTS}${accession}/`,
-    wrongProjectContext,
-  );
+  // Get project data from the API if the current context data is wrong or missing. 'payload' contains the main data.
+  let { loading, payload, error } = useAPI(projectURL);
 
   // Request to API the toporef data
   const toporefs = useAPI(`${BASE_PATH_PROJECTS}${accession}/toporefs`);
@@ -179,12 +172,12 @@ const SummarySwitch = ({ setProject, subPage, dataUrl }) => {
     error = null;
   }
 
-  // While loading
-  if (loading) {
-    return <Loading />;
-  }
+  if (loading) return <Loading />;
+  else if (error) return error.toString();
+  else if (!payload) return 'Something bad happened with the project';
 
-  if (payload && payload.accession && accession !== payload.accession) {
+  if (payload.accession && accession !== payload.accession) {
+    // DANI: Esto no entiendo que sentido tiene
     // it means that the accession we extracted from the URL is not actually an
     // accession but an identifier (e.g. PDB accession), so, if it exists, redirect to it
     return (
@@ -201,203 +194,200 @@ const SummarySwitch = ({ setProject, subPage, dataUrl }) => {
     );
   }
   // Otherwise, if we still having data, redirect the user according to the URL path
-  if (payload) {
-    // Set the project context
-    setProject(payload);
-    // Render the accession
-    return (
-      <ErrorBoundary>
-        {' '}
-        {/* Catch errors */}
-        <PdbCtx.Provider value={pdbData}>
-          <ToporefsCtx.Provider value={toporefs.payload}>
-            <Switch>
-              <Route
-                path="/browse/:accession/overview"
-                exact
-                render={() => (
-                  <Suspense fallback={<Loading />}>
-                    <Overview />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/files"
-                exact
-                render={() => (
-                  <Suspense fallback={<Loading />}>
-                    <Files />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/trajectory"
-                exact
-                render={props => (
-                  <Suspense fallback={<Loading />}>
-                    <Trajectory {...props} />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/pca"
-                exact
-                render={() => (
-                  <Suspense fallback={<Loading />}>
-                    <PCA />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/dist"
-                exact
-                render={() => (
-                  <Suspense fallback={<Loading />}>
-                    <GenericAnalysisPage
-                      analysis="dist"
-                      //defaultPrecision={2 ** 6}
-                      xLabel="Time (ns)"
-                      xScaleFactor={0.001}
-                      yLabel="DIST (nm)"
-                    />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/rmsds"
-                exact
-                render={() => (
-                  <Suspense fallback={<Loading />}>
-                    <Rmsds />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/rgyr"
-                exact
-                render={() => (
-                  <Suspense fallback={<Loading />}>
-                    <Rgyr />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/fluctuation"
-                exact
-                component={() => (
-                  <Suspense fallback={<Loading />}>
-                    <Fluctuation />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/rmsd-perres"
-                exact
-                render={props => (
-                  <Suspense fallback={<Loading />}>
-                    <RmsdPerres {...props} />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/electrostatic"
-                exact
-                render={props => (
-                  <Suspense fallback={<Loading />}>
-                    <Electrostatic {...props} />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/dist-perres"
-                exact
-                render={props => (
-                  <Suspense fallback={<Loading />}>
-                    <DistPerres {...props} />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/rmsd-pairwise"
-                exact
-                render={props => (
-                  <Suspense fallback={<Loading />}>
-                    <RmsdPairwise {...props} />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/hbonds"
-                exact
-                render={props => (
-                  <Suspense fallback={<Loading />}>
-                    <Hbonds {...props} />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/energies"
-                exact
-                render={props => (
-                  <Suspense fallback={<Loading />}>
-                    <Energies {...props} />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/pockets"
-                exact
-                render={props => (
-                  <Suspense fallback={<Loading />}>
-                    <Pockets {...props} />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/sasa"
-                exact
-                render={props => (
-                  <Suspense fallback={<Loading />}>
-                    <Sasa {...props} />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/mutations"
-                exact
-                render={props => (
-                  <Suspense fallback={<Loading />}>
-                    <Mutations {...props} />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/browse/:accession/epitopes"
-                exact
-                render={props => (
-                  <Suspense fallback={<Loading />}>
-                    <Epitopes {...props} />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path={`/browse/:accession/${subPage}/json`}
-                exact
-                render={props => (
-                  <Suspense fallback={<Loading />}>
-                    <JsonViewer {...props} url={dataUrl} />
-                  </Suspense>
-                )}
-              />
-              <Route render={() => 'This route is not defined in the client'} />
-            </Switch>
-          </ToporefsCtx.Provider>
-        </PdbCtx.Provider>
-      </ErrorBoundary>
-    );
-  }
+  // Set the project context
+  setProject(payload);
 
-  return <Error error={error || 'something wrong happened'} />;
+  // Render the accession
+  return (
+    <ErrorBoundary>
+      {' '}
+      {/* Catch errors */}
+      <PdbCtx.Provider value={pdbData}>
+        <ToporefsCtx.Provider value={toporefs.payload}>
+          <Switch>
+            <Route
+              path="/browse/:accession/overview"
+              exact
+              render={() => (
+                <Suspense fallback={<Loading />}>
+                  <Overview />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/files"
+              exact
+              render={() => (
+                <Suspense fallback={<Loading />}>
+                  <Files />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/trajectory"
+              exact
+              render={props => (
+                <Suspense fallback={<Loading />}>
+                  <Trajectory {...props} />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/pca"
+              exact
+              render={() => (
+                <Suspense fallback={<Loading />}>
+                  <PCA />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/dist"
+              exact
+              render={() => (
+                <Suspense fallback={<Loading />}>
+                  <GenericAnalysisPage
+                    analysis="dist"
+                    //defaultPrecision={2 ** 6}
+                    xLabel="Time (ns)"
+                    xScaleFactor={0.001}
+                    yLabel="DIST (nm)"
+                  />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/rmsds"
+              exact
+              render={() => (
+                <Suspense fallback={<Loading />}>
+                  <Rmsds />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/rgyr"
+              exact
+              render={() => (
+                <Suspense fallback={<Loading />}>
+                  <Rgyr />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/fluctuation"
+              exact
+              component={() => (
+                <Suspense fallback={<Loading />}>
+                  <Fluctuation />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/rmsd-perres"
+              exact
+              render={props => (
+                <Suspense fallback={<Loading />}>
+                  <RmsdPerres {...props} />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/electrostatic"
+              exact
+              render={props => (
+                <Suspense fallback={<Loading />}>
+                  <Electrostatic {...props} />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/dist-perres"
+              exact
+              render={props => (
+                <Suspense fallback={<Loading />}>
+                  <DistPerres {...props} />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/rmsd-pairwise"
+              exact
+              render={props => (
+                <Suspense fallback={<Loading />}>
+                  <RmsdPairwise {...props} />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/hbonds"
+              exact
+              render={props => (
+                <Suspense fallback={<Loading />}>
+                  <Hbonds {...props} />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/energies"
+              exact
+              render={props => (
+                <Suspense fallback={<Loading />}>
+                  <Energies {...props} />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/pockets"
+              exact
+              render={props => (
+                <Suspense fallback={<Loading />}>
+                  <Pockets {...props} />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/sasa"
+              exact
+              render={props => (
+                <Suspense fallback={<Loading />}>
+                  <Sasa {...props} />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/mutations"
+              exact
+              render={props => (
+                <Suspense fallback={<Loading />}>
+                  <Mutations {...props} />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/browse/:accession/epitopes"
+              exact
+              render={props => (
+                <Suspense fallback={<Loading />}>
+                  <Epitopes {...props} />
+                </Suspense>
+              )}
+            />
+            <Route
+              path={`/browse/:accession/${subPage}/json`}
+              exact
+              render={props => (
+                <Suspense fallback={<Loading />}>
+                  <JsonViewer {...props} url={dataUrl} />
+                </Suspense>
+              )}
+            />
+            <Route render={() => 'This route is not defined in the client'} />
+          </Switch>
+        </ToporefsCtx.Provider>
+      </PdbCtx.Provider>
+    </ErrorBoundary>
+  );
 };
 
 // Render a button which links to the API
