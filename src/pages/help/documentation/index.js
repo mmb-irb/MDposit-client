@@ -575,7 +575,7 @@ export const documentation = [
             compressed for each chain independently. Each residue is represented
             by a single letter. The 'X' letter represents non-standard residues
             (i.e. not natural aminoacids). Residues sequence is split and
-            numerated every 10 resiudes. Each residue is coloured according to
+            numerated every 10 residues. Each residue is coloured according to
             its RMSD value. The color scale ranges from white (lowest values) to
             red (highest values).
             <span style={{ color: 'lightGreen' }}> Click any residue </span> to
@@ -820,7 +820,7 @@ export const documentation = [
         body: (
           <>
             The Solvent Accessible Surface (SAS) analysis computes the area of
-            contact between the solven and each residue for up to 200 frames
+            contact between the solvent and each residue for up to 200 frames
             along the trajectory. Then values are divided by the number of atoms
             on each residue in order to get the SAS per atom per residue values.
             <br />
@@ -839,7 +839,7 @@ export const documentation = [
             compressed for each chain independently. Each residue is represented
             by a single letter. The 'X' letter represents non-standard residues
             (i.e. not natural aminoacids). Residues sequence is split and
-            numerated every 10 resiudes. Each residue is coloured according to
+            numerated every 10 residues. Each residue is coloured according to
             its SAS per atom value. The color scale ranges from white (lowest
             values) to red (highest values).
             <span style={{ color: 'lightGreen' }}> Click any residue </span> to
@@ -1240,8 +1240,8 @@ export const documentation = [
             search was performed on December 2021 with more than 260 results.
             For each structure, SARS-CoV-2 interface residues with the human
             antibody were found by using a distance cutoff of 5 Ångstroms
-            between atoms. In addition, the Solven Accessible Surface (SAS) was
-            calculated for these residues alone (removing all other resiudes).
+            between atoms. In addition, the Solvent Accessible Surface (SAS) was
+            calculated for these residues alone (removing all other residues).
             This value is considered as the 100% exposition SAS and then used
             for reference.
           </>
