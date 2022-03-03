@@ -107,8 +107,7 @@ const trueEntries = keys => {
 // }
 
 const Graph2 = forwardRef(({ // The main data
-  yData, xAxisValues, step = 1, title, xAxisLabel, yAxisLabel, xScaleFactor = 1, xUnit = 'ns', type = 'line', onHover, onSelect, selfLegend = false, displayLegend = false, dataDisplay, setDataDisplay, mean = false, standardDeviation = false, margin = defaultMargins, flippedXAxisValues = false, fullPrecision = false, className, //   x: the position of the mark according to the x axis // Accepted values: ns, frame, atom // This is used to show the right text when the mouse is over it // Optional x tags // The difference beyween x values // Graph title // The x axis label text // The y axis label text // // Define the unit (and also the magnitude implicitly) of the x axis // { // Accepted values: line, dash // Set the type of grapg to render // Set if values in x axis is horizontal (false) or vertical (true) // React hooks // Object with each dataset name and a value of true/false to set which data is displayed // Display the mean line in the graph // Display the standard deviation area in the graph // Set an extra margin around the graph // DANI: Todavía no está implementado pero se usa para calcular márgenes // Marks is an array where each mark has the following format // If true, draw all points in the graph no matter how many points are there // Force a classname for the overall component element // Mark x values by displaying a vertical line in their positions
-  //   attr: object with all the attribute names (keys) and their values according to d3
+  yData, xAxisValues, step = 1, title, xAxisLabel, yAxisLabel, xScaleFactor = 1, xUnit = 'ns', type = 'line', onHover, onSelect, selfLegend = false, displayLegend = false, dataDisplay, setDataDisplay, mean = false, standardDeviation = false, margin = defaultMargins, flippedXAxisValues = false, fullPrecision = false, className, //   attr: object with all the attribute names (keys) and their values according to d3 //   x: the position of the mark according to the x axis // Accepted values: ns, frame, atom // This is used to show the right text when the mouse is over it // Optional x tags // The difference beyween x values // Graph title // The x axis label text // The y axis label text // // Define the unit (and also the magnitude implicitly) of the x axis // { // Accepted values: line, dash // Set the type of grapg to render // Set if values in x axis is horizontal (false) or vertical (true) // React hooks // Object with each dataset name and a value of true/false to set which data is displayed // Display the mean line in the graph // Display the standard deviation area in the graph // Set an extra margin around the graph // DANI: Todavía no está implementado pero se usa para calcular márgenes // Marks is an array where each mark has the following format // If true, draw all points in the graph no matter how many points are there // Force a classname for the overall component element // Mark x values by displaying a vertical line in their positions
   //   style: object with all the style names (keys) and their values according to d3
   // }
   marks }, ref) => {
@@ -588,6 +587,7 @@ const Graph2 = forwardRef(({ // The main data
                   .atomColor(atom)
                   .toString(16)
                   .padStart(6, '0')}`;
+                //console.log(color);
                 canvasContext.fillStyle =
                   color === '#ffffff' ? '#eeeeee' : color;
               }
@@ -715,7 +715,7 @@ const Graph2 = forwardRef(({ // The main data
               if (xUnit === 'frame') return 'frame ' + +number.toFixed(2);
               if (xUnit === 'atom') {
                 let tag = 'atom ' + +number.toFixed(2);
-                if (!pdbData.file) return tag;
+                if (!(pdbData && pdbData.file)) return tag;
                 const atom = getAtom(number, pdbData.file);
                 if (!atom) return tag;
                 const residue = getAtomResidue(number, pdbData.file);
@@ -754,6 +754,7 @@ const Graph2 = forwardRef(({ // The main data
       // Save current values for further reference
       previousValues.current.data = data;
       previousValues.current.labels = labels;
+      previousValues.current.pdbData = pdbData;
       previousValues.current.xAxisLabel = xAxisLabel;
       previousValues.current.yAxisLabel = yAxisLabel;
       previousValues.current.currentZoom = currentZoom;
