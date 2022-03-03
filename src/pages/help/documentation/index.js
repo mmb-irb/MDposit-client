@@ -1255,8 +1255,12 @@ export const documentation = [
             column lists the PDB code of the corresponding SARS-CoV-2 + human
             antibody structure. Right column includes the average Solvent
             Accessible Surface (SAS) of the epitope in Å² and its exposition in
-            percent along the trajectory for each chain. Epitopes can be
-            represented in the{' '}
+            percent along the trajectory for each chain. Partial epitopes are
+            marked with a '*' character since the exposure is an estimation made
+            from this part of the epitope.
+            <br />
+            <br />
+            Epitopes can be represented in the{' '}
             <a
               href="/help#/help#ngl-viewer"
               target="_blank"

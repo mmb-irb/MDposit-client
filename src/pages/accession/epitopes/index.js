@@ -188,11 +188,18 @@ const Epitopes = () => {
           });
           chainedResiduesData[chain] = residuesData;
         });
-        // Add SAS values along frames for each chain
-        // Calculate the averages of each chain and prepare a string summary for display
+        // Handle epitope SAS for each chain independently
         const chainedFramedData = {};
         const summary = [];
         Object.entries(chainedResiduesData).forEach(([chain, residuesData]) => {
+          // It may happen that the epitope is found several times in a single chain
+          // In this case we have to found hoy many times it is there in order to multiply de epitope surface
+          // WARNING: If any epitope is only partially in the structure then we are introducing an error with this multiplication
+          // WARNING: We must then mark the percent to warn the user
+          const epitopeCoverage = residuesData.length / epitopeResidues.length;
+          const fullEpitopeCoverage = epitopeCoverage % 1 === 0;
+          const totalEpitopeSurface = epitopeSurface * epitopeCoverage;
+          // Add SAS values along frames for each chain
           const sasPerFrame = [];
           const exposurePerFrame = [];
           for (let i = 0; i < frameCount; i++) {
@@ -201,14 +208,17 @@ const Epitopes = () => {
             );
             const totalSAS = residuesSAS.reduce((a, b) => a + b, 0);
             sasPerFrame.push(totalSAS);
-            const exposure = (totalSAS / epitopeSurface) * 100;
+            const exposure = (totalSAS / totalEpitopeSurface) * 100;
             exposurePerFrame.push(exposure);
           }
+          // Calculate the averages of each chain and prepare a string summary for display
           const averageSAS = roundedAvg(sasPerFrame);
           const averageExposure = decimalRound(
-            (averageSAS / epitopeSurface) * 100,
+            (averageSAS / totalEpitopeSurface) * 100,
           );
-          const chainSummary = `${chain}:${averageSAS} Å² (${averageExposure}%)`;
+          const chainSummary = `${chain}:${averageSAS} Å² (${averageExposure}%)${
+            fullEpitopeCoverage ? '' : '*'
+          }`;
           summary.push(chainSummary);
           //chainedFramedData[chain] = sasPerFrame;
           chainedFramedData[chain] = exposurePerFrame;
