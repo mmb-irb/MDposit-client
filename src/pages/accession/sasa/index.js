@@ -273,7 +273,7 @@ const Sasa = () => {
       <Card>
         <ResidueSelector
           sequences={sequences}
-          legendTitle={'Average SAS per atom (Å²)'}
+          legendTitle={'Average Relative SAS (Å²)'}
           onSelect={handleSelect}
           onDeselect={handleDeselect}
           onClean={handleClean}
@@ -285,7 +285,7 @@ const Sasa = () => {
             yData={selectedData}
             step={timeStep}
             xAxisLabel={'Time (ns)'}
-            yAxisLabel={'SAS per atom (Å²)'}
+            yAxisLabel={'Relative SAS (Å²)'}
             onSelect={handleFrameSelection}
             className={style.graph}
             ref={graphRef}
