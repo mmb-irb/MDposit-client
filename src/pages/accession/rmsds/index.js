@@ -212,19 +212,22 @@ const Rmsds = () => {
             ? {
                 accession: accession,
                 requestedFrame: selectedFrame,
+                // This is used only as a tag for the onNail and onClose functions below
+                // It has no effect on the viewer
+                xSelection: selected,
               }
             : null
         }
         // If the nailed/closed viewer is the current viewer then reset the 'selected'
         onNail={viewer =>
           setSelected(previous => {
-            if (viewer.requestedFrame === previous) return null;
+            if (viewer.xSelection === previous) return null;
             else return previous;
           })
         }
         onClose={viewer =>
           setSelected(previous => {
-            if (viewer.requestedFrame === previous) return null;
+            if (viewer.xSelection === previous) return null;
             else return previous;
           })
         }
