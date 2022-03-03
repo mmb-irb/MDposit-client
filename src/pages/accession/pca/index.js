@@ -75,7 +75,9 @@ const PCA = () => {
     // DANI: Muchos 'pca.average.pdb' no tienen chains
     // DANI: El NGL las asigna automáticamente y no cuadran
     // DANI: Hasta que esto esté arreglado nos olbidamos de las chains
-    const representations = [{ name: 'Backbone', type: 'spacefill' }];
+    const representations = [
+      { name: 'Backbone', selection: 'backbone', type: 'spacefill' },
+    ];
 
     // Get the API URL to the requested projection trajectory
     let projectionURL;
@@ -172,6 +174,7 @@ const PCA = () => {
                 accession: accession,
                 requestedFrame: requestedFrame,
                 representations: representations,
+                //components: component
               }
             : null
         }
