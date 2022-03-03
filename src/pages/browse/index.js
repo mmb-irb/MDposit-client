@@ -53,7 +53,8 @@ import standardPreview5 from '../../images/3clpro_preview.png';
 import standardPreview6 from '../../images/plpro_preview.png';
 import standardPreview7 from '../../images/polymerase_preview.png';
 import standardPreview8 from '../../images/eprotein_preview.png';
-import standardPreview9 from '../../images/other.png';
+import standardPreview9 from '../../images/exonuclease_preview.png';
+import standardPreview10 from '../../images/other.png';
 
 // Define the image to be shown depending on the unit name
 const unitPreview = {
@@ -65,7 +66,8 @@ const unitPreview = {
   PLpro: standardPreview6,
   Polymerase: standardPreview7,
   'E protein': standardPreview8,
-  Other: standardPreview9,
+  Exoribonuclease: standardPreview9,
+  Other: standardPreview10,
 };
 
 const DEFAULT_PAGE = 1;
