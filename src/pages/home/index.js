@@ -65,17 +65,12 @@ const Home = () => (
             <strong>Acknowledgements</strong>
           </Typography>
           <br />
-          This open source software code was developed in part in BioExcel,
-          funded from the European Union's Horizon 2020 Framework Programme for
-          Research and Innovation under Specific Grant Agreements No. 675728 and
-          No. 823830 (BioExcel and BioExcel-2).
-          <br />
-          <br />
-          This open source software code was developed in part in the Human
-          Brain Project, funded from the European Union's Horizon 2020 Framework
-          Programme for Research and Innovation under Specific Grant Agreements
-          No. 720270, No. 785907 and No. 945539 (Human Brain Project SGA1, SGA2
-          and SGA3).
+          This open source software code was developed in part in BioExcel and
+          the Human Brain Project, funded from the European Union's Horizon 2020
+          Framework Programme for Research and Innovation under Specific Grant
+          Agreements No. 675728, No. 823830, No. 720270, No. 785907 and No.
+          945539 (BioExcel, BioExcel-2, Human Brain Project SGA1, SGA2 and
+          SGA3).
         </div>
         <div className={style['acknowledgements-logo']}>
           <LazyImg src={euLogo} loading="lazy" alt="" className={style.fill} />
