@@ -280,10 +280,10 @@ const Browse = ({ location, history, setProject }) => {
   // Convert the specified object back to a single encoded string
   const searchString = stringify({
     search: search.search,
+    query: search.query,
     page: search.page || DEFAULT_PAGE,
     limit: search.limit || DEFAULT_LIMIT,
     filter: unit.filter,
-    query: search.query,
   });
 
   // Scroll up when the page is changed
@@ -355,6 +355,7 @@ const Browse = ({ location, history, setProject }) => {
                         ...location,
                         search: stringify({
                           search: search.search,
+                          query: search.query,
                           unit: newUnit ? newUnit : undefined,
                         }),
                       });
@@ -413,6 +414,7 @@ const Browse = ({ location, history, setProject }) => {
                     // Convert into a single encoded string all parameters listed below
                     search: stringify({
                       search: search.search,
+                      query: search.query,
                       page: page + 1 === DEFAULT_PAGE ? undefined : page + 1,
                       limit:
                         !search.limit || +search.limit === DEFAULT_LIMIT
@@ -428,6 +430,7 @@ const Browse = ({ location, history, setProject }) => {
                     // Convert into a single encoded string all parameters listed below
                     search: stringify({
                       search: search.search,
+                      query: search.query,
                       limit: +value === DEFAULT_LIMIT ? undefined : value,
                     }),
                   });
