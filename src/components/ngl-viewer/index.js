@@ -184,67 +184,89 @@ const NGLViewer = memo(
       // If a topologyURL is provided, download data form the API
       // Otherwise, use the context pdbData (i.e. the 'md.imaged.rot.dry.pdb' file)
 
-      const [topologies, setTopologies] = useState([]);
+      // Set a state to store the topology requests
+      const [requestedTopologies, setRequestedTopologies] = useState([]);
+      // Set also a state to track whenever there is still a downloading topology
+      const [anyLoadingTopology, setAnyLoadingTopology] = useState(false);
 
       // Find if there are new topology to be requested in the components:
       // Collect the topology on each component
       // If the component has no topology specified use the main topology
       useMemo(() => {
-        setTopologies(currentTopologies => {
-          const newTopologies = [];
+        setRequestedTopologies(previousRequestedTopologies => {
+          const newRequestedTopologies = [];
           comps.forEach(comp => {
-            const url = comp.topologyURL;
-            // Some urls may be missing
-            // This happens when the component wants the default topology from the pdbData
-            if (!url)
-              newTopologies.push({
-                loading: false,
-                file: pdbData.file,
-                error: null,
-              });
+            const url = comp.topologyURL || null;
             // Check if the url is new
-            // Else, skip this url since it is already downloaded
-            const current = currentTopologies.find(topology => {
+            // Else, skip this url since it has been requested already
+            const allRequestedTopologies = [
+              ...previousRequestedTopologies,
+              ...newRequestedTopologies,
+            ];
+            const current = allRequestedTopologies.find(topology => {
               return topology.url === url;
             });
             if (current) return;
-            // Add the topology to the list, so it will be requested to the API
-            newTopologies.push({
-              url: url,
-              loading: true,
-              file: null,
-              error: null,
-            });
+            // Some urls may be missing
+            // This happens when the component wants the default topology from the pdbData
+            if (url === null) {
+              // Add a request with null url in order to get pdbData as a topology
+              // Do it only once for all components
+              newRequestedTopologies.push({
+                url: null,
+                loading: false,
+                error: null,
+              });
+            } else {
+              // Add the topology to the list, so it will be requested to the API
+              newRequestedTopologies.push({
+                url: url,
+                loading: true,
+                requested: false,
+                error: null,
+              });
+              setAnyLoadingTopology(true);
+            }
           });
-          return [...currentTopologies, ...newTopologies];
+          return [...previousRequestedTopologies, ...newRequestedTopologies];
         });
-      }, [comps, setTopologies, pdbData.file]);
+      }, [comps, setRequestedTopologies]);
+
+      // Set a state to store the downloaded topologies
+      const [topologies, setTopologies] = useState([]);
 
       // Download all requested topologies from the API
       useEffect(() => {
         let didCancel = false;
         // Make an API request from each url
-        topologies.forEach((topology, t) => {
+        requestedTopologies.forEach((requestedTopology, t) => {
           // Check if the requested url has the data already downloaded
           // If so, skip this request
-          if (topology && topology.file) return;
+          if (requestedTopology.file) return;
           // If the topology failed to load do not try it again
-          if (topology && topology.error) return;
-          // get the topology URL
-          const url = topology.url;
+          if (requestedTopology.error) return;
+          // If the topology has been already requested do not request it again
+          if (requestedTopology.requested) return;
+          // Get the topology URL
+          const url = requestedTopology.url;
           // If there is no URL load the context pdbData
-          if (!url)
+          if (url === null) {
             // WARNING: The '[...previous]' is essential to make the array object change
-            // This is important, since the 'topologies' object is used as a dependendy further
+            // This is important, since the 'topologies' object is used as a dependency further
             // And if we do not change the array then the change is not detected
             setTopologies(previous => {
-              const current = previous[t];
-              current.loading = false;
-              current.file = pdbData.file;
-              return [...previous];
+              requestedTopology.loading = false;
+              // Then check the loading state of all requested topologies and update the overall loading state
+              const anyLoading = requestedTopologies.some(t => t.loading);
+              setAnyLoadingTopology(anyLoading);
+              // The topology with the pdb data has not url
+              const topology = { url: null, file: pdbData.file };
+              return [...previous, topology];
             });
+          }
           // If there is an URL
           else {
+            requestedTopology.requested = true;
             // 'autoLoad' is the built in function from NGL to load data
             autoLoad(url, { defaultRepresentation: false, ext: 'pdb' })
               // If the request was sucessful
@@ -252,33 +274,33 @@ const NGLViewer = memo(
                 file =>
                   !didCancel &&
                   setTopologies(previous => {
-                    const current = previous[t];
-                    current.loading = false;
-                    current.file = file;
-                    return [...previous];
+                    requestedTopology.loading = false;
+                    // Then check the loading state of all requested topologies and update the overall loading state
+                    const anyLoading = requestedTopologies.some(t => t.loading);
+                    setAnyLoadingTopology(anyLoading);
+                    const topology = { url: url, file: file };
+                    return [...previous, topology];
                   }),
               )
               // If the request failed
-              .catch(
-                error =>
-                  !didCancel &&
-                  setTopologies(previous => {
-                    const current = previous[t];
-                    current.loading = false;
-                    current.error = error;
-                    return [...previous];
-                  }),
-              );
+              .catch(error => {
+                if (didCancel) return;
+                requestedTopology.loading = false;
+                // Then check the loading state of all requested topologies and update the overall loading state
+                const anyLoading = requestedTopologies.some(t => t.loading);
+                setAnyLoadingTopology(anyLoading);
+                requestedTopology.error = error;
+              });
           }
         });
         return () => (didCancel = true);
-      }, [topologies, pdbData]);
+      }, [requestedTopologies, pdbData]);
 
       const mainComponent = comps[0];
       const mainTopology = topologies.find(topology => {
         return topology.url === mainComponent.topologyURL;
       });
-      const { loading: loadingPDB, file: pdbFile } = mainTopology || {
+      const { file: pdbFile } = mainTopology || {
         loading: false,
         file: pdbData.file,
       };
@@ -413,6 +435,7 @@ const NGLViewer = memo(
                   // Add also the atoms number, which is used further
                   atoms: trajectoryMetadata.atoms,
                   loading: true,
+                  requested: false,
                 });
                 setAnyLoadingTrajectory(true);
               }
@@ -493,14 +516,6 @@ const NGLViewer = memo(
               .on('data', chunk => {
                 byteCount += chunk.byteLength;
                 trajectory.progress = byteCount / totalBytes;
-                // Then calculate the average progress in all loading trajectories and update the progress state
-                // const overallFrames = requestedTrajectories
-                //   .map(trajectory =>  trajectory.frames)
-                //   .reduce((a, b) => a + b, 0);
-                // const overallProgress = requestedTrajectories
-                //   .map(trajectory => trajectory.progress * trajectory.frames)
-                //   .reduce((a, b) => a + b, 0) / overallFrames;
-                // if (onLoad) onLoad(overallProgress);
                 // Update trajectories with the current partial data we have
                 setTrajectories(previousTrajectories => {
                   const currentTrajectory = previousTrajectories.find(
@@ -613,6 +628,7 @@ const NGLViewer = memo(
           //console.log('FRAME: ' + frame);
           if (!onProgress) return;
           if (noTrajectory) return;
+          if (!isFirstCompStaged) return;
           if (!stageRef.current.compList[0].trajList[0]) return;
           const frameCount =
             stageRef.current.compList[0].trajList[0].expectedFrames;
@@ -620,7 +636,7 @@ const NGLViewer = memo(
           const progress = clamp(frame / (frameCount - 1), 0, 1);
           onProgress(progress);
         },
-        [noTrajectory, onProgress],
+        [isFirstCompStaged, noTrajectory, onProgress],
       );
 
       // Resize logic
@@ -661,7 +677,7 @@ const NGLViewer = memo(
         // DANI: Esto es tentador quitarlo para que las topologías vayan cargando cuando llegan
         // DANI: No obstante, es un percal, hay que hacerlo con tiempo
         // DANI: Los components de stageRef.current.compList deben estar en orden
-        if (topologies.some(t => t.loading)) return;
+        if (anyLoadingTopology) return;
 
         comps.forEach((comp, c) => {
           // Set the NGL component
@@ -669,20 +685,20 @@ const NGLViewer = memo(
           if (!stageComp) {
             // Find the topology which matches the component url
             // If a component has no url it will match a topology with no url: the default topology
+            const url = comp.topologyURL || null;
             const topology = topologies.find(topology => {
-              return topology.url === comp.topologyURL;
+              return topology.url === url;
             });
-            if (!topology)
-              throw new Error(`Topology from '${comp.topologyURL}' is missing`);
+            // If the topology has not been loaded yet then we have a problem
+            // DANI: Todas las topologías deben estar ya listas antes de cargarlas, lee los mensajes de arriba
+            if (!topology) return;
             // Stop here if it is not downloaded yet
             if (topology.error)
               throw new Error(
-                `Topology from '${comp.topologyURL}' returned error ${topology.error}`,
+                `Topology from '${url}' returned error ${topology.error}`,
               );
             if (!topology.file)
-              throw new Error(
-                `Topology data from '${comp.topologyURL}' is missing`,
-              );
+              throw new Error(`Topology data from '${url}' is missing`);
             // Add the topology to the NGL
             // Make a deep copy of the topology object to prevent NGL internal bugs
             // This object will store data which is component exclusive
@@ -878,6 +894,7 @@ const NGLViewer = memo(
         drawingMethods,
         coloringMethods,
         opacities,
+        anyLoadingTopology,
         topologies,
         selectedRepresentation,
         showRepresentations,
@@ -888,7 +905,7 @@ const NGLViewer = memo(
       useEffect(() => {
         // DANI: He tenido que quitar la condicion de 'instanceof Set' porque sino no me entraba en el heatmap
         //if (!pdbFile || !(selectedAtoms instanceof Set) || !(selectedAtoms)) {
-        if (!pdbFile || !selectedAtoms) {
+        if (!isFirstCompStaged || !selectedAtoms) {
           return;
         }
 
@@ -966,11 +983,17 @@ const NGLViewer = memo(
 
         // Focus the highlighted zone with the camera
         setFocus({ comp: 0, sele: seleContext });
-      }, [pdbFile, selectedAtoms, darkBackground, highlightTypes]);
+      }, [
+        isFirstCompStaged,
+        pdbFile,
+        selectedAtoms,
+        darkBackground,
+        highlightTypes,
+      ]);
 
       // Highlight specific residues
       useEffect(() => {
-        if (!pdbFile || !selectedResidues) {
+        if (!isFirstCompStaged || !selectedResidues) {
           return;
         }
         // Set a representation name. This is useful to find this representation further
@@ -1002,12 +1025,12 @@ const NGLViewer = memo(
 
         // Focus the highlighted zone with the camera
         setFocus({ comp: 0, sele: nglSelection });
-      }, [pdbFile, selectedResidues, highlightTypes]);
+      }, [isFirstCompStaged, selectedResidues, highlightTypes]);
 
       // Highlight specific chains
       // DANI: NO Probado
       useEffect(() => {
-        if (!pdbFile || !selectedChains) {
+        if (!isFirstCompStaged || !selectedChains) {
           return;
         }
         // Set a representation name. This is useful to find this representation further
@@ -1033,11 +1056,11 @@ const NGLViewer = memo(
         });
         // Focus the highlighted zone with the camera
         setFocus({ comp: 0, sele: nglSelection });
-      }, [pdbFile, selectedChains, highlightTypes]);
+      }, [isFirstCompStaged, selectedChains, highlightTypes]);
 
       // Highlight specific free NGL selections
       useEffect(() => {
-        if (!pdbFile || !snapRepresentations) return;
+        if (!isFirstCompStaged || !snapRepresentations) return;
         const currentComponent = stageRef.current.compList[0];
         const currentRepresentations = currentComponent.reprList;
         snapRepresentations.forEach(snapRepresentation => {
@@ -1060,12 +1083,12 @@ const NGLViewer = memo(
               currentComponent.removeRepresentation(previousSnapRepresentation);
           });
         };
-      }, [pdbFile, snapRepresentations]);
+      }, [isFirstCompStaged, snapRepresentations]);
 
       // Add specific NGL representations which are added or removed apart from the main component
       // They are faster to update but they are not shown in the representations manager
       useEffect(() => {
-        if (!pdbFile || !selectedCustom) {
+        if (!isFirstCompStaged || !selectedCustom) {
           return;
         }
         // Set a representation name. This is useful to find this representation further
@@ -1092,14 +1115,14 @@ const NGLViewer = memo(
         );
         // Focus the highlighted zone with the camera
         setFocus({ comp: 0, sele: nglSelection });
-      }, [pdbFile, selectedCustom, highlightTypes]);
+      }, [isFirstCompStaged, selectedCustom, highlightTypes]);
 
       // Highlight specific distances
       // When 'selectedDistances' is numeric it is taken as atoms
       // When 'selectedDistances' is string it is taken as residues
       // In both cases it works with absolute numeration
       useEffect(() => {
-        if (!pdbFile || !selectedDistances) {
+        if (!isFirstCompStaged || !selectedDistances) {
           return;
         }
         //console.log(selectedDistances);
@@ -1123,11 +1146,11 @@ const NGLViewer = memo(
           // Label color is the opposite of the background color
           labelColor: darkBackground ? 16777215 : 1, // 16777215 is white, 1 is black
         });
-      }, [pdbFile, selectedDistances, darkBackground]);
+      }, [isFirstCompStaged, selectedDistances, darkBackground]);
 
       // Highlight specific angles
       useEffect(() => {
-        if (!pdbFile || !selectedAngles) {
+        if (!isFirstCompStaged || !selectedAngles) {
           return;
         }
         // Set a representation name. This is useful to find this representation further
@@ -1145,7 +1168,7 @@ const NGLViewer = memo(
           name: name,
           labelColor: darkBackground ? 16777215 : 1, // 16777215 is white, 1 is black
         });
-      }, [pdbFile, selectedAngles, darkBackground]);
+      }, [isFirstCompStaged, selectedAngles, darkBackground]);
 
       const [mainNglFile, setMainNglFile] = useState(null);
 
@@ -1365,7 +1388,7 @@ const NGLViewer = memo(
         stageRef.current.compList[0] &&
         stageRef.current.compList[0].trajList[0];
       useEffect(() => {
-        if (!(pdbFile && mainTraj)) return;
+        if (!(isFirstCompStaged && mainTraj)) return;
         const { player } = stageRef.current.compList[0].trajList[0].trajectory;
         player.setParameters({
           // Set the interpolate step according to the total number of frames to show 1 by 1
@@ -1378,17 +1401,22 @@ const NGLViewer = memo(
         if (noTrajectory) player.pause();
         else player[playing && isInView ? 'play' : 'pause']();
         return () => player.pause();
-      }, [pdbFile, mainTraj, playing, isInView, noTrajectory, bounce]);
+      }, [
+        isFirstCompStaged,
+        mainTraj,
+        playing,
+        isInView,
+        noTrajectory,
+        bounce,
+      ]);
 
       // Handle the speed
       // The speed is also self-regulated by NGL
       // If the topology is too big to reach the required speed it will work as fast as possible
       useEffect(() => {
         // Get the current trajectory
-        const nglFile =
-          stageRef.current &&
-          stageRef.current.compList[0] &&
-          stageRef.current.compList[0].trajList[0];
+        if (!isFirstCompStaged) return;
+        const nglFile = stageRef.current.compList[0].trajList[0];
         if (!nglFile) return;
         // Set the player speed
         // The 'speed' input ranges from 0 to 100
@@ -1396,7 +1424,7 @@ const NGLViewer = memo(
         //const timeout = 500 / (Math.log2(speed + 1) + 1);
         const timeout = interpolateSpeed(speed);
         nglFile.trajectory.player.setParameters({ timeout: timeout });
-      }, [speed]);
+      }, [isFirstCompStaged, speed]);
 
       // spinning
       useEffect(() => {
@@ -1411,18 +1439,18 @@ const NGLViewer = memo(
 
       // smoothing, player interpolation
       useEffect(() => {
-        if (!(pdbFile && mainTraj)) return;
+        if (!(isFirstCompStaged && mainTraj)) return;
         stageRef.current.compList[0].trajList[0].trajectory.player.parameters.interpolateType = smooth
           ? 'linear'
           : '';
-      }, [pdbFile, mainTraj, smooth]);
+      }, [isFirstCompStaged, mainTraj, smooth]);
 
       // to avoid sometimes when it's not rendering after loading
       useEffect(() => {
-        if (!(pdbFile && requestedTrajectories.length)) return;
+        if (!(isFirstCompStaged && requestedTrajectories.length)) return;
         handleResize();
         return handleResize.cancel;
-      }, [pdbFile, requestedTrajectories, handleResize]);
+      }, [isFirstCompStaged, requestedTrajectories, handleResize]);
 
       // Highlight the selected chain region
       // This useEffect seems to be special:
@@ -1666,7 +1694,7 @@ const NGLViewer = memo(
             */
           },
           get currentFrame() {
-            if (!(pdbFile && requestedTrajectories.length)) return -1;
+            if (!(isFirstCompStaged && requestedTrajectories.length)) return -1;
             try {
               return stageRef.current.compList[0].trajList[0].trajectory
                 .currentFrame;
@@ -1675,7 +1703,7 @@ const NGLViewer = memo(
             }
           },
           set currentFrame(value) {
-            if (!(pdbFile && requestedTrajectories.length)) return;
+            if (!(isFirstCompStaged && requestedTrajectories.length)) return;
             try {
               const total = this.totalFrames;
               let frame = value;
@@ -1689,7 +1717,7 @@ const NGLViewer = memo(
             }
           },
           get totalFrames() {
-            if (!(pdbFile && requestedTrajectories.length)) return 1;
+            if (!(isFirstCompStaged && requestedTrajectories.length)) return 1;
             try {
               return stageRef.current.compList[0].trajList[0].trajectory.frames
                 .length;
@@ -1705,7 +1733,7 @@ const NGLViewer = memo(
             }
           },
         }),
-        [pdbFile, requestedTrajectories, handleResize],
+        [isFirstCompStaged, requestedTrajectories, handleResize],
       );
 
       // workaround to have multiple ref logic on one element
@@ -1721,21 +1749,17 @@ const NGLViewer = memo(
           <div
             ref={handleRef}
             className={cn(className, style.container, {
-              [style['loading-pdb']]: loadingPDB,
+              [style['loading-structure']]: !isFirstCompStaged,
               [style['loading-trajectory']]:
                 !noTrajectory && anyLoadingTrajectory,
               [style['light-theme']]: !darkBackground,
             })}
             // Display loading status data in the upper left corner of the NGL window
             data-loading={
-              loadingPDB
+              !isFirstCompStaged
                 ? `Loading structure`
                 : !pdbFile
                 ? `No structure available`
-                : anyLoadingTrajectory
-                ? loadingPDB
-                  ? 'Loading structure'
-                  : ''
                 : !requestedTrajectories.length && !noTrajectory
                 ? `No trajectory available`
                 : stageRef.current && stageRef.current.tasks.count > 0

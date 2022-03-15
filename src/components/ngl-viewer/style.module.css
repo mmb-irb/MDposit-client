@@ -31,7 +31,7 @@
   background: transparent;
 }
 
-.container.loading-pdb {
+.container.loading-structure {
   pointer-events: none;
 }
 
