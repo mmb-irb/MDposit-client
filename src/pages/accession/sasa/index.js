@@ -28,7 +28,9 @@ import style from './style.module.css';
 import {
   complexNumerationParser,
   absolute2sourceResidue,
+  source2absoluteResidue,
   getSourceResidueMetadata,
+  getAtomsCount,
 } from '../../../utils/topology-manager';
 
 //import Selector from '../../../components/selector';
@@ -88,11 +90,20 @@ const Sasa = () => {
   const { mainComponent, framesNumber, timeStep, sequences } = useMemo(() => {
     if (!pdbData.file || !metadata || !payload) return {};
 
-    const data = payload.data;
+    // WARNING: Data from single atom residues (i.e. ions) is discarded since they may raise the maximum SAS a lot
+    const data = payload.data.filter(residue => {
+      const sourceResidue = complexNumerationParser(residue.name);
+      const absoluteResidue = source2absoluteResidue(
+        sourceResidue,
+        pdbData.file,
+      );
+      const residueAtomsCount = getAtomsCount(absoluteResidue, pdbData.file);
+      return residueAtomsCount > 1;
+    });
+
     // Calculate the mean and standard deviation of each residue saspf
     // Also get the maximum and minimum means
     const means = data.map(residue => residue.mean);
-
     const max = Math.max(...means);
     const min = Math.min(...means);
 
@@ -107,12 +118,17 @@ const Sasa = () => {
       this.atomColor = atom => {
         // Find the residue index and then the entropy for this residue
         const residue = atom.residueIndex;
-        const modelResiude = absolute2sourceResidue(
+        const residueAtomsCount = getAtomsCount(residue, pdbData.file);
+        // Single atom residues (i.e. ions) are discarded since they may raise the maximum SAS a lot
+        if (residueAtomsCount === 1) return 16777215;
+        const sourceResidue = absolute2sourceResidue(
           residue,
           pdbData.file,
           metadata,
         ).numeration;
-        const dataResidue = data.find(residue => residue.name === modelResiude);
+        const dataResidue = data.find(
+          residue => residue.name === sourceResidue,
+        );
         // If there is no data for the current residue then paint it white
         if (!dataResidue) return 16777215;
         const mean = dataResidue.mean;
@@ -176,7 +192,7 @@ const Sasa = () => {
         letter: residue.letter,
         data: residueData,
         tooltip: `Mean: ${residueData.mean}\nStandard deviation: ${residueData.stdv}`,
-        value: residueData.mean,
+        value: residueData.mean, // PROBLEMA
       };
       const chain = residue.chain;
       const current = chains[chain];
