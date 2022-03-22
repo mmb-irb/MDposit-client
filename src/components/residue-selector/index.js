@@ -83,7 +83,7 @@ const ResidueSelector = ({
       const formattedResidue = {
         index: residueIndex,
         letter: source.letter,
-        number: ref.index,
+        number: (ref && ref.index) || source.residueNumber,
         value: value,
       };
       residueData[residueIndex] = formattedResidue;
