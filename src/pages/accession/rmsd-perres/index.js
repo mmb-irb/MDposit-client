@@ -26,9 +26,9 @@ import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 import style from './style.module.css';
 
 import {
+  getResiduesCount,
   complexNumerationParser,
-  absolute2sourceResidue,
-  getSourceResidueMetadata,
+  source2absoluteResidue,
 } from '../../../utils/topology-manager';
 
 import { ColormakerRegistry } from 'ngl';
@@ -66,7 +66,7 @@ const RmsdPerres = () => {
   // Get the current project metadata
   const { metadata } = useContext(ProjectCtx);
   // Get the current topology, including the residue names
-  const pdbData = useContext(PdbCtx);
+  const { file: topology } = useContext(PdbCtx);
 
   // Get the default representations
   const defaultRepresentations = useDefaultRepresentations();
@@ -89,23 +89,48 @@ const RmsdPerres = () => {
     mainComponent,
     analysisFrameCount,
     timeStep,
-    sequences,
+    residueData,
+    residueMeans,
   } = useMemo(() => {
-    if (!pdbData.file || !metadata || !payload) return {};
+    if (!topology || !metadata || !payload) return {};
 
-    const data = payload.data;
+    // Reformat data, find each residue source notation and absolute index
+    const data = payload.data.map(residue => {
+      const sourceResidue = complexNumerationParser(residue.name);
+      const absoluteResidue = source2absoluteResidue(sourceResidue, topology);
+      // Calculate the mean and standard deviation of each residue rmsds
+      const [mean, stdv] = getStaistics(residue.rmsds);
+      return {
+        ...residue,
+        ...sourceResidue,
+        index: absoluteResidue,
+        mean,
+        stdv,
+      };
+    });
     // Calculate the mean and standard deviation of each residue rmsds
-    // Also get the maximum and minimum means
-    const means = [];
     data.forEach(residue => {
       const [mean, stdv] = getStaistics(residue.rmsds);
       residue.mean = mean;
       residue.stdv = stdv;
-      means.push(mean);
     });
 
+    // Also get the maximum and minimum means
+    const means = data.map(residue => residue.mean);
     const max = Math.max(...means);
     const min = Math.min(...means);
+
+    // Set a list with the data of each residue for every residue in the topology
+    // Residues not included in the analysis data will remain as null
+    const residuesCount = getResiduesCount(topology);
+    const residueData = new Array(residuesCount).fill(null);
+    data.forEach(residue => {
+      residueData[residue.index] = residue;
+    });
+    // Get the mean for each residue in topology
+    const residueMeans = residueData.map(
+      residue => (residue && residue.mean) || null,
+    );
 
     // Set the color scale according to the maximum and minimum means
     const nglColorScale = scaleLinear()
@@ -118,15 +143,10 @@ const RmsdPerres = () => {
       this.atomColor = atom => {
         // Find the residue index and then the entropy for this residue
         const residue = atom.residueIndex;
-        const modelResiude = absolute2sourceResidue(
-          residue,
-          pdbData.file,
-          metadata,
-        ).numeration;
-        const dataResidue = data.find(residue => residue.name === modelResiude);
+        const currentResidueData = residueData[residue];
         // If there is no data for the current residue then paint it white
-        if (!dataResidue) return 16777215;
-        const mean = dataResidue.mean;
+        if (!currentResidueData) return 16777215;
+        const mean = currentResidueData.mean;
         // Calculate the interpolated rgb for this value
         // The interpolated color comes in rbg format
         const hexColor = d3color(nglColorScale(mean)).formatHex();
@@ -167,57 +187,30 @@ const RmsdPerres = () => {
       },
     ];
 
-    // Parse the selection string into a numeric array
-    const availableResidues = data;
-
-    // Get a list with all parsed residues
-    const parsedResidues = availableResidues.map(residue => {
-      const source = complexNumerationParser(residue.name);
-      const { letter } = getSourceResidueMetadata(source, pdbData.file, {
-        letter: true,
-      });
-      source.letter = letter;
-      return source;
-    });
-
-    // Separate the residues in chains and format them residues according to residue selector input format
-    const chains = {};
-    parsedResidues.forEach((residue, index) => {
-      const residueData = availableResidues[index];
-      const fResidue = {
-        letter: residue.letter,
-        data: residueData,
-        tooltip: `Mean: ${residueData.mean}\nStandard deviation: ${residueData.stdv}`,
-        value: residueData.mean,
-      };
-      const chain = residue.chain;
-      const current = chains[chain];
-      if (current) chains[chain].push(fResidue);
-      else chains[chain] = [fResidue];
-    });
-    const sequences = Object.entries(chains).map(([chain, residues]) => {
-      return {
-        name: 'Chain ' + chain,
-        residues: residues,
-      };
-    });
-
-    return { mainComponent, analysisFrameCount, timeStep, sequences };
-  }, [payload, pdbData, metadata, accession, defaultRepresentations]);
+    return {
+      mainComponent,
+      analysisFrameCount,
+      timeStep,
+      residueData,
+      residueMeans,
+    };
+  }, [payload, topology, metadata, accession, defaultRepresentations]);
 
   // Get the residues list in model notation
   const { selectedData, selectedResidueNames } = useMemo(() => {
     // Now get only the selected keys from the payload
     const selectedData = {};
+    const selectedResidueNames = [];
     // Color the first selected residues in the graph
     selectedResidues.forEach((residue, i) => {
-      const newData = { data: residue.rmsds };
+      const currentResidueData = residueData[residue.index];
+      const newData = { data: currentResidueData.rmsds };
       newData.color = residue.color;
       selectedData[i] = newData;
+      selectedResidueNames.push(currentResidueData.name);
     });
-    const selectedResidueNames = selectedResidues.map(residue => residue.name);
     return { selectedData, selectedResidueNames };
-  }, [selectedResidues]);
+  }, [residueData, selectedResidues]);
 
   // When the user clicks on the graph
   const handleFrameSelection = useCallback(frame => {
@@ -246,23 +239,18 @@ const RmsdPerres = () => {
 
   // When a residue is selected
   const handleSelect = useCallback(
-    residue => {
-      const data = residue.data;
-      data.color = residue.tagcolor;
-      setSelectedResidues(previous => [...previous, data]);
+    (residue, residueIndex, color) => {
+      const selectedResidue = { color, index: residueIndex };
+      setSelectedResidues(previous => [...previous, selectedResidue]);
     },
     [setSelectedResidues],
   );
   // When a residue is deselected
   const handleDeselect = useCallback(
-    residue => {
-      const data = residue.data;
-      setSelectedResidues(previous => {
-        const newState = [...previous];
-        const index = newState.indexOf(data);
-        newState.splice(index, 1);
-        return newState;
-      });
+    (residue, residueIndex) => {
+      setSelectedResidues(previous =>
+        previous.filter(residue => residue.index !== residueIndex),
+      );
     },
     [setSelectedResidues],
   );
@@ -271,23 +259,35 @@ const RmsdPerres = () => {
     setSelectedResidues([]);
   }, [setSelectedResidues]);
 
+  // Handle what to write on the tooltip when the user hovers a specific residue letter
+  const handleTooltip = useCallback(
+    (residue, residueIndex) => {
+      const currentResidueData = residueData[residueIndex];
+      const meanRMSD = Math.round(currentResidueData.mean * 100) / 100;
+      const stdvRMSD = Math.round(currentResidueData.stdv * 100) / 100;
+      return `Mean RMSD: ${meanRMSD}\nStandard deviation: ${stdvRMSD}`;
+    },
+    [residueData],
+  );
+
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
 
-  if (!pdbData.file || !metadata) return <Loading />;
+  if (!topology || !metadata) return <Loading />;
 
   // Render
   return (
     <Suspense fallback={<Loading />}>
       <Card>
         <ResidueSelector
-          sequences={sequences}
+          residueValues={residueMeans}
           legendTitle={'Average RMSD (Å)'}
           onSelect={handleSelect}
           onDeselect={handleDeselect}
           onClean={handleClean}
+          onTooltip={handleTooltip}
         />
       </Card>
       <Card className={style.graphcard}>

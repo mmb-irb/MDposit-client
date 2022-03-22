@@ -42,75 +42,63 @@ const Mutations = () => {
   // Get the toporefs data
   const toporefData = useContext(ToporefsCtx);
   // Get the current topology
-  const pdbData = useContext(PdbCtx);
+  const { file: topology } = useContext(PdbCtx);
   // Get the current project metadata
   const { metadata } = useContext(ProjectCtx);
 
-  const sequences = useMemo(() => {
-    const topology = pdbData.file;
-    const residuesCount = getResiduesCount(topology);
-    const chains = {};
+  const residueEntropies = useMemo(() => {
+    if (!topology || !metadata) return;
     // Iterate over all residues in the topology to find their corresponding entropy
-    // Organize the resiudes data by 'chains' according to the residue selector input format
+    const residuesCount = getResiduesCount(topology);
+    const residueEntropies = new Array(residuesCount).fill(null);
+    // Iterate over all residues in the topology to find their corresponding entropy
     for (let i = 0; i < residuesCount; i++) {
       const reference = absolute2reference(i, metadata);
       if (!reference) continue;
-      const { name: toporefName, index: residueIndex } = reference;
+      const { name: toporefName, index: referenceIndex } = reference;
+      // We substract 1 from the residueIndex since it counts from 1 to n as toporefs do
+      const residueIndex = referenceIndex - 1;
       const toporef = toporefData.find(data => data.name === toporefName);
       const entropies = toporef.entropies;
       if (!entropies) continue;
-      // We substract 1 from the residueIndex since it counts from 1 to n as toporefs do
-      // However, entropies is a list, so their indexes count from 0 to n as usual
-      const entropy = entropies[residueIndex - 1];
+      const entropy = entropies[residueIndex];
       if (entropy === undefined) continue;
       const logarithmicEntropy =
         Math.round(Math.log(entropy + 0.0001) * 1000) / 1000;
-      const source = absolute2sourceResidue(i, topology, metadata);
-      const fResidue = {
-        letter: source.letter,
-        numeration: source.numeration,
-        tooltip: `Logarithmic entropy: ${logarithmicEntropy}`,
-        value: logarithmicEntropy,
-      };
-      const chain = source.chain;
-      const current = chains[chain];
-      if (current) chains[chain].push(fResidue);
-      else chains[chain] = [fResidue];
+      residueEntropies[i] = logarithmicEntropy;
     }
-    // Format residues data as the residue selector requires
-    const sequences = Object.entries(chains).map(([chain, residues]) => {
-      return {
-        name: 'Chain ' + chain,
-        residues: residues,
-      };
-    });
-    return sequences;
-  }, [toporefData, pdbData, metadata]);
+    return residueEntropies;
+  }, [toporefData, topology, metadata]);
 
   // Set when one point in the graph is selected
   const [selectedResidues, setSelectedResidues] = useState([]);
+
+  const selectedResidueNames = useMemo(
+    () =>
+      selectedResidues.map(residue => {
+        const source = absolute2sourceResidue(residue.index, topology);
+        return source.numeration;
+      }),
+    [selectedResidues, topology],
+  );
 
   // Set the representations for the NGL viewer
   const representations = useMutationsRepresentations();
 
   // When a residue is selected
   const handleSelect = useCallback(
-    residue => {
-      const numeration = residue.numeration;
-      setSelectedResidues(previous => [...previous, numeration]);
+    (residue, residueIndex, color) => {
+      const selectedResidue = { color, index: residueIndex };
+      setSelectedResidues(previous => [...previous, selectedResidue]);
     },
     [setSelectedResidues],
   );
   // When a residue is deselected
   const handleDeselect = useCallback(
-    residue => {
-      const numeration = residue.numeration;
-      setSelectedResidues(previous => {
-        const newState = [...previous];
-        const index = newState.indexOf(numeration);
-        newState.splice(index, 1);
-        return newState;
-      });
+    (residue, residueIndex) => {
+      setSelectedResidues(previous =>
+        previous.filter(residue => residue.index !== residueIndex),
+      );
     },
     [setSelectedResidues],
   );
@@ -118,6 +106,12 @@ const Mutations = () => {
   const handleClean = useCallback(() => {
     setSelectedResidues([]);
   }, [setSelectedResidues]);
+
+  // Handle what to write on the tooltip when the user hovers a specific residue letter
+  const handleTooltip = useCallback(residue => {
+    const value = Math.round(residue.value * 100) / 100;
+    return `Logarithmic entropy: ${value}`;
+  }, []);
 
   return (
     <Suspense fallback={<Loading />}>
@@ -127,7 +121,7 @@ const Mutations = () => {
           <NGLViewerWithControls
             className={style.container}
             representations={representations}
-            selectedResidues={selectedResidues}
+            selectedResidues={selectedResidueNames}
           />
         ) : (
           <div style={{ height: '50vh' }} />
@@ -135,11 +129,12 @@ const Mutations = () => {
       </Card>
       <Card>
         <ResidueSelector
-          sequences={sequences}
+          residueValues={residueEntropies}
           legendTitle={'Logarithmic entropy'}
           onSelect={handleSelect}
           onDeselect={handleDeselect}
           onClean={handleClean}
+          onTooltip={handleTooltip}
           className={style.selector}
         />
       </Card>

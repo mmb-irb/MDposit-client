@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useRef, useState } from 'react';
+import React, { useContext, useMemo, useEffect, useRef, useState } from 'react';
 
 import style from './style.module.css';
 
@@ -11,6 +11,16 @@ import ColorLegend from '../color-legend';
 import useColors from '../../hooks/use-colors';
 
 import { scaleLinear } from 'd3';
+
+import { ProjectCtx, PdbCtx } from '../../contexts';
+import {
+  getResiduesCount,
+  absolute2sourceResidue,
+  absolute2reference,
+} from '../../utils/topology-manager';
+
+// Set the number of residues between each numeration flag
+const residuesPerGroup = 10;
 
 // Add a triangle / arrow over the selected residue letter
 // Return also the visual part, so its color can be changed
@@ -31,23 +41,10 @@ const defaultColorPlan = ['white', 'yellow', 'red'];
 
 // Render a flexible sequence of numerated residues which is also interactive
 const ResidueSelector = ({
-  // Main input format:
-  // sequences = [
-  //   {
-  //     name: string,
-  //     residues: [
-  //       {
-  //         letter: string,
-  //         tooltip: string,
-  //         value: float, (used to color the residue and set the legend numbers)
-  //         ... (add as many extra fields as desired; they will be returned on selection)
-  //       },
-  //       ...
-  //     ],
-  //   },
-  //   ...
-  // ]
-  sequences,
+  // A list of values to color residues
+  // The list must have the same length that the total residues list
+  // Null values will hide residues in the selector
+  residueValues,
   // Set how residues must be colored according to their 'value'
   colorPlan = defaultColorPlan,
   // Set the title for the color legend
@@ -57,30 +54,53 @@ const ResidueSelector = ({
   onSelect,
   onDeselect,
   onClean,
+  onTooltip,
   // Pass a whole useState to make it handle the selected residues
   // This only makes sense if you want to control the residues selection from outside this tool in addition
   forcedResiduesSelection,
   // To force a styling
   className,
 }) => {
-  // Use the colors hook
-  const [getColor, freeColor, freeAllColors] = useColors();
-  // Save an array with all 'settable' values
-  const { residues, maxValue, minValue } = useMemo(() => {
-    // Collect all residues in all sequences
-    const residues = [];
-    let count = 0;
-    sequences.forEach(sequence => {
-      sequence.residues.forEach(residue => {
-        residue.index = count;
-        residues.push(residue);
-        count += 1;
-      });
+  // Get the current project metadata
+  const { metadata } = useContext(ProjectCtx);
+  // Get the current topology
+  const { file: topology } = useContext(PdbCtx);
+
+  // Get the residues list in model notation
+  const { sequences, residueData, maxValue, minValue } = useMemo(() => {
+    if (!topology || !metadata) return {};
+
+    const residuesCount = getResiduesCount(topology);
+    // Get all topology residues and separate them by chains
+    const chains = {};
+    // Get also all residues together and fill missing residues with nulls
+    const residueData = new Array(residuesCount).fill(null);
+    for (let residueIndex = 0; residueIndex < residuesCount; residueIndex++) {
+      const value = residueValues[residueIndex];
+      if (value === null) continue;
+      const source = absolute2sourceResidue(residueIndex, topology);
+      const ref = absolute2reference(residueIndex, metadata);
+      const formattedResidue = {
+        index: residueIndex,
+        letter: source.letter,
+        number: ref.index,
+        value: value,
+      };
+      residueData[residueIndex] = formattedResidue;
+      const chain = source.chain;
+      const current = chains[chain];
+      if (current) current.push(formattedResidue);
+      else chains[chain] = [formattedResidue];
+    }
+    const sequences = Object.entries(chains).map(([chain, residues]) => {
+      return {
+        name: 'Chain ' + chain,
+        residues: residues,
+      };
     });
-    // Get all residues values to find out the minimum and maximum values
-    const values = residues.map(residue => residue.value);
-    const maxValue = Math.max(...values);
-    const minValue = Math.min(...values);
+    // Get the minimum and maximum residue values
+    const maxValue = Math.max(...residueValues);
+    const minValue = Math.min(...residueValues);
     // Set the color scale
     if (colorPlan) {
       // WARNING: It is recomended to use white as the majoritarian color for esthetic reasons
@@ -88,13 +108,17 @@ const ResidueSelector = ({
         .range(colorPlan)
         .domain([minValue, (minValue + maxValue) / 2, maxValue]);
       // Set the color of each residue
-      residues.forEach(residue => {
+      residueData.forEach(residue => {
+        if (!residue) return;
         residue.color = colorScale(residue.value);
       });
     }
 
-    return { residues, maxValue, minValue };
-  }, [sequences, colorPlan]);
+    return { sequences, residueData, maxValue, minValue };
+  }, [residueValues, colorPlan, topology, metadata]);
+
+  // Use the colors hook
+  const [getColor, freeColor, freeAllColors] = useColors();
 
   // Save all current pointers
   const pointersRef = useRef([]);
@@ -128,7 +152,7 @@ const ResidueSelector = ({
       // WARNING: This method does not allow to get objects and there is no easy way to do it
       // Thats why it is done this work around with the residue index
       const residueIndex = residueElement.getAttribute('residueindex');
-      const residue = residues[residueIndex];
+      const residue = residueData[residueIndex];
       // Get the residue tagcolor if it has one. Otherwise get an available tagcolor for it
       let index;
       let selected;
@@ -152,7 +176,7 @@ const ResidueSelector = ({
       // Add a pointer and color it
       if (selected) {
         // Call the 'onSelect' function passing the current selected residue object
-        if (onSelect) onSelect(residue);
+        if (onSelect) onSelect(residue, residueIndex, tagcolor);
         const pointer = addPointer(residueElement);
         pointer.style['border-top-color'] = tagcolor;
         pointersRef.current.push(pointer);
@@ -160,7 +184,7 @@ const ResidueSelector = ({
       // Remove the pointer
       else {
         // Call the 'onDeselect' function passing the current deselected residue object
-        if (onDeselect) onDeselect(residue);
+        if (onDeselect) onDeselect(residue, residueIndex, tagcolor);
         const pivot = residueElement.lastChild;
         //const pointer = pivot.lastChild;
         //tagcolor = pointer.style['border-top-color'];
@@ -191,7 +215,7 @@ const ResidueSelector = ({
   }, [
     sequences,
     setSelectedResidues,
-    residues,
+    residueData,
     onSelect,
     onDeselect,
     getColor,
@@ -237,20 +261,27 @@ const ResidueSelector = ({
                 <span className={style.flexible}>
                   {sequence.residues
                     .reduce((residueGroups, currentResidue, currentIndex) => {
-                      const isTen = currentIndex % 10 === 0;
-                      if (isTen) residueGroups.push([]);
+                      const groupEnd = currentIndex % residuesPerGroup === 0;
+                      if (groupEnd) residueGroups.push([]);
                       const lastGroup = residueGroups[residueGroups.length - 1];
                       lastGroup.push(currentResidue);
                       return residueGroups;
                     }, [])
                     .map((residueGroup, groupIndex) => {
+                      const lastResidueNumber =
+                        residueGroup[residueGroup.length - 1].number;
+                      const groupNumber =
+                        lastResidueNumber ||
+                        (groupIndex + 1) * residuesPerGroup;
                       const letters = residueGroup.map((residue, index) => {
                         return (
                           <span
                             lang={'residue'}
                             key={index}
                             className={style['normal']}
-                            title={residue.tooltip}
+                            title={
+                              onTooltip && onTooltip(residue, residue.index)
+                            }
                             residueindex={residue.index}
                           >
                             <span
@@ -265,10 +296,10 @@ const ResidueSelector = ({
                       return (
                         <span key={groupIndex} className={style['margined']}>
                           {letters}
-                          {letters.length === 10 && (
+                          {letters.length === residuesPerGroup && (
                             <span className={style['extra-right-margin']}>
                               <span className={style['small-up-number']}>
-                                {(groupIndex + 1) * 10}
+                                {groupNumber}
                               </span>
                             </span>
                           )}
