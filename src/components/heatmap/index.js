@@ -38,7 +38,7 @@ const Heatmap = ({
     ystep,
   } = useMemo(() => {
     // Return if the payload is not ready
-    if (!inputData || !inputData.data || inputData.data.length === 0) return;
+    if (!inputData || !inputData.data || inputData.data.length === 0) return {};
 
     // Get the data reference
     const rData = inputData.data;
