@@ -317,6 +317,22 @@ const residueLetters = {
   VAL: 'V',
   VALN: 'V',
   VALC: 'V',
+  // Nucleotides
+  A: 'A',
+  A3: 'A',
+  A5: 'A',
+  C: 'C',
+  C3: 'C',
+  C5: 'C',
+  T: 'T',
+  T3: 'T',
+  T5: 'T',
+  G: 'G',
+  G3: 'G',
+  G5: 'G',
+  U: 'U',
+  U3: 'U',
+  U5: 'U',
 };
 
 export const getResidueTypeLetter = residueType => {
