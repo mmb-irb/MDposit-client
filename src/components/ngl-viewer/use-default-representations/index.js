@@ -20,57 +20,62 @@ const useDefaultRepresentations = () => {
   // Set the chains to be represented in the NGL viewer by default
   // WARNING: This is experimental and may have some bugs
   const defaultRepresentations = useMemo(() => {
-    if (!metadata || !chains) return [{ name: 'Structure' }];
-    const chainnames = metadata.CHAINNAMES;
-    // Represent each protein chain
     const reps = [];
-    for (const chain of chains) {
-      const name = chainnames[chain];
-      reps.push({
-        name: name ? name + ' (Chain ' + chain + ')' : 'Chain ' + chain,
-        selection: ':' + chain,
-      });
-    }
-    // Represent the mebrane if exist
-    /*
-        if (metadata.MEMBRANE !== 'No')
-            reps.push({
-            selection: '(not polymer or hetero) and not (water or ion)',
-            name: metadata.MEMBRANE,
-            type: 'licorice',
-            opacity: 0.5,
-            });
-        */
-    // Show also all ligands with licorice representations
-    const ligands = metadata.LIGANDS;
-    if (ligands) {
-      for (const ligand of ligands) {
+    if (metadata && chains) {
+      const chainnames = metadata.CHAINNAMES;
+      // Represent each protein chain
+      for (const chain of chains) {
+        const name = chainnames[chain];
         reps.push({
-          name: ligand.name,
-          selection: ligand.ngl,
-          type: 'licorice',
+          name: name ? name + ' (Chain ' + chain + ')' : 'Chain ' + chain,
+          selection: ':' + chain,
+        });
+      }
+      // Represent the mebrane if exist
+      /*
+          if (metadata.MEMBRANE !== 'No')
+              reps.push({
+              selection: '(not polymer or hetero) and not (water or ion)',
+              name: metadata.MEMBRANE,
+              type: 'licorice',
+              opacity: 0.5,
+              });
+          */
+      // Show also all ligands with licorice representations
+      const ligands = metadata.LIGANDS;
+      if (ligands) {
+        for (const ligand of ligands) {
+          reps.push({
+            name: ligand.name,
+            selection: ligand.ngl,
+            type: 'licorice',
+          });
+        }
+      }
+      // Represent all chains which are not in the 'chains' and 'ligands' list in licorice
+      if (chainnames && !Array.isArray(chainnames)) {
+        const chainsAndNames = Object.entries(chainnames);
+        chainsAndNames.forEach(([chain, name]) => {
+          // Check if the chain is in the protein chains
+          const isProtein = chains.indexOf(chain) !== -1;
+          // Check if the name matches any ligand name
+          const isLigand =
+            ligands && ligands.find(ligand => ligand.name === name);
+          // If there is any coincidence then skip this chainname
+          if (isProtein || isLigand) return;
+          reps.push({
+            name: name,
+            selection: ':' + chain,
+            type: 'licorice',
+            color: 'purple',
+            opacity: 0.5,
+          });
         });
       }
     }
-    // Represent all chains which are not in the 'chains' and 'ligands' list in licorice
-    if (chainnames && !Array.isArray(chainnames)) {
-      const chainsAndNames = Object.entries(chainnames);
-      chainsAndNames.forEach(([chain, name]) => {
-        // Check if the chain is in the protein chains
-        const isProtein = chains.indexOf(chain) !== -1;
-        // Check if the name matches any ligand name
-        const isLigand =
-          ligands && ligands.find(ligand => ligand.name === name);
-        // If there is any coincidence then skip this chainname
-        if (isProtein || isLigand) return;
-        reps.push({
-          name: name,
-          selection: ':' + chain,
-          type: 'licorice',
-          color: 'purple',
-          opacity: 0.5,
-        });
-      });
+    // If there is no metadata/chains then set up a defualt generic representation
+    else {
+      reps.push({ name: 'Main structure' });
     }
 
     // Add a representation for ions in spacefill in case there are residues with 1 atom
