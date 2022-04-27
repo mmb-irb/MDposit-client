@@ -5,7 +5,7 @@ import useNGLFile from '../../hooks/use-ngl-file';
 
 import ErrorBoundary from '../../components/error-boundary';
 
-import { AccessionCtx, PdbCtx, ToporefsCtx } from '../../contexts';
+import { AccessionCtx, PdbCtx } from '../../contexts';
 
 import Card from '../../components/animated-card';
 import NGLViewerWithControls from '../../components/ngl-viewer-with-controls';
@@ -24,9 +24,6 @@ const Embed = ({ match, projectState }) => {
     `${BASE_PATH_PROJECTS}${accession}/`,
   );
 
-  // Request to API the toporef data
-  const toporefs = useAPI(`${BASE_PATH_PROJECTS}${accession}/toporefs`);
-
   // Load the structure data form the API
   const pdbData = useNGLFile(
     `${BASE_PATH_PROJECTS}${accession}${PATH_MAIN_TOPOLOGY}`,
@@ -37,11 +34,6 @@ const Embed = ({ match, projectState }) => {
   if (pdbData.loading) return <Loading />;
   else if (pdbData.error) return pdbData.error.toString();
   else if (!pdbData.file) return 'Something bad happened with the topology';
-
-  if (toporefs.loading) return <Loading />;
-  else if (toporefs.error) return toporefs.error.toString();
-  else if (!toporefs.payload)
-    return 'Something bad happened with the toporefs data';
 
   // While loading
   if (loading) return <Loading />;
@@ -57,11 +49,9 @@ const Embed = ({ match, projectState }) => {
     <ErrorBoundary>
       <AccessionCtx.Provider value={accession}>
         <PdbCtx.Provider value={pdbData}>
-          <ToporefsCtx.Provider value={toporefs.payload}>
-            <Card className={style['ngl-card']}>
-              <NGLViewerWithControls className={style.container} />
-            </Card>
-          </ToporefsCtx.Provider>
+          <Card className={style['ngl-card']}>
+            <NGLViewerWithControls className={style.container} />
+          </Card>
         </PdbCtx.Provider>
       </AccessionCtx.Provider>
     </ErrorBoundary>
