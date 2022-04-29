@@ -28,12 +28,7 @@ import useDefaultRepresentations from '../../../components/ngl-viewer/use-defaul
 
 import style from './style.module.css';
 
-import {
-  AccessionCtx,
-  ProjectCtx,
-  PdbCtx,
-  ToporefsCtx,
-} from '../../../contexts';
+import { AccessionCtx, ProjectCtx } from '../../../contexts';
 
 import Loading from '../../../components/loading';
 
@@ -45,13 +40,7 @@ import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 import useEpitopesRepresentations from '../../../components/ngl-viewer/use-epitopes-representations';
 
-import {
-  absolute2sourceResidue,
-  complexSelectionRanger,
-  reference2absolute,
-  getAtomsCount,
-  byChains,
-} from '../../../utils/topology-manager';
+import { complexSelectionRanger } from '../../../utils/topology-manager';
 
 const pdbUrlBase = 'https://www.rcsb.org/structure/';
 
@@ -94,21 +83,23 @@ const Epitopes = () => {
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
 
   // Get the current project metadata
-  const { metadata } = useContext(ProjectCtx);
+  const {
+    metadata,
+    references: referenceData,
+    topology: topologyManager,
+  } = useContext(ProjectCtx);
   // Get the accession
   const accession = useContext(AccessionCtx);
-  // Get the current topology, including the residue names
-  const pdbData = useContext(PdbCtx);
-  // Get the toporefs data
-  const toporefData = useContext(ToporefsCtx);
+
+  // Get the references data
   const epitopes = useMemo(() => {
     const epitopes = [];
-    toporefData.forEach(toporef => {
-      const toporefEpitopes = toporef.epitopes;
-      if (!toporefEpitopes) return;
-      const formattedEpitopes = Object.entries(toporefEpitopes).map(
+    referenceData.forEach(reference => {
+      const referenceEpitopes = reference.epitopes;
+      if (!referenceEpitopes) return;
+      const formattedEpitopes = Object.entries(referenceEpitopes).map(
         ([name, epitope]) => [
-          toporef.name,
+          reference.name,
           name,
           epitope.residues,
           epitope.mas,
@@ -117,7 +108,7 @@ const Epitopes = () => {
       epitopes.push(...formattedEpitopes);
     });
     return epitopes;
-  }, [toporefData]);
+  }, [referenceData]);
 
   // This blockRef is a workaround to avoid selecting a row when clicking on the checkbox
   const blockRef = useRef(null);
@@ -154,9 +145,7 @@ const Epitopes = () => {
   // Set the epitopes formatted data
   const { data, epitopesData, frameStep, frameCount } = useMemo(() => {
     // Wait for data and metadata to be ready
-    if (!payload || !metadata || !pdbData) return {};
-    // get the topology data
-    const topology = pdbData.file;
+    if (!payload || !metadata || !topologyManager) return {};
     // Get the main data
     const data = payload && payload.data;
     // Calculate the frames step of the first residue SAS analysis
@@ -167,23 +156,24 @@ const Epitopes = () => {
     // Set the input objets for the graph
     const epitopesData = [];
     epitopes.forEach(
-      ([toporefName, epitopeName, epitopeResidues, epitopeSurface]) => {
+      ([referenceName, epitopeName, epitopeResidues, epitopeSurface]) => {
         // Parse the reference residues list to a mapped NGL selection string
-        const mappedResidues = reference2absolute(
-          toporefName,
+        const mappedResidues = topologyManager.reference2absolute(
+          referenceName,
           epitopeResidues,
-          metadata,
         );
         // In case the epitope is not found in the current structure we do not push it
         if (mappedResidues.length === 0) return {};
-        const chainedResidues = byChains(mappedResidues, topology);
+        const chainedResidues = topologyManager.byChains(mappedResidues);
         const chains = Object.keys(chainedResidues);
         // Get the SAS values for each residue in each chain
         const chainedResiduesData = {};
         Object.entries(chainedResidues).forEach(([chain, residues]) => {
           const residuesData = residues.map(residueIndex => {
             const residueData = data[residueIndex];
-            residueData.atoms = getAtomsCount(residueIndex, topology);
+            residueData.atoms = topologyManager.getResidueAtomsCount(
+              residueIndex,
+            );
             return residueData;
           });
           chainedResiduesData[chain] = residuesData;
@@ -226,7 +216,7 @@ const Epitopes = () => {
         // Get also the NGL selection from the mapped residues
         // This is not separated in chains so the selection is for all chains together
         const sourceResidues = mappedResidues.map(
-          residue => absolute2sourceResidue(residue, topology).numeration,
+          residue => topologyManager.absolute2sourceResidue(residue).numeration,
         );
         const { rangedSelection, small } = complexSelectionRanger(
           sourceResidues,
@@ -246,7 +236,7 @@ const Epitopes = () => {
     setSelectedEpitopes(new Array(epitopesData.length).fill(null));
 
     return { data, epitopesData, frameStep, frameCount };
-  }, [payload, metadata, pdbData, epitopes]);
+  }, [payload, metadata, topologyManager, epitopes]);
 
   // Use this hook to get the memoized NGL default representations
   const defaultRepresentations = useDefaultRepresentations();
@@ -371,7 +361,7 @@ const Epitopes = () => {
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
 
-  if (!metadata || !pdbData.file) return <Loading />;
+  if (!topologyManager) return <Loading />;
 
   const firstEpitopeIndex = selectedPage * selectedRowsPerPage;
   const lastEpitopeIndex = (selectedPage + 1) * selectedRowsPerPage;

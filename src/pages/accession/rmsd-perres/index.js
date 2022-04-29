@@ -19,17 +19,13 @@ import Loading from '../../../components/loading';
 
 import useAPI from '../../../hooks/use-api';
 
-import { AccessionCtx, ProjectCtx, PdbCtx } from '../../../contexts';
+import { AccessionCtx, ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 import style from './style.module.css';
 
-import {
-  getResiduesCount,
-  complexNumerationParser,
-  source2absoluteResidue,
-} from '../../../utils/topology-manager';
+import { complexNumerationParser } from '../../../utils/topology-manager';
 
 import { ColormakerRegistry } from 'ngl';
 
@@ -63,10 +59,8 @@ const RmsdPerres = () => {
 
   // Get the accession
   const accession = useContext(AccessionCtx);
-  // Get the current project metadata
-  const { metadata } = useContext(ProjectCtx);
-  // Get the current topology, including the residue names
-  const { file: topology } = useContext(PdbCtx);
+  // Get the current project data
+  const { metadata, topology: topologyManager } = useContext(ProjectCtx);
 
   // Get the default representations
   const defaultRepresentations = useDefaultRepresentations();
@@ -92,12 +86,14 @@ const RmsdPerres = () => {
     residueData,
     residueMeans,
   } = useMemo(() => {
-    if (!topology || !metadata || !payload) return {};
+    if (!topologyManager || !metadata || !payload) return {};
 
     // Reformat data, find each residue source notation and absolute index
     const data = payload.data.map(residue => {
       const sourceResidue = complexNumerationParser(residue.name);
-      const absoluteResidue = source2absoluteResidue(sourceResidue, topology);
+      const absoluteResidue = topologyManager.source2absoluteResidue(
+        sourceResidue,
+      );
       // Calculate the mean and standard deviation of each residue rmsds
       const [mean, stdv] = getStaistics(residue.rmsds);
       return {
@@ -122,7 +118,7 @@ const RmsdPerres = () => {
 
     // Set a list with the data of each residue for every residue in the topology
     // Residues not included in the analysis data will remain as null
-    const residuesCount = getResiduesCount(topology);
+    const residuesCount = topologyManager.getResiduesCount();
     const residueData = new Array(residuesCount).fill(null);
     data.forEach(residue => {
       residueData[residue.index] = residue;
@@ -194,7 +190,7 @@ const RmsdPerres = () => {
       residueData,
       residueMeans,
     };
-  }, [payload, topology, metadata, accession, defaultRepresentations]);
+  }, [payload, topologyManager, metadata, accession, defaultRepresentations]);
 
   // Get the residues list in model notation
   const { selectedData, selectedResidueNames } = useMemo(() => {
@@ -275,7 +271,7 @@ const RmsdPerres = () => {
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
 
-  if (!topology || !metadata) return <Loading />;
+  if (!topologyManager) return <Loading />;
 
   // Render
   return (

@@ -91,16 +91,16 @@ if (!reducedMotion()) {
   keyframes.transform = ['translateX(2.5%)', 'translateX(0)'];
 }
 
-// Set manually which toporefs have entropies
-// This needs to be updated by hand when there is a new toporef with entropies
-// This workaround prevents downloading all toporefs data to ckeck it, which would be unefficient
-const toporefsWithEntropies = ['SARS-CoV-2 spike'];
-const hasEntropies = toporefName => {
-  return toporefsWithEntropies.indexOf(toporefName) > -1;
+// Set manually which references have entropies
+// This needs to be updated by hand when there is a new reference with entropies
+// This workaround prevents downloading all references data to ckeck it, which would be unefficient
+const referencesWithEntropies = ['SARS-CoV-2 spike'];
+const hasEntropies = reference => {
+  return referencesWithEntropies.indexOf(reference) > -1;
 };
-const toporefsWithEpitopes = ['SARS-CoV-2 spike'];
-const hasEpitopes = toporefName => {
-  return toporefsWithEpitopes.indexOf(toporefName) > -1;
+const referencesWithEpitopes = ['SARS-CoV-2 spike'];
+const hasEpitopes = reference => {
+  return referencesWithEpitopes.indexOf(reference) > -1;
 };
 
 const Row = ({ project, highlight, index, setProject }) => {
@@ -141,25 +141,23 @@ const Row = ({ project, highlight, index, setProject }) => {
   )
     analyses.push('electrostatic');
 
-  // Check if any metadata toporef has a map and its toporef data has entropies
-  const toporefs = metadata && metadata.TOPOREFS;
-  const anySuitableToporefWithEntropies =
-    toporefs &&
-    toporefs.some(toporef => !!toporef.map && hasEntropies(toporef.name));
+  // Check if any metadata reference has entropies
+  const references = metadata && metadata.REFERENCES;
+  const anySuitableReferenceWithEntropies =
+    references && references.some(reference => hasEntropies(reference));
   // Push the mutations analysis if so
   if (
-    anySuitableToporefWithEntropies &&
+    anySuitableReferenceWithEntropies &&
     analyses &&
     !analyses.includes('mutations')
   )
     analyses.push('mutations');
-  // Check if any metadata toporef has a map and its toporef data has entropies
-  const anySuitableToporefWithEpitopes =
-    toporefs &&
-    toporefs.some(toporef => !!toporef.map && hasEpitopes(toporef.name));
+  // Check if any metadata reference has a map and its reference data has entropies
+  const anySuitableReferenceWithEpitopes =
+    references && references.some(reference => hasEpitopes(reference));
   // Push the entropies analysis if so
   if (
-    anySuitableToporefWithEpitopes &&
+    anySuitableReferenceWithEpitopes &&
     analyses &&
     !analyses.includes('epitopes')
   )

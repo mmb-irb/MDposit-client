@@ -3,7 +3,7 @@ import React, { useContext, useState, useMemo, Suspense } from 'react';
 import Card from '../animated-card';
 import { CardContent, Chip } from '@material-ui/core';
 
-import { ProjectCtx, PdbCtx, ToporefsCtx } from '../../contexts';
+import { ProjectCtx } from '../../contexts';
 
 import useDefaultRepresentations from '../ngl-viewer/use-default-representations';
 import useMutationsRepresentations from '../ngl-viewer/use-mutations-representations';
@@ -15,28 +15,27 @@ import Loading from '../loading';
 
 import {
   rangedSelectionParser,
-  absolute2sourceResidue,
   complexSelectionRanger,
-  reference2absolute,
 } from '../../utils/topology-manager';
 
 // Show floatting bubles with domain names
 // When a bubble is selected the domain is represented
 const Domains = ({ setter }) => {
-  const { metadata } = useContext(ProjectCtx);
-  const toporefData = useContext(ToporefsCtx);
-  // Get the current topology
-  const pdbData = useContext(PdbCtx);
-  const topology = pdbData.file;
+  // Get the current project data
+  const {
+    metadata,
+    references: referenceData,
+    topology: topologyManager,
+    interactions,
+  } = useContext(ProjectCtx);
 
   // Set the first domain (the overall) as the default selected domain
   const [selectedDomain, setSelectedDomain] = useState(0);
   const [overlapedDomain, setOverlapedDomain] = useState(null);
 
+  // Get pre-build representations
   const defaultRepresentations = useDefaultRepresentations();
-
   const mutationsRepresentation = useMutationsRepresentations();
-
   const epitopesRepresentation = useEpitopesRepresentations();
 
   // The domains strucutre is:
@@ -70,16 +69,15 @@ const Domains = ({ setter }) => {
     const customDomains = metadata.CUSTOMS || [];
     // Get domains from topology references
     const referenceDomains = [];
-    const toporefs = metadata.TOPOREFS;
-    if (toporefData && toporefs) {
-      toporefData.forEach(toporef => {
-        const toporefName = toporef.name;
-        const toporefDomains = toporef.domains;
-        if (!toporefDomains) return;
+    if (referenceData) {
+      referenceData.forEach(reference => {
+        const referenceName = reference.name;
+        const referenceDataDomains = reference.domains;
+        if (!referenceDataDomains) return;
         // ----------------------------------------------------------------------------------------
         // These domains are only specified for the reference sequence
         // Residue selections must be mapped back to the current topology for each representation
-        toporefDomains.forEach(domain => {
+        referenceDataDomains.forEach(domain => {
           const mappedDomain = {
             name: domain.name,
             description: domain.description,
@@ -89,17 +87,17 @@ const Domains = ({ setter }) => {
             const selection = representation.selection;
             const parsedSelection = rangedSelectionParser(selection);
             // WARNING: A single reference residue may correspond to multiple topology residues
-            const mappedSelection = reference2absolute(
-              toporefName,
+            const mappedSelection = topologyManager.reference2absolute(
+              referenceName,
               parsedSelection,
-              metadata,
             );
             // Representations with a selection not present in topology are discarded
             if (!mappedSelection || mappedSelection.length === 0) return;
             // Transform the mapped selection, which comes in absolute numeration, to the source format
             // The source numeration is compatible with NGL once parsed
             const sourceSelection = mappedSelection.map(
-              residue => absolute2sourceResidue(residue, topology).numeration,
+              residue =>
+                topologyManager.absolute2sourceResidue(residue).numeration,
             );
             const { rangedSelection, small } = complexSelectionRanger(
               sourceSelection,
@@ -120,8 +118,8 @@ const Domains = ({ setter }) => {
     }
     // Get domains constructed from interactions
     const interactionDomains = [];
-    if (metadata.INTERACTIONS) {
-      metadata.INTERACTIONS.forEach(interaction => {
+    if (interactions) {
+      interactions.forEach(interaction => {
         // Add a new domain for each new agent and skip repeated agents
         const agent1 = {
           name: interaction.agent_1,
@@ -136,9 +134,9 @@ const Domains = ({ setter }) => {
             return domain.name === agent.name;
           });
           if (current) return;
-          const { rangedSelection: nglSelection } = complexSelectionRanger(
-            agent.residues,
-          );
+          const {
+            rangedSelection: nglSelection,
+          } = topologyManager.absoluteSelectionToNgl(agent.residues);
           interactionDomains.push({
             name: agent.name,
             representations: [
@@ -185,8 +183,9 @@ const Domains = ({ setter }) => {
     defaultRepresentations,
     mutationsRepresentation,
     epitopesRepresentation,
-    toporefData,
-    topology,
+    topologyManager,
+    referenceData,
+    interactions,
   ]);
 
   useMemo(() => {

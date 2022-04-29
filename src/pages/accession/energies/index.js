@@ -9,7 +9,7 @@ import Loading from '../../../components/loading';
 
 import useAPI from '../../../hooks/use-api';
 
-import { AccessionCtx, PdbCtx, ProjectCtx } from '../../../contexts';
+import { AccessionCtx, ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
@@ -19,13 +19,7 @@ import InteractionSelector from '../../../components/interaction-selector';
 
 import style from './style.module.css';
 
-import {
-  absolute2standard,
-  complexNumerationParser,
-  complexSelectionRanger,
-  getAtomResidue,
-  source2standard,
-} from '../../../utils/topology-manager';
+import { complexNumerationParser } from '../../../utils/topology-manager';
 
 const Graph2 = lazy(() =>
   import(/* webpackChunkName: 'graph2' */ '../../../components/graph2'),
@@ -41,10 +35,8 @@ const getSum = values => {
 const Energies = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
-  // Get the current project metadata
-  const { metadata } = useContext(ProjectCtx);
-  // Get the current topology, including the residue names
-  const pdbData = useContext(PdbCtx);
+  // Get the current project data
+  const { topology: topologyManager, interactions } = useContext(ProjectCtx);
 
   // Get the default representations
   const defaultRepresentations = useDefaultRepresentations();
@@ -69,8 +61,6 @@ const Energies = () => {
   // Set which data is displayed: all, start, end or any combination of them
   const [display, setDisplay] = useState({ all: true, start: true, end: true });
 
-  const interactions = metadata && metadata.INTERACTIONS;
-
   const {
     data,
     dataError,
@@ -81,7 +71,7 @@ const Energies = () => {
     bothData,
   } = useMemo(() => {
     // Return if the payload is not ready
-    if (!payload) return {};
+    if (!payload || !topologyManager) return {};
 
     let data;
     let guestSelection;
@@ -110,14 +100,14 @@ const Energies = () => {
       : interaction.interface_1;
     const {
       rangedSelection: rangedInterfaceResiduesSelection,
-    } = complexSelectionRanger(guestInterfaceResidues);
+    } = topologyManager.absoluteSelectionToNgl(guestInterfaceResidues);
     guestSelection = rangedInterfaceResiduesSelection;
 
     // Set the tags to be displayed on each graph x axis
     data.xTags = [];
     data.labels.forEach(residue => {
       const source = complexNumerationParser(residue);
-      const { label } = source2standard(source, pdbData.file, metadata);
+      const { label } = topologyManager.source2standard(source);
       data.xTags.push(label);
     });
 
@@ -137,11 +127,11 @@ const Energies = () => {
     // They will be marked in the graph
     const strongBonds = interaction['strong_bonds'];
     const strongBondAtoms = [].concat.apply([], strongBonds);
-    const strongBondResidueIndexes = strongBondAtoms.map(
-      atom => getAtomResidue(atom, pdbData.file).index,
+    const strongBondResidueIndexes = strongBondAtoms.map(atom =>
+      topologyManager.getAtomResidueIndex(atom),
     );
     const strongBondResidues = strongBondResidueIndexes.map(
-      residue => absolute2standard(residue, pdbData.file, metadata).label,
+      residue => topologyManager.absolute2standard(residue).label,
     );
     const strongBondMarks = [];
     strongBondResidues.forEach(residue => {
@@ -187,11 +177,10 @@ const Energies = () => {
     };
   }, [
     payload,
-    interactions,
     selectedInteraction,
     selectedOrder,
-    pdbData,
-    metadata,
+    topologyManager,
+    interactions,
     defaultRepresentations,
   ]);
 

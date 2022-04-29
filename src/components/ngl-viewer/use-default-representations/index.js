@@ -3,24 +3,20 @@ import { useMemo, useContext } from 'react';
 
 import { ProjectCtx, PdbCtx } from '../../../contexts';
 
-import {
-  getResiduesCount,
-  nglSelection2absolute,
-  absolute2nglSelection,
-} from '../../../utils/topology-manager';
+import { nglSelection2absolute } from '../../../utils/topology-manager';
 
 // Use this hook to get the memoized NGL default representations
 const useDefaultRepresentations = () => {
   // Get the current project metadata and chains
-  const { chains, metadata } = useContext(ProjectCtx);
+  const projectData = useContext(ProjectCtx);
   // Get current structure
-  const pdbData = useContext(PdbCtx);
-  const structure = pdbData && pdbData.file;
+  const { file: structure } = useContext(PdbCtx);
   //console.log(structure.residueMap.get(0).isCg());
   // Set the chains to be represented in the NGL viewer by default
   // WARNING: This is experimental and may have some bugs
   const defaultRepresentations = useMemo(() => {
     const reps = [];
+    const { chains, metadata, topology: topologyManager } = projectData;
     if (metadata && chains) {
       const chainnames = metadata.CHAINNAMES;
       // Represent each protein chain
@@ -104,7 +100,7 @@ const useDefaultRepresentations = () => {
       );
       representedResidues.push(...residues);
     });
-    const residuesCount = getResiduesCount(structure);
+    const residuesCount = topologyManager.getResiduesCount();
     const nonRepresentedResidues = [];
     for (let i = 0; i < residuesCount; i++) {
       if (representedResidues.indexOf(i) === -1) nonRepresentedResidues.push(i);
@@ -112,9 +108,8 @@ const useDefaultRepresentations = () => {
 
     // Represent those "Other" residues in low opacity grey licorice
     if (nonRepresentedResidues.length > 0) {
-      const otherSelection = absolute2nglSelection(
+      const otherSelection = topologyManager.absolute2nglSelection(
         nonRepresentedResidues,
-        structure,
       );
       reps.push({
         name: 'Other',
@@ -126,7 +121,7 @@ const useDefaultRepresentations = () => {
     }
 
     return reps;
-  }, [chains, metadata, structure]);
+  }, [projectData, structure]);
 
   return defaultRepresentations;
 };

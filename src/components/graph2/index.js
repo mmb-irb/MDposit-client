@@ -24,7 +24,7 @@ import {
 
 import { FormControlLabel, Checkbox } from '@material-ui/core';
 
-import { PdbCtx } from '../../contexts';
+import { ProjectCtx } from '../../contexts';
 import { NICE_NAMES, COLORS } from '../../utils/constants';
 
 import addTextBackground from './add-text-background';
@@ -35,8 +35,6 @@ import { getTextWidth, getTextSizeDOM } from '../../utils/document-measurer';
 import { getMean, getMeanAndStdv } from '../../utils/statistics';
 
 import { ColormakerRegistry } from 'ngl';
-
-import { getAtom, getAtomResidue } from '../../utils/topology-manager';
 
 import style from './style.module.css';
 
@@ -66,6 +64,7 @@ const roatatedTextOffset = 9; // In px
 const axisLabelsOffset = 9; // In px
 
 const scheme = new ColormakerRegistry.schemes.element({});
+console.log(scheme);
 const dPR = window.devicePixelRatio || 1;
 
 // According to d3 documentation
@@ -107,14 +106,14 @@ const trueEntries = keys => {
 // }
 
 const Graph2 = forwardRef(({ // The main data
-  yData, xAxisValues, step = 1, title, xAxisLabel, yAxisLabel, xScaleFactor = 1, xUnit = 'ns', type = 'line', onHover, onSelect, selfLegend = false, displayLegend = false, dataDisplay, setDataDisplay, mean = false, standardDeviation = false, margin = defaultMargins, flippedXAxisValues = false, fullPrecision = false, className, //   attr: object with all the attribute names (keys) and their values according to d3 //   x: the position of the mark according to the x axis // Accepted values: ns, frame, atom // This is used to show the right text when the mouse is over it // Optional x tags // The difference beyween x values // Graph title // The x axis label text // The y axis label text // // Define the unit (and also the magnitude implicitly) of the x axis // { // Accepted values: line, dash // Set the type of grapg to render // Set if values in x axis is horizontal (false) or vertical (true) // React hooks // Object with each dataset name and a value of true/false to set which data is displayed // Display the mean line in the graph // Display the standard deviation area in the graph // Set an extra margin around the graph // DANI: Todavía no está implementado pero se usa para calcular márgenes // Marks is an array where each mark has the following format // If true, draw all points in the graph no matter how many points are there // Force a classname for the overall component element // Mark x values by displaying a vertical line in their positions
-  //   style: object with all the style names (keys) and their values according to d3
+  yData, xAxisValues, step = 1, title, xAxisLabel, yAxisLabel, xScaleFactor = 1, xUnit = 'ns', type = 'line', onHover, onSelect, selfLegend = false, displayLegend = false, dataDisplay, setDataDisplay, mean = false, standardDeviation = false, margin = defaultMargins, flippedXAxisValues = false, fullPrecision = false, className, //   style: object with all the style names (keys) and their values according to d3 //   attr: object with all the attribute names (keys) and their values according to d3 //   x: the position of the mark according to the x axis // Accepted values: ns, frame, atom // This is used to show the right text when the mouse is over it // Optional x tags // The difference beyween x values // Graph title // The x axis label text // The y axis label text // // Define the unit (and also the magnitude implicitly) of the x axis // { // Accepted values: line, dash // Set the type of grapg to render // Set if values in x axis is horizontal (false) or vertical (true) // React hooks // Object with each dataset name and a value of true/false to set which data is displayed // Display the mean line in the graph // Display the standard deviation area in the graph // Set an extra margin around the graph // DANI: Todavía no está implementado pero se usa para calcular márgenes // Marks is an array where each mark has the following format // If true, draw all points in the graph no matter how many points are there // Force a classname for the overall component element // Mark x values by displaying a vertical line in their positions
   // }
   marks }, ref) => {
   // Set a fake dataset to allow the graph to work when no data is passed
   if (!yData || Object.keys(yData).length === 0) yData = yDataPlaceholder;
 
-  const pdbData = useContext(PdbCtx);
+  // Get the current project data
+  const { topology: topologyManager } = useContext(ProjectCtx);
 
   // Referenced document element where d3 is rendered
   const containerRef = useRef(null);
@@ -289,7 +288,7 @@ const Graph2 = forwardRef(({ // The main data
     drawRef.current = ({
       data = previousValues.current.data,
       labels = previousValues.current.labels,
-      pdbData = previousValues.current.pdbData,
+      topologyManager = previousValues.current.topologyManager,
       step = previousValues.current.step,
       xAxisLabel = previousValues.current.xAxisLabel,
       yAxisLabel = previousValues.current.yAxisLabel,
@@ -578,10 +577,11 @@ const Graph2 = forwardRef(({ // The main data
             index <= maxInView;
             index += step
           ) {
-            if (pdbData && pdbData.file) {
-              const atom = pdbData.file.atomMap.get(
-                pdbData.file.atomStore.atomTypeId[index],
-              );
+            if (topologyManager) {
+              // const atom = pdbData.file.atomMap.get(
+              //   pdbData.file.atomStore.atomTypeId[index],
+              // );
+              const atom = topologyManager.getAtomName(index);
               if (atom) {
                 const color = `#${scheme
                   .atomColor(atom)
@@ -715,12 +715,17 @@ const Graph2 = forwardRef(({ // The main data
               if (xUnit === 'frame') return 'frame ' + +number.toFixed(2);
               if (xUnit === 'atom') {
                 let tag = 'atom ' + +number.toFixed(2);
-                if (!(pdbData && pdbData.file)) return tag;
-                const atom = getAtom(number, pdbData.file);
-                if (!atom) return tag;
-                const residue = getAtomResidue(number, pdbData.file);
-                if (!residue) return tag + ` (${atom.name})`;
-                return tag + ` (${residue.resname} - ${atom.name})`;
+                if (!topologyManager) return tag;
+                const atomName = topologyManager.getAtomName(number);
+                if (!atomName) return tag;
+                const residueIndex = topologyManager.getAtomResidueIndex(
+                  number,
+                );
+                const residueName = topologyManager.getResidueName(
+                  residueIndex,
+                );
+                if (!residueName) return tag + ` (${atomName})`;
+                return tag + ` (${residueName} - ${atomName})`;
               }
               if (xUnit === 'residue')
                 return (
@@ -754,7 +759,7 @@ const Graph2 = forwardRef(({ // The main data
       // Save current values for further reference
       previousValues.current.data = data;
       previousValues.current.labels = labels;
-      previousValues.current.pdbData = pdbData;
+      previousValues.current.topologyManager = topologyManager;
       previousValues.current.xAxisLabel = xAxisLabel;
       previousValues.current.yAxisLabel = yAxisLabel;
       previousValues.current.currentZoom = currentZoom;
@@ -862,7 +867,7 @@ const Graph2 = forwardRef(({ // The main data
   useEffect(() => {
     drawRef.current({
       data: yData,
-      pdbData,
+      topologyManager,
       step,
       xAxisLabel,
       yAxisLabel,
@@ -874,7 +879,7 @@ const Graph2 = forwardRef(({ // The main data
       yAxisLabelHegiht,
     });
   }, [
-    pdbData,
+    topologyManager,
     yData,
     step,
     xAxisLabel,

@@ -8,16 +8,9 @@ import Card from '../../../components/animated-card';
 import Loading from '../../../components/loading';
 import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 
-import { AccessionCtx, ProjectCtx, PdbCtx } from '../../../contexts';
+import { AccessionCtx, ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
-
-import {
-  complexNumerationParser,
-  residueHasCAlpha,
-  source2standard,
-  source2absoluteResidue,
-} from '../../../utils/topology-manager';
 
 //import Selector from '../../../components/selector';
 import InteractionSelector from '../../../components/interaction-selector';
@@ -29,10 +22,8 @@ import style from './style.module.css';
 const DistPerres = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
-  // Get the current project chains and metadata
-  const { metadata } = useContext(ProjectCtx);
-  // Get the current topology, including the residue names
-  const pdbData = useContext(PdbCtx);
+  // Get the current project data
+  const projectData = useContext(ProjectCtx);
 
   // The interaction to be displayed
   const [selectedInteraction, setSelectedInteraction] = useState(0);
@@ -56,9 +47,10 @@ const DistPerres = () => {
   const filteredData = useMemo(() => {
     // Return if the payload is not ready
     if (loading || error || !payload) return;
+    const { topology: topologyManager, interactions } = projectData;
 
     // Get the selected interaction
-    const interaction = metadata.INTERACTIONS[selectedInteraction];
+    const interaction = interactions[selectedInteraction];
 
     // Get the data whose name matches the interaction name
     const data = payload.data.find(dataset => {
@@ -93,8 +85,7 @@ const DistPerres = () => {
     // Convert the residues from topology numeration to standard numeration to use them as labels
     const [xLabels, yLabels] = [residuesX, residuesY].map(residues =>
       residues.map(residue => {
-        const source = complexNumerationParser(residue);
-        const { label } = source2standard(source, pdbData.file, metadata);
+        const { label } = topologyManager.absolute2standard(residue);
         return label;
       }),
     );
@@ -117,8 +108,7 @@ const DistPerres = () => {
     loading,
     error,
     payload,
-    pdbData,
-    metadata,
+    projectData,
     selectedInteraction,
     selectedResidues,
   ]);
@@ -128,7 +118,7 @@ const DistPerres = () => {
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
 
-  if (!pdbData.file) return <Loading />;
+  if (!projectData) return <Loading />;
 
   // handles when the tabs are switched
   const handleTabs = (event, newValue) => {
@@ -139,12 +129,11 @@ const DistPerres = () => {
   // Also retrieve the absolute residue number, since it is used to ask for the distance representation
   // http://nglviewer.org/ngl/api/class/src/representation/distance-representation.js~DistanceRepresentation.html
   const parseResidue = residue => {
-    const source = complexNumerationParser(residue);
-    const absolute = source2absoluteResidue(source, pdbData.file);
     // We must check the residue has an alpha carbon
     // If not, there is no atom to use a distance reference, so return null
-    const hasCA = residueHasCAlpha(absolute, pdbData.file);
+    const hasCA = projectData.topology.residueHasCAlpha(residue);
     // Set the numeration
+    const source = projectData.topology.absolute2sourceResidue(residue);
     const numeration = source.chain + ':' + source.residue + source.icode;
     return {
       forResidue: numeration,
@@ -161,7 +150,7 @@ const DistPerres = () => {
         <CardContent className={style.horizontal}>
           <Typography variant="h6">Residues selection:</Typography>
           <InteractionSelector
-            interactions={metadata.INTERACTIONS}
+            interactions={projectData.interactions}
             selectedInteraction={selectedInteraction}
             setSelectedInteraction={setSelectedInteraction}
             selectedResidues={selectedResidues}

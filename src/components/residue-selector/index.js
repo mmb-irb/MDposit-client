@@ -12,12 +12,7 @@ import useColors from '../../hooks/use-colors';
 
 import { scaleLinear } from 'd3';
 
-import { ProjectCtx, PdbCtx } from '../../contexts';
-import {
-  getResiduesCount,
-  absolute2sourceResidue,
-  absolute2reference,
-} from '../../utils/topology-manager';
+import { ProjectCtx } from '../../contexts';
 
 // Set the number of residues between each numeration flag
 const residuesPerGroup = 10;
@@ -61,16 +56,13 @@ const ResidueSelector = ({
   // To force a styling
   className,
 }) => {
-  // Get the current project metadata
-  const { metadata } = useContext(ProjectCtx);
-  // Get the current topology
-  const { file: topology } = useContext(PdbCtx);
+  // Get the current project data
+  const { topology: topologyManager } = useContext(ProjectCtx);
 
   // Get the residues list in model notation
   const { sequences, residueData, maxValue, minValue } = useMemo(() => {
-    if (!topology || !metadata) return {};
-
-    const residuesCount = getResiduesCount(topology);
+    if (!topologyManager) return {};
+    const residuesCount = topologyManager.getResiduesCount();
     // Get all topology residues and separate them by chains
     const chains = {};
     // Get also all residues together and fill missing residues with nulls
@@ -78,8 +70,8 @@ const ResidueSelector = ({
     for (let residueIndex = 0; residueIndex < residuesCount; residueIndex++) {
       const value = residueValues[residueIndex];
       if (value === null) continue;
-      const source = absolute2sourceResidue(residueIndex, topology);
-      const ref = absolute2reference(residueIndex, metadata);
+      const source = topologyManager.absolute2sourceResidue(residueIndex);
+      const ref = topologyManager.absolute2reference(residueIndex);
       const formattedResidue = {
         index: residueIndex,
         letter: source.letter,
@@ -115,7 +107,7 @@ const ResidueSelector = ({
     }
 
     return { sequences, residueData, maxValue, minValue };
-  }, [residueValues, colorPlan, topology, metadata]);
+  }, [residueValues, colorPlan, topologyManager]);
 
   // Use the colors hook
   const [getColor, freeColor, freeAllColors] = useColors();

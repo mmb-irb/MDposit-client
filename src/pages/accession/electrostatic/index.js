@@ -10,15 +10,13 @@ import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls'
 import style from './style.module.css';
 
 //import { AccessionCtx } from '../../../contexts';
-import { ProjectCtx, PdbCtx } from '../../../contexts';
+import { ProjectCtx } from '../../../contexts';
 
 import Loading from '../../../components/loading';
 
 import InteractionSelector from '../../../components/interaction-selector';
 
 import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
-
-import { complexNumerationParser } from '../../../utils/topology-manager';
 
 import { ColormakerRegistry } from 'ngl';
 import { color as d3color, scaleLinear } from 'd3';
@@ -41,10 +39,8 @@ const Electrostatic = () => {
   // Set a ref to the ngl which allows access to the ngl viewer exposed methods
   const viewerRef = useRef(null);
 
-  // Get the current project metadata
-  const { metadata } = useContext(ProjectCtx);
-  // Get the current topology
-  const pdbData = useContext(PdbCtx);
+  // Get the current project data
+  const projectData = useContext(ProjectCtx);
 
   // The interaction to be displayed
   const [selectedInteraction, setSelectedInteraction] = useState(0);
@@ -57,9 +53,10 @@ const Electrostatic = () => {
 
   // Set the representations for the NGL viewer
   const { representations, initialFocus } = useMemo(() => {
-    if (!metadata || !pdbData.file) return {};
-    // In case there are charges us them create a color scale to pain the surface area
-    const charges = metadata.CHARGES;
+    if (!projectData) return {};
+    const { topology: topologyManager, interactions } = projectData;
+    // In case there are charges, use them to create a color scale to pain the surface area
+    const charges = topologyManager.atomCharges;
     let colorScheme;
     if (charges) {
       // Set the color scale according to the maximum and minimum values
@@ -83,7 +80,6 @@ const Electrostatic = () => {
     }
 
     // Proceed to make representations for the current interaction
-    const interactions = metadata.INTERACTIONS;
     const interaction = interactions && interactions[selectedInteraction];
 
     if (!interaction) return {};
@@ -93,7 +89,9 @@ const Electrostatic = () => {
       interaction.interface_1,
       interaction.interface_2,
     ].map(interf =>
-      interf.map(res => complexNumerationParser(res).nglSelection),
+      interf.map(
+        res => topologyManager.absolute2sourceResidue(res).nglSelection,
+      ),
     );
 
     // Create a new representation for each interface
@@ -137,7 +135,7 @@ const Electrostatic = () => {
     const initialFocus = { comp: 0, sele: wholeInterface.join(' or ') };
 
     return { representations, initialFocus };
-  }, [metadata, pdbData, defaultRepresentations, selectedInteraction]);
+  }, [projectData, defaultRepresentations, selectedInteraction]);
 
   // Update representations type and color when the selected order changes
   useEffect(() => {
@@ -162,13 +160,14 @@ const Electrostatic = () => {
     });
   }, [representations, selectedOrder]);
 
-  if (!metadata || !pdbData.file) return <Loading />;
+  if (!projectData) return <Loading />;
 
   const handleToggleOrder = () => {
     setSelectedOrder(previous => !previous);
   };
 
-  if (!metadata.INTERACTIONS || metadata.INTERACTIONS.length === 0)
+  const interactions = projectData.interactions;
+  if (!interactions || interactions.length === 0)
     return 'There are no interactions';
 
   return (
@@ -177,7 +176,7 @@ const Electrostatic = () => {
         <CardContent className={style.horizontal}>
           <Typography variant="h6">Interaction:</Typography>
           <InteractionSelector
-            interactions={metadata.INTERACTIONS}
+            interactions={interactions}
             selectedInteraction={selectedInteraction}
             setSelectedInteraction={setSelectedInteraction}
             selectedOrder={selectedOrder}

@@ -21,13 +21,7 @@ import style from './style.module.css';
 
 import Loading from '../../../components/loading';
 
-import { PdbCtx, ProjectCtx, ToporefsCtx } from '../../../contexts';
-
-import {
-  getResiduesCount,
-  absolute2reference,
-  absolute2sourceResidue,
-} from '../../../utils/topology-manager';
+import { ProjectCtx } from '../../../contexts';
 
 import ResidueSelector from '../../../components/residue-selector';
 
@@ -39,27 +33,27 @@ const Mutations = () => {
   // The status isNglVisible is returned true/false when the element is in/out the screen respectively
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
 
-  // Get the toporefs data
-  const toporefData = useContext(ToporefsCtx);
-  // Get the current topology
-  const { file: topology } = useContext(PdbCtx);
-  // Get the current project metadata
-  const { metadata } = useContext(ProjectCtx);
+  // Get the current project data
+  const { references: referenceData, topology: topologyManager } = useContext(
+    ProjectCtx,
+  );
 
   const residueEntropies = useMemo(() => {
-    if (!topology || !metadata) return;
+    if (!topologyManager) return;
     // Iterate over all residues in the topology to find their corresponding entropy
-    const residuesCount = getResiduesCount(topology);
+    const residuesCount = topologyManager.getResiduesCount();
     const residueEntropies = new Array(residuesCount).fill(null);
     // Iterate over all residues in the topology to find their corresponding entropy
     for (let i = 0; i < residuesCount; i++) {
-      const reference = absolute2reference(i, metadata);
+      const reference = topologyManager.absolute2reference(i);
       if (!reference) continue;
-      const { name: toporefName, index: referenceIndex } = reference;
-      // We substract 1 from the residueIndex since it counts from 1 to n as toporefs do
+      const { name: referenceName, index: referenceIndex } = reference;
+      // We substract 1 from the residueIndex since it counts from 1 to n as references do
       const residueIndex = referenceIndex - 1;
-      const toporef = toporefData.find(data => data.name === toporefName);
-      const entropies = toporef.entropies;
+      const currentReferenceData = referenceData.find(
+        data => data.name === referenceName,
+      );
+      const entropies = currentReferenceData.entropies;
       if (!entropies) continue;
       const entropy = entropies[residueIndex];
       if (entropy === undefined) continue;
@@ -68,7 +62,7 @@ const Mutations = () => {
       residueEntropies[i] = logarithmicEntropy;
     }
     return residueEntropies;
-  }, [toporefData, topology, metadata]);
+  }, [referenceData, topologyManager]);
 
   // Set when one point in the graph is selected
   const [selectedResidues, setSelectedResidues] = useState([]);
@@ -76,10 +70,10 @@ const Mutations = () => {
   const selectedResidueNames = useMemo(
     () =>
       selectedResidues.map(residue => {
-        const source = absolute2sourceResidue(residue.index, topology);
+        const source = topologyManager.absolute2sourceResidue(+residue.index);
         return source.numeration;
       }),
-    [selectedResidues, topology],
+    [selectedResidues, topologyManager],
   );
 
   // Set the representations for the NGL viewer

@@ -22,14 +22,7 @@ import getFrames from './get-frames';
 
 import { AccessionCtx, ProjectCtx, PdbCtx } from '../../contexts';
 
-import {
-  getAtomResidue,
-  absolute2sourceResidue,
-  complexNumerationParser,
-  model2sourceResidue,
-  absolute2reference,
-  getMetadataChainname,
-} from '../../utils/topology-manager';
+import { complexNumerationParser } from '../../utils/topology-manager';
 
 import { setTooltipPosition } from '../../utils/tooltip-position-manager';
 
@@ -149,8 +142,12 @@ const NGLViewer = memo(
       // True when we just want to display a static structure // Requeste number of frames to display
       // data from context
       const accession = useContext(AccessionCtx);
-      const { metadata, files, curatedOrientation } = useContext(ProjectCtx);
-      const pdbData = useContext(PdbCtx);
+      const {
+        files,
+        curatedOrientation,
+        topology: topologyManager,
+      } = useContext(ProjectCtx);
+      const { file: pdbDataFile } = useContext(PdbCtx);
 
       const [isFirstCompStaged, setIsFirstCompStaged] = useState(false);
       // The last automatic camera focus
@@ -260,7 +257,7 @@ const NGLViewer = memo(
               const anyLoading = requestedTopologies.some(t => t.loading);
               setAnyLoadingTopology(anyLoading);
               // The topology with the pdb data has not url
-              const topology = { url: null, file: pdbData.file };
+              const topology = { url: null, file: pdbDataFile };
               return [...previous, topology];
             });
           }
@@ -294,7 +291,7 @@ const NGLViewer = memo(
           }
         });
         return () => (didCancel = true);
-      }, [requestedTopologies, pdbData]);
+      }, [requestedTopologies, pdbDataFile]);
 
       const mainComponent = comps[0];
       const mainTopology = topologies.find(topology => {
@@ -302,7 +299,7 @@ const NGLViewer = memo(
       });
       const { file: pdbFile } = mainTopology || {
         loading: false,
-        file: pdbData.file,
+        file: pdbDataFile,
       };
 
       // Download trajectories ------------------------------------------------------------------------------------------------
@@ -936,9 +933,7 @@ const NGLViewer = memo(
         if (!atoms.length) return;
 
         // ngl starts counting at 0
-        const seleHighlight = `@${atoms
-          .map(atomNumber => atomNumber)
-          .join(',')}`;
+        const seleHighlight = `@${atoms.map(atomIndex => atomIndex).join(',')}`;
 
         stageRef.current.compList[0].addRepresentation(highlightTypes.atoms, {
           sele: seleHighlight,
@@ -947,45 +942,33 @@ const NGLViewer = memo(
           name: nameHighlight,
         });
 
-        const seleContext = Array.from(
+        const otherResidueAtomsSelection = Array.from(
           new Set(
-            atoms.map(
-              atomsNumber => {
-                const { atomCount, atomOffset } = getAtomResidue(
-                  atomsNumber,
-                  pdbFile,
-                );
-                const atomIndexes = [...Array(atomCount).keys()].map(
-                  i => atomOffset + i,
-                );
-                const nglAtomSelection = '@' + atomIndexes.join(',');
-                return nglAtomSelection;
-              },
-              // 'atoms' are in abolsute numeration
-              /*
-              atomsNumber =>
-                absolute2sourceResidue(
-                  getAtomResidue(atomsNumber, pdbFile).index,
-                  pdbFile,
-                ).nglSelection
-              */
-            ),
+            // 'atoms' are in abolsute numeration
+            atoms.map(atomIndex => {
+              const residueIndex = topologyManager.getAtomResidueIndex(
+                atomIndex,
+              );
+              const atomIndices = topologyManager.getResidueAtoms(residueIndex);
+              const nglAtomSelection = '@' + atomIndices.join(',');
+              return nglAtomSelection;
+            }),
           ),
         ).join(' or ');
 
         stageRef.current.compList[0].addRepresentation(
           highlightTypes.residues,
           {
-            sele: seleContext,
+            sele: otherResidueAtomsSelection,
             name: nameContextHighlight,
           },
         );
 
         // Focus the highlighted zone with the camera
-        setFocus({ comp: 0, sele: seleContext });
+        setFocus({ comp: 0, sele: otherResidueAtomsSelection });
       }, [
         isFirstCompStaged,
-        pdbFile,
+        topologyManager,
         selectedAtoms,
         darkBackground,
         highlightTypes,
@@ -1480,14 +1463,14 @@ const NGLViewer = memo(
             // Start and end values are in model numeration
             // DANI: This is totally by chance. I didn't program this previous part
             const [start, end] = thisHiglight.split(':');
-            const sourceStart = model2sourceResidue(
-              { chain, residue: start },
-              pdbFile,
-            );
-            const sourceEnd = model2sourceResidue(
-              { chain, residue: end },
-              pdbFile,
-            );
+            const sourceStart = topologyManager.model2sourceResidue({
+              chain,
+              residue: start,
+            });
+            const sourceEnd = topologyManager.model2sourceResidue({
+              chain,
+              residue: end,
+            });
             if (sourceStart.chain !== sourceEnd.chain)
               throw new Error(`Range from multiple chains is not supported`);
             highlight += ` or :${sourceStart.chain} and ${sourceStart.residueNumber}-${sourceEnd.residueNumber}`;
@@ -1540,11 +1523,11 @@ const NGLViewer = memo(
         };
         window.addEventListener('change', handler);
         return () => window.removeEventListener('change', handler);
-      }, [pdbFile]);
+      }, [topologyManager]);
 
       // Customize the NGL tooltip
       useEffect(() => {
-        if (!pdbFile) return;
+        if (!topologyManager) return;
         // Set a new tooltip
         const tooltip = tooltipRef.current;
         containerRef.current.appendChild(tooltip);
@@ -1558,16 +1541,15 @@ const NGLViewer = memo(
           // WARNING: a.residueIndex is correct but we must convert it to source first
           // In some cases 1 residue can have multiple absolute residue indexes
           // (e.g. hydrogens at the end)
-          const sourceResidue = absolute2sourceResidue(
+          const sourceResidue = topologyManager.absolute2sourceResidue(
             atom.residueIndex,
-            pdbFile,
           );
-          const chainName = getMetadataChainname(
+          const chainName = topologyManager.getMetadataChainname(
             sourceResidue.chain,
-            metadata,
-            pdbFile,
           );
-          const reference = absolute2reference(atom.residueIndex, metadata);
+          const reference = topologyManager.absolute2reference(
+            atom.residueIndex,
+          );
           return (
             <>
               {`Atom ${atom.index} (${atom.atomname})
@@ -1660,7 +1642,7 @@ const NGLViewer = memo(
           tooltip.remove();
           containerRef.current.removeEventListener('mouseleave', hideTooltip);
         };
-      }, [pdbFile, metadata, setTooltipContent]);
+      }, [topologyManager, setTooltipContent]);
 
       // Track when the first focus has been performed, since first focus is instantaneous
       const firstFocus = useRef(true);

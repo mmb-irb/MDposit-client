@@ -12,15 +12,13 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faAngleRight } from '@fortawesome/free-solid-svg-icons';
 
 // Recover the metadata saved in this context by the accession script
-import { ProjectCtx, PdbCtx } from '../../../contexts';
+import { ProjectCtx } from '../../../contexts';
 
 import Card from '../../../components/animated-card';
 import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
 import ChainAnalyses from '../../../components/chain-analyses';
 
 import reducedMotion from '../../../utils/reduced-motion';
-
-import { getMetadataChainname } from '../../../utils/topology-manager';
 
 import Domains from '../../../components/domains';
 
@@ -304,9 +302,12 @@ const dbMap = new Map([
 const Analyses = memo(() => {
   // Load chains, accession and identifier from the project context
   // 'chains' is undefined if no chains were loaded in this project
-  const { chains, accession, identifier, metadata } = useContext(ProjectCtx);
-  // Get the current topology data
-  const pdbData = useContext(PdbCtx);
+  const {
+    chains,
+    accession,
+    identifier,
+    topology: topologyManager,
+  } = useContext(ProjectCtx);
   // Portals create a window where a web page is pre rendered without navigating to
   // You can navigate to this web page by clicking on the portal
   // NOTE: see https://web.dev/hands-on-portals for tutorial on Portals
@@ -455,10 +456,9 @@ const Analyses = memo(() => {
         <ul className={style['chain-analysis-list']}>
           {/* Here, main data is displayed */}
           {chains.map(chain => {
-            const name =
-              metadata && pdbData && pdbData.file
-                ? getMetadataChainname(chain, metadata, pdbData.file)
-                : '';
+            const name = topologyManager
+              ? topologyManager.getMetadataChainname(chain)
+              : '';
             return (
               <li key={chain}>
                 <Typography variant="h6">

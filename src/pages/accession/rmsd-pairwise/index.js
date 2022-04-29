@@ -18,13 +18,15 @@ import style from './style.module.css';
 import InteractionSelector from '../../../components/interaction-selector';
 import Heatmap from '../../../components/heatmap';
 
-import { complexNumerationParser } from '../../../utils/topology-manager';
-
 const RmsdPairwise = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
-  // Get the current project metadata
-  const { metadata } = useContext(ProjectCtx);
+  // Get the current project data
+  const {
+    metadata,
+    interactions: defaultInteractions,
+    topology: topologyManager,
+  } = useContext(ProjectCtx);
 
   // Get the default representations
   const defaultRepresentations = useDefaultRepresentations();
@@ -41,17 +43,14 @@ const RmsdPairwise = () => {
   const { loading, payload, error } = useAPI(url);
 
   const interactions = useMemo(() => {
-    // Return if the payload is not ready
-    if (!metadata) return;
-    if (!metadata.INTERACTIONS) return [{ name: 'Overall' }];
-    const metadataInteractions = metadata.INTERACTIONS;
+    if (!defaultInteractions) return [{ name: 'Overall' }];
     // Label all metadata interactions with the 'interface residues' ending
-    metadataInteractions.forEach(interaction => {
+    defaultInteractions.forEach(interaction => {
       interaction.label = interaction.name + ' (interface residues)';
     });
-    const interactions = [{ name: 'Overall' }, ...metadataInteractions];
+    const interactions = [{ name: 'Overall' }, ...defaultInteractions];
     return interactions;
-  }, [metadata]);
+  }, [defaultInteractions]);
 
   const { rmsds, AxesValues } = useMemo(() => {
     // Return if the payload is not ready
@@ -99,13 +98,23 @@ const RmsdPairwise = () => {
     const interactionInterface1 =
       interaction.interface_1 &&
       interaction.interface_1
-        .map(res => '(' + complexNumerationParser(res).nglSelection + ')')
+        .map(
+          res =>
+            '(' +
+            topologyManager.absolute2sourceResidue(res).nglSelection +
+            ')',
+        )
         .join(' or ');
 
     const interactionInterface2 =
       interaction.interface_2 &&
       interaction.interface_2
-        .map(res => '(' + complexNumerationParser(res).nglSelection + ')')
+        .map(
+          res =>
+            '(' +
+            topologyManager.absolute2sourceResidue(res).nglSelection +
+            ')',
+        )
         .join(' or ');
     // Get also the number of the interacting agents
     const agent1 = interaction.agent_1;
@@ -155,7 +164,13 @@ const RmsdPairwise = () => {
     });
 
     return { components, agent1, agent2 };
-  }, [selected, interactions, selectedInteraction, defaultRepresentations]);
+  }, [
+    selected,
+    topologyManager,
+    interactions,
+    selectedInteraction,
+    defaultRepresentations,
+  ]);
 
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;

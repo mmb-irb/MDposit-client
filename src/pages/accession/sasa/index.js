@@ -19,18 +19,13 @@ import Loading from '../../../components/loading';
 
 import useAPI from '../../../hooks/use-api';
 
-import { AccessionCtx, ProjectCtx, PdbCtx } from '../../../contexts';
+import { AccessionCtx, ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 import style from './style.module.css';
 
-import {
-  complexNumerationParser,
-  source2absoluteResidue,
-  getAtomsCount,
-  getResiduesCount,
-} from '../../../utils/topology-manager';
+import { complexNumerationParser } from '../../../utils/topology-manager';
 
 //import Selector from '../../../components/selector';
 
@@ -64,10 +59,8 @@ const Sasa = () => {
 
   // Get the accession
   const accession = useContext(AccessionCtx);
-  // Get the current project metadata
-  const { metadata } = useContext(ProjectCtx);
-  // Get the current topology, including the residue names
-  const { file: topology } = useContext(PdbCtx);
+  // Get the current project data
+  const { metadata, topology: topologyManager } = useContext(ProjectCtx);
 
   // Get the default representations
   const defaultRepresentations = useDefaultRepresentations();
@@ -93,24 +86,28 @@ const Sasa = () => {
     residueData,
     residueMeans,
   } = useMemo(() => {
-    if (!topology || !metadata || !payload) return {};
+    if (!topologyManager || !metadata || !payload) return {};
 
     // Reformat data, find each residue source notation and absolute index
     const data = payload.data
       .map(residue => {
         const sourceResidue = complexNumerationParser(residue.name);
-        const absoluteResidue = source2absoluteResidue(sourceResidue, topology);
+        const absoluteResidue = topologyManager.source2absoluteResidue(
+          sourceResidue,
+        );
         return { ...residue, ...sourceResidue, index: absoluteResidue };
       })
       .filter(residue => {
         // WARNING: Data from single atom residues (i.e. ions) is discarded since they may raise the maximum SAS a lot
-        const residueAtomsCount = getAtomsCount(residue.index, topology);
+        const residueAtomsCount = topologyManager.getResidueAtomsCount(
+          residue.index,
+        );
         return residueAtomsCount > 1;
       });
 
     // Set a list with the data of each residue for every residue in the topology
     // Residues not included in the analysis data will remain as null
-    const residuesCount = getResiduesCount(topology);
+    const residuesCount = topologyManager.getResiduesCount();
     const residueData = new Array(residuesCount).fill(null);
     data.forEach(residue => {
       residueData[residue.index] = residue;
@@ -137,7 +134,7 @@ const Sasa = () => {
       this.atomColor = atom => {
         // Find the residue index and then the entropy for this residue
         const residue = atom.residueIndex;
-        const residueAtomsCount = getAtomsCount(residue, topology);
+        const residueAtomsCount = topologyManager.getResidueAtomsCount(residue);
         // Single atom residues (i.e. ions) are discarded since they may raise the maximum SAS a lot
         if (residueAtomsCount === 1) return 16777215;
         const currentResidueData = residueData[residue];
@@ -183,7 +180,7 @@ const Sasa = () => {
     ];
 
     return { mainComponent, framesNumber, timeStep, residueData, residueMeans };
-  }, [payload, topology, metadata, accession, defaultRepresentations]);
+  }, [payload, topologyManager, metadata, accession, defaultRepresentations]);
 
   // Get the residues list in model notation
   const { selectedData, selectedResidueNames } = useMemo(() => {
@@ -265,7 +262,7 @@ const Sasa = () => {
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
 
-  if (!topology || !metadata) return <Loading />;
+  if (!topologyManager || !metadata) return <Loading />;
 
   // Render
   return (

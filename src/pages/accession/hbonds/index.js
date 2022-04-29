@@ -26,16 +26,9 @@ import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 
 import useAPI from '../../../hooks/use-api';
 
-import { AccessionCtx, PdbCtx, ProjectCtx } from '../../../contexts';
+import { AccessionCtx, ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
-
-import {
-  getAtom,
-  getAtomResidue,
-  absolute2standard,
-  absolute2sourceResidue,
-} from '../../../utils/topology-manager';
 
 import InteractionSelector from '../../../components/interaction-selector';
 
@@ -48,11 +41,8 @@ const rowsPerPageOptions = [10, 25, 50, 100];
 const Hbonds = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
-  // Get the current topology, including the residue names
-  const pdbData = useContext(PdbCtx);
-  // Get the current project metadata
-  const { metadata } = useContext(ProjectCtx);
-  const interactions = metadata.INTERACTIONS;
+  // Get the current project data
+  const { topology: topologyManager, interactions } = useContext(ProjectCtx);
 
   // Set a reference to the table element so we can scroll to it
   const tableRef = useRef();
@@ -82,7 +72,7 @@ const Hbonds = () => {
   // Set the processed data which will be displayed
   const processedData = useMemo(() => {
     // Return here if there is no payload or topology
-    if (!payload || !pdbData || !pdbData.file) return;
+    if (!payload || !topologyManager) return;
 
     // Get the data whose name matches the interaction name
     // The newest format has 4 fields: acceptors, donors, hydrogens and hbonds
@@ -181,27 +171,22 @@ const Hbonds = () => {
     processedData.forEach(group => {
       // Find out which agent does the acceptors belong to
       const acceptorSample = group.acceptors[0];
-      const residueIndex = getAtomResidue(acceptorSample, pdbData.file).index;
-      const sourceResidue = absolute2sourceResidue(residueIndex, pdbData.file);
+      const residueIndex = topologyManager.getAtomResidueIndex(acceptorSample);
       const isAcceptorFromAgent1 =
-        interaction['interface_1'].indexOf(sourceResidue.numeration) !== -1;
+        interaction['interface_1'].indexOf(residueIndex) !== -1;
       group.isAcceptorFromAgent1 = isAcceptorFromAgent1;
       // Set the acceptor, donor and hydrogen labels to be displayed in the table
       const [acceptorLabels, donorLabels] = [group.acceptors, group.donors].map(
         atoms =>
           atoms.map(atom => {
-            const atomName = getAtom(atom, pdbData.file).name;
-            const residueIndex = getAtomResidue(atom, pdbData.file).index;
-            const { label } = absolute2standard(
-              residueIndex,
-              pdbData.file,
-              metadata,
-            );
+            const atomName = topologyManager.getAtomName(atom);
+            const residueIndex = topologyManager.getAtomResidueIndex(atom);
+            const { label } = topologyManager.absolute2standard(residueIndex);
             return `${label}.${atomName}`;
           }),
       );
       const hydrogenLabels = group.hydrogens.map(atom => {
-        let atomName = getAtom(atom, pdbData.file).name;
+        let atomName = topologyManager.getAtomName(atom);
         if (isAcceptorFromAgent1) atomName = atomName + ' —';
         else atomName = '— ' + atomName;
         return atomName;
@@ -228,7 +213,7 @@ const Hbonds = () => {
     processedData.sort((a, b) => b.stability - a.stability);
 
     return processedData;
-  }, [payload, pdbData, metadata, interaction]);
+  }, [payload, topologyManager, interaction]);
 
   // Set all bonds to be displayed according to the current page and the number of bonds per page
   const displayedBondGroups = useMemo(() => {
@@ -243,7 +228,7 @@ const Hbonds = () => {
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
 
-  if (!pdbData.file) return <Loading />;
+  if (!topologyManager) return <Loading />;
 
   // Render
   return (

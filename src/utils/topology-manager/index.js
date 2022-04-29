@@ -176,70 +176,6 @@ export const nglNumerationParser = numeration => {
   return { chain, residue: +residue, icode, nglSelection, complex };
 };
 
-// Get atom data from atom index
-export const getAtom = (index, topology) => {
-  const atomStore = topology.atomStore;
-  // Get the atom number according to the topology. It usually ranges from 1 to n
-  const serial = atomStore.serial[index];
-  // Absolute index (0-n)
-  const residue = atomStore.residueIndex[index];
-  // Atom properties
-  const typeId = atomStore.atomTypeId[index];
-  const data = topology.atomMap.get(typeId);
-  const { number: residueAtomNumber, atomname: name, element } = data;
-  return { serial, residue, residueAtomNumber, name, element };
-};
-
-// Return residue data whom the specified absolute atom number belongs to
-export const getAtomResidue = (atom, topology) => {
-  const index = topology.atomStore.residueIndex[atom];
-  const residueStore = topology.residueStore;
-  const atomCount = residueStore.atomCount[index];
-  const atomOffset = residueStore.atomOffset[index];
-  const typeId = residueStore.residueTypeId[index];
-  const data = topology.residueMap.get(typeId);
-  const { resname } = data;
-  //console.log(atom + ' => ' + index);
-  return { index, atomCount, atomOffset, resname };
-};
-
-// Get first atom absolute number from resiude absolute number
-// DANI: Hay que revisar esos -1 y +1
-// DANI: Creo que esto ya no se usa. Borralo si te apura
-export const getResidueFirstAtom = (residue, topology) => {
-  const atom = topology.residueStore.atomOffset[residue - 1] + 1;
-  //console.log(residue + ' => ' + atom);
-  return atom;
-};
-
-// Return all atom absolute numbers from resiude absolute number
-export const getResidueAtoms = (residue, topology) => {
-  const firstAtom = topology.residueStore.atomOffset[residue];
-  const atomCount = topology.residueStore.atomCount[residue];
-  const atoms = [];
-  for (let a = 0; a < atomCount; a++) atoms.push(firstAtom + a);
-  //console.log(residue + ' => ' + atoms);
-  return atoms;
-};
-
-export const residueHasCAlpha = (residue, topology) => {
-  const atoms = getResidueAtoms(residue, topology);
-  for (const atom of atoms) {
-    const name = getAtom(atom, topology).name;
-    //console.log(residue + ' => ' + name);
-    if (name === 'CA') return true;
-  }
-  return false;
-};
-
-// This function finds the residue type (e.g. TYR) from a residue absolute number
-export const getResidueType = (residue, topology) => {
-  const typeId = topology.residueStore.residueTypeId[residue];
-  const type = topology.residueMap.get(typeId).resname;
-  //console.log(residue + ' => ' + type);
-  return type;
-};
-
 // Define the residue type letters
 const residueLetters = {
   ALA: 'A',
@@ -342,353 +278,6 @@ export const getResidueTypeLetter = residueType => {
   return 'X';
 };
 
-// This function returns an array with all chains in topology
-// Specifically, it returns the string chain letters
-export const getTopologyChains = topology => {
-  const chainCount = topology.chainStore.count;
-  const chains = [];
-  for (let chain = 0; chain < chainCount; chain++) {
-    chains.push(topology.chainStore.getChainname(chain));
-  }
-
-  return chains;
-};
-
-// This function returns the chain name from a chain letter (e.g 'A')
-export const getMetadataChainname = (chain, metadata, topology) => {
-  if (!metadata) throw new Error('There is no metadata');
-  if (!topology) throw new Error('There is no topology');
-  const metadataChainnames = metadata.CHAINNAMES;
-  if (!metadataChainnames) return '';
-  // OBSOLETE: Chains were stored as an array of names
-  if (Array.isArray(metadataChainnames)) {
-    if (!metadataChainnames) return '';
-    for (let c = 0; c < metadata.CHAINNAMES.length; c++) {
-      const topologyChainname = topology.chainStore.getChainname(c);
-      if (topologyChainname === chain) return metadataChainnames[c];
-    }
-  }
-  // Chains are stored as and object (e.g. { 'A': 'ACE2', 'B': 'RBD' })
-  else {
-    const chainname = metadataChainnames[chain];
-    if (chainname) return chainname;
-  }
-
-  // "charCodeAt" transforms a string character to int code
-  // The 'A' string returns 65, the 'B' returns 66 and so on
-  //const name = metadataChainnames[chain.charCodeAt(0) - 65];
-  return '';
-};
-
-// This function returns the chain names from an array with chain letters (e.g ['A','B'])
-// Results are collapsed according to unique chainnames
-export const getMetadataChainnames = (chains, metadata, topology) => {
-  // Get unique chains
-  chains = Array.from(new Set(chains));
-  // Get the name of each chain individually
-  // Also, compile all chainnames in a single array
-  const results = [];
-  const chainnames = [];
-  for (const c of chains) {
-    const chainname = getMetadataChainname(c, metadata, topology);
-    results.push({ chain: c, name: chainname });
-    chainnames.push(chainname);
-  }
-  // Collapse the results
-  const uniqueChainnames = Array.from(new Set(chainnames));
-  const collapsedChains = [];
-  const collapsedResults = [];
-  for (let u = 0; u < uniqueChainnames.length; u++) {
-    const unique = uniqueChainnames[u];
-    let collapsed = '';
-    for (let c = 0; c < chainnames.length; c++) {
-      const name = chainnames[c];
-      if (unique === name) if (collapsed) collapsed += ', ';
-      collapsed += chains[c];
-    }
-    collapsedChains[u] = collapsed;
-    collapsedResults.push({ name: unique, chains: collapsed });
-  }
-  // Put it all as a sentence
-  let sentence = '';
-  for (const cr of collapsedResults) {
-    if (sentence) sentence += ', ';
-    sentence += cr.name + ' (' + cr.chains + ')';
-  }
-  return { results, collapsedResults, sentence };
-};
-
-// This function returns the chain index from a chain letter (e.g 'A')
-// Return -1 when the chain letter si not found
-export const getChainIndex = (chain, topology) => {
-  const chainCount = topology.chainStore.count;
-  for (let i = 0; i < chainCount; i++)
-    if (topology.chainStore.getChainname(i) === chain) return i;
-  return -1;
-};
-
-// Given a list of residues in absolute numeration, separate them by chain and return an object where keys are chain names
-// e.g. [ 1, 2, 3, 17 ] -> { 'A': [1,2,3], 'B': [17] }
-export const byChains = (residues, topology) => {
-  const chained = {};
-  residues.forEach(residue => {
-    const chainIndex = topology.residueStore.chainIndex[residue];
-    const chain = topology.chainStore.getChainname(chainIndex);
-    const current = chained[chain];
-    if (current) current.push(residue);
-    else chained[chain] = [residue];
-  });
-  return chained;
-};
-
-// Get the reference numeration from a source formatted resiude
-export const source2referenceResidue = (
-  { chain, residue, icode },
-  topology,
-  metadata,
-) => {
-  // Check arguments to be valid
-  //check(chain, residue);
-  const absolute = source2absoluteResidue({ chain, residue, icode }, topology);
-  const reference = absolute2reference(absolute, metadata);
-  return reference;
-};
-
-// This function converts topology residue numbers to absolute residue numbers
-export const source2absoluteResidue = ({ chain, residue, icode }, topology) => {
-  const chainIndexes = topology.residueStore.chainIndex;
-  const resnos = topology.residueStore.resno;
-  const inscodes = topology.residueStore.inscode;
-  const code = icode.charCodeAt(0);
-  //console.log('we need chain: ' + chainIndex + ' res: ' + residue);
-  for (const [index, res] of resnos.entries()) {
-    //console.log(index + ' -> ' + topology.residueStore.chainIndex[index] + ':' + res);
-    if (
-      res === residue &&
-      topology.chainStore.getChainname(chainIndexes[index]) === chain &&
-      (inscodes[index] === code || !icode)
-    ) {
-      //console.log(chain + ':' + residue + ' => ' + index);
-      return index;
-    }
-  }
-  throw new Error(
-    'The requested chain (' +
-      chain +
-      '), residue number (' +
-      residue +
-      ') and icode (' +
-      icode +
-      ') did not match any residue',
-  );
-};
-
-// Get the total number of atoms from a resiude absolute number
-export const getAtomsCount = (residue, topology) => {
-  return topology.residueStore.atomCount[residue];
-};
-
-// Get the total number of residues in topology
-export const getResiduesCount = topology => {
-  return topology.residueStore.count;
-};
-
-// This function finds all requested metadata from a residue absolute number
-// Requests is an object with all the names of the fields to be requested as keys and all of them with true values
-// Available fields:
-// - type
-// - letter
-// - chain
-// - number
-// - icode
-// - ngl
-// - label
-export const getAbsoluteResidueMetadata = (residue, topology, requests) => {
-  const output = {};
-  if (requests.type || requests.letter) {
-    const typeId = topology.residueStore.residueTypeId[residue];
-    const type = topology.residueMap.get(typeId).resname;
-    if (requests.type) output.type = type;
-    if (requests.letter) output.letter = getResidueTypeLetter(type);
-  }
-  let source = {};
-  if (requests.chain || requests.ngl || requests.label) {
-    const chainIndex = topology.residueStore.chainIndex[residue];
-    const chain = topology.chainStore.getChainname(chainIndex);
-    if (requests.chain) output.chain = chain;
-    if (requests.ngl || requests.label) source.chain = chain;
-  }
-  if (requests.number || requests.ngl || requests.label) {
-    const number = topology.residueStore.resno[residue];
-    if (requests.number) output.number = number;
-    if (requests.ngl || requests.label) source.number = number;
-  }
-  if (requests.icode || requests.label) {
-    const charIcode = topology.residueStore.inscode[residue];
-    const icode = charIcode ? String.fromCharCode(charIcode) : '';
-    if (requests.icode) output.icode = icode;
-    if (requests.label) source.icode = icode;
-  }
-  if (requests.ngl) {
-    const ngl = ':' + source.chain + ' and ' + source.number;
-    output.ngl = ngl;
-  }
-  if (requests.label) {
-    const label = source.chain + ':' + source.number + source.icode;
-    output.label = label;
-  }
-  return output;
-};
-
-// Same function that above but for residues in source format
-export const getSourceResidueMetadata = (residue, topology, requests) => {
-  const absolute = source2absoluteResidue(residue, topology);
-  return getAbsoluteResidueMetadata(absolute, topology, requests);
-};
-
-// This function converts absolute residue numbers to topology residue numbers
-export const absolute2sourceResidue = (residue, topology) => {
-  const count = topology.residueStore.count;
-  if (residue >= count)
-    throw new Error(
-      `The residue index ${residue} is out of range. There are ${count} residues in the topology`,
-    );
-  const residueNumber = topology.residueStore.resno[residue];
-  const chainIndex = topology.residueStore.chainIndex[residue];
-  const chain = topology.chainStore.getChainname(chainIndex); // e.g. 'A'
-  const charIcode = topology.residueStore.inscode[residue];
-  const icode = charIcode ? String.fromCharCode(charIcode) : '';
-  // Formated selection to select this specific residue in NGL
-  const numeration = chain + ':' + residueNumber + icode;
-  const nglSelection = ':' + chain + ' and ' + residueNumber;
-  // Additional residue data
-  const type = getResidueType(residue, topology);
-  const letter = getResidueTypeLetter(type);
-  //console.log(residue + ' => ' + relativeresidue);
-  return {
-    chain,
-    residue: residueNumber, // In order to solve incompatibilities between funcions
-    residueNumber,
-    icode,
-    numeration,
-    nglSelection,
-    type,
-    letter,
-  };
-};
-
-// This function converts absolute residue numbers to topology reference residue numbers
-// If the residue is not mapped for whatever the reason then return null
-// e.g. the topology map may be missing or the residue may be not protein
-// Note that each absolute residue may belong to only 1 reference
-export const absolute2reference = (residue, metadata) => {
-  const toporefs = metadata.TOPOREFS;
-  if (!toporefs) return null;
-  for (const toporef of toporefs) {
-    const mapping = toporef.map;
-    if (!mapping) continue;
-    const reference = mapping[residue];
-    if (!reference) continue;
-    return { name: toporef.name, index: reference };
-  }
-  return null;
-};
-
-// This function converts a list of topology reference residue numbers to current topology residue numbers
-// The reference must be specified with the topology reference name, since there may be more than 1 reference
-// e.g. "SARS-CoV-2 spike"
-// Note that one residue in the reference may be more than once or not be in the current topology
-export const reference2absolute = (reference, residues, metadata) => {
-  const metadataToporef =
-    metadata &&
-    metadata.TOPOREFS &&
-    metadata.TOPOREFS.find(toporef => toporef.name === reference);
-  const metadataToporefMap = metadataToporef && metadataToporef.map;
-  if (!metadataToporefMap) return;
-  return [].concat.apply(
-    [],
-    residues.map(residue =>
-      metadataToporefMap.reduce((a, res, r) => {
-        if (res === residue) a.push(r);
-        return a;
-      }, []),
-    ),
-  );
-};
-
-// Get the standard numeration from a residue in absolute numeration
-// Standard numeration is the numeration to be displayed in figures
-// The equivalent source residue may be passed to skip having to calculate it again
-export const absolute2standard = (
-  absolute,
-  topology,
-  metadata,
-  source = null,
-) => {
-  // Use the reference numeration, when possible, and the source numeration when not
-  // When no referenced, add a '*' to warn the user that the numeration is not "official"
-  let number;
-  let labelNumber;
-  const ref = absolute2reference(absolute, metadata);
-  if (ref !== null) {
-    number = ref.index;
-    labelNumber = `${number}`;
-  } else {
-    if (!source) source = absolute2sourceResidue(absolute, topology);
-    number = source.residue;
-    labelNumber = `${number}*`;
-  }
-  // Get the type and the chain of the residue
-  let { type, chain } = getAbsoluteResidueMetadata(absolute, topology, {
-    type: true,
-    chain: true,
-  });
-  // Check if there is only one chain and, if so, skip the chain in the label
-  let labelChain;
-  if (metadata.CHAINNAMES.length === 1) labelChain = ``;
-  else labelChain = `${chain}:`;
-  // If the residue has a type then surround it with parenthesis
-  // Residues usually have it
-  let labelType;
-  if (type) labelType = `(${type})`;
-  else labelType = ``;
-  // Build the label to be shown
-  const label = labelChain + labelNumber + labelType;
-  return { label, chain, number, type };
-};
-
-// Get the standard numeration from a residue in source format
-// Standard numeration is the numeration to be displayed in figures
-// It is the reference numeration, when possible, and the source numeration when not
-export const source2standard = (source, topology, metadata) => {
-  const absolute = source2absoluteResidue(source, topology);
-  return absolute2standard(absolute, topology, metadata, source);
-};
-
-// DEPRECATED
-// WARNING: Model format is used to solve a situation where the NGL output numeration is in model format
-// WARNING: This is totally by chance
-// This function converts model residue numbers to absolute residue numbers
-export const model2absoluteResidue = ({ chain, residue }, topology) => {
-  //console.log(topology);
-  const chainIndex = getChainIndex(chain, topology);
-  const residueOffest = topology.chainStore.residueOffset[chainIndex];
-  // Make sure residue is a number and not an string
-  const residueNumber = residueOffest + +residue - 1;
-  //console.log(chain + ':' + residue + ' -> ' + residueNumber);
-  return residueNumber;
-};
-
-// DEPRECATED
-// WARNING: Model format is used to solve a situation where the NGL output numeration is in model format
-// WARNING: This is totally by chance
-// This function converts model residue numbers to source residue numbers
-export const model2sourceResidue = ({ chain, residue }, topology) => {
-  const absolute = model2absoluteResidue({ chain, residue }, topology);
-  const source = absolute2sourceResidue(absolute, topology);
-  return source;
-};
-
 // Check if an NGL residues is cartoon supported or not
 // e.g. check if it is recognized by NGL as a protein, RNA or DNA residue
 export const isCartoonSupported = nglResidue => {
@@ -700,13 +289,13 @@ export const isCartoonSupported = nglResidue => {
 export const nglSelection2absolute = (
   nglSelection,
   onlyCartoonSupported = false,
-  topology,
+  viewerTopology,
 ) => {
   const residues = [];
   // Save the selection in ngl format (structureComponent)
   const selection = new ngl.Selection(nglSelection);
   // Save the data from structure which corresponds to the selection atoms
-  const view = topology.getView(selection);
+  const view = viewerTopology.getView(selection);
   if (onlyCartoonSupported) {
     view.eachResidue(residue => {
       if (isCartoonSupported(residue)) residues.push(residue.index);
@@ -720,13 +309,397 @@ export const nglSelection2absolute = (
   return residues;
 };
 
-// Convert an array of absolute residue indices to an ngl selection
-// This NGL selection is as short as possible by using rnaged syntax
-// e.g. [0, 1, 2, 3, 4] -> ':A and 1-5'
-export const absolute2nglSelection = (residues, topology) => {
-  const nglResidues = residues.map(
-    residue => absolute2sourceResidue(residue, topology).numeration,
-  );
-  const rangedSelection = complexSelectionRanger(nglResidues).rangedSelection;
-  return rangedSelection;
-};
+export class Topology {
+  constructor(topology, metadata) {
+    this.atomNames = topology.atom_names;
+    this.atomElements = topology.atom_elements;
+    this.atomCharges = topology.atom_charges;
+    this.residueNames = topology.residue_names;
+    this.residueNumbers = topology.residue_numbers;
+    this.residueIcodes = topology.residue_icodes;
+    this.residueAtomIndices = topology.residue_atom_indices;
+    this.chainNames = topology.chain_names;
+    this.chainResidueIndices = topology.chain_residue_indices;
+    this.references = topology.references;
+    this.residueReferenceIndices = topology.residue_reference_indices;
+    this.residueReferenceNumbers = topology.residue_reference_numbers;
+    this.metadataChainNames = metadata.CHAINNAMES;
+  }
+
+  // --------------------------------------------------------------------
+  // BASICS
+  // --------------------------------------------------------------------
+
+  // Get atom data from atom index
+  getAtomName = atomIndex => {
+    return this.atomNames[atomIndex];
+  };
+
+  // Given an atom, return its residue index
+  getAtomResidueIndex = atomIndex => {
+    let residueIndex = 0;
+    for (const atomIndices of this.residueAtomIndices) {
+      if (atomIndices.indexOf(atomIndex) !== -1) break;
+      residueIndex += 1;
+    }
+    return residueIndex;
+  };
+
+  // Return all atom absolute numbers from resiude absolute number
+  getResidueName = residueIndex => {
+    return this.residueNames[residueIndex];
+  };
+
+  // Return all atom absolute numbers from resiude absolute number
+  getResidueAtoms = residueIndex => {
+    return this.residueAtomIndices[residueIndex];
+  };
+
+  // Check if a residue has an alpha carbon (i.e. it is a regular aminoacid)
+  residueHasCAlpha = residueIndex => {
+    const atoms = this.getResidueAtoms(residueIndex);
+    for (const atom of atoms) {
+      const name = this.getAtomName(atom);
+      if (name === 'CA') return true;
+    }
+    return false;
+  };
+
+  // Get the total number of atoms from a resiude absolute number
+  getResidueAtomsCount = residueIndex => {
+    const atoms = this.getResidueAtoms(residueIndex);
+    return atoms.length;
+  };
+
+  // Get the total number of residues in topology
+  getResiduesCount = () => {
+    return this.residueNumbers.length;
+  };
+
+  // Given a chain name, get its index
+  getChainIndex = chainName => {
+    const chainIndex = this.chainNames.indexOf(chainName);
+    if (chainIndex === -1)
+      throw new Error('Chain ' + chainName + ' is not found in the topology');
+    return chainIndex;
+  };
+
+  // Get a chain name from its index
+  getChainName = chainIndex => {
+    return this.chainNames[chainIndex];
+  };
+
+  // Given a residue, get its chain index
+  getResidueChainIndex = residueIndex => {
+    for (const [
+      chainIndex,
+      residueIndices,
+    ] of this.chainResidueIndices.entries()) {
+      if (residueIndices.indexOf(residueIndex) !== -1) return chainIndex;
+    }
+    throw new Error(
+      'Residue index ' +
+        residueIndex +
+        ' is not found in chain residue indices',
+    );
+  };
+
+  // Given an atom, return its chain index
+  getAtomChainIndex = atomIndex => {
+    const residueIndex = this.getAtomResidueIndex(atomIndex);
+    return this.getResidueChainIndex(residueIndex);
+  };
+
+  // --------------------------------------------------------------------
+  // FORMAT CONVERSIONS
+  // --------------------------------------------------------------------
+
+  // This function converts absolute residue numbers to topology reference residue numbers
+  // If the residue is not mapped for whatever the reason then return null
+  // e.g. the topology map may be missing or the residue may be not protein
+  // Note that each absolute residue may belong to only 1 reference
+  absolute2reference = residue => {
+    const referenceIndex = this.residueReferenceIndices[residue];
+    if (referenceIndex === null) return null;
+    const reference = this.references[referenceIndex];
+    const residueReferenceNumber = this.residueReferenceNumbers[residue];
+    return { name: reference, index: residueReferenceNumber };
+  };
+
+  // This function converts a list of topology reference residue numbers to current topology residue numbers
+  // The reference must be specified with the topology reference name, since there may be more than 1 reference
+  // e.g. "SARS-CoV-2 spike"
+  // Note that one residue in the reference may be more than once or not be in the current topology
+  reference2absolute = (reference, residues) => {
+    const referenceIndex = this.references.indexOf(reference);
+    if (referenceIndex === -1) return;
+    const absoluteResidues = [];
+    this.residueReferenceIndices.forEach((refIndex, residueIndex) => {
+      if (refIndex !== referenceIndex) return;
+      const residueNumber = this.residueReferenceNumbers[residueIndex];
+      if (residues.indexOf(residueNumber) !== -1)
+        absoluteResidues.push(residueIndex);
+    });
+    return absoluteResidues;
+  };
+
+  // Get the standard numeration from a residue in absolute numeration
+  // Standard numeration is the numeration to be displayed in figures
+  // The equivalent source residue may be passed to skip having to calculate it again
+  absolute2standard = (absolute, source = null) => {
+    // Use the reference numeration, when possible, and the source numeration when not
+    // When no referenced, add a '*' to warn the user that the numeration is not "official"
+    let number;
+    let labelNumber;
+    const ref = this.absolute2reference(absolute);
+    if (ref !== null) {
+      number = ref.index;
+      labelNumber = `${number}`;
+    } else {
+      if (!source) source = this.absolute2sourceResidue(absolute);
+      number = source.residue;
+      labelNumber = `${number}*`;
+    }
+    // Get the type and the chain of the residue
+    let { type, chain } = this.getAbsoluteResidueMetadata(absolute, {
+      type: true,
+      chain: true,
+    });
+    // Check if there is only one chain and, if so, skip the chain in the label
+    let labelChain;
+    if (this.metadataChainNames.length === 1) labelChain = ``;
+    else labelChain = `${chain}:`;
+    // If the residue has a type then surround it with parenthesis
+    // Residues usually have it
+    let labelType;
+    if (type) labelType = `(${type})`;
+    else labelType = ``;
+    // Build the label to be shown
+    const label = labelChain + labelNumber + labelType;
+    return { label, chain, number, type };
+  };
+
+  // This function converts absolute residue numbers to topology residue numbers
+  absolute2sourceResidue = residueIndex => {
+    const count = this.residueNumbers.length;
+    if (residueIndex >= count)
+      throw new Error(
+        `The residue index ${residueIndex} is out of range. There are ${count} residues in the topology`,
+      );
+    const residueNumber = this.residueNumbers[residueIndex];
+    const chainIndex = this.getResidueChainIndex(residueIndex);
+    console.log(chainIndex);
+    const chain = this.chainNames[chainIndex]; // e.g. 'A'
+    const icode = this.residueIcodes[residueIndex] || '';
+    // Formated selection to select this specific residue in NGL
+    const numeration = chain + ':' + residueNumber + icode;
+    const nglSelection = ':' + chain + ' and ' + residueNumber;
+    // Additional residue data
+    const type = this.residueNames[residueIndex];
+    const letter = getResidueTypeLetter(type);
+    //console.log(residue + ' => ' + relativeresidue);
+    return {
+      chain,
+      residue: residueNumber, // In order to solve incompatibilities between funcions
+      residueNumber,
+      icode,
+      numeration,
+      nglSelection,
+      type,
+      letter,
+    };
+  };
+
+  // Get the reference numeration from a source formatted resiude
+  source2referenceResidue = ({ chain, residue, icode }) => {
+    // Check arguments to be valid
+    const absolute = this.source2absoluteResidue({ chain, residue, icode });
+    const reference = this.absolute2reference(absolute);
+    return reference;
+  };
+
+  // This function converts topology residue numbers to absolute residue numbers
+  source2absoluteResidue = ({ chain, residue, icode }) => {
+    for (const [residueIndex, residueNumber] of this.residueNumbers.entries()) {
+      if (residueNumber !== residue) continue;
+      const chainIndex = this.getResidueChainIndex(residueIndex);
+      const chainName = this.chainNames[chainIndex];
+      if (chainName !== chain) continue;
+      const residueIcode = this.residueIcodes[residueIndex];
+      if (icode && residueIcode !== icode) continue;
+      return residueIndex;
+    }
+    throw new Error(
+      'The requested chain (' +
+        chain +
+        '), residue number (' +
+        residue +
+        ') and icode (' +
+        icode +
+        ') did not match any residue',
+    );
+  };
+
+  // Get the standard numeration from a residue in source format
+  // Standard numeration is the numeration to be displayed in figures
+  // It is the reference numeration, when possible, and the source numeration when not
+  source2standard = source => {
+    const absolute = this.source2absoluteResidue(source);
+    return this.absolute2standard(absolute, source);
+  };
+
+  // DEPRECATED
+  // WARNING: Model format is used to solve a situation where the NGL output numeration is in model format
+  // WARNING: This is totally by chance
+  // This function converts model residue numbers to absolute residue numbers
+  model2absoluteResidue = ({ chain, residue }) => {
+    const chainIndex = this.getChainIndex(chain);
+    const chainResidues = this.chainResidueIndices[chainIndex];
+    return chainResidues[+residue + 1];
+  };
+
+  // DEPRECATED
+  // WARNING: Model format is used to solve a situation where the NGL output numeration is in model format
+  // WARNING: This is totally by chance
+  // This function converts model residue numbers to source residue numbers
+  model2sourceResidue = ({ chain, residue }) => {
+    const absolute = this.model2absoluteResidue({ chain, residue });
+    const source = this.absolute2sourceResidue(absolute);
+    return source;
+  };
+
+  // --------------------------------------------------------------------
+  // OTHER
+  // --------------------------------------------------------------------
+
+  // This function finds all requested metadata from a residue absolute number
+  // Requests is an object with all the names of the fields to be requested as keys and all of them with true values
+  // Available fields:
+  // - type
+  // - letter
+  // - chain
+  // - number
+  // - icode
+  // - ngl
+  // - label
+  getAbsoluteResidueMetadata = (residue, requests) => {
+    const output = {};
+    if (requests.type || requests.letter) {
+      const type = this.residueNames[residue];
+      if (requests.type) output.type = type;
+      if (requests.letter) output.letter = getResidueTypeLetter(type);
+    }
+    let source = {};
+    if (requests.chain || requests.ngl || requests.label) {
+      const chainIndex = this.getResidueChainIndex(residue);
+      const chain = this.chainNames[chainIndex];
+      if (requests.chain) output.chain = chain;
+      if (requests.ngl || requests.label) source.chain = chain;
+    }
+    if (requests.number || requests.ngl || requests.label) {
+      const number = this.residueNumbers[residue];
+      if (requests.number) output.number = number;
+      if (requests.ngl || requests.label) source.number = number;
+    }
+    if (requests.icode || requests.label) {
+      const icode = this.residueIcodes ? this.residueIcodes[residue] : '';
+      if (requests.icode) output.icode = icode;
+      if (requests.label) source.icode = icode;
+    }
+    if (requests.ngl) {
+      const ngl = ':' + source.chain + ' and ' + source.number;
+      output.ngl = ngl;
+    }
+    if (requests.label) {
+      const label = source.chain + ':' + source.number + source.icode;
+      output.label = label;
+    }
+    return output;
+  };
+
+  // Same function that above but for residues in source format
+  getSourceResidueMetadata = (residue, requests) => {
+    const absolute = this.source2absoluteResidue(residue);
+    return this.getAbsoluteResidueMetadata(absolute, requests);
+  };
+
+  // Convert an array of absolute residue indices to an ngl selection
+  // This NGL selection is as short as possible by using rnaged syntax
+  // e.g. [0, 1, 2, 3, 4] -> ':A and 1-5'
+  // DANI: Está repetida
+  absolute2nglSelection = residues => {
+    const nglResidues = residues.map(
+      residue => this.absolute2sourceResidue(residue).numeration,
+    );
+    const rangedSelection = complexSelectionRanger(nglResidues).rangedSelection;
+    return rangedSelection;
+  };
+
+  // Do the same that the previous function but from absolute residues
+  // e.g. [0, 1, 2, 3, ...] => nglSelection = "(A: and 1, 3-5) or (B: and 1)"
+  // In addition track if there is any small serie (i.e. 3 residues or less)
+  // DANI: Está repetida
+  absoluteSelectionToNgl = selection => {
+    let small = false;
+    let rangedSelection = '';
+    // Parse each residue in complex notation
+    const parsedResidues = selection.map(residue =>
+      this.absolute2sourceResidue(residue),
+    );
+    // Get unique chains
+    const chains = parsedResidues
+      .map(r => r.chain)
+      .filter((v, i, a) => a.indexOf(v) === i);
+    // For each chain, get all residues and "range" them
+    chains.forEach(chain => {
+      const chainResidues = parsedResidues
+        .filter(v => v.chain === chain)
+        .map(r => r.residue);
+      const {
+        rangedSelection: ranged,
+        small: smallChain,
+      } = parsedSelectionRanger(chainResidues);
+      rangedSelection += ' or (:' + chain + ' and (' + ranged + '))'; // Al parenthesis are mandatory
+      if (smallChain) small = true; // If any chain small is true then the overall small is true
+    });
+    rangedSelection = rangedSelection.substring(4); // Remove the first ' or '
+    return { rangedSelection, small };
+  };
+
+  // This function returns the chain name from a chain letter (e.g 'A')
+  getMetadataChainname = chain => {
+    if (!this.metadataChainNames) return '';
+    // OBSOLETE: Chains were stored as an array of names
+    if (Array.isArray(this.metadataChainNames)) {
+      if (!this.metadataChainNames) return '';
+      for (let c = 0; c < this.metadataChainNames.length; c++) {
+        const topologyChainname = this.getChainName(c);
+        if (topologyChainname === chain) return this.metadataChainNames[c];
+      }
+    }
+    // Chains are stored as and object (e.g. { 'A': 'ACE2', 'B': 'RBD' })
+    else {
+      const chainname = this.metadataChainNames[chain];
+      if (chainname) return chainname;
+    }
+
+    // "charCodeAt" transforms a string character to int code
+    // The 'A' string returns 65, the 'B' returns 66 and so on
+    //const name = metadataChainnames[chain.charCodeAt(0) - 65];
+    return '';
+  };
+
+  // Given a list of residues in absolute numeration, separate them by chain and return an object where keys are chain names
+  // e.g. [ 1, 2, 3, 17 ] -> { 'A': [1,2,3], 'B': [17] }
+  byChains = residues => {
+    const chained = {};
+    residues.forEach(residue => {
+      const chainIndex = this.getResidueChainIndex(residue);
+      const chain = this.chainNames[chainIndex];
+      const current = chained[chain];
+      if (current) current.push(residue);
+      else chained[chain] = [residue];
+    });
+    return chained;
+  };
+}
