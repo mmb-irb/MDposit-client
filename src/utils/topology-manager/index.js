@@ -309,20 +309,54 @@ export const nglSelection2absolute = (
   return residues;
 };
 
+// Set the element colors for displaying
+const elementColors = {
+  H: 'white',
+  C: 'grey',
+  N: 'blue',
+  O: 'red',
+  S: 'yellow',
+  P: 'orange',
+};
+
 export class Topology {
   constructor(topology, metadata) {
+    // Save the topology data as it comes
     this.atomNames = topology.atom_names;
     this.atomElements = topology.atom_elements;
     this.atomCharges = topology.atom_charges;
+    this.atomResidueIndices = topology.atom_residue_indices;
     this.residueNames = topology.residue_names;
     this.residueNumbers = topology.residue_numbers;
     this.residueIcodes = topology.residue_icodes;
-    this.residueAtomIndices = topology.residue_atom_indices;
+    this.residueChainIndices = topology.residue_chain_indices;
     this.chainNames = topology.chain_names;
-    this.chainResidueIndices = topology.chain_residue_indices;
     this.references = topology.references;
     this.residueReferenceIndices = topology.residue_reference_indices;
     this.residueReferenceNumbers = topology.residue_reference_numbers;
+    // Data is stored in a down-top structure according to atom-residue-chain indices
+    // i.e. atoms know which residue they belong to and residues know which chain they belong to
+    // Now set the top-down structure values
+    // i.e. set which atoms are contained on every residue and which residues are contained on every chain
+    this.residueAtomIndices = Array.from(
+      Array(this.residueNames.length),
+      () => [],
+    );
+    for (const [atomIndex, residueIndex] of this.atomResidueIndices.entries()) {
+      this.residueAtomIndices[residueIndex].push(atomIndex);
+    }
+    this.chainResidueIndices = Array.from(
+      Array(this.chainNames.length),
+      () => [],
+    );
+    for (const [
+      residueIndex,
+      chainIndex,
+    ] of this.residueChainIndices.entries()) {
+      this.chainResidueIndices[chainIndex].push(residueIndex);
+    }
+    // Save also the metadata chain names
+    // They are not letters ('A', 'B', etc.) but actual names ('Spike', 'Glycans', etc.)
     this.metadataChainNames = metadata.CHAINNAMES;
   }
 
@@ -337,12 +371,7 @@ export class Topology {
 
   // Given an atom, return its residue index
   getAtomResidueIndex = atomIndex => {
-    let residueIndex = 0;
-    for (const atomIndices of this.residueAtomIndices) {
-      if (atomIndices.indexOf(atomIndex) !== -1) break;
-      residueIndex += 1;
-    }
-    return residueIndex;
+    return this.atomResidueIndices[atomIndex];
   };
 
   // Return all atom absolute numbers from resiude absolute number
@@ -391,23 +420,21 @@ export class Topology {
 
   // Given a residue, get its chain index
   getResidueChainIndex = residueIndex => {
-    for (const [
-      chainIndex,
-      residueIndices,
-    ] of this.chainResidueIndices.entries()) {
-      if (residueIndices.indexOf(residueIndex) !== -1) return chainIndex;
-    }
-    throw new Error(
-      'Residue index ' +
-        residueIndex +
-        ' is not found in chain residue indices',
-    );
+    return this.residueChainIndices[residueIndex];
   };
 
   // Given an atom, return its chain index
   getAtomChainIndex = atomIndex => {
     const residueIndex = this.getAtomResidueIndex(atomIndex);
     return this.getResidueChainIndex(residueIndex);
+  };
+
+  // Given a chain, return its atom indices
+  getChainAtomIndices = chainIndex => {
+    const residueIndices = this.chainResidueIndices[chainIndex];
+    return [].concat(
+      residueIndices.map(residueIndex => this.residueAtomIndices[residueIndex]),
+    );
   };
 
   // --------------------------------------------------------------------
@@ -488,7 +515,6 @@ export class Topology {
       );
     const residueNumber = this.residueNumbers[residueIndex];
     const chainIndex = this.getResidueChainIndex(residueIndex);
-    console.log(chainIndex);
     const chain = this.chainNames[chainIndex]; // e.g. 'A'
     const icode = this.residueIcodes[residueIndex] || '';
     // Formated selection to select this specific residue in NGL
@@ -701,5 +727,14 @@ export class Topology {
       else chained[chain] = [residue];
     });
     return chained;
+  };
+
+  // Get an atom color according to its element
+  // If the element color is not defined return black color
+  getAtomElementColor = atomIndex => {
+    const element = this.atomElements[atomIndex];
+    const color = elementColors[element];
+    if (!color) return 'black';
+    return color;
   };
 }

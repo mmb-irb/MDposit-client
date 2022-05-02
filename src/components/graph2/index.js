@@ -34,8 +34,6 @@ import { getTextWidth, getTextSizeDOM } from '../../utils/document-measurer';
 
 import { getMean, getMeanAndStdv } from '../../utils/statistics';
 
-import { ColormakerRegistry } from 'ngl';
-
 import style from './style.module.css';
 
 import LineSample from './line-sample';
@@ -63,8 +61,6 @@ const roatatedTextOffset = 9; // In px
 // They are very close to the axis values by default
 const axisLabelsOffset = 9; // In px
 
-const scheme = new ColormakerRegistry.schemes.element({});
-console.log(scheme);
 const dPR = window.devicePixelRatio || 1;
 
 // According to d3 documentation
@@ -106,8 +102,7 @@ const trueEntries = keys => {
 // }
 
 const Graph2 = forwardRef(({ // The main data
-  yData, xAxisValues, step = 1, title, xAxisLabel, yAxisLabel, xScaleFactor = 1, xUnit = 'ns', type = 'line', onHover, onSelect, selfLegend = false, displayLegend = false, dataDisplay, setDataDisplay, mean = false, standardDeviation = false, margin = defaultMargins, flippedXAxisValues = false, fullPrecision = false, className, //   style: object with all the style names (keys) and their values according to d3 //   attr: object with all the attribute names (keys) and their values according to d3 //   x: the position of the mark according to the x axis // Accepted values: ns, frame, atom // This is used to show the right text when the mouse is over it // Optional x tags // The difference beyween x values // Graph title // The x axis label text // The y axis label text // // Define the unit (and also the magnitude implicitly) of the x axis // { // Accepted values: line, dash // Set the type of grapg to render // Set if values in x axis is horizontal (false) or vertical (true) // React hooks // Object with each dataset name and a value of true/false to set which data is displayed // Display the mean line in the graph // Display the standard deviation area in the graph // Set an extra margin around the graph // DANI: Todavía no está implementado pero se usa para calcular márgenes // Marks is an array where each mark has the following format // If true, draw all points in the graph no matter how many points are there // Force a classname for the overall component element // Mark x values by displaying a vertical line in their positions
-  // }
+  yData, xAxisValues, step = 1, title, xAxisLabel, yAxisLabel, xScaleFactor = 1, xUnit = 'ns', type = 'line', onHover, onSelect, selfLegend = false, displayLegend = false, dataDisplay, setDataDisplay, mean = false, standardDeviation = false, margin = defaultMargins, flippedXAxisValues = false, fullPrecision = false, className, // } //   style: object with all the style names (keys) and their values according to d3 //   attr: object with all the attribute names (keys) and their values according to d3 //   x: the position of the mark according to the x axis // Accepted values: ns, frame, atom // This is used to show the right text when the mouse is over it // Optional x tags // The difference beyween x values // Graph title // The x axis label text // The y axis label text // // Define the unit (and also the magnitude implicitly) of the x axis // { // Accepted values: line, dash // Set the type of grapg to render // Set if values in x axis is horizontal (false) or vertical (true) // React hooks // Object with each dataset name and a value of true/false to set which data is displayed // Display the mean line in the graph // Display the standard deviation area in the graph // Set an extra margin around the graph // DANI: Todavía no está implementado pero se usa para calcular márgenes // Marks is an array where each mark has the following format // If true, draw all points in the graph no matter how many points are there // Force a classname for the overall component element // Mark x values by displaying a vertical line in their positions
   marks }, ref) => {
   // Set a fake dataset to allow the graph to work when no data is passed
   if (!yData || Object.keys(yData).length === 0) yData = yDataPlaceholder;
@@ -577,22 +572,14 @@ const Graph2 = forwardRef(({ // The main data
             index <= maxInView;
             index += step
           ) {
+            // Color the rectangle according to the equivalent atom element
             if (topologyManager) {
-              // const atom = pdbData.file.atomMap.get(
-              //   pdbData.file.atomStore.atomTypeId[index],
-              // );
-              const atom = topologyManager.getAtomName(index);
-              if (atom) {
-                const color = `#${scheme
-                  .atomColor(atom)
-                  .toString(16)
-                  .padStart(6, '0')}`;
-                //console.log(color);
-                canvasContext.fillStyle =
-                  color === '#ffffff' ? '#eeeeee' : color;
-              }
+              const atomColor = topologyManager.getAtomElementColor(index);
+              // If the color is white (i.e. it is an hydrogen) then paint it slightly grey
+              // The background is white so a white rectangle would be not visible
+              canvasContext.fillStyle =
+                atomColor === 'white' ? '#eeeeee' : atomColor;
             }
-
             canvasContext.fillRect(
               (x(index * step * precision) - dashWidth / 2) * dPR,
               (y(data[index]) - dashHeight / 2) * dPR,

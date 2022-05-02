@@ -13,7 +13,7 @@ const greyColorPlan = ['grey', 'yellow', 'red'];
 // Use this hook to get the memoized NGL default representations
 const useMutationsRepresentations = () => {
   // Get the topology data
-  const { topology: topologyManager, reference: referenceData } = useContext(
+  const { topology: topologyManager, references: referenceData } = useContext(
     ProjectCtx,
   );
 
@@ -27,10 +27,14 @@ const useMutationsRepresentations = () => {
     if (!anyReferenceMutations) return;
 
     // Get the entorpies of each reference
-    // Save the logarithmic values
+    // Save the logarithmic values on each reference
     const entropiesPerReference = referenceData.map(reference => {
       if (!reference.entropies) return [];
-      return reference.entropies.map(entropy => Math.log(entropy + 0.0001));
+      const logarithmicEntropies = reference.entropies.map(entropy =>
+        Math.log(entropy + 0.0001),
+      );
+      reference.logarithmicEntropies = logarithmicEntropies;
+      return logarithmicEntropies;
     });
 
     // Save all array values together just to check the minimum and maximum values
@@ -59,7 +63,7 @@ const useMutationsRepresentations = () => {
         const reference = referenceData.find(
           reference => reference.name === referenceName,
         );
-        const entropies = reference.entropies;
+        const entropies = reference.logarithmicEntropies;
         if (!entropies || entropies.length === 0) return parseInt('ffffff', 16);
         const entropy = entropies[residueIndex - 1];
         // If there is no entropy at this point probably there is something wrong with the map
