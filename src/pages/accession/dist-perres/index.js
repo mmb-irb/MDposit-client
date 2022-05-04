@@ -66,8 +66,8 @@ const DistPerres = () => {
       means = data.means;
       stdvs = data.stdvs;
     } else {
-      const allResiduesX = interaction['residues_1'];
-      const allResiduesY = interaction['residues_2'];
+      const allResiduesX = interaction['residue_indices_1'];
+      const allResiduesY = interaction['residue_indices_2'];
       for (const y of residuesY) {
         const yIndex = allResiduesY.indexOf(y);
         const newMeansRow = [];

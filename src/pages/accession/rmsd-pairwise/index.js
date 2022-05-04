@@ -96,8 +96,8 @@ const RmsdPairwise = () => {
     // Get the interaction interface, if it exists, in NGL format
     // The default interaction (Overall) has no interface
     const interactionInterface1 =
-      interaction.interface_1 &&
-      interaction.interface_1
+      interaction.interface_indices_1 &&
+      interaction.interface_indices_1
         .map(
           res =>
             '(' +
@@ -107,8 +107,8 @@ const RmsdPairwise = () => {
         .join(' or ');
 
     const interactionInterface2 =
-      interaction.interface_2 &&
-      interaction.interface_2
+      interaction.interface_indices_2 &&
+      interaction.interface_indices_2
         .map(
           res =>
             '(' +

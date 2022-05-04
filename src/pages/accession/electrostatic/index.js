@@ -86,8 +86,8 @@ const Electrostatic = () => {
 
     // Parse the interface selections to the NGL format
     const [nglInterface1, nglInterface2] = [
-      interaction.interface_1,
-      interaction.interface_2,
+      interaction.interface_indices_1,
+      interaction.interface_indices_2,
     ].map(interf =>
       interf.map(
         res => topologyManager.absolute2sourceResidue(res).nglSelection,

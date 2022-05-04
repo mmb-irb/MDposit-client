@@ -123,11 +123,11 @@ const Domains = ({ setter }) => {
         // Add a new domain for each new agent and skip repeated agents
         const agent1 = {
           name: interaction.agent_1,
-          residues: interaction.residues_1,
+          residues: interaction.residue_indices_1,
         };
         const agent2 = {
           name: interaction.agent_2,
-          residues: interaction.residues_2,
+          residues: interaction.residue_indices_2,
         };
         [agent1, agent2].forEach(agent => {
           const current = interactionDomains.find(domain => {

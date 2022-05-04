@@ -173,7 +173,7 @@ const Hbonds = () => {
       const acceptorSample = group.acceptors[0];
       const residueIndex = topologyManager.getAtomResidueIndex(acceptorSample);
       const isAcceptorFromAgent1 =
-        interaction['interface_1'].indexOf(residueIndex) !== -1;
+        interaction['interface_indices_1'].indexOf(residueIndex) !== -1;
       group.isAcceptorFromAgent1 = isAcceptorFromAgent1;
       // Set the acceptor, donor and hydrogen labels to be displayed in the table
       const [acceptorLabels, donorLabels] = [group.acceptors, group.donors].map(

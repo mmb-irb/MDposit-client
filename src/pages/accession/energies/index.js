@@ -96,8 +96,8 @@ const Energies = () => {
     }
     // Set the guest NGL selection
     const guestInterfaceResidues = selectedOrder
-      ? interaction.interface_2
-      : interaction.interface_1;
+      ? interaction.interface_indices_2
+      : interaction.interface_indices_1;
     const {
       rangedSelection: rangedInterfaceResiduesSelection,
     } = topologyManager.absoluteSelectionToNgl(guestInterfaceResidues);
