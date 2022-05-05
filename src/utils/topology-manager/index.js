@@ -328,7 +328,19 @@ export class Topology {
     this.atomResidueIndices = topology.atom_residue_indices;
     this.residueNames = topology.residue_names;
     this.residueNumbers = topology.residue_numbers;
-    this.residueIcodes = topology.residue_icodes;
+    // Residue icodes have a different structure, since usually there are only a few icodes and not 1 per residue
+    // It is an object where keys are residue indices
+    // It is null when there are not icodes at all in the topology
+    // In order to convert it to the other values format we transform the object into an array
+    // Non assigned indices will become null automatically
+    const icodes = topology.residue_icodes;
+    if (!icodes) this.residueIcodes = null;
+    else {
+      this.residueIcodes = Array(this.residueNames.length).fill('');
+      Object.entries(icodes).forEach(([residueIndex, icode]) => {
+        this.residueIcodes[+residueIndex] = icode;
+      });
+    }
     this.residueChainIndices = topology.residue_chain_indices;
     this.chainNames = topology.chain_names;
     this.references = topology.references;
@@ -338,6 +350,8 @@ export class Topology {
     // i.e. atoms know which residue they belong to and residues know which chain they belong to
     // Now set the top-down structure values
     // i.e. set which atoms are contained on every residue and which residues are contained on every chain
+    // WARNING: Note that arrays of empty arrays can not be filled as when filled with nulls or empty strings
+    // WARNING: We must fill them with this complicated method or all empty arrays would be the same array
     this.residueAtomIndices = Array.from(
       Array(this.residueNames.length),
       () => [],
@@ -516,7 +530,7 @@ export class Topology {
     const residueNumber = this.residueNumbers[residueIndex];
     const chainIndex = this.getResidueChainIndex(residueIndex);
     const chain = this.chainNames[chainIndex]; // e.g. 'A'
-    const icode = this.residueIcodes[residueIndex] || '';
+    const icode = this.residueIcodes && this.residueIcodes[residueIndex];
     // Formated selection to select this specific residue in NGL
     const numeration = chain + ':' + residueNumber + icode;
     const nglSelection = ':' + chain + ' and ' + residueNumber;
@@ -551,7 +565,8 @@ export class Topology {
       const chainIndex = this.getResidueChainIndex(residueIndex);
       const chainName = this.chainNames[chainIndex];
       if (chainName !== chain) continue;
-      const residueIcode = this.residueIcodes[residueIndex];
+      const residueIcode =
+        this.residueIcodes && this.residueIcodes[residueIndex];
       if (icode && residueIcode !== icode) continue;
       return residueIndex;
     }
@@ -628,7 +643,7 @@ export class Topology {
       if (requests.ngl || requests.label) source.number = number;
     }
     if (requests.icode || requests.label) {
-      const icode = this.residueIcodes ? this.residueIcodes[residue] : '';
+      const icode = this.residueIcodes && this.residueIcodes[residue];
       if (requests.icode) output.icode = icode;
       if (requests.label) source.icode = icode;
     }
