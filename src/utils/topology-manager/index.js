@@ -269,6 +269,10 @@ const residueLetters = {
   U: 'U',
   U3: 'U',
   U5: 'U',
+  DA: 'A',
+  DT: 'T',
+  DC: 'C',
+  DG: 'G',
 };
 
 export const getResidueTypeLetter = residueType => {
