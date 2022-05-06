@@ -105,7 +105,7 @@ const Projections = ({
       refs.legendCursor.style('opacity', 0);
     };
 
-    // Select the frame to be displayed by the NGL
+    // Select the frame to be displayed by the viewer
     const handleClick = ({ datumIndex } = {}) =>
       // This function is a setter from a useState hook in the parent script (pca/index.js)
       setRequestedFrame(requestedFrame => {

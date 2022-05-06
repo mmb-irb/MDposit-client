@@ -13,7 +13,8 @@ import style from './style.module.css';
 
 // Display a small panel to select which chains to display or hide adn the membrane opacity
 const Chains = memo(({ // Array with all chain letters ("A","B","C"...)
-  chains, bannedChains, chainBanner, label, children, membrane, membraneOpacity, membraneLabel, handleChange, ...buttonProps }) => { // Hook string added to the NGL selection string to filter the displayed chains // 'bannedChains' setter // Label to display over the chain buttons // Boolean to show or not the membrane opacity slide // Hook numeric value // Label to display over the membrane opacity slide // 'membraneOpacity' setter // Other
+  chains, bannedChains, chainBanner, label, children, membrane, membraneOpacity, membraneLabel, handleChange, ...buttonProps }) => {
+  // Hook string added to the viewer selection string to filter the displayed chains // 'bannedChains' setter // Label to display over the chain buttons // Boolean to show or not the membrane opacity slide // Hook numeric value // Label to display over the membrane opacity slide // 'membraneOpacity' setter // Other
   const [element, setElement] = useState(null);
   // Track the state of each chain: they may be hidden (true) or visible (false)
   const hidden = useRef(new Array(chains.length).fill(false));
