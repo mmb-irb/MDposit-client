@@ -63,6 +63,9 @@ const Rmsds = () => {
   // Set which tab is selected
   const [selectedTab, setSelectedTab] = useState(tabs[0]);
 
+  // Set which rmsd is displayed
+  const [display, setDisplay] = useState({});
+
   // Format the data
   const { rmsds, frameStep, xAxesStep } = useMemo(() => {
     let payload;
@@ -72,6 +75,8 @@ const Rmsds = () => {
     if (type === 'tmscore') payload = tmscoresPayload;
     if (!payload) return {};
     const rmsds = {};
+    // Set the default graph display for the rmsds (all true)
+    const defaultDisplay = {};
     let count = 0;
     payload.data.forEach(rmsd => {
       // Proceed only if this rmsd is from the set reference
@@ -86,7 +91,9 @@ const Rmsds = () => {
       count += 1;
       const name = rmsd.group;
       rmsds[name] = dataset;
+      defaultDisplay[name] = true;
     });
+    setDisplay(defaultDisplay);
     // Get the frames step
     // WARNING: We want the time step in nanoseconds (ns)
     // WARNING: Frequency is divided by 1000 since it is in picoseconds (ps)
@@ -94,14 +101,6 @@ const Rmsds = () => {
     const xAxesStep = frameStep * (metadata.FREQUENCY / 1000);
     return { rmsds, frameStep, xAxesStep };
   }, [metadata, rmsdsPayload, tmscoresPayload, selectedTab]);
-
-  // Set which rmsd is displayed
-  const [display, setDisplay] = useState({
-    protein: true,
-    'protein-h': true,
-    backbone: true,
-    'c-alpha': true,
-  });
 
   // Set when one point in the graph is selected
   const [selected, setSelected] = useState(null);
