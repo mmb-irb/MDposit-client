@@ -336,9 +336,11 @@ export class Topology {
     // It is an object where keys are residue indices
     // It is null when there are not icodes at all in the topology
     // In order to convert it to the other values format we transform the object into an array
-    // Non assigned indices will become null automatically
+    // Non assigned indices will become empty strings
     const icodes = topology.residue_icodes;
-    if (!icodes) this.residueIcodes = null;
+    // In case we have no icodes at all we set the icodes list as an empty string
+    // This is usefull for icode getters that do 'icodes && ...'
+    if (!icodes) this.residueIcodes = '';
     else {
       this.residueIcodes = Array(this.residueNames.length).fill('');
       Object.entries(icodes).forEach(([residueIndex, icode]) => {
