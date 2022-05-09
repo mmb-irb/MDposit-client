@@ -19,18 +19,18 @@ import { ProjectCtx } from '../../../contexts';
 
 import style from './style.module.css';
 
-// Set manually which toporefs have entropies or epitopes
-// This needs to be updated by hand when there is a new toporef with entropies or epitopes
-// This workaround prevents having to pass the toporefs context to the root, which makes no sense
+// Set manually which references have entropies or epitopes
+// This needs to be updated by hand when there is a new reference with entropies or epitopes
+// This workaround prevents having to pass the references context to the root, which makes no sense
 // DANI: De hecho yo no pasaría ni el project al context del root
 // DANI: Habría que poner el project-menu dentro del accession, y que se una con el header solo visualmente
-const toporefsWithEntropies = ['SARS-CoV-2 spike'];
-const hasEntropies = toporefName => {
-  return toporefsWithEntropies.indexOf(toporefName) > -1;
+const referencesWithEntropies = ['SARS-CoV-2 spike'];
+const hasEntropies = referenceName => {
+  return referencesWithEntropies.indexOf(referenceName) > -1;
 };
-const toporefsWithEpitopes = ['SARS-CoV-2 spike'];
-const hasEpitopes = toporefName => {
-  return toporefsWithEpitopes.indexOf(toporefName) > -1;
+const referencesWithEpitopes = ['SARS-CoV-2 spike'];
+const hasEpitopes = referenceName => {
+  return referencesWithEpitopes.indexOf(referenceName) > -1;
 };
 
 // Render the menu of the project (i.e. the inferior header)
@@ -78,15 +78,13 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
     }
   }
 
-  // Check if any metadata toporef has a map and its toporef data has entropies
-  const toporefs = metadata && metadata.TOPOREFS;
-  const anySuitableToporefWithEntropies =
-    toporefs &&
-    toporefs.some(toporef => !!toporef.map && hasEntropies(toporef.name));
-  // Check if any metadata toporef has a map and its toporef data has entropies
-  const anySuitableToporefWithEpitopes =
-    toporefs &&
-    toporefs.some(toporef => !!toporef.map && hasEpitopes(toporef.name));
+  // Check if any metadata reference has a map and its reference data has entropies
+  const references = metadata && metadata.REFERENCES;
+  const anySuitableReferenceWithEntropies =
+    references && references.some(reference => hasEntropies(reference));
+  // Check if any metadata reference has a map and its reference data has entropies
+  const anySuitableReferenceWithEpitopes =
+    references && references.some(reference => hasEpitopes(reference));
 
   // Set the tabs to be displayed
   // Each tab must have 'dir' or 'drops'. Never both, never none.
@@ -177,12 +175,12 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
             {
               name: 'Epitopes',
               dir: 'epitopes',
-              cond: anySuitableToporefWithEpitopes,
+              cond: anySuitableReferenceWithEpitopes,
             },
             {
               name: 'Mutations',
               dir: 'mutations',
-              cond: anySuitableToporefWithEntropies,
+              cond: anySuitableReferenceWithEntropies,
             },
           ],
         },

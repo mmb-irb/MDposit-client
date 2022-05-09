@@ -119,7 +119,7 @@ const getDataURL = (accession, subPage) => {
       break;
     case 'mutations':
     case 'epitopes':
-      end = 'toporefs';
+      end = 'references';
       break;
     default:
       return null; // No button is rendered
@@ -152,7 +152,7 @@ const SummarySwitch = ({ setProject, subPage, dataUrl }) => {
   }
 
   // Request to API the references data
-  const references = useAPI(`${BASE_PATH_PROJECTS}${accession}/toporefs`);
+  const references = useAPI(`${BASE_PATH_PROJECTS}${accession}/references`);
 
   // Order the chains inexes by alphabetic number
   useMemo(() => {
