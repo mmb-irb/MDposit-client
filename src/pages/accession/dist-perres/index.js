@@ -29,8 +29,8 @@ const DistPerres = () => {
   const [selectedInteraction, setSelectedInteraction] = useState(0);
 
   // The interaction residues to be displayed
-  // May be all 'residues' or only the 'interface' residues
-  const [selectedResidues, setSelectedResidues] = useState('interface');
+  // May be all 'residue_indices' or only the 'interface_indices'
+  const [selectedResidues, setSelectedResidues] = useState('interface_indices');
 
   // The selected heatmap residues
   const [selected, setSelected] = useState(null);
@@ -62,7 +62,7 @@ const DistPerres = () => {
 
     let means = [];
     let stdvs = [];
-    if (selectedResidues === 'residues') {
+    if (selectedResidues === 'residue_indices') {
       means = data.means;
       stdvs = data.stdvs;
     } else {

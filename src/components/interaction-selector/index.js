@@ -18,8 +18,8 @@ import Loading from '../loading';
 import style from './style.module.css';
 
 const residueOptions = [
-  { label: 'All residues', value: 'residues' },
-  { label: 'Interface residues', value: 'interface' },
+  { label: 'All residues', value: 'residue_indices' },
+  { label: 'Interface residues', value: 'interface_indices' },
 ];
 
 // Render a panel which allows to select the desired interaction
