@@ -93,7 +93,8 @@ export default React.memo(() => {
         <Card className={style.card}>
           <CardContent className={style['card-content']}>
             {pdbInfo.map((pdb, i) => {
-              const pdbId = pdb && pdb._id.toLowerCase();
+              const pdbId = pdb && pdb._id && pdb._id.toLowerCase();
+              if (!pdbId) return 'PDB ' + metadata.PDBIDS[i] + ' not found';
               // Set the url to get the pdb image
               const imgSrc =
                 pdbId &&
