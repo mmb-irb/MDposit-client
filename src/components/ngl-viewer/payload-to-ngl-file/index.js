@@ -39,8 +39,75 @@ const payloadToNGLCoordinates = (
 };
 
 // This converts the trajectory payload (i.e. atom coordinates in raw binary data) into NGL formatted coordinates
-// This alternative function is used when the trajectory has less atoms than the payload
-// This may happen when trajectory data contains only heavy or backbone atoms
+// This alternative function is used when the trajectory has less atoms than the structure
+// This may happen when trajectory data contains only heavy or backbone atoms (e.g. pca projections)
+const payloadToNGLCoordinatesFiltered = (
+  atomCount,
+  atomIndices,
+  trajectoryData,
+  trajectoryAtoms,
+  trajectoryFrames,
+) => {
+  // Parse binary to coordinates
+  const trajectoryCoordinates = new Float32Array(trajectoryData);
+  // Check atom number to be as expected
+  const expectedAtomNumber =
+    trajectoryCoordinates.length / COORDINATES_PER_ATOM / trajectoryFrames;
+  if (expectedAtomNumber !== trajectoryAtoms) {
+    console.log('Number of coordinates: ' + trajectoryCoordinates.length);
+    console.log('Number of frames: ' + trajectoryFrames);
+    console.log('Expected number of atoms: ' + expectedAtomNumber);
+    console.log('Actual number of atoms: ' + trajectoryAtoms);
+    throw new Error(`Trajectory atom number is wrong`);
+  }
+
+  try {
+    // Save all coordinates here
+    // This array is to be returned at the end
+    const overallCoordinates = [];
+    for (let i = 0; i < trajectoryFrames; i++) {
+      // Create a new array with the length of the number of atoms in the structure * 3
+      const coordinates = new Float32Array(atomCount * COORDINATES_PER_ATOM);
+      let k = 0;
+      // Create our own trajectory with coordinates only for the specified atoms
+      // The coordinates of the excluded atoms are set to 0
+      // This makes the trajectory compatible with the structure
+      for (let j = 0; j < atomCount; j++) {
+        //if (k >= trajectoryAtoms) break;
+        if (atomIndices.indexOf(j) !== -1) {
+          coordinates[j * COORDINATES_PER_ATOM] =
+            trajectoryCoordinates[
+              i * trajectoryAtoms * COORDINATES_PER_ATOM +
+                k * COORDINATES_PER_ATOM
+            ];
+          coordinates[j * COORDINATES_PER_ATOM + 1] =
+            trajectoryCoordinates[
+              i * trajectoryAtoms * COORDINATES_PER_ATOM +
+                k * COORDINATES_PER_ATOM +
+                1
+            ];
+          coordinates[j * COORDINATES_PER_ATOM + 2] =
+            trajectoryCoordinates[
+              i * trajectoryAtoms * COORDINATES_PER_ATOM +
+                k * COORDINATES_PER_ATOM +
+                2
+            ];
+          k++;
+        }
+      }
+      // Push the new coordinates each frame
+      overallCoordinates.push(coordinates);
+    }
+    return overallCoordinates;
+  } catch (e) {
+    // If this fails the topology may not match the trajectory in atom number
+    return null;
+  }
+};
+
+// This converts the trajectory payload (i.e. atom coordinates in raw binary data) into NGL formatted coordinates
+// This alternative function is used when the trajectory has less atoms than the structure
+// This may happen when trajectory data contains only heavy or backbone atoms (e.g. pca projections)
 const payloadToNGLCoordinatesAlternative = (
   pdbFile,
   trajectoryData,
@@ -168,17 +235,26 @@ const payloadToNGLCoordinatesAlternative = (
 // This converts the trajectory payload (i.e. atom coordinates in raw binary data) into an NGL object
 // This object can be further added to a NGL stage component
 export const setNGLFile = (
-  pdbFile,
+  topology,
   trajectoryData,
   trajectoryAtoms,
   trajectoryFrames,
+  atomIndices,
 ) => {
-  if (!(pdbFile && trajectoryData)) return;
+  if (!(topology && trajectoryData)) return;
 
   let coordinates;
   // In case topology and trajectory atoms match go for the canonical parsing
-  if (trajectoryAtoms === pdbFile.atomCount)
+  if (trajectoryAtoms === topology.atomCount)
     coordinates = payloadToNGLCoordinates(
+      trajectoryData,
+      trajectoryAtoms,
+      trajectoryFrames,
+    );
+  else if (atomIndices)
+    coordinates = payloadToNGLCoordinatesFiltered(
+      topology.atomCount,
+      atomIndices,
       trajectoryData,
       trajectoryAtoms,
       trajectoryFrames,
@@ -189,7 +265,7 @@ export const setNGLFile = (
   // DANI: Lo suyo sería que en estos casos se pida la estructura solo con los átomos que hacen falta
   else
     coordinates = payloadToNGLCoordinatesAlternative(
-      pdbFile,
+      topology,
       trajectoryData,
       trajectoryAtoms,
       trajectoryFrames,
@@ -208,12 +284,13 @@ export const setNGLFile = (
 // This updates an already set NGL object by adding new trajectory data
 export const updateNGLFile = (
   file,
-  pdbFile,
+  topology,
   trajectoryData,
   trajectoryAtoms,
   trajectoryFrames,
+  atomIndices,
 ) => {
-  if (!(file && pdbFile && trajectoryData)) return;
+  if (!(file && topology && trajectoryData)) return;
 
   // The NGL file may already have trajectory data
   // There is no need to process those coordinates again, so they must discarded from the parsing
@@ -231,8 +308,16 @@ export const updateNGLFile = (
 
   let coordinates;
   // In case topology and trajectory atoms match go for the canonical parsing
-  if (trajectoryAtoms === pdbFile.atomCount)
+  if (trajectoryAtoms === topology.atomCount)
     coordinates = payloadToNGLCoordinates(
+      newTrajectoryData,
+      trajectoryAtoms,
+      newTrajectoryFrames,
+    );
+  else if (atomIndices)
+    coordinates = payloadToNGLCoordinatesFiltered(
+      topology.atomCount,
+      atomIndices,
       newTrajectoryData,
       trajectoryAtoms,
       newTrajectoryFrames,
@@ -243,7 +328,7 @@ export const updateNGLFile = (
   // DANI: Lo suyo sería que en estos casos se pida la estructura solo con los átomos que hacen falta
   else
     coordinates = payloadToNGLCoordinatesAlternative(
-      pdbFile,
+      topology,
       newTrajectoryData,
       trajectoryAtoms,
       newTrajectoryFrames,

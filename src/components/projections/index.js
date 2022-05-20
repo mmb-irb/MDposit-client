@@ -44,9 +44,10 @@ const colorScale = scaleSequential(interpolateViridis);
 // This component renders a graph
 // This graph is displayed when user selects 2 pca projections
 const Projections = ({
-  data,
+  framestep,
+  projectionsData,
   projections,
-  step,
+  datumRange,
   totalFrames,
   setRequestedFrame,
 }) => {
@@ -59,8 +60,6 @@ const Projections = ({
   const delaunayDiagramRef = useRef({ find() {} });
 
   const [switched, toggleSwitched] = useToggleState(false);
-
-  const datumRange = data.length;
 
   useEffect(() => {
     const canvas = select(containerRef.current).append('canvas');
@@ -109,6 +108,12 @@ const Projections = ({
     const handleClick = ({ datumIndex } = {}) =>
       // This function is a setter from a useState hook in the parent script (pca/index.js)
       setRequestedFrame(requestedFrame => {
+        if (!totalFrames) {
+          console.error(
+            'No number of frames in metadata. Are we missing the main trajectory?',
+          );
+          return null;
+        }
         const target = Math.floor(datumIndex * (totalFrames / datumRange));
         // If the user clicks in the already selected point it is unselected
         return target === requestedFrame ? null : target;
@@ -302,7 +307,7 @@ const Projections = ({
         const { left, top } = containerRef.current.getBoundingClientRect();
         tooltipRef.current.innerHTML = `
           <div>
-            <p>Frame ${datumIndex * processed.step +
+            <p>Frame ${datumIndex * processed.framestep +
               1} (click to open viewer)</p>
             <p>Principal component ${processed.projections[0] + 1}: ${
           datum.x
@@ -391,12 +396,13 @@ const Projections = ({
   useEffect(() => {
     const [xProj, yProj] = switched ? [0, 1] : [1, 0];
 
-    const colorScaleWithDomain = colorScale.domain([0, data[0].data.length]);
+    const coordinatesCount =
+      (projectionsData && projectionsData[0].length) || 0;
+    const colorScaleWithDomain = colorScale.domain([0, coordinatesCount]);
 
-    const zipped = zip(
-      data[projections[xProj]].data,
-      data[projections[yProj]].data,
-    );
+    const xProjectionData = projectionsData[projections[xProj]];
+    const yProjectionData = projectionsData[projections[yProj]];
+    const zipped = zip(xProjectionData, yProjectionData);
     const processed = {
       data: zipped.map(([x, y], i) => {
         const hex = colorScaleWithDomain(i);
@@ -406,9 +412,9 @@ const Projections = ({
           fill: { hex, ...rgb(hex) },
         };
       }),
-      xMinMax: [data[projections[xProj]].min, data[projections[xProj]].max],
-      yMinMax: [data[projections[yProj]].min, data[projections[yProj]].max],
-      step,
+      xMinMax: [Math.min(...xProjectionData), Math.max(...xProjectionData)],
+      yMinMax: [Math.min(...yProjectionData), Math.max(...yProjectionData)],
+      framestep,
       projections: [projections[xProj], projections[yProj]],
     };
 
@@ -423,7 +429,9 @@ const Projections = ({
       await schedule(100);
       delaunayDiagramRef.current = Delaunay.from(zipped);
     })();
-  }, [data, projections, step, switched]);
+  }, [projectionsData, projections, framestep, switched]);
+
+  const coordinatesCount = (projectionsData && projectionsData[0].length) || 0;
 
   return (
     <>
@@ -444,7 +452,7 @@ const Projections = ({
         <div className={style['color-scale']}>
           <div>start</div>
           <div ref={legendRef}>
-            <canvas height="1" width={data ? data[0].data.length : 0} />
+            <canvas height="1" width={coordinatesCount} />
             <div className={style.cursor} />
           </div>
           <div>end</div>

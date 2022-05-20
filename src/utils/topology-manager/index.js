@@ -72,7 +72,8 @@ export const rangedSelectionParser = selection => {
 // Return 'small' = true when there are series of 3 residues or less
 // These small residue selections will be not represented in cartoon due to an NGL bug
 // https://github.com/nglviewer/ngl/issues/223
-export const parsedSelectionRanger = selection => {
+export const parsedSelectionRanger = (selection, addWhiteSpaces = true) => {
+  const separator = addWhiteSpaces ? ', ' : ',';
   let rangedSelection = '';
   let minimumSerieLength = Number.POSITIVE_INFINITY;
   selection.sort((a, b) => a - b); // Sort numbers numerically
@@ -83,7 +84,7 @@ export const parsedSelectionRanger = selection => {
   }
   for (let i = 0; i < selectionLength; i++) {
     const num = selection[i];
-    rangedSelection += ', ' + num;
+    rangedSelection += separator + num;
     for (let j = i + 1; j < selectionLength; j++) {
       const nextNum = selection[j];
       let length = j - i; // The serie length
@@ -112,7 +113,7 @@ export const parsedSelectionRanger = selection => {
     }
   }
   const small = minimumSerieLength <= 3;
-  rangedSelection = rangedSelection.substring(2); // Remove the first ', '
+  rangedSelection = rangedSelection.substring(separator.length); // Remove the first separator
   return { rangedSelection, small };
 };
 

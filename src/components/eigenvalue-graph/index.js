@@ -33,8 +33,9 @@ const MIN_DISPLAY_INDEX = 14; // display at least 14 components
 const MIN_DISPLAY_EXPL = 0.8; // display at least components for 80% explanation
 
 const EigenvalueGraph = ({
-  data,
+  eigenvalues,
   totalEigenvalue,
+  projectionsData,
   projections = [],
   setProjections,
 }) => {
@@ -151,7 +152,7 @@ const EigenvalueGraph = ({
       // eigenvalue
       // y axis
       const yEigen = scaleLinear()
-        .domain([0, data[0].eigenvalue])
+        .domain([0, eigenvalues[0]])
         .range([height - MARGIN.bottom, MARGIN.top])
         .nice();
 
@@ -241,15 +242,14 @@ const EigenvalueGraph = ({
     window.addEventListener('resize', drawRef.current);
 
     return () => window.removeEventListener('resize', drawRef.current);
-  }, [data, setProjections, totalEigenvalue]);
+  }, [eigenvalues, setProjections, totalEigenvalue]);
 
   // data massaging
   useEffect(() => {
     let acc = 0;
     const processed = [];
-    for (const [index, { eigenvalue, data: projectionData }] of Object.values(
-      data,
-    ).entries()) {
+    for (const [index, eigenvalue] of eigenvalues.entries()) {
+      const projectionData = projectionsData[index];
       acc += eigenvalue;
       const cumulativeExplained = acc / totalEigenvalue;
       processed.push({
@@ -269,9 +269,7 @@ const EigenvalueGraph = ({
     processedRef.current = processed;
 
     drawRef.current({ processed });
-  }, [data, totalEigenvalue, projections]);
-
-  const components = Object.values(data);
+  }, [eigenvalues, projectionsData, totalEigenvalue, projections]);
 
   return (
     <>
@@ -291,13 +289,9 @@ const EigenvalueGraph = ({
               {projections.map(p => (
                 <TableRow key={p}>
                   <TableCell>{p + 1}</TableCell>
-                  <TableCell>{components[p].eigenvalue}</TableCell>
+                  <TableCell>{round(eigenvalues[p], 2)}</TableCell>
                   <TableCell>
-                    {round(
-                      (components[p].eigenvalue / totalEigenvalue) * 100,
-                      1,
-                    )}{' '}
-                    %
+                    {round((eigenvalues[p] / totalEigenvalue) * 100, 1)} %
                   </TableCell>
                 </TableRow>
               ))}

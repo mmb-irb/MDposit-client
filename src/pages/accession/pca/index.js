@@ -15,8 +15,9 @@ import { ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
+import { parsedSelectionRanger } from '../../../utils/topology-manager';
+
 import plainTextExplanation from './plain-text-explanation';
-import processStats from './process-stats';
 
 import style from './style.module.css';
 
@@ -48,18 +49,29 @@ const PCA = () => {
   const { loading, payload, error } = useAPI(
     `${BASE_PATH_PROJECTS}${accession}/analyses/pca/`,
   );
+  const data = payload && payload.data;
 
   const [projections, setProjections] = useState([]);
   const [requestedFrame, setRequestedFrame] = useState(null);
 
+  // Get the expalined variance of every eigenvector and the total explained variance
   const [explanation, totalEigenvalue] = useMemo(() => {
     setRequestedFrame(null);
-    return processStats(payload, projections);
-  }, [payload, projections]);
+    if (!data) return [];
+    const eigenvalues = data.eigenvalues;
+    if (!eigenvalues.length) return [];
+    const totalEigenvalue = eigenvalues.reduce((acc, curr) => acc + curr, 0);
+    const explanation =
+      projections.reduce(
+        (acc, projection) => acc + eigenvalues[projection],
+        0,
+      ) / totalEigenvalue;
+    return [explanation, totalEigenvalue];
+  }, [data, projections]);
 
   // Set the component to be passed to the NGL
   const [representations, component] = useMemo(() => {
-    if (!payload || !files) return [undefined, undefined];
+    if (!data || !files) return [undefined, undefined];
 
     // Set the chains to be represented in the NGL viewer
     /*
@@ -72,37 +84,44 @@ const PCA = () => {
         })
       : [{ name: 'Backbone' }];
     */
-    // DANI: Muchos 'pca.average.pdb' no tienen chains
-    // DANI: El NGL las asigna automáticamente y no cuadran
-    // DANI: Hasta que esto esté arreglado nos olbidamos de las chains
     const representations = [
-      { name: 'Backbone', selection: 'backbone', type: 'spacefill' },
+      {
+        name: 'PC projection',
+        // DANI: La trayectoria se carga selectivamente para los átomos a los que corresponde más adelante
+        // DANI: Este sistema es un arreglo temporal
+        // DANI: La idea sería cargar la topología ya filtrada, cosa que con NGL no es fácil (prefiero esperarme a MolStar)
+        selection:
+          '@' + parsedSelectionRanger(data.atoms, false).rangedSelection,
+        type: 'spacefill',
+      },
     ];
 
     // Get the API URL to the requested projection trajectory
     let projectionURL;
-    if (projections[0] !== undefined)
-      // It may be 0
-      projectionURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory.pca-${projections[0] +
-        1}.bin`;
+    if (projections[0] !== undefined) {
+      const projectionNumber = ('0' + (projections[0] + 1)).slice(-2);
+      projectionURL = `${BASE_PATH_PROJECTS}${accession}/files/pca.trajectory_${projectionNumber}.bin`;
+    }
 
-    // In order to represent the pca projection use a specific structure with only backbone atoms
-    const pcaStructureFilename = 'pca.average.pdb';
-    // If none of the 'pcaStructureFilenames' is available then throw an error
-    if (!pcaStructureFilename)
-      throw new Error('No available backbone structure');
+    // Get the topology URL
+    // It has to be the main topology but with a specific selection of atoms
+    const topologyURL = `${BASE_PATH_PROJECTS}${accession}/files/structure`;
 
     // Set the NGL component
     const component = [
       {
-        topologyURL: `${BASE_PATH_PROJECTS}${accession}/files/${pcaStructureFilename}`,
+        topologyURL: topologyURL,
         trajectoryURLs: [projectionURL],
         representations: representations,
+        // DANI: La representación oculta los átomos que no tienen coordenadas más arriba
+        // DANI: Este sistema es un arreglo temporal
+        // DANI: La idea sería cargar la topología ya filtrada, cosa que con NGL no es fácil (prefiero esperarme a MolStar)
+        trajectoryAtomIndices: data.atoms,
       },
     ];
 
     return [representations, component];
-  }, [payload, files, projections, accession]);
+  }, [data, files, projections, accession]);
 
   if (loading) {
     return <Loading />;
@@ -118,8 +137,9 @@ const PCA = () => {
           <Typography variant="h6">PCA eigenvalues</Typography>
           {/* Bars graph which allows to select a specific projection */}
           <EigenvalueGraph
-            data={payload.y}
+            eigenvalues={data.eigenvalues}
             totalEigenvalue={totalEigenvalue}
+            projectionsData={data.projections}
             projections={projections}
             setProjections={setProjections}
           />
@@ -153,10 +173,10 @@ const PCA = () => {
             <Suspense fallback={projectionPlaceholder}>
               <CardContent>
                 <Projections
-                  //step={payload.step / metadata.FREQUENCY} // The payload.step is meant to be in picoseconds
-                  step={payload.step}
-                  data={payload.y}
+                  framestep={data.framestep}
+                  projectionsData={data.projections}
                   projections={projections}
+                  datumRange={data.eigenvalues.length}
                   totalFrames={metadata.frameCount}
                   setRequestedFrame={setRequestedFrame}
                 />

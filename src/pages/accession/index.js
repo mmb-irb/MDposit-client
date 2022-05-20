@@ -154,7 +154,7 @@ const SummarySwitch = ({ setProject, subPage, dataUrl }) => {
   // Request to API the references data
   const references = useAPI(`${BASE_PATH_PROJECTS}${accession}/references`);
 
-  // Order the chains inexes by alphabetic number
+  // Order the chains indexes by alphabetic number
   useMemo(() => {
     if (projectRequest.payload && projectRequest.payload.chains)
       projectRequest.payload.chains.sort();

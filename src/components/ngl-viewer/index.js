@@ -35,6 +35,7 @@ import { BASE_PATH_PROJECTS } from '../../utils/constants';
 import { cloneDeep } from 'lodash-es';
 
 import https from 'https';
+import http from 'http';
 import url from 'url';
 
 const DEFAULT_NUMBER_OF_FRAMES = 25;
@@ -494,7 +495,10 @@ const NGLViewer = memo(
           trajectory.progress = 0;
 
           // Request the API
-          const request = https.get(url.parse(trajectory.url), response => {
+          // http exception is added for local testing in http://localhost
+          const getter =
+            trajectory.url.substring(0, 5) === 'https' ? https.get : http.get;
+          const request = getter(url.parse(trajectory.url), response => {
             const totalBytes = response.headers['content-length'];
             // Set the new trajectory
             setTrajectories(previousTrajectories => {
@@ -1160,11 +1164,17 @@ const NGLViewer = memo(
       // Every time the trajectory payloads change this useEffect must be rerun
       useEffect(() => {
         // Check if trajectories are
-        if (!trajectories || trajectories.length === 0) return;
+        if (!topologies || !trajectories || trajectories.length === 0) return;
 
         let frames = [];
 
         comps.forEach((comp, c) => {
+          // Find the topology which matches the component url
+          // If a component has no url it will match a topology with no url: the default topology
+          const url = comp.topologyURL || null;
+          const topology = topologies.find(topology => {
+            return topology.url === url;
+          });
           const stageComp = stageRef.current.compList[c];
           // Wait if the topology has not been loaded yet
           if (!stageComp) return;
@@ -1249,6 +1259,9 @@ const NGLViewer = memo(
           const completedTrajectory =
             totalFrames === trajectoryFinalExpectedFrames;
 
+          // Get the atom indices whom the trajectory coordinates belong to, in case it is passed
+          const trajectoryAtomIndices = comp.trajectoryAtomIndices;
+
           // Get the current NGL loaded trajectories
           const compTrajectories = stageComp.trajList;
 
@@ -1261,10 +1274,11 @@ const NGLViewer = memo(
             const nglTrajectory = nglFile.trajectory;
             updateNGLFile(
               nglTrajectory,
-              pdbFile,
+              topology.file,
               totalPayload,
               trajectoryAtoms,
               totalFrames,
+              trajectoryAtomIndices,
             );
             // Adjust some parameters after the trajectory data has been changed
             nglTrajectory._frameCount = totalFrames;
@@ -1295,10 +1309,11 @@ const NGLViewer = memo(
           else {
             // Transform the binary trajectory data to an NGL friendly format
             const file = setNGLFile(
-              pdbFile,
+              topology.file,
               totalPayload,
               trajectoryAtoms,
               totalFrames,
+              trajectoryAtomIndices,
             );
             if (!file) return;
             const nglFile = stageComp.addTrajectory(file);
@@ -1332,7 +1347,7 @@ const NGLViewer = memo(
           }
         });
       }, [
-        pdbFile,
+        topologies,
         trajectories,
         handleFrameChange,
         comps,
