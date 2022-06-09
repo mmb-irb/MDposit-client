@@ -7,7 +7,8 @@ import { autoLoad } from 'ngl';
 const nglFileReducer = (state, action) => {
   switch (action.type) {
     case 'INIT':
-      return { ...state, loading: true, file: null };
+      // Here both file and error must be explicitly set to null or a previous result may remain
+      return { ...state, loading: true, file: null, error: null };
     case 'SUCCESS':
       return { ...state, loading: false, file: action.file };
     case 'ERROR':
