@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import {
   CardContent,
   CardActions,
@@ -16,6 +16,7 @@ import Card from '../../../components/animated-card';
 import LazyImg from '../../../components/lazy-img';
 
 import { ProjectCtx } from '../../../contexts';
+import https from 'https';
 
 import style from './style.module.css';
 
@@ -24,9 +25,30 @@ const COMMA_SEPARATOR = /\s*,\s*/;
 export default React.memo(() => {
   const { accession, identifier, published, metadata } = useContext(ProjectCtx);
 
-  // Process the pdbInfo metadata to show a report
-  const pdbInfo = metadata.pdbInfo;
+  // Download pdb information for every pdb id in metadata
+  const pdbIds = metadata.PDBIDS;
+  const [pdbInfo, setPdbInfo] = useState({});
+  useEffect(() => {
+    pdbIds.forEach(pdbId => {
+      const url = `https://mmb.irbbarcelona.org/api/pdb/${pdbId}/entry`;
+      console.log(url);
+      let body = '';
+      https.get(url, response => {
+        response.on('data', chunk => {
+          body += chunk;
+        });
+        response.on('end', () => {
+          const data = JSON.parse(body);
+          setPdbInfo(previous => {
+            return { ...previous, [pdbId]: data };
+          });
+        });
+      });
+    });
+  }, [pdbIds]);
 
+  // Parse the citation text
+  // i.e. add break lines, "elevated" text, etc.
   let citation;
   if (metadata && metadata.CITATION) {
     // Replace the metadat break lines by proper JSX break lines
@@ -89,32 +111,31 @@ export default React.memo(() => {
           </CardContent>
         </Card>
       )}
-      {pdbInfo && pdbInfo.length > 0 && (
+      {pdbInfo && Object.keys(pdbInfo).length > 0 && (
         <Card className={style.card}>
           <CardContent className={style['card-content']}>
-            {pdbInfo.map((pdb, i) => {
-              const pdbId = pdb && pdb._id && pdb._id.toLowerCase();
-              if (!pdbId) return 'PDB ' + metadata.PDBIDS[i] + ' not found';
+            {Object.entries(pdbInfo).map(([pdbId, pdbMetadata], i) => {
+              //const pdbId = pdb && pdb._id && pdb._id.toLowerCase();
+              if (!pdbMetadata) return 'PDB ' + pdbId + ' not found';
+              // Mine pdb info
+              const title = pdbMetadata.compound;
+              const experimentalMethod = pdbMetadata.expClass.toLowerCase();
+              const publishDate = new Date(pdbMetadata.ascDate);
+              const keywords = Array.from(
+                new Set((pdbMetadata.header || '').split(COMMA_SEPARATOR)),
+              );
+              const organisms = Array.from(
+                new Set((pdbMetadata.sources || '').split(COMMA_SEPARATOR)),
+              );
               // Set the url to get the pdb image
+              const lowerPdb = pdbId.toLowerCase();
               const imgSrc =
                 pdbId &&
-                `https://cdn.rcsb.org/images/structures/${pdbId.substr(
+                `https://cdn.rcsb.org/images/structures/${lowerPdb.substr(
                   1,
                   2,
-                )}/${pdbId}/${pdbId}_assembly-1.jpeg`;
-              // Mine the organism, keyword and publish date
-              let organisms;
-              let keywords;
-              let publishDate;
-              if (pdbId) {
-                organisms = Array.from(
-                  new Set((pdb.sources || '').split(COMMA_SEPARATOR)),
-                );
-                keywords = Array.from(
-                  new Set((pdb.header || '').split(COMMA_SEPARATOR)),
-                );
-                publishDate = new Date(pdb.ascDate);
-              }
+                )}/${lowerPdb}/${lowerPdb}_assembly-1.jpeg`;
+
               return (
                 <div key={i}>
                   {i !== 0 && <hr style={{ color: 'lightGrey' }} />}
@@ -125,23 +146,21 @@ export default React.memo(() => {
                         width="350"
                         height="350"
                         loading="lazy"
-                        alt={`3D view of the ${pdb._id} structure`}
+                        alt={`3D view of the ${pdbId} structure`}
                       />
                       <div className={style['summary-list']}>
-                        <div style={{ fontWeight: 'bold' }}>{pdb.title}</div>
                         <div>
-                          PDB Accession: {pdb._id}
-                          {pdb.replaces && ` (replaces ${pdb.replaces})`}
+                          PDB Accession: {pdbId}
+                          {pdbMetadata.replaces &&
+                            ` (replaces ${pdbMetadata.replaces})`}
                         </div>
-                        <Typography variant="h6">{pdb.compound}</Typography>
+                        <Typography variant="h6">{title}</Typography>
                         <div>
-                          {pdb.status &&
-                            pdb.status !== 'CURRENT' &&
-                            `Status: ${pdb.status}`}
+                          {pdbMetadata.status &&
+                            pdbMetadata.status !== 'CURRENT' &&
+                            `Status: ${pdbMetadata.status}`}
                         </div>
-                        <div>
-                          Experimental method: {pdb.expClass.toLowerCase()}
-                        </div>
+                        <div>Experimental method: {experimentalMethod}</div>
                         <div>
                           Organism
                           {organisms.length > 1 && 's'}:{' '}
@@ -180,7 +199,7 @@ export default React.memo(() => {
                       <Button
                         component={'a'}
                         variant="contained"
-                        href={`https://www.ebi.ac.uk/pdbe/entry/pdb/${pdb._id}`}
+                        href={`https://www.ebi.ac.uk/pdbe/entry/pdb/${pdbId}`}
                         size="small"
                         color="primary"
                         target="_blank"
@@ -192,7 +211,7 @@ export default React.memo(() => {
                       <Button
                         component={'a'}
                         variant="contained"
-                        href={`https://www.rcsb.org/structure/${pdb._id}`}
+                        href={`https://www.rcsb.org/structure/${pdbId}`}
                         size="small"
                         color="primary"
                         target="_blank"
@@ -204,7 +223,7 @@ export default React.memo(() => {
                       <Button
                         component={'a'}
                         variant="contained"
-                        href={`http://3dbionotes-ws.cnb.csic.es/?queryId=${pdb._id}`}
+                        href={`http://3dbionotes-ws.cnb.csic.es/?queryId=${pdbId}`}
                         size="small"
                         color="primary"
                         target="_blank"
