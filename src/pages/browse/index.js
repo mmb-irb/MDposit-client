@@ -55,6 +55,7 @@ import standardPreview7 from '../../images/polymerase_preview.png';
 import standardPreview8 from '../../images/eprotein_preview.png';
 import standardPreview9 from '../../images/exonuclease_preview.png';
 import standardPreview10 from '../../images/other.png';
+import standardPreview11 from '../../images/nsp1610.png';
 
 // Define the image to be shown depending on the unit name
 const unitPreview = {
@@ -68,6 +69,7 @@ const unitPreview = {
   'E protein': standardPreview8,
   Exoribonuclease: standardPreview9,
   Other: standardPreview10,
+  'NSP16/10': standardPreview11,
 };
 
 const DEFAULT_PAGE = 1;
