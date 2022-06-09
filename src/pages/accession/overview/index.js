@@ -31,7 +31,6 @@ export default React.memo(() => {
   useEffect(() => {
     pdbIds.forEach(pdbId => {
       const url = `https://mmb.irbbarcelona.org/api/pdb/${pdbId}/entry`;
-      console.log(url);
       let body = '';
       https.get(url, response => {
         response.on('data', chunk => {
