@@ -29,6 +29,7 @@ export default React.memo(() => {
   const pdbIds = metadata.PDBIDS;
   const [pdbInfo, setPdbInfo] = useState({});
   useEffect(() => {
+    if (!pdbIds) return;
     pdbIds.forEach(pdbId => {
       const url = `https://mmb.irbbarcelona.org/api/pdb/${pdbId}/entry`;
       let body = '';
