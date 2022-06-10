@@ -584,8 +584,14 @@ const NGLViewerWithControls = forwardRef(
                     </IconButton>
 
                     <IconButton
-                      onClick={() => {
-                        if (viewerRef.current) viewerRef.current.centerFocus();
+                      title="Center focus"
+                      onClick={event => {
+                        if (!viewerRef.current) return;
+                        // When the keys control, shift or command (ios) are hold while clicking
+                        const getFocus =
+                          event.shiftKey || event.ctrlKey || event.metaKey;
+                        if (getFocus) viewerRef.current.displayFocus();
+                        else viewerRef.current.centerFocus();
                       }}
                     >
                       <FontAwesomeIcon icon={faDotCircle} />

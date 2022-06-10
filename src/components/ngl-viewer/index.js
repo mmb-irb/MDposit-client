@@ -871,17 +871,13 @@ const NGLViewer = memo(
 
           // if an original orientation was aleady defined
           // (manually created, and stored in the API)
-          /*
           if (originalOritentationRef.current) {
             // use it to set the initial orientation
             stageRef.current.animationControls.orient(
               originalOritentationRef.current,
               0,
             );
-          } else {
-            originalOritentationRef.current = stageRef.current.viewerControls.getOrientation();
           }
-          */
 
           // If nothing has been focused at the end then focus the whole first component
           setFocus(previous => {
@@ -1680,15 +1676,21 @@ const NGLViewer = memo(
         ref,
         () => ({
           autoResize: handleResize,
+          // Output the current orientation/focus in console
+          // Note: this is for the developer, not for the regular user
+          displayFocus() {
+            const orientation = stageRef.current.viewerControls.getOrientation();
+            const stringifiedArray = `[${orientation.elements.toString()}]`;
+            console.log(stringifiedArray);
+          },
           centerFocus() {
             setFocus({ comp: 0, sele: 'all' });
-            /*
+            // Use the provided orientation, if any
             if (!originalOritentationRef.current) return;
             stageRef.current.animationControls.orient(
               originalOritentationRef.current,
               DEFAULT_ORIENTATION_TRANSITION_DURATION,
             );
-            */
           },
           get currentFrame() {
             if (!(isFirstCompStaged && requestedTrajectories.length)) return -1;
