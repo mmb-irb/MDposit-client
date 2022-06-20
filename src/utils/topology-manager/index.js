@@ -467,6 +467,7 @@ export class Topology {
   // e.g. the topology map may be missing or the residue may be not protein
   // Note that each absolute residue may belong to only 1 reference
   absolute2reference = residue => {
+    if (!this.references) return null;
     const referenceIndex = this.residueReferenceIndices[residue];
     if (referenceIndex === null) return null;
     const reference = this.references[referenceIndex];
@@ -479,6 +480,7 @@ export class Topology {
   // e.g. "SARS-CoV-2 spike"
   // Note that one residue in the reference may be more than once or not be in the current topology
   reference2absolute = (reference, residues) => {
+    if (!this.references) return;
     const referenceIndex = this.references.indexOf(reference);
     if (referenceIndex === -1) return;
     const absoluteResidues = [];
