@@ -869,16 +869,6 @@ const NGLViewer = memo(
             stageComp.removeRepresentation(rep);
           });
 
-          // if an original orientation was aleady defined
-          // (manually created, and stored in the API)
-          if (originalOritentationRef.current) {
-            // use it to set the initial orientation
-            stageRef.current.animationControls.orient(
-              originalOritentationRef.current,
-              0,
-            );
-          }
-
           // If nothing has been focused at the end then focus the whole first component
           setFocus(previous => {
             if (previous) return previous; // This will not trigger any rerender
@@ -1666,6 +1656,15 @@ const NGLViewer = memo(
         // First transition is instantaneous
         if (firstFocus.current) {
           transition = 0;
+          // if an original orientation was aleady defined
+          // (manually created, and stored in the API)
+          if (originalOritentationRef.current) {
+            // use it to set the initial orientation
+            stageRef.current.animationControls.orient(
+              originalOritentationRef.current,
+              0,
+            );
+          }
           firstFocus.current = false;
         }
         comp.autoView(focus.sele, transition);
