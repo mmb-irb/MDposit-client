@@ -1,0 +1,27 @@
+.paper {
+  height: 75vh;
+  overflow-y: scroll;
+}
+
+.tablecard {
+  display: inline-block;
+  width: 25%;
+}
+
+.nglcard {
+  display: inline-block;
+  width: 75%;
+  height: 75vh;
+}
+
+.container {
+  height: 100%;
+}
+
+.selectedrow {
+  background-color: #76ff03;
+}
+
+.row {
+  cursor: pointer;
+}

@@ -93,6 +93,10 @@ const JsonViewer = lazy(() =>
   import(/* webpackChunkName: 'sasa' */ './json-viewer'),
 );
 
+const Populations = lazy(() =>
+  import(/* webpackChunkName: 'mutations' */ './populations'),
+);
+
 const getDataURL = (accession, subPage) => {
   // First, few modifications muts be done over the client URL path to be compatible with the API
   let end;
@@ -416,6 +420,15 @@ const SummarySwitch = ({ setProject, subPage, dataUrl }) => {
             render={props => (
               <Suspense fallback={<Loading />}>
                 <Epitopes {...props} />
+              </Suspense>
+            )}
+          />
+          <Route
+            path="/browse/:accession/populations"
+            exact
+            render={props => (
+              <Suspense fallback={<Loading />}>
+                <Populations {...props} />
               </Suspense>
             )}
           />
