@@ -113,6 +113,7 @@ const NGLViewer = memo(
         requestedFramesNumber = DEFAULT_NUMBER_OF_FRAMES, // The number of frames to be represented
         selectedAtoms, // Atom index of the atom and residue to be represented
         selectedResidues, // Residue complex numerations from residues to be represented
+        selectedResidueIndices, // Residue indices from residues to be highlighted
         selectedChains, // Chain letters from chains to be represented
         selectedCustom, // Free NGL selections to be directly represented
         selectedDistances, // Groups of 2 atoms or residues to be represented as a distance
@@ -965,6 +966,7 @@ const NGLViewer = memo(
       ]);
 
       // Highlight specific residues
+      // DEPRECATED: Use selectedResidueIndices instead
       useEffect(() => {
         if (!isFirstCompStaged || !selectedResidues) {
           return;
@@ -999,6 +1001,47 @@ const NGLViewer = memo(
         // Focus the highlighted zone with the camera
         setFocus({ comp: 0, sele: nglSelection });
       }, [isFirstCompStaged, selectedResidues, highlightTypes]);
+
+      // Highlight specific residues
+      useEffect(() => {
+        if (!isFirstCompStaged || !selectedResidueIndices) return;
+        // Set a representation name. This is useful to find this representation further
+        const nameHighlight = '*highlightedResidues';
+        const previousHighlightRepresentation = stageRef.current.compList[0].reprList.find(
+          representation => representation.name === nameHighlight,
+        );
+        if (previousHighlightRepresentation)
+          stageRef.current.compList[0].removeRepresentation(
+            previousHighlightRepresentation,
+          );
+        // If there are no selected residues at all we stop here
+        if (selectedResidueIndices.length === 0) return;
+        // Get the residues input
+        const residueNglSelections = selectedResidueIndices.map(
+          residueIndex =>
+            topologyManager.absolute2sourceResidue(residueIndex).nglSelection,
+        );
+        // Transform the residues list into an NGL selection
+        const overallNglSelection = Array.from(
+          new Set(residueNglSelections),
+        ).join(' or ');
+        // Represent the previous selection in ball+sticks drawing method
+        stageRef.current.compList[0].addRepresentation(
+          highlightTypes.residues,
+          {
+            sele: overallNglSelection,
+            name: nameHighlight,
+          },
+        );
+
+        // Focus the highlighted zone with the camera
+        setFocus({ comp: 0, sele: overallNglSelection });
+      }, [
+        isFirstCompStaged,
+        selectedResidueIndices,
+        topologyManager,
+        highlightTypes,
+      ]);
 
       // Highlight specific chains
       // DANI: NO Probado

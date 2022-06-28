@@ -25,8 +25,6 @@ import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 import style from './style.module.css';
 
-import { complexNumerationParser } from '../../../utils/topology-manager';
-
 //import Selector from '../../../components/selector';
 
 import { ColormakerRegistry } from 'ngl';
@@ -88,14 +86,21 @@ const Sasa = () => {
   } = useMemo(() => {
     if (!topologyManager || !metadata || !payload) return {};
 
-    // Reformat data, find each residue source notation and absolute index
+    // Check data to be coherent
+    // Note that sasa analysis must always have the same number of residues that the topology
+    if (topologyManager.getResiduesCount() !== payload.data.length)
+      throw new Error(
+        'Number of residues in the analysis does not match number of residues in the topology',
+      );
+
+    // Reformat data
+    // Note that sasa analysis will always have the same number of residues that the topology
     const data = payload.data
-      .map(residue => {
-        const sourceResidue = complexNumerationParser(residue.name);
-        const absoluteResidue = topologyManager.source2absoluteResidue(
-          sourceResidue,
+      .map((residue, residueIndex) => {
+        const sourceResidue = topologyManager.absolute2sourceResidue(
+          residueIndex,
         );
-        return { ...residue, ...sourceResidue, index: absoluteResidue };
+        return { ...residue, ...sourceResidue, index: residueIndex };
       })
       .filter(residue => {
         // WARNING: Data from single atom residues (i.e. ions) is discarded since they may raise the maximum SAS a lot
@@ -183,19 +188,19 @@ const Sasa = () => {
   }, [payload, topologyManager, metadata, accession, defaultRepresentations]);
 
   // Get the residues list in model notation
-  const { selectedData, selectedResidueNames } = useMemo(() => {
+  const { selectedData, selectedResidueIndices } = useMemo(() => {
     // Now get only the selected keys from the payload
     const selectedData = {};
-    const selectedResidueNames = [];
+    const selectedResidueIndices = [];
     // Color the first selected residues in the graph
     selectedResidues.forEach((residue, i) => {
       const currentResidueData = residueData[residue.index];
       const newData = { data: currentResidueData.saspf };
       newData.color = residue.color;
       selectedData[i] = newData;
-      selectedResidueNames.push(currentResidueData.name);
+      selectedResidueIndices.push(residue.index);
     });
-    return { selectedData, selectedResidueNames };
+    return { selectedData, selectedResidueIndices };
   }, [residueData, selectedResidues]);
 
   // When the user clicks on the graph
@@ -300,7 +305,7 @@ const Sasa = () => {
           <NGLViewerWithControls
             className={style.container}
             components={mainComponent}
-            selectedResidues={selectedResidueNames}
+            selectedResidueIndices={selectedResidueIndices}
             onProgress={handleFrameProgress}
             ref={viewerRef}
             framesSelect={false}
