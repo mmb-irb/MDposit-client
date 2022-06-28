@@ -19,8 +19,6 @@ import InteractionSelector from '../../../components/interaction-selector';
 
 import style from './style.module.css';
 
-import { complexNumerationParser } from '../../../utils/topology-manager';
-
 const Graph2 = lazy(() =>
   import(/* webpackChunkName: 'graph2' */ '../../../components/graph2'),
 );
@@ -105,10 +103,12 @@ const Energies = () => {
 
     // Set the tags to be displayed on each graph x axis
     data.xTags = [];
-    data.labels.forEach(residue => {
-      const source = complexNumerationParser(residue);
-      const { label } = topologyManager.source2standard(source);
-      data.xTags.push(label);
+    const hostResidues = selectedOrder
+      ? interaction.residue_indices_1
+      : interaction.residue_indices_2;
+    hostResidues.forEach(residueIndex => {
+      const residue = topologyManager.absolute2standard(residueIndex);
+      data.xTags.push(residue.label);
     });
 
     // Set the NGL representations
