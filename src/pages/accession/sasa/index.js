@@ -80,7 +80,8 @@ const Sasa = () => {
   const {
     mainComponent,
     framesNumber,
-    timeStep,
+    xAxisStep,
+    xAxisLabel,
     residueData,
     residueMeans,
   } = useMemo(() => {
@@ -169,8 +170,13 @@ const Sasa = () => {
     const firstResidue = data[0];
     const framesNumber = firstResidue.saspf.length;
 
-    // Guess the time step of the analysis from the number of frames
-    const timeStep = metadata.LENGTH / (framesNumber - 1);
+    // If this is an ensemble we use frames as the x axis
+    // If this is a trajectory we use time as the x axis
+    const xAxisStep =
+      metadata.TYPE === 'ensemble'
+        ? metadata.SNAPSHOTS / (framesNumber - 1)
+        : metadata.LENGTH / (framesNumber - 1);
+    const xAxisLabel = metadata.TYPE === 'ensemble' ? 'Frames' : 'Time (ns)';
 
     // Guess the frames step of the analysis from the number of frames
     const frameStep = Math.floor(metadata.SNAPSHOTS / (framesNumber - 1));
@@ -184,7 +190,14 @@ const Sasa = () => {
       },
     ];
 
-    return { mainComponent, framesNumber, timeStep, residueData, residueMeans };
+    return {
+      mainComponent,
+      framesNumber,
+      xAxisStep,
+      xAxisLabel,
+      residueData,
+      residueMeans,
+    };
   }, [payload, topologyManager, metadata, accession, defaultRepresentations]);
 
   // Get the residues list in model notation
@@ -286,8 +299,8 @@ const Sasa = () => {
         {selectedResidues.length > 0 ? (
           <Graph2
             yData={selectedData}
-            step={timeStep}
-            xAxisLabel={'Time (ns)'}
+            step={xAxisStep}
+            xAxisLabel={xAxisLabel}
             yAxisLabel={'Relative SAS (Å²)'}
             onSelect={handleFrameSelection}
             className={style.graph}

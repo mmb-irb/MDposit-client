@@ -22,9 +22,19 @@ import style from './style.module.css';
 
 const COMMA_SEPARATOR = /\s*,\s*/;
 
+const typeSettings = {
+  trajectory: {
+    label: 'Trajectory',
+    color: '#8ffffd', // light blue
+  },
+  ensemble: {
+    label: 'Ensemble',
+    color: '#ffe08f', // light yellow
+  },
+};
+
 export default React.memo(() => {
   const { accession, identifier, published, metadata } = useContext(ProjectCtx);
-
   // Download pdb information for every pdb id in metadata
   const pdbIds = metadata.PDBIDS;
   const [pdbInfo, setPdbInfo] = useState({});
@@ -80,13 +90,23 @@ export default React.memo(() => {
           <CardContent className={style['card-content']}>
             <Typography variant="h6">{metadata.NAME || 'Unnamed'}</Typography>
             <div className={style['summary-list']}>
+              <Chip
+                label={typeSettings[metadata.TYPE].label}
+                variant="outlined"
+                style={{
+                  backgroundColor: typeSettings[metadata.TYPE].color,
+                  fontSize: '1em',
+                  marginRight: '0.8em',
+                }}
+                className={style.chip}
+              />
+              {metadata.METHOD}
               {metadata.DESCRIPTION && <div>{metadata.DESCRIPTION}</div>}
               {metadata.AUTHORS && <div>Authors: {metadata.AUTHORS}</div>}
               {metadata.GROUPS && <div>Groups: {metadata.GROUPS}</div>}
               {metadata.CONTACT && <div>Contact: {metadata.CONTACT}</div>}
               {metadata.PROGRAM && <div>Program: {metadata.PROGRAM}</div>}
               {metadata.VERSION && <div>Version: {metadata.VERSION}</div>}
-              {metadata.METHOD && <div>MD method: {metadata.METHOD}</div>}
               {metadata.LINKS &&
                 metadata.LINKS.map((link, l) => (
                   <div key={l}>

@@ -26,6 +26,8 @@ const Graph2 = lazy(() =>
   import(/* webpackChunkName: 'graph' */ '../../../components/graph2'),
 );
 
+const cents = num => Math.round(num * 100) / 100;
+
 const Rgyr = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
@@ -66,15 +68,23 @@ const Rgyr = () => {
     return [selectedMark];
   }, [selected]);
 
+  const { xAxisStep, xAxisLabel } = useMemo(() => {
+    if (!payload) return {};
+    const dataLength = payload.y['rgyr'].data.length;
+    // If this is an ensemble we use frames as the x axis
+    // If this is a trajectory we use time as the x axis
+    const xAxisStep =
+      metadata.TYPE === 'ensemble'
+        ? metadata.SNAPSHOTS / (dataLength - 1)
+        : metadata.LENGTH / (dataLength - 1);
+    const xAxisLabel = metadata.TYPE === 'ensemble' ? 'Frames' : 'Time (ns)';
+    return { xAxisStep, xAxisLabel };
+  }, [payload, metadata]);
+
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
-
-  const cents = num => Math.round(num * 100) / 100;
-
-  const dataLength = payload.y['rgyr'].data.length;
-  const xAxesStep = metadata.LENGTH / (dataLength - 1);
 
   // Render
   return (
@@ -122,8 +132,8 @@ const Rgyr = () => {
           <Typography variant="h6" />
           <Graph2
             yData={payload.y}
-            step={xAxesStep}
-            xAxisLabel={'Time (ns)'}
+            step={xAxisStep}
+            xAxisLabel={xAxisLabel}
             xScaleFactor={1}
             yAxisLabel={'Rgyr (Å)'}
             onSelect={setSelected}

@@ -67,7 +67,7 @@ const Rmsds = () => {
   const [display, setDisplay] = useState({});
 
   // Format the data
-  const { rmsds, frameStep, xAxesStep } = useMemo(() => {
+  const { rmsds, frameStep, xAxisStep, xAxisLabel } = useMemo(() => {
     let payload;
     const type = selectedTab.type;
     const reference = selectedTab.reference;
@@ -98,8 +98,14 @@ const Rmsds = () => {
     // WARNING: We want the time step in nanoseconds (ns)
     // WARNING: Frequency is divided by 1000 since it is in picoseconds (ps)
     const frameStep = payload.step;
-    const xAxesStep = frameStep * (metadata.FREQUENCY / 1000);
-    return { rmsds, frameStep, xAxesStep };
+    // If this is an ensemble we use frames as the x axis
+    // If this is a trajectory we use time as the x axis
+    const xAxisStep =
+      metadata.TYPE === 'ensemble'
+        ? frameStep
+        : frameStep * (metadata.FREQUENCY / 1000);
+    const xAxisLabel = metadata.TYPE === 'ensemble' ? 'Frames' : 'Time (ns)';
+    return { rmsds, frameStep, xAxisStep, xAxisLabel };
   }, [metadata, rmsdsPayload, tmscoresPayload, selectedTab]);
 
   // Set when one point in the graph is selected
@@ -193,8 +199,8 @@ const Rmsds = () => {
         <CardContent>
           <Graph2
             yData={rmsds}
-            step={xAxesStep}
-            xAxisLabel={'Time (ns)'}
+            step={xAxisStep}
+            xAxisLabel={xAxisLabel}
             xScaleFactor={1}
             yAxisLabel={yAxisLabel}
             onSelect={setSelected}

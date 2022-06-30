@@ -49,6 +49,13 @@
     "options": true
   },
   {
+    "name": "Type",
+    "path": "metadata.TYPE",
+    "type": "string",
+    "example": "ensemble",
+    "options": true
+  },
+  {
     "name": "MD method",
     "path": "metadata.METHOD",
     "type": "string",
