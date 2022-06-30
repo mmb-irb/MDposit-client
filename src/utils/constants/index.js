@@ -34,6 +34,7 @@ export const NICE_NAMES = new Map([
   ['mutations', 'Mutations'],
   ['epitopes', 'Epitopes'],
   ['sasa', 'Solvent accessible surface'],
+  ['populations', 'Populations'],
 ]);
 
 // The color of the graphics for this analysis

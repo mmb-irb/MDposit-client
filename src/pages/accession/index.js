@@ -125,6 +125,9 @@ const getDataURL = (accession, subPage) => {
     case 'epitopes':
       end = 'references';
       break;
+    case 'populations':
+      end = `files/populations.json`;
+      break;
     default:
       return null; // No button is rendered
   }

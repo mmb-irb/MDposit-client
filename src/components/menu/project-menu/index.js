@@ -1,4 +1,4 @@
-import React, { useState, useContext, useCallback } from 'react';
+import React, { useState, useContext, useCallback, useMemo } from 'react';
 
 import {
   CardContent,
@@ -38,9 +38,10 @@ const hasEpitopes = referenceName => {
 const ProjectMenu = ({ params: { accession, subPage } }) => {
   // Get the current project metadata
   // WARNING: context may be missing in the first renders
-  const { metadata, analyses } = useContext(ProjectCtx) || {
+  const { metadata, analyses, files } = useContext(ProjectCtx) || {
     metadata: {},
     analyses: [],
+    files: [],
   };
 
   // Set which menu is opened
@@ -78,129 +79,141 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
     }
   }
 
-  // Check if any metadata reference has a map and its reference data has entropies
-  const references = metadata && metadata.REFERENCES;
-  const anySuitableReferenceWithEntropies =
-    references && references.some(reference => hasEntropies(reference));
-  // Check if any metadata reference has a map and its reference data has entropies
-  const anySuitableReferenceWithEpitopes =
-    references && references.some(reference => hasEpitopes(reference));
+  const tabs = useMemo(() => {
+    // Check if any metadata reference has a map and its reference data has entropies
+    const references = metadata && metadata.REFERENCES;
+    const anySuitableReferenceWithEntropies =
+      references && references.some(reference => hasEntropies(reference));
+    // Check if any metadata reference has a map and its reference data has entropies
+    const anySuitableReferenceWithEpitopes =
+      references && references.some(reference => hasEpitopes(reference));
 
-  // Set the tabs to be displayed
-  // Each tab must have 'dir' or 'drops'. Never both, never none.
-  // Tabs with 'dir' link the user directly on click
-  // Tabs with 'drops' display a menu with multiple links on click
-  // 'dir' is the subpage name
-  // 'cond' is the condition to this subpage to be avilable
-  const tabs = [
-    {
-      name: 'Overview',
-      dir: 'overview',
-    },
-    {
-      name: 'Trajectory',
-      dir: 'trajectory',
-    },
-    {
-      name: 'Analyses',
-      drops: [
-        {
-          name: 'Quality control',
-          analyses: [
-            {
-              name: 'RMSDs',
-              dir: 'rmsds',
-              cond: analyses && analyses.includes('rmsds'),
-            },
-            {
-              name: 'RMSD per residue',
-              dir: 'rmsd-perres',
-              cond: analyses && analyses.includes('rmsd-perres'),
-            },
-            {
-              name: 'RMSD pairwise',
-              dir: 'rmsd-pairwise',
-              cond: analyses && analyses.includes('rmsd-pairwise'),
-            },
-            {
-              name: 'Radius of gyration',
-              dir: 'rgyr',
-              cond: analyses && analyses.includes('rgyr'),
-            },
-            {
-              name: 'Fluctuation',
-              dir: 'fluctuation',
-              cond: analyses && analyses.includes('fluctuation'),
-            },
-            {
-              name: 'PCA',
-              dir: 'pca',
-              cond: analyses && analyses.includes('pca'),
-            },
-            {
-              name: 'Solvent accessible surface',
-              dir: 'sasa',
-              cond: analyses && analyses.includes('sasa'),
-            },
-          ],
-        },
-        {
-          name: 'Interactions',
-          analyses: [
-            {
-              name: 'Distance per residue',
-              dir: 'dist-perres',
-              cond: analyses && analyses.includes('dist-perres'),
-            },
-            {
-              name: 'Electrostatic potencial surface',
-              dir: 'electrostatic',
-              cond: metadata.INTERACTIONS && metadata.INTERACTIONS.length > 0,
-            },
-            {
-              name: 'Hydrogen bonds',
-              dir: 'hbonds',
-              cond: analyses && analyses.includes('hbonds'),
-            },
-            {
-              name: 'Energies',
-              dir: 'energies',
-              cond: analyses && analyses.includes('energies'),
-            },
-          ],
-        },
-        {
-          name: 'Bibliography',
-          analyses: [
-            {
-              name: 'Epitopes',
-              dir: 'epitopes',
-              cond: anySuitableReferenceWithEpitopes,
-            },
-            {
-              name: 'Mutations',
-              dir: 'mutations',
-              cond: anySuitableReferenceWithEntropies,
-            },
-          ],
-        },
-        {
-          name: 'Other',
-          analyses: [
-            {
-              name: 'Pockets',
-              dir: 'pockets',
-              cond: analyses && analyses.includes('pockets'),
-            },
-          ],
-        },
-      ],
-    },
-    {
-      name: 'Downloads',
-      dir: 'files',
-    },
-  ];
+    // Set the tabs to be displayed
+    // Each tab must have 'dir' or 'drops'. Never both, never none.
+    // Tabs with 'dir' link the user directly on click
+    // Tabs with 'drops' display a menu with multiple links on click
+    // 'dir' is the subpage name
+    // 'cond' is the condition to this subpage to be avilable
+    const tabs = [
+      {
+        name: 'Overview',
+        dir: 'overview',
+      },
+      {
+        name: 'Trajectory',
+        dir: 'trajectory',
+      },
+      {
+        name: 'Analyses',
+        drops: [
+          {
+            name: 'Quality control',
+            analyses: [
+              {
+                name: 'RMSDs',
+                dir: 'rmsds',
+                cond: analyses && analyses.includes('rmsds'),
+              },
+              {
+                name: 'RMSD per residue',
+                dir: 'rmsd-perres',
+                cond: analyses && analyses.includes('rmsd-perres'),
+              },
+              {
+                name: 'RMSD pairwise',
+                dir: 'rmsd-pairwise',
+                cond: analyses && analyses.includes('rmsd-pairwise'),
+              },
+              {
+                name: 'Radius of gyration',
+                dir: 'rgyr',
+                cond: analyses && analyses.includes('rgyr'),
+              },
+              {
+                name: 'Fluctuation',
+                dir: 'fluctuation',
+                cond: analyses && analyses.includes('fluctuation'),
+              },
+              {
+                name: 'PCA',
+                dir: 'pca',
+                cond: analyses && analyses.includes('pca'),
+              },
+              {
+                name: 'Solvent accessible surface',
+                dir: 'sasa',
+                cond: analyses && analyses.includes('sasa'),
+              },
+            ],
+          },
+          {
+            name: 'Interactions',
+            analyses: [
+              {
+                name: 'Distance per residue',
+                dir: 'dist-perres',
+                cond: analyses && analyses.includes('dist-perres'),
+              },
+              {
+                name: 'Electrostatic potencial surface',
+                dir: 'electrostatic',
+                cond: metadata.INTERACTIONS && metadata.INTERACTIONS.length > 0,
+              },
+              {
+                name: 'Hydrogen bonds',
+                dir: 'hbonds',
+                cond: analyses && analyses.includes('hbonds'),
+              },
+              {
+                name: 'Energies',
+                dir: 'energies',
+                cond: analyses && analyses.includes('energies'),
+              },
+            ],
+          },
+          {
+            name: 'Bibliography',
+            analyses: [
+              {
+                name: 'Epitopes',
+                dir: 'epitopes',
+                cond: anySuitableReferenceWithEpitopes,
+              },
+              {
+                name: 'Mutations',
+                dir: 'mutations',
+                cond: anySuitableReferenceWithEntropies,
+              },
+            ],
+          },
+          {
+            name: 'Other',
+            analyses: [
+              {
+                name: 'Pockets',
+                dir: 'pockets',
+                cond: analyses && analyses.includes('pockets'),
+              },
+            ],
+          },
+        ],
+      },
+      {
+        name: 'Downloads',
+        dir: 'files',
+      },
+    ];
+
+    // In case the simulation comes from a Markov state model, add the populations analysis to the tabs
+    if (metadata && metadata.METHOD === 'Markov state model (MSM)')
+      tabs[2].drops[3].analyses.push({
+        name: 'Populations',
+        dir: 'populations',
+        cond: files && files.find(file => file.filename === 'populations.json'),
+      });
+
+    return tabs;
+  }, [metadata, analyses, files]);
 
   // Check if a string is found in the specified (by the 'index') dropTab links
   // If it is, return the same string. If it is not, return undefined

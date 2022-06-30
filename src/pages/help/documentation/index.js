@@ -1285,6 +1285,36 @@ export const documentation = [
           </>
         ),
       },
+      {
+        id: 'populations',
+        header: 'Populations',
+        body: (
+          <>
+            Populations data is provided by the authors of the Markov state
+            model ensemble. Data includes the MSM-derived equilibrium population
+            for each frame in the ensemble.
+          </>
+        ),
+        page: (
+          <>
+            This is the populations viewer.
+            <br />
+            <br />
+            All populations over a 0.1% cutoff are listed in the left table in
+            decreasing order. Each population includes also its frame in the
+            ensemble. Click any row in the table to display the corresponding
+            frame in the{' '}
+            <a
+              href="/help#/help#ngl-viewer"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              viewer
+            </a>{' '}
+            at right.
+          </>
+        ),
+      },
     ],
   },
 

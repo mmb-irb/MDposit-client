@@ -114,6 +114,7 @@ const Row = ({ project, highlight, index, setProject }) => {
     pdbInfo,
     metadata,
     analyses,
+    files,
   } = project;
   // Declare a hook from a type called "useRef"
   const ref = useRef(null);
@@ -133,7 +134,7 @@ const Row = ({ project, highlight, index, setProject }) => {
     return () => animation.cancel();
   }, [index]);
 
-  // Push the electrostatic surface analysis if we have metadata interface
+  // Push the electrostatic surface analysis if we have interactions in metadata
   if (
     metadata &&
     metadata.INTERACTIONS &&
@@ -142,6 +143,15 @@ const Row = ({ project, highlight, index, setProject }) => {
     !analyses.includes('electrostatic')
   )
     analyses.push('electrostatic');
+
+  // Push the populations analysis if we have the populations.json file
+  if (
+    files &&
+    files.find(file => file.filename === 'populations.json') &&
+    analyses &&
+    !analyses.includes('populations')
+  )
+    analyses.push('populations');
 
   // Check if any metadata reference has entropies
   const references = metadata && metadata.REFERENCES;
@@ -234,6 +244,7 @@ const Row = ({ project, highlight, index, setProject }) => {
                   'mutations',
                   'epitopes',
                   'sasa',
+                  'populations',
                 ].includes(element),
               )
               // For each analysis create a clickable button which links to the analysis route

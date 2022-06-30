@@ -15,8 +15,8 @@ https://stackoverflow.com/questions/23408539/how-can-i-make-a-displayflex-contai
   display: flex;
   flex-flow: column wrap;
   /*max-height: 75vh;*/
-  max-height: 500px;
-  width: 500px;
+  max-height: 400px;
+  width: 650px;
 }
 
 .current {
