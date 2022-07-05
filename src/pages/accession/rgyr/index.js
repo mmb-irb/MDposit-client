@@ -68,7 +68,7 @@ const Rgyr = () => {
     return [selectedMark];
   }, [selected]);
 
-  const { xAxisStep, xAxisLabel } = useMemo(() => {
+  const { xAxisStep, xAxisLabel, xUnit } = useMemo(() => {
     if (!payload) return {};
     const dataLength = payload.y['rgyr'].data.length;
     // If this is an ensemble we use frames as the x axis
@@ -78,7 +78,8 @@ const Rgyr = () => {
         ? metadata.SNAPSHOTS / (dataLength - 1)
         : metadata.LENGTH / (dataLength - 1);
     const xAxisLabel = metadata.TYPE === 'ensemble' ? 'Frames' : 'Time (ns)';
-    return { xAxisStep, xAxisLabel };
+    const xUnit = metadata.TYPE === 'ensemble' ? 'frame' : 'ns';
+    return { xAxisStep, xAxisLabel, xUnit };
   }, [payload, metadata]);
 
   // Render loading or error messages according with the API response
@@ -134,6 +135,7 @@ const Rgyr = () => {
             yData={payload.y}
             step={xAxisStep}
             xAxisLabel={xAxisLabel}
+            xUnit={xUnit}
             xScaleFactor={1}
             yAxisLabel={'Rgyr (Å)'}
             onSelect={setSelected}

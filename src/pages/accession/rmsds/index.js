@@ -67,7 +67,7 @@ const Rmsds = () => {
   const [display, setDisplay] = useState({});
 
   // Format the data
-  const { rmsds, frameStep, xAxisStep, xAxisLabel } = useMemo(() => {
+  const { rmsds, frameStep, xAxisStep, xAxisLabel, xUnit } = useMemo(() => {
     let payload;
     const type = selectedTab.type;
     const reference = selectedTab.reference;
@@ -105,7 +105,8 @@ const Rmsds = () => {
         ? frameStep
         : frameStep * (metadata.FREQUENCY / 1000);
     const xAxisLabel = metadata.TYPE === 'ensemble' ? 'Frames' : 'Time (ns)';
-    return { rmsds, frameStep, xAxisStep, xAxisLabel };
+    const xUnit = metadata.TYPE === 'ensemble' ? 'frame' : 'ns';
+    return { rmsds, frameStep, xAxisStep, xAxisLabel, xUnit };
   }, [metadata, rmsdsPayload, tmscoresPayload, selectedTab]);
 
   // Set when one point in the graph is selected
@@ -201,6 +202,7 @@ const Rmsds = () => {
             yData={rmsds}
             step={xAxisStep}
             xAxisLabel={xAxisLabel}
+            xUnit={xUnit}
             xScaleFactor={1}
             yAxisLabel={yAxisLabel}
             onSelect={setSelected}

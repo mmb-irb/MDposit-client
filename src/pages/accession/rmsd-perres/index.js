@@ -84,6 +84,7 @@ const RmsdPerres = () => {
     analysisFrameCount,
     xAxisStep,
     xAxisLabel,
+    xUnit,
     residueData,
     residueMeans,
   } = useMemo(() => {
@@ -171,9 +172,10 @@ const RmsdPerres = () => {
     // If this is a trajectory we use time as the x axis
     const xAxisStep =
       metadata.TYPE === 'ensemble'
-        ? metadata.SNAPSHOTS / (analysisFrameCount - 1)
+        ? Math.round(metadata.SNAPSHOTS / (analysisFrameCount - 1))
         : metadata.LENGTH / (analysisFrameCount - 1);
     const xAxisLabel = metadata.TYPE === 'ensemble' ? 'Frames' : 'Time (ns)';
+    const xUnit = metadata.TYPE === 'ensemble' ? 'frame' : 'ns';
 
     // Guess the frames step of the analysis from the number of frames
     const frameStep = Math.floor(
@@ -194,6 +196,7 @@ const RmsdPerres = () => {
       analysisFrameCount,
       xAxisStep,
       xAxisLabel,
+      xUnit,
       residueData,
       residueMeans,
     };
@@ -299,6 +302,7 @@ const RmsdPerres = () => {
             yData={selectedData}
             step={xAxisStep}
             xAxisLabel={xAxisLabel}
+            xUnit={xUnit}
             yAxisLabel={'RMSd (Å)'}
             onSelect={handleFrameSelection}
             className={style.graph}

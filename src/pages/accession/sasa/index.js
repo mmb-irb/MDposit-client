@@ -82,6 +82,7 @@ const Sasa = () => {
     framesNumber,
     xAxisStep,
     xAxisLabel,
+    xUnit,
     residueData,
     residueMeans,
   } = useMemo(() => {
@@ -174,9 +175,10 @@ const Sasa = () => {
     // If this is a trajectory we use time as the x axis
     const xAxisStep =
       metadata.TYPE === 'ensemble'
-        ? metadata.SNAPSHOTS / (framesNumber - 1)
+        ? Math.round(metadata.SNAPSHOTS / (framesNumber - 1))
         : metadata.LENGTH / (framesNumber - 1);
     const xAxisLabel = metadata.TYPE === 'ensemble' ? 'Frames' : 'Time (ns)';
+    const xUnit = metadata.TYPE === 'ensemble' ? 'frame' : 'ns';
 
     // Guess the frames step of the analysis from the number of frames
     const frameStep = Math.floor(metadata.SNAPSHOTS / (framesNumber - 1));
@@ -195,6 +197,7 @@ const Sasa = () => {
       framesNumber,
       xAxisStep,
       xAxisLabel,
+      xUnit,
       residueData,
       residueMeans,
     };
@@ -302,6 +305,7 @@ const Sasa = () => {
             step={xAxisStep}
             xAxisLabel={xAxisLabel}
             yAxisLabel={'Relative SAS (Å²)'}
+            xUnit={xUnit}
             onSelect={handleFrameSelection}
             className={style.graph}
             ref={graphRef}
