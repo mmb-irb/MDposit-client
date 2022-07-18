@@ -154,6 +154,54 @@ export const documentation = [
           </>
         ),
       },
+      {
+        id: 'storage',
+        header: 'Data storage',
+        body: (
+          <>
+            Data is stored in a{' '}
+            <Link name={'MongoDB'} url={'https://www.mongodb.com/'} /> database.
+            <br />
+            <br />
+            <b>Trajectory data</b>
+            <br />
+            Atom positions along the trajectory are stored as files where each
+            coordinate is a 32 bit float in Little Endian binary and there are
+            no separators between coordinates, atoms or frames. The file has not
+            headers or footers as well. This format is size efficient and allows
+            to retrieve specific frame and atom coordinates without the need of
+            reading the file. The byte position of any range of coordinates may
+            be easily calculated beforehand.
+            <br />
+            <br />
+            <b>Metadata and analyses</b>
+            <br />
+            Metadata and analyses are stored as plain Mongo documents.
+          </>
+        ),
+      },
+      {
+        id: 'retrieval',
+        header: 'Data retrieval',
+        body: (
+          <>
+            Data stored in the database is retrieved through a REST API.
+            <br />
+            <br />
+            <b>Trajectory data</b>
+            <br />
+            Trajectory data may be retrieved in the source format or it may be
+            exported to other formats. The API has a built in parser to mdcrd
+            format. In order to export to other formats (xtc, trr) the API has
+            implemented <Link name={'Chemfiles'} id={'chemfiles'} />.
+            <br />
+            <br />
+            <b>Metadata and analyses</b>
+            <br />
+            Metadata and analyses are retrieved in json format.
+          </>
+        ),
+      },
     ],
   },
   {
@@ -1322,6 +1370,11 @@ export const documentation = [
     id: 'bibliography',
     title: 'Bibliography',
     children: [
+      {
+        id: 'chemfiles',
+        header: 'Chemfiles',
+        body: <>https://doi.org/10.5281/zenodo.3653157</>,
+      },
       {
         id: 'cmip',
         header: 'CMIP',
