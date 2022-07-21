@@ -44,7 +44,10 @@ const Rmsds = () => {
   // Get the accession
   const accession = useContext(AccessionCtx);
   // Get the metadata
-  const { metadata } = useContext(ProjectCtx);
+  const { metadata, analyses } = useContext(ProjectCtx);
+  // Note that TM scores is not mandatory to load this page
+  // Actually a simulation with no protein will have no TM score, so it is normal
+  const hasTMscore = analyses.includes('tmscore');
 
   // Send a request to the API with the url of the specific analysis
   const {
@@ -58,7 +61,9 @@ const Rmsds = () => {
     loading: tmscoresLoading,
     payload: tmscoresPayload,
     error: tmscoresError,
-  } = useAPI(`${BASE_PATH_PROJECTS}${accession}/analyses/tmscores/`);
+  } = useAPI(
+    hasTMscore ? `${BASE_PATH_PROJECTS}${accession}/analyses/tmscores/` : null,
+  );
 
   // Set which tab is selected
   const [selectedTab, setSelectedTab] = useState(tabs[0]);
@@ -126,7 +131,9 @@ const Rmsds = () => {
   if (rmsdsLoading || tmscoresLoading) return <Loading />;
   else if (rmsdsError) return rmsdsError.toString();
   else if (tmscoresError) return tmscoresError.toString();
-  else if (!rmsdsPayload || !tmscoresPayload) return 'Something bad happened';
+  else if (!rmsdsPayload) return 'Something bad happened with RMSD';
+  else if (hasTMscore && !tmscoresPayload)
+    return 'Something bad happened with TM score';
 
   // Set the y axis label according to if it is an RMSd or a TM score
   let yAxisLabel = 'RMSd (Å)';
@@ -151,7 +158,12 @@ const Rmsds = () => {
             className={style['margined-bottom']}
           >
             {tabs.map((tab, t) => (
-              <Tab key={t} value={tab} label={tab.label} />
+              <Tab
+                key={t}
+                value={tab}
+                label={tab.label}
+                disabled={tab.type === 'tmscore' && !hasTMscore}
+              />
             ))}
           </Tabs>
           <Table padding="checkbox">
