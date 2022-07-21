@@ -90,16 +90,18 @@ export default React.memo(() => {
           <CardContent className={style['card-content']}>
             <Typography variant="h6">{metadata.NAME || 'Unnamed'}</Typography>
             <div className={style['summary-list']}>
-              <Chip
-                label={typeSettings[metadata.TYPE].label}
-                variant="outlined"
-                style={{
-                  backgroundColor: typeSettings[metadata.TYPE].color,
-                  fontSize: '1em',
-                  marginRight: '0.8em',
-                }}
-                className={style.chip}
-              />
+              {metadata.TYPE && (
+                <Chip
+                  label={typeSettings[metadata.TYPE].label}
+                  variant="outlined"
+                  style={{
+                    backgroundColor: typeSettings[metadata.TYPE].color,
+                    fontSize: '1em',
+                    marginRight: '0.8em',
+                  }}
+                  className={style.chip}
+                />
+              )}
               {metadata.METHOD}
               {metadata.DESCRIPTION && <div>{metadata.DESCRIPTION}</div>}
               {metadata.AUTHORS && <div>Authors: {metadata.AUTHORS}</div>}
