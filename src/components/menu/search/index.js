@@ -74,7 +74,7 @@ const Search = ({ history }) => {
         onChange={handleChange}
         className={style.search}
         inputProps={inputProps}
-        placeholder={'e.g. remdesivir'}
+        placeholder={'e.g. Orozco lab'}
       />
     </span>
   );
