@@ -50,3 +50,12 @@ export const COLORS = new Map([
   ['fluct', '#67b7dc'],
   ['time', 'gray'],
 ]);
+
+// The name how this analysis is tagged in the webpage
+// If no name is provided, the webpage will tag it with the defalt name
+export const COLLECTION_NAMES = new Map([
+  ['cv19', 'BioExcel - COVID-19'],
+  ['mcns', 'MoDEL - Central Nervous System'],
+  ['null', 'Independent'],
+  [null, 'Independent'],
+]);

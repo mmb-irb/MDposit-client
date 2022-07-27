@@ -20,8 +20,8 @@ const Header = () => (
           <source type="image/webp" srcSet={logoWebP} />
           <LazyImg
             src={logo}
-            width="200px"
-            height="103px"
+            width="180px"
+            height="60px"
             loading="lazy"
             alt="Logo - Link to home page"
           />

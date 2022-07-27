@@ -8,7 +8,7 @@ import { MenuList, MenuItem, Typography } from '@material-ui/core';
 // All text to be displayed is set previously here
 import { documentation } from './documentation';
 
-import { BASE_PATH_PROJECTS } from '../../utils/constants';
+import { BASE_PATH_PROJECTS, COLLECTION_NAMES } from '../../utils/constants';
 import useAPI from '../../hooks/use-api'; // API acces
 
 import style from './style.module.css';
@@ -28,18 +28,22 @@ const useStatistics = () => {
   const summaryUrl = `${BASE_PATH_PROJECTS}/summary`;
   const { payload: summaryPayload, error: summaryError } = useAPI(summaryUrl);
 
-  // Use the API to get the unit options
-  const unitUrl = `${BASE_PATH_PROJECTS}/options?projection=metadata.UNIT`;
-  const { payload: unitPayload, error: unitError } = useAPI(unitUrl);
+  // Use the API to get the collections options
+  const collectionsUrl = `${BASE_PATH_PROJECTS}/options?projection=metadata.COLLECTIONS`;
+  const { payload: collectionsPayload, error: collectionsError } = useAPI(
+    collectionsUrl,
+  );
 
   useMemo(() => {
     // Set the data to be represented on the pie chart
-    const units = unitPayload && Object.entries(unitPayload['metadata.UNIT']);
-    if (units) units.sort((a, b) => b[1] - a[1]);
-    const colors = units && distinctColors({ count: units.length });
-    const pieChartData = units
-      ? units.map(([key, value], i) => ({
-          title: key,
+    const collections =
+      collectionsPayload &&
+      Object.entries(collectionsPayload['metadata.COLLECTIONS']);
+    if (collections) collections.sort((a, b) => b[1] - a[1]);
+    const colors = collections && distinctColors({ count: collections.length });
+    const pieChartData = collections
+      ? collections.map(([key, value], i) => ({
+          title: COLLECTION_NAMES.get(key),
           value: value,
           color: colors[i],
         }))
@@ -47,9 +51,9 @@ const useStatistics = () => {
 
     // Set the legend
     const legendData =
-      units &&
-      units.map(([key, value], i) => ({
-        label: key + ' (' + value + ')',
+      collections &&
+      collections.map(([key, value], i) => ({
+        label: COLLECTION_NAMES.get(key) + ' (' + value + ')',
         color: colors[i],
       }));
 
@@ -80,7 +84,7 @@ const useStatistics = () => {
           {summaryPayload ? summaryPayload.totalAnalyses : 'Loading...'}
           <br />
           <br />
-          Simulations unit diversity:
+          Simulations per collection:
           <div className={style.horizontal}>
             <PieChart
               data={pieChartData}
@@ -100,10 +104,10 @@ const useStatistics = () => {
       ...introductionChildren,
       summary,
     ];
-  }, [unitPayload, summaryPayload]);
+  }, [collectionsPayload, summaryPayload]);
 
   if (summaryError) throw new Error(summaryError.toString());
-  if (unitError) throw new Error(unitError.toString());
+  if (collectionsError) throw new Error(collectionsError.toString());
 };
 
 const Help = ({ location }) => {

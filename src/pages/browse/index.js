@@ -1,5 +1,5 @@
 // React logic
-import React, { useEffect, useState, useLayoutEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 // String managers
@@ -20,16 +20,11 @@ import {
   TableFooter,
   Typography,
   Chip,
-  Select,
-  InputLabel,
-  MenuItem,
-  FormControl,
 } from '@material-ui/core';
 
 // Additional components
 import Card from '../../components/animated-card'; // The exceled parcels in which almost all features are based
 import Highlight from '../../components/highlight'; // Used to underline text
-import LazyImg from '../../components/lazy-img'; // Renders an image by a hook
 import Loading from '../../components/loading'; // Displays an animated "loading" circle
 
 // Hooks
@@ -43,34 +38,6 @@ import style from './style.module.css';
 
 // It is used to check if the user has the reduced motion setting active
 import reducedMotion from '../../utils/reduced-motion';
-
-// This is a standard preview used by all projects, since their structures look quite the same
-import standardPreview1 from '../../images/rbd-ace2_preview.png';
-import standardPreview2 from '../../images/rbd_preview.png';
-import standardPreview3 from '../../images/ace2_preview.png';
-import standardPreview4 from '../../images/spike_preview.png';
-import standardPreview5 from '../../images/3clpro_preview.png';
-import standardPreview6 from '../../images/plpro_preview.png';
-import standardPreview7 from '../../images/polymerase_preview.png';
-import standardPreview8 from '../../images/eprotein_preview.png';
-import standardPreview9 from '../../images/exonuclease_preview.png';
-import standardPreview10 from '../../images/other.png';
-import standardPreview11 from '../../images/nsp1610.png';
-
-// Define the image to be shown depending on the unit name
-const unitPreview = {
-  'RBD-ACE2': standardPreview1,
-  RBD: standardPreview2,
-  ACE2: standardPreview3,
-  Spike: standardPreview4,
-  '3CLpro': standardPreview5,
-  PLpro: standardPreview6,
-  Polymerase: standardPreview7,
-  'E protein': standardPreview8,
-  Exoribonuclease: standardPreview9,
-  Other: standardPreview10,
-  'NSP16/10': standardPreview11,
-};
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -204,23 +171,8 @@ const Row = ({ project, highlight, index, setProject }) => {
             : na}
         </Highlight>
       </TableCell>
-      {/* unit */}
-      <TableCell>
-        {(metadata && metadata.UNIT && (
-          <LazyImg
-            width="110px"
-            height="110px"
-            // Take the image from a specific URL which is processed from the PDB identifier
-            src={unitPreview[metadata.UNIT]}
-            loading="lazy"
-            alt={'No available preview'}
-          />
-        )) ||
-          na}
-        <Typography className={style['reduced-margin']}>
-          {metadata && metadata.UNIT}
-        </Typography>
-      </TableCell>
+      {/* groups */}
+      <TableCell>{(metadata && metadata.GROUPS) || na}</TableCell>
       {/* analyses */}
       <TableCell>
         {analyses && analyses.length
@@ -278,23 +230,12 @@ const Browse = ({ location, history, setProject }) => {
     decoder: c => c,
   });
 
-  // The 'unit' tab selection
-  const [selectedUnit, setSelectedUnit] = useState(search.unit || '');
-  const unitFilter = selectedUnit
-    ? '&filter=metadata.UNIT+*' + selectedUnit
-    : '';
-  const unit = parse(unitFilter, {
-    ignoreQueryPrefix: true,
-    decoder: c => c,
-  });
-
   // Convert the specified object back to a single encoded string
   const searchString = stringify({
     search: search.search,
     query: search.query,
     page: search.page || DEFAULT_PAGE,
     limit: search.limit || DEFAULT_LIMIT,
-    filter: unit.filter,
   });
 
   // Scroll up when the page is changed
@@ -353,36 +294,7 @@ const Browse = ({ location, history, setProject }) => {
             <TableRow>
               <TableCell>accession</TableCell>
               <TableCell>name</TableCell>
-              <TableCell>
-                <FormControl className={style.tab}>
-                  <InputLabel id="label">unit</InputLabel>
-                  <Select
-                    id="select"
-                    value={selectedUnit}
-                    onChange={event => {
-                      const newUnit = event.target.value;
-                      // Update the history to reset the page
-                      history.push({
-                        ...location,
-                        search: stringify({
-                          search: search.search,
-                          query: search.query,
-                          unit: newUnit ? newUnit : undefined,
-                        }),
-                      });
-                      // Update the selected unit state
-                      setSelectedUnit(newUnit);
-                    }}
-                  >
-                    <MenuItem value="">All</MenuItem>
-                    {Object.keys(unitPreview).map(key => (
-                      <MenuItem value={key} key={key}>
-                        {key}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </TableCell>
+              <TableCell>groups</TableCell>
               <TableCell>analyses</TableCell>
             </TableRow>
           </TableHead>

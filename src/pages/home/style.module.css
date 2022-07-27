@@ -3,7 +3,7 @@
 }
 
 .card-content > :not(:first-of-type) {
-  margin: 1em 0;
+  margin-top: 1em;
 }
 
 .card-content img {
@@ -22,6 +22,7 @@
   padding: 1em;
   display: flex;
   align-items: flex-start;
+  margin-top: 1em;
 }
 
 .acknowledgements-text {
@@ -37,4 +38,18 @@
 .fill {
   min-width: 100%;
   min-height: 100%;
+}
+
+.searchbar {
+  margin-top: 0.5em;
+  width: 100%;
+}
+
+.searchbar-icon {
+  margin-left: 0.2em;
+  margin-right: 0.4em;
+}
+
+.searchbar-letters {
+  font-size: x-large;
 }

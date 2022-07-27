@@ -1,9 +1,9 @@
 [
   {
-    "name": "Unit",
-    "path": "metadata.UNIT",
+    "name": "Collections",
+    "path": "metadata.COLLECTIONS",
     "type": "string",
-    "example": "ACE2",
+    "example": "cv19",
     "options": true
   },
   {

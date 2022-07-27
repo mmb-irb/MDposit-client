@@ -6,12 +6,6 @@ import { MuiThemeProvider, createMuiTheme } from '@material-ui/core/styles';
 // Load the project context
 import { ProjectCtx } from '../contexts';
 
-// Set the header colors (standard model colors)
-import {
-  blueGrey as primary, // #607D8B
-  lightGreen as secondary, // #76FF03
-} from '@material-ui/core/colors';
-
 // Layout
 import Body from '../layout/body';
 import Main from '../layout/main';
@@ -19,6 +13,10 @@ import Header from '../layout/header';
 //import HomeFAB from '../components/home-fab';
 
 import ErrorBoundary from '../components/error-boundary';
+
+// Set the header colors (standard model colors)
+const primary = { main: '#5c6bc0' }; // Light indigo
+const secondary = { main: '#fafafa' }; // Light grey
 
 const Footer = lazy(async () => {
   await schedule(100);
@@ -76,9 +74,9 @@ const theme = createMuiTheme({
   palette: { primary, secondary },
   props: {
     MuiTableCell: {
-      align: "center"
-    }
-  }
+      align: 'center',
+    },
+  },
 });
 
 const Base = ({ setProject }) => {

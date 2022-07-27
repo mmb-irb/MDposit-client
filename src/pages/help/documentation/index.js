@@ -37,6 +37,8 @@ const Link = ({ name, id, url }) => (
     </a>
   </>
 );
+// Set the name of the webpage
+const webpageName = 'MDposit';
 
 // All text to be displayed is set previously here
 export const documentation = [
@@ -45,14 +47,13 @@ export const documentation = [
     title: 'Introduction',
     body: (
       <>
-        Welcome to the BioExcel-CV19 documentation page.
+        Welcome to the {webpageName} documentation page.
         <br />
         <br />
-        BioExcel-CV19 is an open platform designed to provide web-access to
-        molecular dynamics (MD) simulations from or related to SARS-CoV-2. The
-        aim of this initiative is to ease and promote data sharing along the
-        wide-world scientific community in order to contribute in the fight
-        against COVID-19 disease.
+        {webpageName} is an open platform designed to provide web access to
+        atomistic molecular dynamics (MD) simulations. The aim of this
+        initiative is to ease and promote data sharing along the wide-world
+        scientific community in order to contribute in research.
         <br />
         <br />
         For any doubt please contact{' '}
@@ -67,7 +68,7 @@ export const documentation = [
         header: 'Context',
         body: (
           <>
-            BioExcel-CV19 is part of the{' '}
+            {webpageName} is part of the{' '}
             <Link name={'BioExcel'} url={'https://bioexcel.eu/'} /> center. The
             platform is being developed from the{' '}
             <Link
@@ -99,11 +100,12 @@ export const documentation = [
         header: 'Data source',
         body: (
           <>
-            Simulations in BioExcel-CV19 proceed mostly from the{' '}
-            <Link name={'MolSSI'} url={'https://covid.molssi.org/'} />{' '}
-            repository. In addition, the platform contains simulations sent from
-            other research groups. In case you want to share your simulations
-            with BioExcel-CV19 please{' '}
+            Simulations in {webpageName} proceed from several different sources.
+            Some simulations are downloaded from global repsoitories such as{' '}
+            <Link name={'MolSSI'} url={'https://covid.molssi.org/'} />. In
+            addition, the platform contains simulations sent from research
+            groups. In case you want to share your simulations with{' '}
+            {webpageName} please{' '}
             <Link
               name={'contact us'}
               url={'http://mmb.irbbarcelona.org/www/locationmap'}
@@ -117,7 +119,7 @@ export const documentation = [
         header: 'Data processing',
         body: (
           <>
-            Before a simulation is uploaded to the BioExcel-CV19 database, it is
+            Before a simulation is uploaded to the {webpageName} database, it is
             processed through a workflow. This workflow standarizes data format
             and then analyzes the simulation in order to upload the analysis
             results also to the database. Some important aspects of this
@@ -360,9 +362,9 @@ export const documentation = [
             graphics.
             <br />
             <br />
-            The BioExcel implementation of NGL viewer is a dynamic component
-            useful to represent molecular structures and trajectories which the
-            user can interact with.
+            The {webpageName} implementation of NGL viewer is a dynamic
+            component useful to represent molecular structures and trajectories
+            which the user can interact with.
             <br />
             <br />
             This component may be integrated in the web page structure (e.g. in

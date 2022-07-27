@@ -725,7 +725,7 @@ const NGLViewerWithControls = forwardRef(
               >
                 <LinearProgress
                   variant="buffer"
-                  color="secondary"
+                  color="primary"
                   value={progress * 100}
                   valueBuffer={load * 100}
                   style={{ height: '1ch' }}
