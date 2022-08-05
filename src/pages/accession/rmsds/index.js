@@ -47,7 +47,7 @@ const Rmsds = () => {
   const { metadata, analyses } = useContext(ProjectCtx);
   // Note that TM scores is not mandatory to load this page
   // Actually a simulation with no protein will have no TM score, so it is normal
-  const hasTMscore = analyses.includes('tmscore');
+  const hasTMscore = analyses.includes('tmscores');
 
   // Send a request to the API with the url of the specific analysis
   const {
