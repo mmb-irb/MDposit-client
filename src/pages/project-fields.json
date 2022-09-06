@@ -140,6 +140,13 @@
     "options": true
   },
   {
+    "name": "Boxtype",
+    "path": "metadata.BOXTYPE",
+    "type": "string",
+    "example": "Triclinic",
+    "options": true
+  },
+  {
     "name": "System atom count",
     "path": "metadata.SYSTATS",
     "type": "int",
