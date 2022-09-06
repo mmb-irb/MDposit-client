@@ -149,8 +149,8 @@ const Rmsds = () => {
           <Tabs
             value={selectedTab}
             variant="fullWidth"
-            indicatorColor="secondary"
-            textColor="secondary"
+            indicatorColor="primary"
+            textColor="primary"
             onChange={(event, value) => {
               setSelected(null);
               setSelectedTab(value);
