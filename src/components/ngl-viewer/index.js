@@ -11,7 +11,7 @@ import React, {
 } from 'react';
 //import useToggleState from '../../hooks/use-toggle-state';
 import { useInView } from 'react-intersection-observer';
-import { debounce, clamp } from 'lodash-es';
+import { clamp } from 'lodash-es';
 import cn from 'classnames';
 import { autoLoad, Stage, ColormakerRegistry, Matrix4 } from 'ngl';
 
