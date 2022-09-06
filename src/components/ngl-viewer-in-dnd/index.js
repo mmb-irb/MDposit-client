@@ -147,9 +147,9 @@ const NGLViewerInDND = props => {
           height: ref.style.height,
           ...position,
         });
-        if (!nglViewRef.current) return;
-        nglViewRef.current.autoResize();
-        nglViewRef.current.autoResize.flush();
+        // if (!nglViewRef.current) return;
+        // nglViewRef.current.autoResize();
+        // nglViewRef.current.autoResize.flush();
       }}
     >
       <Card className={style['floating-card']} elevation={4}>

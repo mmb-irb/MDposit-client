@@ -643,23 +643,20 @@ const NGLViewer = memo(
 
       // Resize logic
       // declare handler
-      const handleResize = useCallback(
-        debounce(() => {
-          if (!stageRef.current) return;
-          const canvas = containerRef.current.querySelector('canvas');
-          if (canvas) {
-            canvas.style.height = '';
-            canvas.style.cursor = 'default';
-          }
-          stageRef.current.handleResize();
-        }, 500),
-        [],
-      );
+      const handleResize = useCallback(() => {
+        if (!stageRef.current) return;
+        const canvas = containerRef.current.querySelector('canvas');
+        if (canvas) {
+          canvas.style.height = '';
+          canvas.style.cursor = 'default';
+        }
+        console.log('vamoss');
+        stageRef.current.handleResize();
+      }, []);
       // connect the handle to events
       useEffect(() => {
         window.addEventListener('resize', handleResize);
         return () => {
-          handleResize.cancel();
           window.removeEventListener('resize', handleResize);
         };
       }, [handleResize]);
