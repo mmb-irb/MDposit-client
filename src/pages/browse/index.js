@@ -63,11 +63,11 @@ if (!reducedMotion()) {
 // Set manually which references have entropies
 // This needs to be updated by hand when there is a new reference with entropies
 // This workaround prevents downloading all references data to ckeck it, which would be unefficient
-const referencesWithEntropies = ['SARS-CoV-2 spike'];
+const referencesWithEntropies = ['P0DTC2'];
 const hasEntropies = reference => {
   return referencesWithEntropies.indexOf(reference) > -1;
 };
-const referencesWithEpitopes = ['SARS-CoV-2 spike'];
+const referencesWithEpitopes = ['P0DTC2'];
 const hasEpitopes = reference => {
   return referencesWithEpitopes.indexOf(reference) > -1;
 };
