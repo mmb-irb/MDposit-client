@@ -34,6 +34,9 @@ import { BASE_PATH_PROJECTS } from '../../utils/constants';
 // Make a deep copy of an object even with cyclic references
 import { cloneDeep } from 'lodash-es';
 
+// Used to just wait
+import { sleep } from 'timing-functions';
+
 import https from 'https';
 import http from 'http';
 import url from 'url';
@@ -644,13 +647,17 @@ const NGLViewer = memo(
 
       // Resize logic
       // declare handler
-      const handleResize = useCallback(() => {
+      const handleResize = useCallback(async () => {
         if (!stageRef.current) return;
         const canvas = containerRef.current.querySelector('canvas');
         if (canvas) {
           canvas.style.height = '';
           canvas.style.cursor = 'default';
         }
+        // WARNING: This sleep here is to fix a bug
+        // When we open/close settings we trigger this function but it takes the size of the window before changing
+        // The sleep fixes this problem altought the delay is 0
+        await sleep(0);
         stageRef.current.handleResize();
       }, []);
       // connect the handle to events
