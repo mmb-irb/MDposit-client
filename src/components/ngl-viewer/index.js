@@ -148,6 +148,7 @@ const NGLViewer = memo(
         files,
         curatedOrientation,
         topology: topologyManager,
+        references: referenceData,
       } = useContext(ProjectCtx);
       const { file: pdbDataFile } = useContext(PdbCtx);
 
@@ -650,7 +651,6 @@ const NGLViewer = memo(
           canvas.style.height = '';
           canvas.style.cursor = 'default';
         }
-        console.log('vamoss');
         stageRef.current.handleResize();
       }, []);
       // connect the handle to events
@@ -1591,6 +1591,12 @@ const NGLViewer = memo(
           const reference = topologyManager.absolute2reference(
             atom.residueIndex,
           );
+          const currentReferenceData = referenceData.find(
+            r => r.uniprot === reference.id,
+          );
+          const referenceName = currentReferenceData
+            ? currentReferenceData.name
+            : reference;
           return (
             <>
               {`Atom ${atom.index} (${atom.atomname})
@@ -1600,7 +1606,7 @@ const NGLViewer = memo(
             Residue ${sourceResidue.residueNumber} (${atom.resname})`}
               {reference ? (
                 <div>
-                  <div style={{ color: 'lightGreen' }}>{reference.name}</div>
+                  <div style={{ color: 'lightGreen' }}>{referenceName}</div>
                   <div>{`- Residue ${reference.index}`}</div>
                 </div>
               ) : (
@@ -1683,7 +1689,7 @@ const NGLViewer = memo(
           tooltip.remove();
           containerRef.current.removeEventListener('mouseleave', hideTooltip);
         };
-      }, [topologyManager, setTooltipContent]);
+      }, [topologyManager, referenceData, setTooltipContent]);
 
       // Track when the first focus has been performed, since first focus is instantaneous
       const firstFocus = useRef(true);

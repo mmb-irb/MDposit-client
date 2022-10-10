@@ -472,7 +472,7 @@ export class Topology {
     if (referenceIndex === null) return null;
     const reference = this.references[referenceIndex];
     const residueReferenceNumber = this.residueReferenceNumbers[residue];
-    return { name: reference, index: residueReferenceNumber };
+    return { id: reference, index: residueReferenceNumber };
   };
 
   // This function converts a list of topology reference residue numbers to current topology residue numbers

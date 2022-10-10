@@ -57,11 +57,11 @@ const useMutationsRepresentations = () => {
         const ref = topologyManager.absolute2reference(residue);
         // If no reference residue was found then paint it white
         if (!ref) return parseInt('ffffff', 16);
-        const { name: referenceName, index: residueIndex } = ref;
+        const { id: referenceId, index: residueIndex } = ref;
         // get the corresponding entropy
         // -1 because the residue 'x' would be the index 'x-1' in the array
         const reference = referenceData.find(
-          reference => reference.name === referenceName,
+          reference => reference.uniprot === referenceId,
         );
         const entropies = reference.logarithmicEntropies;
         if (!entropies || entropies.length === 0) return parseInt('ffffff', 16);

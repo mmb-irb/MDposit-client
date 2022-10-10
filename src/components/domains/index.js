@@ -71,7 +71,7 @@ const Domains = ({ setter }) => {
     const referenceDomains = [];
     if (referenceData) {
       referenceData.forEach(reference => {
-        const referenceName = reference.name;
+        const referenceId = reference.id;
         const referenceDataDomains = reference.domains;
         if (!referenceDataDomains) return;
         // ----------------------------------------------------------------------------------------
@@ -88,7 +88,7 @@ const Domains = ({ setter }) => {
             const parsedSelection = rangedSelectionParser(selection);
             // WARNING: A single reference residue may correspond to multiple topology residues
             const mappedSelection = topologyManager.reference2absolute(
-              referenceName,
+              referenceId,
               parsedSelection,
             );
             // Representations with a selection not present in topology are discarded

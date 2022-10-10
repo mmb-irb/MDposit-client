@@ -21,7 +21,7 @@ const useEpitopesRepresentations = () => {
     // Get the residues on each reference epitopes in the current topology numeration
     const mappedResiduesPerReference = referenceData.map(reference => {
       // Get the reference name and epitopes
-      const referenceName = reference.name;
+      const referenceId = reference.id;
       const referenceEpitopes = reference.epitopes;
       if (!referenceEpitopes) return [];
       // Save all epitope residues together and eliminate duplicates
@@ -31,7 +31,7 @@ const useEpitopesRepresentations = () => {
       const allResidues = [].concat.apply([], epitopeResidues);
       const uniqueResidues = Array.from(new Set(allResidues));
       const mappedResidues = topologyManager.reference2absolute(
-        referenceName,
+        referenceId,
         uniqueResidues,
       );
       if (!mappedResidues) return [];
