@@ -1598,12 +1598,12 @@ const NGLViewer = memo(
           const reference = topologyManager.absolute2reference(
             atom.residueIndex,
           );
-          const currentReferenceData = referenceData.find(
-            r => r.uniprot === reference.id,
-          );
-          const referenceName = currentReferenceData
-            ? currentReferenceData.name
-            : reference;
+          const currentReferenceData =
+            reference && referenceData.find(r => r.uniprot === reference.id);
+          const referenceName =
+            reference && currentReferenceData
+              ? currentReferenceData.name
+              : reference;
           return (
             <>
               {`Atom ${atom.index} (${atom.atomname})
