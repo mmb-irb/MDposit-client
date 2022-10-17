@@ -6,6 +6,29 @@
   float: right;
 }
 
+.card-content:last-child {
+  padding-bottom: 16px;
+}
+
+.horizontal-marginned {
+  padding-top: 0px;
+  padding-left: 16px;
+  padding-right: 16px;
+  padding-bottom: 0px;
+}
+.horizontal-marginned:last-child {
+  padding-bottom: 0px;
+}
+.vertcial-marginned {
+  padding-top: 16px;
+  padding-left: 0px;
+  padding-right: 0px;
+  padding-bottom: 16px;
+}
+.vertcial-marginned:last-child {
+  padding-bottom: 16px;
+}
+
 .chip {
   margin: 0.5ch;
 }

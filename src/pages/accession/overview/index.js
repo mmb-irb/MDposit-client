@@ -34,7 +34,9 @@ const typeSettings = {
 };
 
 export default React.memo(() => {
-  const { accession, identifier, published, metadata } = useContext(ProjectCtx);
+  const { accession, identifier, published, metadata, references } = useContext(
+    ProjectCtx,
+  );
   // Download pdb information for every pdb id in metadata
   const pdbIds = metadata.PDBIDS;
   const [pdbInfo, setPdbInfo] = useState({});
@@ -133,9 +135,41 @@ export default React.memo(() => {
           </CardContent>
         </Card>
       )}
-      {pdbInfo && Object.keys(pdbInfo).length > 0 && (
+      {references && references.length > 0 && (
         <Card className={style.card}>
-          <CardContent className={style['card-content']}>
+          <CardContent className={style['horizontal-marginned']}>
+            {references.map((reference, i) => (
+              <div key={i}>
+                {i !== 0 && (
+                  <hr style={{ color: 'lightGrey' }} />
+                ) /* An horizontal line to separate references */}
+                <CardContent className={style['vertcial-marginned']}>
+                  <div>
+                    <div className={style['summary-list']}>
+                      <Typography variant="h6">{reference.name}</Typography>
+                      <div>{reference.gene && `Gene: ${reference.gene}`}</div>
+                      <div>
+                        {reference.organism &&
+                          `Organism: ${reference.organism}`}
+                      </div>
+                      <div>
+                        {reference.uniprot && `UniProt ID: `}
+                        <a
+                          href={
+                            'https://www.uniprot.org/uniprotkb/' +
+                            reference.uniprot
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {reference.uniprot}
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </div>
+            ))}
             {Object.entries(pdbInfo).map(([pdbId, pdbMetadata], i) => {
               //const pdbId = pdb && pdb._id && pdb._id.toLowerCase();
               if (!pdbMetadata) return 'PDB ' + pdbId + ' not found';
