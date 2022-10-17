@@ -71,7 +71,7 @@ const Domains = ({ setter }) => {
     const referenceDomains = [];
     if (referenceData) {
       referenceData.forEach(reference => {
-        const referenceId = reference.id;
+        const referenceId = reference.uniprot;
         const referenceDataDomains = reference.domains;
         if (!referenceDataDomains) return;
         // ----------------------------------------------------------------------------------------
