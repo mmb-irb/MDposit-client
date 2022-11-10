@@ -24,13 +24,13 @@ import style from './style.module.css';
 // This workaround prevents having to pass the references context to the root, which makes no sense
 // DANI: De hecho yo no pasaría ni el project al context del root
 // DANI: Habría que poner el project-menu dentro del accession, y que se una con el header solo visualmente
-const referencesWithEntropies = ['SARS-CoV-2 spike'];
-const hasEntropies = referenceName => {
-  return referencesWithEntropies.indexOf(referenceName) > -1;
+const referencesWithEntropies = ['P0DTC2'];
+const hasEntropies = referenceId => {
+  return referencesWithEntropies.indexOf(referenceId) > -1;
 };
-const referencesWithEpitopes = ['SARS-CoV-2 spike'];
-const hasEpitopes = referenceName => {
-  return referencesWithEpitopes.indexOf(referenceName) > -1;
+const referencesWithEpitopes = ['P0DTC2'];
+const hasEpitopes = referenceId => {
+  return referencesWithEpitopes.indexOf(referenceId) > -1;
 };
 
 // Render the menu of the project (i.e. the inferior header)

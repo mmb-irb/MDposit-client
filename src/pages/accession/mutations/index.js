@@ -47,11 +47,11 @@ const Mutations = () => {
     for (let i = 0; i < residuesCount; i++) {
       const reference = topologyManager.absolute2reference(i);
       if (!reference) continue;
-      const { name: referenceName, index: referenceIndex } = reference;
+      const { id: referenceId, index: referenceIndex } = reference;
       // We substract 1 from the residueIndex since it counts from 1 to n as references do
       const residueIndex = referenceIndex - 1;
       const currentReferenceData = referenceData.find(
-        data => data.name === referenceName,
+        data => data.uniprot === referenceId,
       );
       const entropies = currentReferenceData.entropies;
       if (!entropies) continue;
