@@ -25,8 +25,6 @@ import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 import style from './style.module.css';
 
-import { complexNumerationParser } from '../../../utils/topology-manager';
-
 import { ColormakerRegistry } from 'ngl';
 
 import ResidueSelector from '../../../components/residue-selector';
@@ -85,50 +83,33 @@ const RmsdPerres = () => {
     xAxisStep,
     xAxisLabel,
     xUnit,
-    residueData,
-    residueMeans,
+    data,
   } = useMemo(() => {
     if (!topologyManager || !metadata || !payload) return {};
 
-    // Reformat data, find each residue source notation and absolute index
-    const data = payload.data.map(residue => {
-      const sourceResidue = complexNumerationParser(residue.name);
-      const absoluteResidue = topologyManager.source2absoluteResidue(
-        sourceResidue,
-      );
-      // Calculate the mean and standard deviation of each residue rmsds
-      const [mean, stdv] = getStaistics(residue.rmsds);
-      return {
-        ...residue,
-        ...sourceResidue,
-        index: absoluteResidue,
-        mean,
-        stdv,
-      };
-    });
+    // Data is stored as RMSD per residue and per frame respectively
+    const rmsdpr = payload.rmsdpr;
     // Calculate the mean and standard deviation of each residue rmsds
-    data.forEach(residue => {
-      const [mean, stdv] = getStaistics(residue.rmsds);
-      residue.mean = mean;
-      residue.stdv = stdv;
+    // DANI: Esto he comprovado que cuesta 10 milisegundos aprox en una estructura grande
+    const means = [];
+    const stdvs = [];
+    rmsdpr.forEach(rmsdpf => {
+      if (rmsdpf === null) {
+        means.push(null);
+        stdvs.push(null);
+      } else {
+        const [mean, stdv] = getStaistics(rmsdpf);
+        means.push(mean);
+        stdvs.push(stdv);
+      }
     });
+
+    // Put all data together to be used further in this component
+    const data = { rmsdpr, means, stdvs };
 
     // Also get the maximum and minimum means
-    const means = data.map(residue => residue.mean);
     const max = Math.max(...means);
     const min = Math.min(...means);
-
-    // Set a list with the data of each residue for every residue in the topology
-    // Residues not included in the analysis data will remain as null
-    const residuesCount = topologyManager.getResiduesCount();
-    const residueData = new Array(residuesCount).fill(null);
-    data.forEach(residue => {
-      residueData[residue.index] = residue;
-    });
-    // Get the mean for each residue in topology
-    const residueMeans = residueData.map(
-      residue => (residue && residue.mean) || null,
-    );
 
     // Set the color scale according to the maximum and minimum means
     const nglColorScale = scaleLinear()
@@ -139,12 +120,11 @@ const RmsdPerres = () => {
     // WARNING: Grey looks better than white because the background is white and the structure is easier to see
     const colorScheme = ColormakerRegistry.addScheme(function(params) {
       this.atomColor = atom => {
-        // Find the residue index and then the entropy for this residue
-        const residue = atom.residueIndex;
-        const currentResidueData = residueData[residue];
-        // If there is no data for the current residue then paint it white
-        if (!currentResidueData) return 16777215;
-        const mean = currentResidueData.mean;
+        // Find the residue index and then the mean rmsd for this residue
+        const residueIndex = atom.residueIndex;
+        const mean = means[residueIndex];
+        // If there is no data for this residue then paint it white
+        if (mean === null) return 16777215;
         // Calculate the interpolated rgb for this value
         // The interpolated color comes in rbg format
         const hexColor = d3color(nglColorScale(mean)).formatHex();
@@ -164,23 +144,24 @@ const RmsdPerres = () => {
       representations.push(newRepresentation);
     });
 
-    const firstResidue = data[0];
-    const analysisFrameCount = firstResidue.rmsds.length;
+    // Get the number of frames in the analysis from the first residue data
+    const firstResidueData = rmsdpr[0];
+    const analysisFrameCount = firstResidueData.length;
+
+    // Get the number of frames in the trajectory
     const trajectoryFrameCount = metadata.SNAPSHOTS;
+
+    // Get the frames step from the analysis itself
+    const frameStep = payload['step'];
 
     // If this is an ensemble we use frames as the x axis
     // If this is a trajectory we use time as the x axis
     const xAxisStep =
       metadata.TYPE === 'ensemble'
-        ? Math.round(metadata.SNAPSHOTS / (analysisFrameCount - 1))
+        ? frameStep
         : metadata.LENGTH / (analysisFrameCount - 1);
     const xAxisLabel = metadata.TYPE === 'ensemble' ? 'Frames' : 'Time (ns)';
     const xUnit = metadata.TYPE === 'ensemble' ? 'frame' : 'ns';
-
-    // Guess the frames step of the analysis from the number of frames
-    const frameStep = Math.floor(
-      trajectoryFrameCount / (analysisFrameCount - 1),
-    );
 
     // Load the required frames from the main trajectory
     const mainURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory?frames=1:${trajectoryFrameCount}:${frameStep}`;
@@ -197,26 +178,25 @@ const RmsdPerres = () => {
       xAxisStep,
       xAxisLabel,
       xUnit,
-      residueData,
-      residueMeans,
+      data,
     };
   }, [payload, topologyManager, metadata, accession, defaultRepresentations]);
 
   // Get the residues list in model notation
-  const { selectedData, selectedResidueNames } = useMemo(() => {
+  const { selectedData, selectedResidueIndices } = useMemo(() => {
     // Now get only the selected keys from the payload
     const selectedData = {};
-    const selectedResidueNames = [];
+    const selectedResidueIndices = [];
     // Color the first selected residues in the graph
     selectedResidues.forEach((residue, i) => {
-      const currentResidueData = residueData[residue.index];
-      const newData = { data: currentResidueData.rmsds };
+      const currentResidueData = data.rmsdpr[residue.index];
+      const newData = { data: currentResidueData };
       newData.color = residue.color;
       selectedData[i] = newData;
-      selectedResidueNames.push(currentResidueData.name);
+      selectedResidueIndices.push(residue.index);
     });
-    return { selectedData, selectedResidueNames };
-  }, [residueData, selectedResidues]);
+    return { selectedData, selectedResidueIndices };
+  }, [data, selectedResidues]);
 
   // When the user clicks on the graph
   const handleFrameSelection = useCallback(frame => {
@@ -268,12 +248,13 @@ const RmsdPerres = () => {
   // Handle what to write on the tooltip when the user hovers a specific residue letter
   const handleTooltip = useCallback(
     (residue, residueIndex) => {
-      const currentResidueData = residueData[residueIndex];
-      const meanRMSD = Math.round(currentResidueData.mean * 100) / 100;
-      const stdvRMSD = Math.round(currentResidueData.stdv * 100) / 100;
+      const currentResidueMean = data.means[residueIndex];
+      const currentResidueStdv = data.stdvs[residueIndex];
+      const meanRMSD = Math.round(currentResidueMean * 100) / 100;
+      const stdvRMSD = Math.round(currentResidueStdv * 100) / 100;
       return `Mean RMSD: ${meanRMSD}\nStandard deviation: ${stdvRMSD}`;
     },
-    [residueData],
+    [data],
   );
 
   // Render loading or error messages according with the API response
@@ -288,7 +269,7 @@ const RmsdPerres = () => {
     <Suspense fallback={<Loading />}>
       <Card>
         <ResidueSelector
-          residueValues={residueMeans}
+          residueValues={data.means}
           legendTitle={'Average RMSD (Å)'}
           onSelect={handleSelect}
           onDeselect={handleDeselect}
@@ -320,7 +301,7 @@ const RmsdPerres = () => {
           <NGLViewerWithControls
             className={style.container}
             components={mainComponent}
-            selectedResidues={selectedResidueNames}
+            selectedResidueIndices={selectedResidueIndices}
             onProgress={handleFrameProgress}
             ref={viewerRef}
             framesSelect={false}

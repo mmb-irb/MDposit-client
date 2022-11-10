@@ -83,50 +83,39 @@ const Sasa = () => {
     xAxisStep,
     xAxisLabel,
     xUnit,
-    residueData,
-    residueMeans,
+    data,
   } = useMemo(() => {
     if (!topologyManager || !metadata || !payload) return {};
 
     // Check data to be coherent
     // Note that sasa analysis must always have the same number of residues that the topology
-    if (topologyManager.getResiduesCount() !== payload.data.length)
+    const residueCount = topologyManager.getResiduesCount();
+    if (residueCount !== payload.saspf.length)
       throw new Error(
         'Number of residues in the analysis does not match number of residues in the topology',
       );
 
-    // Reformat data
+    // Duplicate the payload data but removing a few values
+    // Data from single atom residues (i.e. ions) is discarded since they may raise the maximum SAS a lot
     // Note that sasa analysis will always have the same number of residues that the topology
-    const data = payload.data
-      .map((residue, residueIndex) => {
-        const sourceResidue = topologyManager.absolute2sourceResidue(
-          residueIndex,
-        );
-        return { ...residue, ...sourceResidue, index: residueIndex };
-      })
-      .filter(residue => {
-        // WARNING: Data from single atom residues (i.e. ions) is discarded since they may raise the maximum SAS a lot
-        const residueAtomsCount = topologyManager.getResidueAtomsCount(
-          residue.index,
-        );
-        return residueAtomsCount > 1;
-      });
-
-    // Set a list with the data of each residue for every residue in the topology
-    // Residues not included in the analysis data will remain as null
-    const residuesCount = topologyManager.getResiduesCount();
-    const residueData = new Array(residuesCount).fill(null);
-    data.forEach(residue => {
-      residueData[residue.index] = residue;
-    });
-    // Get the mean for each residue in topology
-    const residueMeans = residueData.map(
-      residue => (residue && residue.mean) || null,
-    );
+    // Excluded residues (e.g. membrane residues) have null in all its values
+    const data = { saspf: [], means: [], stdvs: [] };
+    for (let r = 0; r < residueCount; r++) {
+      const atomCount = topologyManager.getResidueAtomsCount(r);
+      if (atomCount === 1) {
+        data.saspf[r] = null;
+        data.means[r] = null;
+        data.stdvs[r] = null;
+      } else {
+        data.saspf[r] = payload.saspf[r];
+        data.means[r] = payload.means[r];
+        data.stdvs[r] = payload.stdvs[r];
+      }
+    }
 
     // Calculate the mean and standard deviation of each residue saspf
     // Also get the maximum and minimum means
-    const means = data.map(residue => residue.mean);
+    const means = data.means;
     const max = Math.max(...means);
     const min = Math.min(...means);
 
@@ -140,14 +129,14 @@ const Sasa = () => {
     const colorScheme = ColormakerRegistry.addScheme(function(params) {
       this.atomColor = atom => {
         // Find the residue index and then the entropy for this residue
-        const residue = atom.residueIndex;
-        const residueAtomsCount = topologyManager.getResidueAtomsCount(residue);
+        const residueIndex = atom.residueIndex;
+        const residueAtomsCount = topologyManager.getResidueAtomsCount(
+          residueIndex,
+        );
         // Single atom residues (i.e. ions) are discarded since they may raise the maximum SAS a lot
         if (residueAtomsCount === 1) return 16777215;
-        const currentResidueData = residueData[residue];
-        // If there is no data for the current residue then paint it white
-        if (!currentResidueData) return 16777215;
-        const mean = currentResidueData.mean;
+        const mean = means[residueIndex];
+        if (mean === null) return 16777215;
         // Calculate the interpolated rgb for this value
         // The interpolated color comes in rbg format
         const hexColor = d3color(nglColorScale(mean)).formatHex();
@@ -168,20 +157,21 @@ const Sasa = () => {
       representations.push(newRepresentation);
     });
 
-    const firstResidue = data[0];
-    const framesNumber = firstResidue.saspf.length;
+    // Get the number of frames in the analysis from the first residue data
+    const firstResidueData = data.saspf[0];
+    const framesNumber = firstResidueData.length;
+
+    // Get the frames step from the analysis itself
+    const frameStep = payload['step'];
 
     // If this is an ensemble we use frames as the x axis
     // If this is a trajectory we use time as the x axis
     const xAxisStep =
       metadata.TYPE === 'ensemble'
-        ? Math.round(metadata.SNAPSHOTS / (framesNumber - 1))
+        ? frameStep
         : metadata.LENGTH / (framesNumber - 1);
     const xAxisLabel = metadata.TYPE === 'ensemble' ? 'Frames' : 'Time (ns)';
     const xUnit = metadata.TYPE === 'ensemble' ? 'frame' : 'ns';
-
-    // Guess the frames step of the analysis from the number of frames
-    const frameStep = Math.floor(metadata.SNAPSHOTS / (framesNumber - 1));
 
     // Load the required frames from the main trajectory
     const mainURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory?frames=1:${metadata.SNAPSHOTS}:${frameStep}`;
@@ -198,26 +188,25 @@ const Sasa = () => {
       xAxisStep,
       xAxisLabel,
       xUnit,
-      residueData,
-      residueMeans,
+      data,
     };
   }, [payload, topologyManager, metadata, accession, defaultRepresentations]);
 
   // Get the residues list in model notation
   const { selectedData, selectedResidueIndices } = useMemo(() => {
-    // Now get only the selected keys from the payload
+    // Now get only the selected residues
     const selectedData = {};
     const selectedResidueIndices = [];
     // Color the first selected residues in the graph
     selectedResidues.forEach((residue, i) => {
-      const currentResidueData = residueData[residue.index];
-      const newData = { data: currentResidueData.saspf };
+      const currentResidueData = data.saspf[residue.index];
+      const newData = { data: currentResidueData };
       newData.color = residue.color;
       selectedData[i] = newData;
       selectedResidueIndices.push(residue.index);
     });
     return { selectedData, selectedResidueIndices };
-  }, [residueData, selectedResidues]);
+  }, [data, selectedResidues]);
 
   // When the user clicks on the graph
   const handleFrameSelection = useCallback(frame => {
@@ -270,12 +259,13 @@ const Sasa = () => {
   // Handle what to write on the tooltip when the user hovers a specific residue letter
   const handleTooltip = useCallback(
     (residue, residueIndex) => {
-      const currentResidueData = residueData[residueIndex];
-      const meanSAS = Math.round(currentResidueData.mean * 100) / 100;
-      const stdvSAS = Math.round(currentResidueData.stdv * 100) / 100;
+      const currentResidueMean = data.means[residueIndex];
+      const currentResidueStdv = data.stdvs[residueIndex];
+      const meanSAS = Math.round(currentResidueMean * 100) / 100;
+      const stdvSAS = Math.round(currentResidueStdv * 100) / 100;
       return `Mean SAS: ${meanSAS}\nStandard deviation: ${stdvSAS}`;
     },
-    [residueData],
+    [data],
   );
 
   // Render loading or error messages according with the API response
@@ -290,7 +280,7 @@ const Sasa = () => {
     <Suspense fallback={<Loading />}>
       <Card>
         <ResidueSelector
-          residueValues={residueMeans}
+          residueValues={data.means}
           legendTitle={'Average Relative SAS (Å²)'}
           onSelect={handleSelect}
           onDeselect={handleDeselect}
