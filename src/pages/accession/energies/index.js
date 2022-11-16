@@ -53,9 +53,6 @@ const Energies = () => {
   // Track when one point in the graph is selected
   const [selected, setSelected] = useState(null);
 
-  // Track the corresponding residue when one point in the graph is selected
-  const [selectedResidues, setSelectedResidues] = useState(null);
-
   // Set which data is displayed: all, start, end or any combination of them
   const [display, setDisplay] = useState({ all: true, start: true, end: true });
 
@@ -214,6 +211,18 @@ const Energies = () => {
     return { esDisplay, vdwDisplay, bothDisplay };
   }, [display]);
 
+  // Set the selected residue indices (only one index with the current implmementation)
+  const selectedResidueIndices = useMemo(() => {
+    if (selected === null) return null;
+    // Get the selected interaction
+    const interaction = interactions[selectedInteraction];
+    const hostResidues = selectedOrder
+      ? interaction.residue_indices_1
+      : interaction.residue_indices_2;
+    const index = hostResidues[selected];
+    return [index];
+  }, [selected, interactions, selectedInteraction, selectedOrder]);
+
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
   else if (error) return error.toString();
@@ -224,7 +233,6 @@ const Energies = () => {
 
   const handleResidueSelection = xIndex => {
     setSelected(xIndex);
-    setSelectedResidues([data.labels[xIndex]]);
   };
 
   const handleToggleOrder = () => {
@@ -379,21 +387,20 @@ const Energies = () => {
         )}
       </Card>
       <NGLViewerSpawner
-        // Set the new viewer or null if there is not a proper "selectedResidues" value
+        // Set the new viewer or null if there is not a proper "selectedResidueIndices" value
         newViewer={
-          selectedResidues
+          selectedResidueIndices
             ? {
                 accession: accession,
-                selectedResidues: selectedResidues,
+                selectedResidueIndices: selectedResidueIndices,
                 representations: representations,
               }
             : null
         }
-        // If the nailed/closed viewer is the current viewer then reset the 'selectedResidues'
+        // If the nailed/closed viewer is the current viewer then reset the 'selected'
         onNail={viewer =>
-          setSelectedResidues(previous => {
-            if (viewer.selectedResidues === previous) {
-              setSelected(null);
+          setSelected(previous => {
+            if (viewer.selectedResidueIndices === selectedResidueIndices) {
               return null;
             } else {
               return previous;
@@ -401,9 +408,8 @@ const Energies = () => {
           })
         }
         onClose={viewer =>
-          setSelectedResidues(previous => {
-            if (viewer.selectedResidues === previous) {
-              setSelected(null);
+          setSelected(previous => {
+            if (viewer.selectedResidueIndices === selectedResidueIndices) {
               return null;
             } else {
               return previous;

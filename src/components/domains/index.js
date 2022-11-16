@@ -13,10 +13,7 @@ import style from './style.module.css';
 
 import Loading from '../loading';
 
-import {
-  rangedSelectionParser,
-  complexSelectionRanger,
-} from '../../utils/topology-manager';
+import { rangedSelectionParser } from '../../utils/topology-manager';
 
 // Show floatting bubles with domain names
 // When a bubble is selected the domain is represented
@@ -95,15 +92,12 @@ const Domains = ({ setter }) => {
             if (!mappedSelection || mappedSelection.length === 0) return;
             // Transform the mapped selection, which comes in absolute numeration, to the source format
             // The source numeration is compatible with NGL once parsed
-            const sourceSelection = mappedSelection.map(
-              residue =>
-                topologyManager.absolute2sourceResidue(residue).numeration,
-            );
-            const { rangedSelection, small } = complexSelectionRanger(
-              sourceSelection,
-            );
+            const {
+              rangedSelection: nglSelection,
+              small,
+            } = topologyManager.absoluteSelectionToNgl(mappedSelection);
             const newRepresentation = { ...representation };
-            newRepresentation.selection = rangedSelection;
+            newRepresentation.selection = nglSelection;
             // parsedSelectionRanger returns 'small' = true when there are series of 3 residues or less
             // These small residue selections will be not represented in cartoon due to an NGL bug
             // https://github.com/nglviewer/ngl/issues/223

@@ -108,9 +108,9 @@ const useDefaultRepresentations = () => {
 
     // Represent those "Other" residues in low opacity grey licorice
     if (nonRepresentedResidues.length > 0) {
-      const otherSelection = topologyManager.absolute2nglSelection(
-        nonRepresentedResidues,
-      );
+      const {
+        rangedSelection: otherSelection,
+      } = topologyManager.absoluteSelectionToNgl(nonRepresentedResidues);
       reps.push({
         name: 'Other',
         selection: otherSelection,

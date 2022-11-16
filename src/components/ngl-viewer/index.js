@@ -22,8 +22,6 @@ import getFrames from './get-frames';
 
 import { AccessionCtx, ProjectCtx, PdbCtx } from '../../contexts';
 
-import { complexNumerationParser } from '../../utils/topology-manager';
-
 import { setTooltipPosition } from '../../utils/tooltip-position-manager';
 
 import style from './style.module.css';
@@ -115,7 +113,6 @@ const NGLViewer = memo(
         bounce = false, // Set if the animation, when finished, starts again (false) or goes back (true)
         requestedFramesNumber = DEFAULT_NUMBER_OF_FRAMES, // The number of frames to be represented
         selectedAtoms, // Atom index of the atom and residue to be represented
-        selectedResidues, // Residue complex numerations from residues to be represented
         selectedResidueIndices, // Residue indices from residues to be highlighted
         selectedChains, // Chain letters from chains to be represented
         selectedCustom, // Free NGL selections to be directly represented
@@ -968,43 +965,6 @@ const NGLViewer = memo(
         darkBackground,
         highlightTypes,
       ]);
-
-      // Highlight specific residues
-      // DEPRECATED: Use selectedResidueIndices instead
-      useEffect(() => {
-        if (!isFirstCompStaged || !selectedResidues) {
-          return;
-        }
-        // Set a representation name. This is useful to find this representation further
-        const nameHighlight = '*highlightedResidues';
-        const previousHighlightRepresentation = stageRef.current.compList[0].reprList.find(
-          representation => representation.name === nameHighlight,
-        );
-        if (previousHighlightRepresentation)
-          stageRef.current.compList[0].removeRepresentation(
-            previousHighlightRepresentation,
-          );
-
-        // Get the residues input
-        const residues = selectedResidues.map(
-          residue => complexNumerationParser(residue).nglSelection,
-        );
-        if (!residues.length) return;
-        // Transform the residues list into an NGL selection
-        const nglSelection = Array.from(new Set(residues)).join(' or ');
-
-        // Represent the previous selection in ball+sticks drawing method
-        stageRef.current.compList[0].addRepresentation(
-          highlightTypes.residues,
-          {
-            sele: nglSelection,
-            name: nameHighlight,
-          },
-        );
-
-        // Focus the highlighted zone with the camera
-        setFocus({ comp: 0, sele: nglSelection });
-      }, [isFirstCompStaged, selectedResidues, highlightTypes]);
 
       // Highlight specific residues
       useEffect(() => {

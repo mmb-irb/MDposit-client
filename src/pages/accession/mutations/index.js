@@ -66,14 +66,9 @@ const Mutations = () => {
 
   // Set when one point in the graph is selected
   const [selectedResidues, setSelectedResidues] = useState([]);
-
-  const selectedResidueNames = useMemo(
-    () =>
-      selectedResidues.map(residue => {
-        const source = topologyManager.absolute2sourceResidue(+residue.index);
-        return source.numeration;
-      }),
-    [selectedResidues, topologyManager],
+  // Get the selected residue indices
+  const selectedResidueIndices = selectedResidues.map(
+    residue => +residue.index,
   );
 
   // Set the representations for the NGL viewer
@@ -115,7 +110,7 @@ const Mutations = () => {
           <NGLViewerWithControls
             className={style.container}
             representations={representations}
-            selectedResidues={selectedResidueNames}
+            selectedResidueIndices={selectedResidueIndices}
           />
         ) : (
           <div style={{ height: '50vh' }} />

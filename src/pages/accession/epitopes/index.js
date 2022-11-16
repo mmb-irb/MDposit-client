@@ -40,8 +40,6 @@ import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 import useEpitopesRepresentations from '../../../components/ngl-viewer/use-epitopes-representations';
 
-import { complexSelectionRanger } from '../../../utils/topology-manager';
-
 const pdbUrlBase = 'https://www.rcsb.org/structure/';
 
 const hoveredEpitopeColor = 'yellow';
@@ -99,7 +97,7 @@ const Epitopes = () => {
       if (!referenceEpitopes) return;
       const formattedEpitopes = Object.entries(referenceEpitopes).map(
         ([name, epitope]) => [
-          reference.name,
+          reference.uniprot,
           name,
           epitope.residues,
           epitope.mas,
@@ -156,10 +154,10 @@ const Epitopes = () => {
     // Set the input objets for the graph
     const epitopesData = [];
     epitopes.forEach(
-      ([referenceName, epitopeName, epitopeResidues, epitopeSurface]) => {
+      ([referenceId, epitopeName, epitopeResidues, epitopeSurface]) => {
         // Parse the reference residues list to a mapped NGL selection string
         const mappedResidues = topologyManager.reference2absolute(
-          referenceName,
+          referenceId,
           epitopeResidues,
         );
         // In case the epitope is not found in the current structure we do not push it
@@ -215,12 +213,10 @@ const Epitopes = () => {
         });
         // Get also the NGL selection from the mapped residues
         // This is not separated in chains so the selection is for all chains together
-        const sourceResidues = mappedResidues.map(
-          residue => topologyManager.absolute2sourceResidue(residue).numeration,
-        );
-        const { rangedSelection, small } = complexSelectionRanger(
-          sourceResidues,
-        );
+        const {
+          rangedSelection,
+          small,
+        } = topologyManager.absoluteSelectionToNgl(mappedResidues);
         epitopesData.push({
           name: epitopeName,
           data: chainedFramedData,

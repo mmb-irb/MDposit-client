@@ -134,9 +134,8 @@ const DistPerres = () => {
     const hasCA = projectData.topology.residueHasCAlpha(residue);
     // Set the numeration
     const source = projectData.topology.absolute2sourceResidue(residue);
-    const numeration = source.chain + ':' + source.residue + source.icode;
     return {
-      forResidue: numeration,
+      forResidue: residue,
       forDistance: hasCA
         ? source.residue.toString() + ':' + source.chain + '.CA'
         : null,
@@ -219,7 +218,7 @@ const DistPerres = () => {
           selected
             ? {
                 accession: accession,
-                selectedResidues: selected.residues,
+                selectedResidueIndices: selected.residues,
                 // WARNING: Distance is not always available
                 // This only works when both residues have alpha carbon
                 // (i.e. both are protein residues)
@@ -230,14 +229,14 @@ const DistPerres = () => {
         // If the nailed/closed viewer is the current viewer then reset the 'selected'
         onNail={viewer =>
           setSelected(previous => {
-            if (previous && previous.residues === viewer.selectedResidues)
+            if (previous && previous.residues === viewer.selectedResidueIndices)
               return null;
             else return previous;
           })
         }
         onClose={viewer =>
           setSelected(previous => {
-            if (previous && previous.residues === viewer.selectedResidues)
+            if (previous && previous.residues === viewer.selectedResidueIndices)
               return null;
             else return previous;
           })

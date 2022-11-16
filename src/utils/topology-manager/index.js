@@ -16,37 +16,6 @@ const ngl = require('ngl');
 // - (DEPRECATED) Model: From 1 to 'n' for each chain
 //   Usual numeration in data representation for this web
 
-// This function is used by other functions to check whenever the arguments are valid
-// const check = (chain, residue) => {
-//   if (typeof chain !== 'string' || chain.length !== 1)
-//     throw new Error(
-//       'The "chain" argument must be a single letter (e.g. "A", "B", ...), not ' +
-//         chain,
-//     );
-//   if (typeof residue !== 'number' || residue < 0)
-//     throw new Error(
-//       'The "residue" argument must be a real number (e.g. 0, 1, 17, ...), not ' +
-//         residue,
-//     );
-// };
-
-// Transform a ranged selection of residues in complex numeration format to an array
-// e.g. "A:1, 3, 5-8 & B:2, 4" => ["A:1", "A:3", "A:5", "A:6", "A:7", "A:8", "B:2", "B:4"]
-// DANI: Hay que pensarlo mejor. En principio esto solo hace falta para el custom selection
-const numerationSelection = /^([A-Z]):([-0-9, ]*)$/;
-export const cnrsParser = selection => {
-  const residues = [];
-  const numerationSelections = selection.split(' & ');
-  numerationSelections.forEach(nSelection => {
-    const results = numerationSelection.exec(nSelection);
-    const chain = results[1];
-    const residuesSelection = results[2];
-    const residuesList = rangedSelectionParser(residuesSelection);
-    residuesList.forEach(residue => residues.push(chain + ':' + residue));
-  });
-  return residues;
-};
-
 // This function transforms a range selection string into a numeric array
 // It handles abbreviated selection syntax to literal selection syntax
 // e.g. "1, 3, 5-8" => [1, 3, 5, 6, 7, 8]
@@ -115,50 +84,6 @@ export const parsedSelectionRanger = (selection, addWhiteSpaces = true) => {
   const small = minimumSerieLength <= 3;
   rangedSelection = rangedSelection.substring(separator.length); // Remove the first separator
   return { rangedSelection, small };
-};
-
-// Do the same that the previous function but for complex selection residues
-// e.g. ['A:1', 'A:3', 'A:4', 'A:5', 'B:1'] => nglSelection = "(A: and 1, 3-5) or (B: and 1)"
-// In addition track if there is any small serie (i.e. 3 residues or less)
-export const complexSelectionRanger = selection => {
-  let small = false;
-  let rangedSelection = '';
-  // Parse each residue in complex notation
-  const parsedResidues = selection.map(residue =>
-    complexNumerationParser(residue),
-  );
-  // Get unique chains
-  const chains = parsedResidues
-    .map(r => r.chain)
-    .filter((v, i, a) => a.indexOf(v) === i);
-  // For each chain, get all residues and "range" them
-  chains.forEach(chain => {
-    const chainResidues = parsedResidues
-      .filter(v => v.chain === chain)
-      .map(r => r.residue);
-    const {
-      rangedSelection: ranged,
-      small: smallChain,
-    } = parsedSelectionRanger(chainResidues);
-    rangedSelection += ' or (:' + chain + ' and (' + ranged + '))'; // Al parenthesis are mandatory
-    if (smallChain) small = true; // If any chain small is true then the overall small is true
-  });
-  rangedSelection = rangedSelection.substring(4); // Remove the first ' or '
-  return { rangedSelection, small };
-};
-
-// Transform a 'chain:residue' string into the chain letter string and the residue number values
-const numerationFormat = /^([A-Z]):([0-9]*)([A-Z]?)$/;
-export const complexNumerationParser = numeration => {
-  const result = numerationFormat.exec(numeration);
-  if (!result)
-    throw new Error('No matched complex numeration value: ' + numeration);
-  const chain = result[1];
-  const residue = result[2];
-  const icode = result[3] || '';
-  // Formated selection to select this specific residue in NGL
-  const nglSelection = ':' + chain + ' and ' + residue;
-  return { chain, residue: +residue, icode, nglSelection };
 };
 
 // Harvest from a '[residue_type]residue:chain' string the chain letter and the residue number values
@@ -541,7 +466,6 @@ export class Topology {
     const chain = this.chainNames[chainIndex]; // e.g. 'A'
     const icode = this.residueIcodes && this.residueIcodes[residueIndex];
     // Formated selection to select this specific residue in NGL
-    const numeration = chain + ':' + residueNumber + icode;
     const nglSelection = ':' + chain + ' and ' + residueNumber;
     // Additional residue data
     const type = this.residueNames[residueIndex];
@@ -552,7 +476,6 @@ export class Topology {
       residue: residueNumber, // In order to solve incompatibilities between funcions
       residueNumber,
       icode,
-      numeration,
       nglSelection,
       type,
       letter,
@@ -673,22 +596,11 @@ export class Topology {
     return this.getAbsoluteResidueMetadata(absolute, requests);
   };
 
-  // Convert an array of absolute residue indices to an ngl selection
-  // This NGL selection is as short as possible by using rnaged syntax
-  // e.g. [0, 1, 2, 3, 4] -> ':A and 1-5'
-  // DANI: Está repetida
-  absolute2nglSelection = residues => {
-    const nglResidues = residues.map(
-      residue => this.absolute2sourceResidue(residue).numeration,
-    );
-    const rangedSelection = complexSelectionRanger(nglResidues).rangedSelection;
-    return rangedSelection;
-  };
-
   // Do the same that the previous function but from absolute residues
   // e.g. [0, 1, 2, 3, ...] => nglSelection = "(A: and 1, 3-5) or (B: and 1)"
   // In addition track if there is any small serie (i.e. 3 residues or less)
-  // DANI: Está repetida
+  // DANI: Esta función no sería necesaria si se pudiesen hacer selecciones en NGL con índices de residuos
+  // DANI: De hecho no haría falta eliminar residuos duplicados si se pudiesen hacer selecciones en NGL con índices de residuos
   absoluteSelectionToNgl = selection => {
     let small = false;
     let rangedSelection = '';

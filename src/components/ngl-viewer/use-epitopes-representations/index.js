@@ -2,8 +2,6 @@ import { useContext, useMemo } from 'react';
 
 import { ProjectCtx } from '../../../contexts';
 
-import { complexSelectionRanger } from '../../../utils/topology-manager';
-
 // Use this hook to get the memoized NGL default representations
 const useEpitopesRepresentations = () => {
   // Get the current project data
@@ -44,10 +42,9 @@ const useEpitopesRepresentations = () => {
     );
     // Transform mapped residues, which comes in absolute numeration, to the source format
     // The source numeration is compatible with NGL once parsed
-    const sourceResidues = allMappedResidues.map(
-      residue => topologyManager.absolute2sourceResidue(residue).numeration,
+    const { rangedSelection, small } = topologyManager.absoluteSelectionToNgl(
+      allMappedResidues,
     );
-    const { rangedSelection, small } = complexSelectionRanger(sourceResidues);
     const reps = [
       {
         name: 'Epitopes',
