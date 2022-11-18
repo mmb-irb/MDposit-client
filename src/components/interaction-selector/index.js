@@ -83,7 +83,7 @@ const InteractionSelector = ({
             <FormControlLabel
               key={i}
               value={opt.value}
-              control={<Radio />}
+              control={<Radio color="primary" />}
               label={opt.label}
             />
           ))}

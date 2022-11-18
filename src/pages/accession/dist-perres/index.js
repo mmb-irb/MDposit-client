@@ -162,8 +162,8 @@ const DistPerres = () => {
           <Tabs
             value={display}
             variant="fullWidth"
-            indicatorColor="secondary"
-            textColor="secondary"
+            indicatorColor="primary"
+            textColor="primary"
             onChange={handleTabs}
             className={style['margined-bottom']}
           >
