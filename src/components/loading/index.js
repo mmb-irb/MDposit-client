@@ -47,7 +47,7 @@ const Loading = ({ wait = WAIT_DELAY }) => {
       {flag && (
         <CircularProgress
           variant="indeterminate"
-          color="secondary"
+          color="primary"
           size={50}
           thickness={5}
         /> // Renders the circle
