@@ -40,11 +40,11 @@ const D3HeatmapGrid = memo(
     // WARNING: Duplicates would not make the heatmap fail, but they will result in overlaps
     if (xAxisValues.length !== new Set(xAxisValues).size) {
       console.log(xAxisValues);
-      throw new Error(`Duplicated values in the X axis`);
+      throw new Error(`Duplicated values in the X axis. See console logs`);
     }
     if (yAxisValues.length !== new Set(yAxisValues).size) {
       console.log(yAxisValues);
-      throw new Error(`Duplicated values in the Y axis`);
+      throw new Error(`Duplicated values in the Y axis. See console logs`);
     }
 
     // If any label is empty, fill it with 1-n numbers

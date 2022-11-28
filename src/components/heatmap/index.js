@@ -49,6 +49,12 @@ const Heatmap = ({
     const xLength = rData[0].length;
     const yLength = rData.length;
 
+    // Check all rows to have the same length
+    rData.forEach(row => {
+      if (row.length !== xLength)
+        throw new Error('All rows must have the same length');
+    });
+
     const xstep = xLength / xMaxCells;
     const ystep = yLength / yMaxCells;
 
@@ -68,18 +74,18 @@ const Heatmap = ({
         }
       }
     } else {
-      data = new Array(yMaxCells);
+      data = new Array(yMaxCells).fill(new Array(xMaxCells).fill(null));
       if (xstep <= 1) {
         for (let y = 0; y < yMaxCells; y++) {
           data[y] = rData[Math.round(y * ystep)];
         }
       } else {
-        const summarizedIndexes = new Array(xMaxCells);
-        for (let x = 0; x < xMaxCells; x++) {
-          summarizedIndexes[x] = Math.round(x * xstep);
-        }
         for (let y = 0; y < yMaxCells; y++) {
-          data[y] = summarizedIndexes.map(x => rData[y][x]);
+          const yIndex = Math.round(y * ystep);
+          for (let x = 0; x < xMaxCells; x++) {
+            const xIndex = Math.round(x * xstep);
+            data[y][x] = rData[yIndex][xIndex];
+          }
         }
       }
     }

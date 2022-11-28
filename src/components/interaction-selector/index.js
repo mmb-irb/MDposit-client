@@ -44,6 +44,7 @@ const InteractionSelector = ({
   secondOrderLabel, // The label to be represented over the second order rectangle
   secondOrderTooltip, // The tooltip to be shown for the second order rectangle
   toggleOrderTooltip, // The tooltip to be shown for the toggle order button
+  interfaceOnly = false, // Set if the 'All residues' button is enabled
 }) => {
   const changeInteraction = event => {
     setSelectedInteraction(event.target.value);
@@ -85,6 +86,7 @@ const InteractionSelector = ({
               value={opt.value}
               control={<Radio color="primary" />}
               label={opt.label}
+              disabled={opt.label === 'All residues' && interfaceOnly}
             />
           ))}
         </RadioGroup>
