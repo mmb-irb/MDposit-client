@@ -56,6 +56,7 @@ export const COLORS = new Map([
 export const COLLECTION_NAMES = new Map([
   ['cv19', 'BioExcel - COVID-19'],
   ['mcns', 'MoDEL - Central Nervous System'],
+  ['model', 'MoDEL 2010'],
   ['null', 'Independent'],
   [null, 'Independent'],
 ]);

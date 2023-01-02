@@ -43,7 +43,7 @@ const useStatistics = () => {
     const colors = collections && distinctColors({ count: collections.length });
     const pieChartData = collections
       ? collections.map(([key, value], i) => ({
-          title: COLLECTION_NAMES.get(key),
+          title: COLLECTION_NAMES.get(key) || key,
           value: value,
           color: colors[i],
         }))
@@ -53,7 +53,7 @@ const useStatistics = () => {
     const legendData =
       collections &&
       collections.map(([key, value], i) => ({
-        label: COLLECTION_NAMES.get(key) + ' (' + value + ')',
+        label: (COLLECTION_NAMES.get(key) || key) + ' (' + value + ')',
         color: colors[i],
       }));
 
