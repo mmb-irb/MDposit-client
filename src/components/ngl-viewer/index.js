@@ -1555,15 +1555,14 @@ const NGLViewer = memo(
           const chainName = topologyManager.getMetadataChainname(
             sourceResidue.chain,
           );
+          // Find the reference and the reference name to be represented
           const reference = topologyManager.absolute2reference(
             atom.residueIndex,
           );
           const currentReferenceData =
             reference && referenceData.find(r => r.uniprot === reference.id);
           const referenceName =
-            reference && currentReferenceData
-              ? currentReferenceData.name
-              : reference;
+            reference && currentReferenceData && currentReferenceData.name;
           return (
             <>
               {`Atom ${atom.index} (${atom.atomname})
@@ -1572,10 +1571,14 @@ const NGLViewer = memo(
               }
             Residue ${sourceResidue.residueNumber} (${atom.resname})`}
               {reference ? (
-                <div>
-                  <div style={{ color: 'lightGreen' }}>{referenceName}</div>
-                  <div>{`- Residue ${reference.index}`}</div>
-                </div>
+                reference.id === 'sc' ? (
+                  <div style={{ color: 'salmon' }}>{'Synthetic construct'}</div>
+                ) : (
+                  <div>
+                    <div style={{ color: 'lightGreen' }}>{referenceName}</div>
+                    <div>{`- Residue ${reference.index}`}</div>
+                  </div>
+                )
               ) : (
                 <div style={{ color: 'salmon' }}>{'No reference'}</div>
               )}
