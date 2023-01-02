@@ -6,6 +6,7 @@ import { ProjectCtx, PdbCtx } from '../../contexts';
 
 // Set an easy legend with all chains and chainnames
 // Results are collapsed according to unique chainnames
+// DANI: This is not used right now and the code is obsolete (it should use the topology manager)
 const ChainsLegend = () => {
   // Harvest chains in topology
   // WARNING: Do not use project.chains since only protein chains are included

@@ -442,7 +442,7 @@ export class Topology {
     });
     // Check if there is only one chain and, if so, skip the chain in the label
     let labelChain;
-    if (this.metadataChainNames.length === 1) labelChain = ``;
+    if (this.chainNames.length === 1) labelChain = ``;
     else labelChain = `${chain}:`;
     // If the residue has a type then surround it with parenthesis
     // Residues usually have it
@@ -633,7 +633,6 @@ export class Topology {
     if (!this.metadataChainNames) return '';
     // OBSOLETE: Chains were stored as an array of names
     if (Array.isArray(this.metadataChainNames)) {
-      if (!this.metadataChainNames) return '';
       for (let c = 0; c < this.metadataChainNames.length; c++) {
         const topologyChainname = this.getChainName(c);
         if (topologyChainname === chain) return this.metadataChainNames[c];

@@ -20,13 +20,23 @@ const useDefaultRepresentations = () => {
     if (metadata && chains) {
       const chainnames = metadata.CHAINNAMES;
       // Represent each protein chain
-      for (const chain of chains) {
-        const name = chainnames[chain];
+      if (chainnames) {
+        for (const chain of chains) {
+          const name = chainnames[chain];
+          reps.push({
+            name: name ? name + ' (Chain ' + chain + ')' : 'Chain ' + chain,
+            selection: ':' + chain,
+          });
+        }
+      }
+      // If chainnames are not defined then set a general protein representation
+      else {
         reps.push({
-          name: name ? name + ' (Chain ' + chain + ')' : 'Chain ' + chain,
-          selection: ':' + chain,
+          name: 'Protein',
+          selection: 'protein',
         });
       }
+
       // Represent the mebrane if exist
       /*
           if (metadata.MEMBRANE !== 'No')
