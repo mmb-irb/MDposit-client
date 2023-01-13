@@ -20,7 +20,7 @@ import { frame } from 'timing-functions';
 import { setNGLFile, updateNGLFile } from './payload-to-ngl-file';
 import getFrames from './get-frames';
 
-import { AccessionCtx, ProjectCtx, PdbCtx } from '../../contexts';
+import { ProjectCtx, PdbCtx } from '../../contexts';
 
 import { setTooltipPosition } from '../../utils/tooltip-position-manager';
 
@@ -143,8 +143,8 @@ const NGLViewer = memo(
       // If no URL is provided then use the main trajectory (the 'md.imaged.rot.xtc' file) // URL to find the trajectory data in the API
       // True when we just want to display a static structure // Requeste number of frames to display
       // data from context
-      const accession = useContext(AccessionCtx);
       const {
+        accession,
         files,
         curatedOrientation,
         topology: topologyManager,

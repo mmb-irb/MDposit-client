@@ -49,7 +49,10 @@ import {
 import RepresentationsManager from './representations-manager';
 
 import { get, setAsync } from '../../utils/storage';
-import NGLViewer from '../ngl-viewer';
+
+// The main component of the viewer itself
+import MolstarViewer from '../molstar-viewer';
+//import NGLViewer from '../ngl-viewer';
 import useDefaultRepresentations from '../ngl-viewer/use-default-representations';
 
 // Hooks
@@ -556,7 +559,7 @@ const NGLViewerWithControls = forwardRef(
               }
               style={{ border: 'none', boxShadow: 'none' }}
             >
-              <NGLViewer
+              <MolstarViewer
                 playing={playing}
                 spinning={spinning}
                 smooth={smooth}

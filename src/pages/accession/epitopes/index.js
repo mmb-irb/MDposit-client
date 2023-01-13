@@ -28,7 +28,7 @@ import useDefaultRepresentations from '../../../components/ngl-viewer/use-defaul
 
 import style from './style.module.css';
 
-import { AccessionCtx, ProjectCtx } from '../../../contexts';
+import { ProjectCtx } from '../../../contexts';
 
 import Loading from '../../../components/loading';
 
@@ -82,12 +82,11 @@ const Epitopes = () => {
 
   // Get the current project metadata
   const {
+    accession,
     metadata,
     references: referenceData,
     topology: topologyManager,
   } = useContext(ProjectCtx);
-  // Get the accession
-  const accession = useContext(AccessionCtx);
 
   // Get the references data
   const epitopes = useMemo(() => {

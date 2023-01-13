@@ -15,7 +15,7 @@ import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls'
 
 import style from './style.module.css';
 
-import { AccessionCtx, ProjectCtx, PdbCtx } from '../../../contexts';
+import { ProjectCtx, PdbCtx } from '../../../contexts';
 
 import Loading from '../../../components/loading';
 
@@ -43,9 +43,7 @@ const Populations = () => {
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
 
   // Get the current project metadata
-  const { metadata } = useContext(ProjectCtx);
-  // Get the accession
-  const accession = useContext(AccessionCtx);
+  const { accession, metadata } = useContext(ProjectCtx);
   // Get the current topology, including the residue names
   const pdbData = useContext(PdbCtx);
 

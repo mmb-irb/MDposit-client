@@ -8,7 +8,7 @@ import Loading from '../../../components/loading';
 
 import useAPI from '../../../hooks/use-api';
 
-import { AccessionCtx, ProjectCtx } from '../../../contexts';
+import { ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
@@ -37,10 +37,8 @@ const Analysis = ({
   graphInfoRef,
   selfLegend = false,
 }) => {
-  // Get the accession
-  const accession = useContext(AccessionCtx);
   // Get the current project metadata
-  const { metadata } = useContext(ProjectCtx);
+  const { accession, metadata } = useContext(ProjectCtx);
 
   // Send a request to the API with the url of the specific analysis
   const { loading, payload, error } = useAPI(

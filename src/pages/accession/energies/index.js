@@ -9,7 +9,7 @@ import Loading from '../../../components/loading';
 
 import useAPI from '../../../hooks/use-api';
 
-import { AccessionCtx, ProjectCtx } from '../../../contexts';
+import { ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
@@ -31,10 +31,10 @@ const getSum = values => {
 };
 
 const Energies = () => {
-  // Get the accession
-  const accession = useContext(AccessionCtx);
   // Get the current project data
-  const { topology: topologyManager, interactions } = useContext(ProjectCtx);
+  const { accession, topology: topologyManager, interactions } = useContext(
+    ProjectCtx,
+  );
 
   // Get the default representations
   const defaultRepresentations = useDefaultRepresentations();

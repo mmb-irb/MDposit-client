@@ -9,7 +9,6 @@ import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls'
 
 import style from './style.module.css';
 
-//import { AccessionCtx } from '../../../contexts';
 import { ProjectCtx } from '../../../contexts';
 
 import Loading from '../../../components/loading';

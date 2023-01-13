@@ -1,6 +1,6 @@
 // React logic
-import React, { Suspense, lazy, useContext, useMemo } from 'react';
-import { Link, Switch, Route, Redirect } from 'react-router-dom';
+import React, { Suspense, lazy, useContext, useMemo, useState } from 'react';
+import { Link, Switch, Route } from 'react-router-dom';
 
 // Visual assets
 import { Typography, Button } from '@material-ui/core';
@@ -19,7 +19,7 @@ import Info from '../../components/info';
 import { docs } from '../help/documentation';
 
 // Load the 3 contexts
-import { AccessionCtx, ProjectCtx, PdbCtx } from '../../contexts';
+import { ProjectCtx, PdbCtx } from '../../contexts';
 
 // Load the topology class
 import { Topology } from '../../utils/topology-manager';
@@ -34,6 +34,12 @@ import {
 
 // CSS styles
 import style from './style.module.css';
+
+const ProjectMenu = lazy(() =>
+  import(
+    /* webpackChunkName: 'project-menu' */ '../../components/menu/project-menu'
+  ),
+);
 
 const Overview = lazy(() =>
   import(/* webpackChunkName: 'overview' */ './overview'),
@@ -135,121 +141,41 @@ const getDataURL = (accession, subPage) => {
 };
 
 // Render the accession summary
-const SummarySwitch = ({ setProject, subPage, dataUrl }) => {
-  // Get the accession ID from the accession context
-  const accession = useContext(AccessionCtx);
-  // Load the project context and the function to update it
+const SummarySwitch = ({ subPage, dataUrl }) => {
+  // Load the project context
   const project = useContext(ProjectCtx);
-
-  // Check if the project context is empty or not the right project
-  const wrongProjectContext =
-    project === null || (project && project.accession !== accession);
-  const projectURL = wrongProjectContext
-    ? `${BASE_PATH_PROJECTS}${accession}/`
-    : null;
-
-  // Get project data from the API if the current context data is wrong or missing. 'payload' contains the main data.
-  const projectRequest = useAPI(projectURL);
-
-  // If loading is null it means the project is already in context
-  if (projectRequest.loading === null) {
-    projectRequest.loading = false;
-    projectRequest.payload = project;
-    projectRequest.error = null;
-  }
-
-  // Request to API the references data
-  const references = useAPI(`${BASE_PATH_PROJECTS}${accession}/references`);
-
-  // Order the chains indexes by alphabetic number
-  useMemo(() => {
-    if (projectRequest.payload && projectRequest.payload.chains)
-      projectRequest.payload.chains.sort();
-  }, [projectRequest.payload]);
-
-  // Load the structure data form the API
+  const accession = project.accession || project.identifier;
+  // Load the structure data from the API
   const pdbData = useNGLFile(
     `${BASE_PATH_PROJECTS}${accession}${PATH_MAIN_TOPOLOGY}`,
     // This attribute was included before: defaultRepresentation: false
     { defaultRepresentation: false, ext: 'pdb' },
   );
-
-  // Request topology data to the API
-  const topology = useAPI(`${BASE_PATH_PROJECTS}${accession}/topology`);
-
-  // Request interactions data to the API in case there are interactions in this project
-  const projectInteractions =
-    projectRequest.payload &&
-    projectRequest.payload.metadata &&
-    projectRequest.payload.metadata.INTERACTIONS;
-  const thereAreInteractions =
-    projectInteractions && projectInteractions.length > 0;
-  const interactionsURL = thereAreInteractions
-    ? `${BASE_PATH_PROJECTS}${accession}/analyses/interactions`
-    : null;
-  const interactions = useAPI(interactionsURL);
-
-  if (projectRequest.loading) return <Loading />;
-  else if (projectRequest.error) return projectRequest.error.toString();
-  else if (!projectRequest.payload)
-    return 'Something bad happened with the project';
-
+  // Wait for the pdbData to arrive
   if (pdbData.loading) return <Loading />;
   else if (pdbData.error) return pdbData.error.toString() + ' (in pdbData)';
   else if (!pdbData.file) return 'Something bad happened with the pdb data';
 
-  if (references.loading) return <Loading />;
-  else if (references.error)
-    return references.error.toString() + ' (in references)';
-  else if (!references.payload)
-    return 'Something bad happened with the references data';
-
-  if (topology.loading) return <Loading />;
-  else if (topology.error) return topology.error.toString() + ' (in topology)';
-  else if (!topology.payload)
-    return 'Something bad happened with the topology data';
-
-  if (interactions.loading) return <Loading />;
-  else if (interactions.error)
-    return interactions.error.toString() + ' (in interactions)';
-  else if (thereAreInteractions && !interactions.payload)
-    return 'Something bad happened with the interactions data';
-
-  // Set the final object to be set as the project context
-  const projectData = projectRequest.payload;
-  // Setup the topology
-  // This class contains several functions for topology data managment and it is widely use among the different pages
-  const topologyManager = new Topology(topology.payload, projectData.metadata);
-  // This class is added to the project context
-  projectData.topology = topologyManager;
-  // Instead of creating a new context for interactions data, we include it in the project context
-  projectData.interactions = interactions.payload;
-  // Instead of creating a new context for references data, we include it in the project context
-  projectData.references = references.payload;
-
-  if (projectData.accession && accession !== projectData.accession) {
-    // DANI: Esto no entiendo que sentido tiene
-    // it means that the accession we extracted from the URL is not actually an
-    // accession but an identifier (e.g. PDB accession), so, if it exists, redirect to it
-    return (
-      <Route
-        render={({ location }) => (
-          <Redirect
-            to={{
-              ...location,
-              pathname: location.pathname.replace(
-                accession,
-                projectData.accession,
-              ),
-            }}
-          />
-        )}
-      />
-    );
-  }
-  // Otherwise, if we still having data, redirect the user according to the URL path
-  // Set the project context
-  setProject(projectData);
+  // DANI: Esto no entiendo que sentido tiene
+  // if (project.accession && accession !== project.accession) {
+  //   // it means that the accession we extracted from the URL is not actually an
+  //   // accession but an identifier (e.g. PDB accession), so, if it exists, redirect to it
+  //   return (
+  //     <Route
+  //       render={({ location }) => (
+  //         <Redirect
+  //           to={{
+  //             ...location,
+  //             pathname: location.pathname.replace(
+  //               accession,
+  //               project.accession,
+  //             ),
+  //           }}
+  //         />
+  //       )}
+  //     />
+  //   );
+  // }
 
   // Render the accession
   return (
@@ -468,11 +394,100 @@ const LinkSwitch = ({ accession, subPage }) => {
   );
 };
 
-export default ({ location, match, setProject }) => {
-  const fullpath = location.pathname;
-  const isJson = fullpath.substr(fullpath.length - 5) === '/json';
+export default ({ location, match }) => {
+  // Set a state to store the current project data
+  const [project, setProject] = useState(null);
+  // Find the project accession according to the URL
   const accession = match.params.accession;
+  // Set the current project data according to the requested accession
+  let updatedProjectData = false;
+  // Check the if the state project data matches the current accession
+  // If so, set the state project data as the current project data
+  if (
+    project &&
+    (project.accession === accession || project.identifier === accession)
+  )
+    updatedProjectData = true;
+  // In case we are still missing the current project data, check if we have some project data in the location state
+  // This may happen when we come from the browser: the selected project data is passed through the state
+  // This way we do not have to query again for it
+  // If the state project data matches the current accession then set it as the current project data
+  if (!updatedProjectData) {
+    const stateProjectData = location.state && location.state.projectData;
+    if (
+      stateProjectData &&
+      (stateProjectData.accession === accession ||
+        stateProjectData.identifier === accession)
+    ) {
+      // Save the current project data as the state project data and stop here
+      setProject(stateProjectData);
+    }
+  }
+  // If current project data is still missing then query the API for it
+  // Note that useAPI cannot be called conditionally since it is a hook
+  // Thus setting the url as null is a workaround to not perform the query
+  const projectURL = updatedProjectData
+    ? null
+    : `${BASE_PATH_PROJECTS}${accession}/`;
+  const projectQuery = useAPI(projectURL);
+  // Make some modifications to the project data once loaded
+  useMemo(() => {
+    if (!project) return;
+    // If accession is missing then set the identifier as the accession
+    if (!project.accession) project.accession = project.identifier;
+    // Order chain indices by alphabetic number when we have new project data
+    if (project.chains) project.chains.sort();
+  }, [project]);
+  // Now request the API for additional
+  // Request to API the references data
+  const references = useAPI(`${BASE_PATH_PROJECTS}${accession}/references`);
+  // DANI: No toda esta información es necesaria desde el principio, hay que reconsiderar
+  // Request topology data to the API
+  const topology = useAPI(`${BASE_PATH_PROJECTS}${accession}/topology`);
+  // Request interactions data to the API in case there are interactions in this project
+  const projectInteractions = project && project.metadata.INTERACTIONS;
+  const thereAreInteractions =
+    projectInteractions && projectInteractions.length > 0;
+  const interactionsURL = thereAreInteractions
+    ? `${BASE_PATH_PROJECTS}${accession}/analyses/interactions`
+    : null;
+  const interactions = useAPI(interactionsURL);
+  // If we are waiting for the API response...
+  if (!updatedProjectData) {
+    // If we are still waiting for the API then stop here
+    // If there was any error or the payload is missing then warn the user and stop here
+    if (projectQuery.loading) return <Loading />;
+    else if (projectQuery.error) return projectQuery.error.toString();
+    else if (!projectQuery.payload)
+      return 'Something bad happened with the project data';
+    // Save the current project data as the state project data
+    setProject(projectQuery.payload);
+  }
+  // Wait for API requests to send the response
+  if (references.loading) return <Loading />;
+  else if (references.error)
+    return references.error.toString() + ' (in references)';
+  else if (!references.payload)
+    return 'Something bad happened with the references data';
+  if (topology.loading) return <Loading />;
+  else if (topology.error) return topology.error.toString() + ' (in topology)';
+  else if (!topology.payload)
+    return 'Something bad happened with the topology data';
+  if (interactions.loading) return <Loading />;
+  else if (interactions.error)
+    return interactions.error.toString() + ' (in interactions)';
+  else if (thereAreInteractions && !interactions.payload)
+    return 'Something bad happened with the interactions data';
+  // Setup the topology
+  // This class contains several functions for topology data managment and it is widely use among the different pages
+  const topologyManager = new Topology(topology.payload, project.metadata);
+  // Instead of creating a new context for some of the downloaded data, we include it in the project context
+  project.topology = topologyManager;
+  project.interactions = interactions.payload;
+  project.references = references.payload;
+  // Get the actual page where the user is going according to the URL
   const page = match.params.subPage;
+  // Set the footer line for the help tooltip
   const doc = docs.find(doc => doc.id === page); // doc may not exist
   const tooltip = doc && doc.page && (
     <>
@@ -490,10 +505,16 @@ export default ({ location, match, setProject }) => {
       .
     </>
   );
+  // Find out if the user is requesting the raw data, and not the interface
+  const fullpath = location.pathname;
+  const isJson = fullpath.substr(fullpath.length - 5) === '/json';
+  // Set the API URL to obtain the corresponding web page data
   const dataUrl = getDataURL(accession, page);
+  // Return the accession routes
   return (
-    // Set the accession context, which is used by different scripts including this
-    <AccessionCtx.Provider value={accession}>
+    // Set the project context, which is used by different scripts including this
+    <ProjectCtx.Provider value={project}>
+      <ProjectMenu accession={accession} subPage={page} />
       <span className={style.container}>
         {/* Render the accession */}
         <Typography variant="h6" className={style.title}>
@@ -518,7 +539,7 @@ export default ({ location, match, setProject }) => {
         )}
       </span>
       {/* Load the main data summary */}
-      <SummarySwitch setProject={setProject} subPage={page} dataUrl={dataUrl} />
-    </AccessionCtx.Provider>
+      <SummarySwitch subPage={page} dataUrl={dataUrl} />
+    </ProjectCtx.Provider>
   );
 };

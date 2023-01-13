@@ -42,10 +42,12 @@ export default React.memo(() => {
   const [pdbInfo, setPdbInfo] = useState({});
   useEffect(() => {
     if (!pdbIds) return;
+    // Store requests so we can abort them all in the useEffect cleanup function in case they were not completed on time
+    const requests = [];
     pdbIds.forEach(pdbId => {
       const url = `https://mmb.irbbarcelona.org/api/pdb/${pdbId}/entry`;
       let body = '';
-      https.get(url, response => {
+      const request = https.get(url, response => {
         response.on('data', chunk => {
           body += chunk;
         });
@@ -56,7 +58,12 @@ export default React.memo(() => {
           });
         });
       });
+      requests.push(request);
     });
+    // DANI: No he comprovado que esto funcione debidamente
+    return () => {
+      for (const request of requests) request.abort();
+    };
   }, [pdbIds]);
 
   // Parse the citation text

@@ -7,10 +7,6 @@ import { BASE_PATH } from '../../utils/constants';
 
 import style from './style.module.css';
 
-const ProjectMenu = lazy(() =>
-  import(/* webpackChunkName: 'project-menu' */ './project-menu'),
-);
-
 const Search = lazy(() => import(/* webpackChunkName: 'search' */ './search'));
 
 // Render all buttons in the superior header and manage the user redirection when they are clicked
@@ -53,16 +49,5 @@ export default () => (
         />
       </Switch>
     </div>
-    <Switch>
-      <Route
-        path="/browse/:accession/:subPage"
-        exact
-        render={props => (
-          <Suspense fallback={null}>
-            <ProjectMenu params={props.match.params} />
-          </Suspense>
-        )}
-      />
-    </Switch>
   </menu>
 );

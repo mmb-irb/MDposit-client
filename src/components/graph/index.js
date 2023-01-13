@@ -545,7 +545,7 @@ const Graph = ({
     window.addEventListener('resize', drawRef.current);
 
     return () => window.removeEventListener('resize', drawRef.current);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
   // Maybe might need to double-check that and remove the exception
 
   useEffect(() => {

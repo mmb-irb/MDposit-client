@@ -8,7 +8,7 @@ import Card from '../../../components/animated-card';
 import Loading from '../../../components/loading';
 import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 
-import { AccessionCtx, ProjectCtx } from '../../../contexts';
+import { ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
@@ -24,10 +24,9 @@ const heatmapMaximumColor = { r: 255, g: 0, b: 0 };
 
 // Distance per residue analysis
 const DistPerres = () => {
-  // Get the accession
-  const accession = useContext(AccessionCtx);
   // Get the current project data
   const projectData = useContext(ProjectCtx);
+  const accession = projectData.accession;
 
   // The interaction to be displayed
   const [selectedInteraction, setSelectedInteraction] = useState(0);

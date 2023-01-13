@@ -1,10 +1,7 @@
-import React, { lazy, Suspense, useState } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Switch, Route, Redirect } from 'react-router-dom';
 import { schedule } from 'timing-functions';
-import { MuiThemeProvider, createMuiTheme } from '@material-ui/core/styles';
-
-// Load the project context
-import { ProjectCtx } from '../contexts';
+import { MuiThemeProvider, createTheme } from '@material-ui/core/styles';
 
 // Layout
 import Body from '../layout/body';
@@ -57,7 +54,7 @@ const Embed = lazy(() =>
   import(/* webpackChunkName: 'contact' */ '../pages/embed'),
 );
 
-const theme = createMuiTheme({
+const theme = createTheme({
   typography: {
     useNextVariants: true,
   },
@@ -79,7 +76,7 @@ const theme = createMuiTheme({
   },
 });
 
-const Base = ({ setProject }) => {
+const Base = () => {
   return (
     <Body>
       <Header />
@@ -109,25 +106,25 @@ const Base = ({ setProject }) => {
               exact
               render={props => (
                 <Suspense fallback={null}>
-                  <Browse {...props} setProject={setProject} />
+                  <Browse {...props} />
                 </Suspense>
               )}
             />
             <Route
               path="/search"
               exact
-              render={props => (
+              render={() => (
                 <Suspense fallback={null}>
-                  <CustomSearch {...props} setProject={setProject} />
+                  <CustomSearch />
                 </Suspense>
               )}
             />
             <Route
               path="/advanced-search"
               exact
-              render={props => (
+              render={() => (
                 <Suspense fallback={null}>
-                  <AdvancedSearch {...props} setProject={setProject} />
+                  <AdvancedSearch />
                 </Suspense>
               )}
             />
@@ -149,11 +146,7 @@ const Base = ({ setProject }) => {
               path="/browse/:accession/:subPage"
               render={props => (
                 <Suspense fallback={null}>
-                  <Accession
-                    location={props.location}
-                    match={props.match}
-                    setProject={setProject}
-                  />
+                  <Accession location={props.location} match={props.match} />
                 </Suspense>
               )}
             />
@@ -173,26 +166,20 @@ const Base = ({ setProject }) => {
 };
 
 const Root = () => {
-  // The 'ProjectCtx' content is defined here, since some childs use it
-  // However, the project is not set by this script but the children
-  const [project, setProject] = useState(null);
-  //console.log(project)
   return (
     <MuiThemeProvider theme={theme}>
-      <ProjectCtx.Provider value={project}>
-        <Switch>
-          <Route
-            path="/embed/:accession"
-            exact
-            render={props => (
-              <Suspense fallback={null}>
-                <Embed {...props} projectState={[project, setProject]} />
-              </Suspense>
-            )}
-          />
-          <Route render={() => <Base setProject={setProject} />} />
-        </Switch>
-      </ProjectCtx.Provider>
+      <Switch>
+        <Route
+          path="/embed/:accession"
+          exact
+          render={props => (
+            <Suspense fallback={null}>
+              <Embed {...props} />
+            </Suspense>
+          )}
+        />
+        <Route render={() => <Base />} />
+      </Switch>
     </MuiThemeProvider>
   );
 };

@@ -1,0 +1,56 @@
+.container {
+  flex: 1;
+  width: 100%;
+  background: black;
+  position: relative;
+}
+.container.light-theme {
+  background: white;
+}
+
+.container[data-loading]::before {
+  content: attr(data-loading);
+  color: white;
+  padding-top: 1ch;
+  padding-left: 1ch;
+}
+
+.container[data-loading].light-theme::before {
+  color: black;
+}
+
+.container::before,
+.container.loading-trajectory::before {
+  position: absolute;
+  pointer-events: none;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+  background: transparent;
+}
+
+.container.loading-structure {
+  pointer-events: none;
+}
+
+.container,
+.container > canvas {
+  border-radius: 0.5ch 0.5ch 0 0;
+}
+
+.container > canvas {
+  height: 0;
+}
+
+.tooltip {
+  display: none;
+  position: fixed;
+  pointer-events: none;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: lightgrey;
+  padding: 8px;
+  font-family: sans-serif;
+  white-space: pre-line;
+}

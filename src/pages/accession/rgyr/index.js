@@ -16,7 +16,7 @@ import Loading from '../../../components/loading';
 
 import useAPI from '../../../hooks/use-api';
 
-import { AccessionCtx, ProjectCtx } from '../../../contexts';
+import { ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
@@ -29,10 +29,8 @@ const Graph2 = lazy(() =>
 const cents = num => Math.round(num * 100) / 100;
 
 const Rgyr = () => {
-  // Get the accession
-  const accession = useContext(AccessionCtx);
   // Get the current project metadata
-  const { metadata } = useContext(ProjectCtx);
+  const { accession, metadata } = useContext(ProjectCtx);
 
   // Send a request to the API with the url of the rgyr analysis
   const { loading, payload, error } = useAPI(

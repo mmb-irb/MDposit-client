@@ -72,7 +72,7 @@ const hasEpitopes = reference => {
   return referencesWithEpitopes.indexOf(reference) > -1;
 };
 
-const Row = ({ project, highlight, index, setProject }) => {
+const Row = ({ project, highlight, index }) => {
   // Harvest data from the project object
   const {
     identifier,
@@ -152,8 +152,11 @@ const Row = ({ project, highlight, index, setProject }) => {
       {/* accession */}
       <TableCell>
         <Link
-          to={`/browse/${accession || identifier}/overview`}
-          onClick={() => setProject(project)}
+          to={{
+            pathname: `/browse/${accession || identifier}/overview`,
+            // We pass the selected project data so there is no need to query it again
+            state: { projectData: project },
+          }}
         >
           <Highlight highlight={highlight}>
             {accession || identifier}
@@ -206,8 +209,11 @@ const Row = ({ project, highlight, index, setProject }) => {
                   clickable
                   className={style.analysis}
                   component={Link}
-                  to={`/browse/${accession || identifier}/${analysis}`}
-                  onClick={() => setProject(project)}
+                  to={{
+                    pathname: `/browse/${accession || identifier}/${analysis}`,
+                    // We pass the selected project data so there is no need to query it again
+                    state: { projectData: project },
+                  }}
                   label={NICE_NAMES.get(analysis) || analysis}
                   variant="outlined"
                 />
@@ -218,7 +224,7 @@ const Row = ({ project, highlight, index, setProject }) => {
   );
 };
 
-const Browse = ({ location, history, setProject }) => {
+const Browse = ({ location, history }) => {
   // Convert the URL string into an object
   // This "parse" comes from the "qs" library
   // WARNING: The default "parse" decoding behaviour has a strong conflict between '+' and blank space character
@@ -315,7 +321,6 @@ const Browse = ({ location, history, setProject }) => {
                 highlight={search.search} // Load the highlight
                 index={index} // Load the index
                 key={project.identifier} // Add a key for react to do not complain
-                setProject={setProject}
               />
             ))}
           </TableBody>

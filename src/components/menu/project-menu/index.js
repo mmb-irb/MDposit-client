@@ -11,6 +11,7 @@ import {
   Tab,
   Tabs,
   Typography,
+  AppBar,
 } from '@material-ui/core';
 import { Link } from 'react-router-dom';
 
@@ -35,7 +36,7 @@ const hasEpitopes = referenceId => {
 
 // Render the menu of the project (i.e. the inferior header)
 // It only appears when the user is inside a project
-const ProjectMenu = ({ params: { accession, subPage } }) => {
+const ProjectMenu = ({ accession, subPage }) => {
   // Get the current project metadata
   // WARNING: context may be missing in the first renders
   const { metadata, analyses, files } = useContext(ProjectCtx) || {
@@ -225,7 +226,7 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
 
   // Return each of the menu tabs
   return (
-    <>
+    <AppBar position="sticky" className={style['overcome-parent']}>
       <Tabs
         value={subPage}
         indicatorColor="secondary"
@@ -320,7 +321,7 @@ const ProjectMenu = ({ params: { accession, subPage } }) => {
             </Popper>
           ),
       )}
-    </>
+    </AppBar>
   );
 };
 

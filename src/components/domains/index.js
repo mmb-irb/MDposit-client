@@ -1,4 +1,10 @@
-import React, { useContext, useState, useMemo, Suspense } from 'react';
+import React, {
+  useContext,
+  useState,
+  useMemo,
+  useEffect,
+  Suspense,
+} from 'react';
 
 import Card from '../animated-card';
 import { CardContent, Chip } from '@material-ui/core';
@@ -182,7 +188,8 @@ const Domains = ({ setter }) => {
     interactions,
   ]);
 
-  useMemo(() => {
+  // Add the selected domain (if any) configuration to the viewer
+  useEffect(() => {
     if (!domains) return {};
     const currentSelectedDomain = domains[selectedDomain];
     const currentSelectedRepresentations = currentSelectedDomain.representations.map(

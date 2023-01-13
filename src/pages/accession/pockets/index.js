@@ -26,7 +26,7 @@ import useDefaultRepresentations from '../../../components/ngl-viewer/use-defaul
 
 import style from './style.module.css';
 
-import { AccessionCtx, ProjectCtx, PdbCtx } from '../../../contexts';
+import { ProjectCtx, PdbCtx } from '../../../contexts';
 
 import Loading from '../../../components/loading';
 
@@ -63,9 +63,7 @@ const Pockets = () => {
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
 
   // Get the current project metadata
-  const { metadata } = useContext(ProjectCtx);
-  // Get the accession
-  const accession = useContext(AccessionCtx);
+  const { accession, metadata } = useContext(ProjectCtx);
   // Get the current topology, including the residue names
   const pdbData = useContext(PdbCtx);
 

@@ -26,7 +26,7 @@ import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 
 import useAPI from '../../../hooks/use-api';
 
-import { AccessionCtx, ProjectCtx } from '../../../contexts';
+import { ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
@@ -39,10 +39,10 @@ const rowsPerPageDefault = 25;
 const rowsPerPageOptions = [10, 25, 50, 100];
 
 const Hbonds = () => {
-  // Get the accession
-  const accession = useContext(AccessionCtx);
   // Get the current project data
-  const { topology: topologyManager, interactions } = useContext(ProjectCtx);
+  const { accession, topology: topologyManager, interactions } = useContext(
+    ProjectCtx,
+  );
 
   // Set a reference to the table element so we can scroll to it
   const tableRef = useRef();

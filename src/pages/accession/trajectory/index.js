@@ -1,4 +1,10 @@
-import React, { memo, useContext, useEffect, useState } from 'react';
+import React, {
+  memo,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from 'react';
 // A hook to track whenever some element is on screen
 import { useInView } from 'react-intersection-observer';
 
@@ -521,9 +527,17 @@ const Trajectory = () => {
     initialFocus: null,
   });
 
+  // Use a callback to wrap the setState function as it is recommended
+  const handleChangeNglConfiguration = useCallback(
+    newConfiguration => {
+      setNglConfiguration(newConfiguration);
+    },
+    [setNglConfiguration],
+  );
+
   return (
     <>
-      <Domains setter={setNglConfiguration} />
+      <Domains setter={handleChangeNglConfiguration} />
       <Card className={style['ngl-card']} ref={nglRef}>
         {/* Render the NGL viewer when it is on screen*/}
         {isNglVisible ? (

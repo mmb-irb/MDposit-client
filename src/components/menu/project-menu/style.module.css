@@ -1,3 +1,11 @@
+.overcome-parent {
+  /* Take 100% with of the page thus ignoring the parent width */
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-top: -1em;
+  margin-bottom: 0.5em;
+}
+
 .tab-link {
   text-align: center;
 }

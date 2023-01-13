@@ -19,7 +19,7 @@ import Loading from '../../../components/loading';
 
 import useAPI from '../../../hooks/use-api';
 
-import { AccessionCtx, ProjectCtx } from '../../../contexts';
+import { ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
@@ -41,10 +41,8 @@ const tabs = [
 const colors = ['black', 'red', 'orange', 'yellow'];
 
 const Rmsds = () => {
-  // Get the accession
-  const accession = useContext(AccessionCtx);
   // Get the metadata
-  const { metadata, analyses } = useContext(ProjectCtx);
+  const { accession, metadata, analyses } = useContext(ProjectCtx);
   // Note that TM scores is not mandatory to load this page
   // Actually a simulation with no protein will have no TM score, so it is normal
   const hasTMscore = analyses.includes('tmscores');

@@ -20,7 +20,7 @@ import { faTrashAlt } from '@fortawesome/free-regular-svg-icons';
 
 import useAPI from '../../../hooks/use-api';
 
-import { AccessionCtx } from '../../../contexts';
+import { ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
@@ -32,7 +32,7 @@ const Graph2 = lazy(() =>
 
 const FluctuationAnalysis = () => {
   // Get the accession
-  const accession = useContext(AccessionCtx);
+  const { accession } = useContext(ProjectCtx);
 
   // Send a request to the API with the url of the specific analysis
   const { loading, payload, error } = useAPI(

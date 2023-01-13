@@ -10,7 +10,6 @@ import Loading from '../../../components/loading';
 
 import useAPI from '../../../hooks/use-api';
 
-import { AccessionCtx } from '../../../contexts';
 import { ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
@@ -40,10 +39,8 @@ const nglPlaceholder = (
 );
 
 const PCA = () => {
-  // Get the accession
-  const accession = useContext(AccessionCtx);
   // Get the current project metadata
-  const { metadata, files } = useContext(ProjectCtx);
+  const { accession, metadata, files } = useContext(ProjectCtx);
 
   // Load the main data from the API
   const { loading, payload, error } = useAPI(

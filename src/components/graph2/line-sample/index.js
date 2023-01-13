@@ -20,7 +20,7 @@ const LineSample = ({ color, dash, className }) => {
       .attr('y1', 0)
       .attr('x2', 50)
       .attr('y2', 0);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
   // Maybe might need to double-check that and remove the exception
 
   return (

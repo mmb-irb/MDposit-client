@@ -19,7 +19,7 @@ import Loading from '../../../components/loading';
 
 import useAPI from '../../../hooks/use-api';
 
-import { AccessionCtx, ProjectCtx } from '../../../contexts';
+import { ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
@@ -55,10 +55,10 @@ const Sasa = () => {
   // The status isNglVisible is returned true/false when the element is in/out the screen respectively
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
 
-  // Get the accession
-  const accession = useContext(AccessionCtx);
   // Get the current project data
-  const { metadata, topology: topologyManager } = useContext(ProjectCtx);
+  const { accession, metadata, topology: topologyManager } = useContext(
+    ProjectCtx,
+  );
 
   // Get the default representations
   const defaultRepresentations = useDefaultRepresentations();
