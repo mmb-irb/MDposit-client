@@ -114,7 +114,6 @@ const CustomSearch = () => {
           if (isNaN(+value.max)) return ++errors;
           parsedValue['$lt'] = +value.max;
         }
-        console.log(parsedValue);
         parsedQuery[key] = parsedValue;
         return;
       }
