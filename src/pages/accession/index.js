@@ -478,6 +478,7 @@ export default ({ location, match }) => {
     return interactions.error.toString() + ' (in interactions)';
   else if (thereAreInteractions && !interactions.payload)
     return 'Something bad happened with the interactions data';
+  if (!project) return; // Should not happen, but sometimes...
   // Setup the topology
   // This class contains several functions for topology data managment and it is widely use among the different pages
   const topologyManager = new Topology(topology.payload, project.metadata);
