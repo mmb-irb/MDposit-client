@@ -11,9 +11,7 @@ import React, {
 } from 'react';
 //import useToggleState from '../../hooks/use-toggle-state';
 import { useInView } from 'react-intersection-observer';
-import { clamp } from 'lodash-es';
 import cn from 'classnames';
-import { Stage, ColormakerRegistry, Matrix4 } from 'ngl';
 
 // Load molstar logic
 //import { PluginUIContext } from "molstar/lib/mol-plugin-ui/context";
@@ -21,8 +19,8 @@ import { createPluginUI } from 'molstar/lib/mol-plugin-ui/index';
 import { DefaultPluginUISpec } from 'molstar/lib/mol-plugin-ui/spec';
 import { TrajectoryFromModelAndCoordinates } from 'molstar/lib/mol-plugin-state/transforms/model';
 import { AnimateModelIndex } from 'molstar/lib/mol-plugin-state/animation/built-in/model-index';
-import { AnimateStateSnapshots } from 'molstar/lib/mol-plugin-state/animation/built-in/state-snapshots';
-import { AnimateStateInterpolation } from 'molstar/lib/mol-plugin-state/animation/built-in/state-interpolation';
+import { createStructureRepresentationParams } from 'molstar/lib/mol-plugin-state/helpers/structure-representation-params';
+import { StateTransforms } from 'molstar/lib/mol-plugin-state/transforms';
 /*  Might require extra configuration,
 see https://webpack.js.org/loaders/sass-loader/ for example.
 create-react-app should support this natively. */
@@ -31,21 +29,16 @@ create-react-app should support this natively. */
 // Load the parser for trajectory coordinates in our format to molstar format
 import { TrajectoryFromCustomData } from './molstar-parser';
 
-import { frame } from 'timing-functions';
-
 import getFrames from './get-frames';
 
 import { ProjectCtx, PdbCtx } from '../../contexts';
 
-import { setTooltipPosition } from '../../utils/tooltip-position-manager';
+//import { setTooltipPosition } from '../../utils/tooltip-position-manager';
 
 import style from './style.module.css';
 
 // To get frames
 import { BASE_PATH_PROJECTS, PATH_MAIN_TOPOLOGY } from '../../utils/constants';
-
-// Make a deep copy of an object even with cyclic references
-import { cloneDeep } from 'lodash-es';
 
 // Used to just wait
 import { sleep } from 'timing-functions';
@@ -91,15 +84,7 @@ molstarSpec.components = {
 };
 
 const DEFAULT_NUMBER_OF_FRAMES = 25;
-const DEFAULT_ORIENTATION_TRANSITION_DURATION = 750; // 750 ms
-
-const CHAIN_SELECTION = 'polymer and not hydrogen ';
-
-const isValidColor = colorName => {
-  var s = new Option().style;
-  s.color = colorName;
-  return s.color === colorName;
-};
+//const DEFAULT_ORIENTATION_TRANSITION_DURATION = 750; // 750 ms
 
 const frameRangeFormat = /\?frames=(?<start>\d+):(?<end>\d+)(:(?<step>\d+))?/;
 const parseFrameRange = frameRange => {
@@ -219,10 +204,6 @@ const MolstarViewer = memo(
       const stageRef = useRef(null);
       const tooltipRef = useRef(null);
       const firstTime = useRef(true);
-      // curatedOrientation might be null
-      const originalOritentationRef = useRef(
-        curatedOrientation ? new Matrix4().set(...curatedOrientation) : null,
-      );
 
       // in-view hook
       const [inViewRef, isInView] = useInView();
@@ -650,8 +631,10 @@ const MolstarViewer = memo(
         wrap();
         // Cleanup function
         return () => {
-          molstarRef.current.dispose();
-          molstarRef.current = null;
+          if (molstarRef.current) {
+            molstarRef.current.dispose();
+            molstarRef.current = null;
+          }
         };
       }, []);
 
@@ -674,15 +657,38 @@ const MolstarViewer = memo(
             data,
             'pdb',
           );
+          // WARNING: Do not modify this model
+          // WARNING: Althought it should be the same model
           const model = await molstar.builders.structure.createModel(
             trajectory,
           );
-          // const structure = await molstar.builders.structure.createStructure(model);
+
           // DANI: Esta función te acepta igual una trayectory que un model que una structure
           // await molstar.builders.structure.hierarchy.applyPreset(structure, "default");
 
           // console.log(molstar);
           // console.log(molstar.managers.structure.hierarchy.current);
+
+          // // Set the representations (https://github.com/molstar/molstar/issues/68)
+          // // WARNING: Default MolStar representation is not the most efficient one so we have to tweak it
+          // // First set the different features we may encounter within the structure
+          // const components = {
+          //     polymer: await molstar.builders.structure.tryCreateComponent(structure, 'polymer'),
+          //     ligand: await molstar.builders.structure.tryCreateComponent(structure, 'ligand'),
+          //     //water: await molstar.builders.structure.tryCreateComponent(structure, 'water'),
+          // };
+          // // Now
+          // const builder = molstar.builders.structure.representation;
+          // const update = molstar.build();
+          // if (components.polymer) builder.buildRepresentation(update, components.polymer, {
+          //   type: 'line',
+          //   //typeParams: { alpha: 0.51 } // Make it transparent
+          // }, { tag: 'polymer' });
+          // if (components.ligand) builder.buildRepresentation(update, components.ligand, {
+          //   type: 'ball-and-stick'
+          // }, { tag: 'ligand' });
+          // //if (components.water) builder.buildRepresentation(update, components.water, { type: 'ball-and-stick', typeParams: { alpha: 0.6 } }, { tag: 'water' });
+          // await update.commit();
 
           // Save the model reference inside the molstar reference
           molstar.modelRef = model.ref;
@@ -767,19 +773,51 @@ const MolstarViewer = memo(
             )
             .commit();
 
+          // Get the current trajectory model
+          // From now on, this is the model to be modified and not the model in molstar.modelRef
+          const newModel = await molstar.builders.structure.createModel(
+            molstarTrajectory,
+          );
+
+          // Set the default representation
+          // Use a lightweighted representation type
+          const structure = await molstar.builders.structure.createStructure(
+            newModel,
+          );
+          const components = molstar.build().to(structure);
+          const lightRepresentation = createStructureRepresentationParams(
+            molstar,
+            void 0,
+            {
+              type: 'cartoon',
+              typeParams: {
+                // Quality options: custom, auto, highest, higher, high, medium, low, lower, lowest
+                // https://github.com/molstar/molstar/blob/0e197b18857d59c27f51d4aa0226cd772bc872ca/src/mol-geo/geometry/base.ts
+                // DANI: 'lowest' se ve muy feo y no mejora mucho el rendimiento
+                quality: 'lower',
+                ignoreHydrogens: 'all',
+                ignoreHydrogensVariant: 'all',
+                ignoreLight: true,
+              },
+            },
+          );
+
+          components.apply(
+            StateTransforms.Representation.StructureRepresentation3D,
+            lightRepresentation,
+          );
+          await components.commit();
+
           // DANI: Hay 2 presets: 'default' y 'all-models'. Aparecen siempre, aunque tu no los hayas creado
           //const currentPresets = molstar.builders.structure.hierarchy.getPresetsWithOptions(molstarTrajectory);
           //console.log(currentPresets);
 
           // DANI: El apply preset puede hacerse a 'default' o a 'all-models'
           // DANI: El 'all-models' te representa todas las frames superpuestas (y tarda)
-          await molstar.builders.structure.hierarchy.applyPreset(
-            molstarTrajectory,
-            'default',
-          );
-
-          //console.log(molstar);
-          //console.log(molstar.managers.structure.hierarchy.current);
+          // await molstar.builders.structure.hierarchy.applyPreset(
+          //   molstarTrajectory,
+          //   'default',
+          // );
 
           // If there is a trajectory already update it with new data
           if (loadedTrajectories.length > 0) {
@@ -861,11 +899,7 @@ const MolstarViewer = memo(
           centerFocus() {
             setFocus({ comp: 0, sele: 'all' });
             // Use the provided orientation, if any
-            if (!originalOritentationRef.current) return;
-            stageRef.current.animationControls.orient(
-              originalOritentationRef.current,
-              DEFAULT_ORIENTATION_TRANSITION_DURATION,
-            );
+            // DANI: Sin hacer
           },
           get currentFrame() {
             if (!(isFirstCompStaged && requestedTrajectories.length)) return -1;

@@ -44,6 +44,8 @@ import {
   faTimes,
   faLock,
   faUnlock,
+  faStarOfLife,
+  faShareAlt, // It looks like connected atoms
 } from '@fortawesome/free-solid-svg-icons';
 
 import RepresentationsManager from './representations-manager';
@@ -52,7 +54,7 @@ import { get, setAsync } from '../../utils/storage';
 
 // The main component of the viewer itself
 import MolstarViewer from '../molstar-viewer';
-//import NGLViewer from '../ngl-viewer';
+import NGLViewer from '../ngl-viewer';
 import useDefaultRepresentations from '../ngl-viewer/use-default-representations';
 
 // Hooks
@@ -170,6 +172,11 @@ const NGLViewerWithControls = forwardRef(
     },
     ref,
   ) => {
+    // Set which viewer is used: NGL or MolStar
+    const [Viewer, setViewer] = useState(
+      //MolstarViewer
+      NGLViewer,
+    );
     // Get project metadata
     const { metadata } = useContext(ProjectCtx);
     // Use metadata to limit available frmaes number
@@ -559,7 +566,7 @@ const NGLViewerWithControls = forwardRef(
               }
               style={{ border: 'none', boxShadow: 'none' }}
             >
-              <MolstarViewer
+              <Viewer
                 playing={playing}
                 spinning={spinning}
                 smooth={smooth}
@@ -639,6 +646,23 @@ const NGLViewerWithControls = forwardRef(
                       }}
                     >
                       <FontAwesomeIcon icon={perspective ? faSquare : faCube} />
+                    </IconButton>
+
+                    <IconButton
+                      title={`Switch viwer to ${
+                        Viewer === NGLViewer ? 'MolStar' : 'NGL'
+                      }`}
+                      onClick={() => {
+                        setViewer(currentViewer => {
+                          if (currentViewer === NGLViewer) return MolstarViewer;
+                          if (currentViewer === MolstarViewer) return NGLViewer;
+                          throw new Error('Unrecognized current viewer');
+                        });
+                      }}
+                    >
+                      <FontAwesomeIcon
+                        icon={Viewer === NGLViewer ? faStarOfLife : faShareAlt}
+                      />
                     </IconButton>
                   </div>
                   {noTrajectory || (

@@ -1538,6 +1538,9 @@ const NGLViewer = memo(
         if (!topologyManager) return;
         // Set a new tooltip
         const tooltip = tooltipRef.current;
+        // WARNING: The following line is dangerous since you are manipulating the DOM outside of React
+        // If the tooltip component is not child of the viewer and you change to molstar then you have the following error:
+        // Node.removeChild: The node to be removed is not a child of this node
         containerRef.current.appendChild(tooltip);
 
         // Remove the original tooltip
@@ -1780,9 +1783,10 @@ const NGLViewer = memo(
                 ? `Rendering...`
                 : undefined // Show nothing when everything was finished and fine
             }
-          />
-          <div ref={tooltipRef} className={style.tooltip}>
-            {tooltipContent}
+          >
+            <div ref={tooltipRef} className={style.tooltip}>
+              {tooltipContent}
+            </div>
           </div>
         </>
       );
