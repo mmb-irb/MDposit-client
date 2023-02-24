@@ -144,10 +144,10 @@ const Epitopes = () => {
     // Wait for data and metadata to be ready
     if (!payload || !metadata || !topologyManager) return {};
     // Get the main data
-    const data = payload && payload.data;
+    const data = payload.saspf;
     // Calculate the frames step of the first residue SAS analysis
     // All residues must have the same frames step
-    const frameCount = data[0].saspf.length;
+    const frameCount = data[0].length;
     const frameStep =
       payload.step || Math.floor(metadata.SNAPSHOTS / (frameCount - 1));
     // Set the input objets for the graph
@@ -167,7 +167,7 @@ const Epitopes = () => {
         const chainedResiduesData = {};
         Object.entries(chainedResidues).forEach(([chain, residues]) => {
           const residuesData = residues.map(residueIndex => {
-            const residueData = data[residueIndex];
+            const residueData = { saspf: data[residueIndex] };
             residueData.atoms = topologyManager.getResidueAtomsCount(
               residueIndex,
             );
