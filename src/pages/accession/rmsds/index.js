@@ -27,8 +27,8 @@ import { getMeanAndStdv } from '../../../utils/statistics';
 
 import style from './style.module.css';
 
-const Graph2 = lazy(() =>
-  import(/* webpackChunkName: 'graph2' */ '../../../components/graph2'),
+const Graph = lazy(() =>
+  import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
 );
 
 const tabs = [
@@ -70,7 +70,14 @@ const Rmsds = () => {
   const [display, setDisplay] = useState({});
 
   // Format the data
-  const { rmsds, frameStep, xAxisStep, xAxisLabel, xUnit } = useMemo(() => {
+  const {
+    rmsds,
+    frameStep,
+    xAxisStep,
+    xAxisLabel,
+    isEnsemble,
+    xTooltip,
+  } = useMemo(() => {
     let payload;
     const type = selectedTab.type;
     const reference = selectedTab.reference;
@@ -103,13 +110,16 @@ const Rmsds = () => {
     const frameStep = payload.step;
     // If this is an ensemble we use frames as the x axis
     // If this is a trajectory we use time as the x axis
-    const xAxisStep =
-      metadata.TYPE === 'ensemble'
-        ? frameStep
-        : frameStep * (metadata.FREQUENCY / 1000);
-    const xAxisLabel = metadata.TYPE === 'ensemble' ? 'Frames' : 'Time (ns)';
-    const xUnit = metadata.TYPE === 'ensemble' ? 'frame' : 'ns';
-    return { rmsds, frameStep, xAxisStep, xAxisLabel, xUnit };
+    const isEnsemble = metadata.TYPE === 'ensemble';
+    const xAxisStep = isEnsemble
+      ? frameStep
+      : frameStep * (metadata.FREQUENCY / 1000);
+    const xAxisLabel = isEnsemble ? 'Frames' : 'Time (ns)';
+    // Set the tooltip generator for when the mouse hovers the graph
+    const xTooltip = isEnsemble
+      ? xValue => 'frame ' + xValue
+      : xValue => +xValue.toFixed(2) + ' ns';
+    return { rmsds, frameStep, xAxisStep, xAxisLabel, isEnsemble, xTooltip };
   }, [metadata, rmsdsPayload, tmscoresPayload, selectedTab]);
 
   // Set when one point in the graph is selected
@@ -208,11 +218,12 @@ const Rmsds = () => {
       </Card>
       <Card className={style.card}>
         <CardContent>
-          <Graph2
+          <Graph
             yData={rmsds}
             step={xAxisStep}
             xAxisLabel={xAxisLabel}
-            xUnit={xUnit}
+            type={isEnsemble ? 'dots' : 'line'}
+            xTooltip={xTooltip}
             xScaleFactor={1}
             yAxisLabel={yAxisLabel}
             onSelect={setSelected}

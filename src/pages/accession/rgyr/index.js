@@ -22,8 +22,8 @@ import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 import style from './style.module.css';
 
-const Graph2 = lazy(() =>
-  import(/* webpackChunkName: 'graph' */ '../../../components/graph2'),
+const Graph = lazy(() =>
+  import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
 );
 
 const cents = num => Math.round(num * 100) / 100;
@@ -66,18 +66,21 @@ const Rgyr = () => {
     return [selectedMark];
   }, [selected]);
 
-  const { xAxisStep, xAxisLabel, xUnit } = useMemo(() => {
+  const { xAxisStep, xAxisLabel, isEnsemble, xTooltip } = useMemo(() => {
     if (!payload) return {};
     const dataLength = payload.y['rgyr'].data.length;
     // If this is an ensemble we use frames as the x axis
     // If this is a trajectory we use time as the x axis
-    const xAxisStep =
-      metadata.TYPE === 'ensemble'
-        ? metadata.SNAPSHOTS / (dataLength - 1)
-        : metadata.LENGTH / (dataLength - 1);
-    const xAxisLabel = metadata.TYPE === 'ensemble' ? 'Frames' : 'Time (ns)';
-    const xUnit = metadata.TYPE === 'ensemble' ? 'frame' : 'ns';
-    return { xAxisStep, xAxisLabel, xUnit };
+    const isEnsemble = metadata.TYPE === 'ensemble';
+    const xAxisStep = isEnsemble
+      ? metadata.SNAPSHOTS / (dataLength - 1)
+      : metadata.LENGTH / (dataLength - 1);
+    const xAxisLabel = isEnsemble ? 'Frames' : 'Time (ns)';
+    // Set the tooltip generator for when the mouse hovers the graph
+    const xTooltip = isEnsemble
+      ? xValue => 'frame ' + +xValue.toFixed(0)
+      : xValue => +xValue.toFixed(2) + ' ns';
+    return { xAxisStep, xAxisLabel, isEnsemble, xTooltip };
   }, [payload, metadata]);
 
   // Render loading or error messages according with the API response
@@ -129,11 +132,12 @@ const Rgyr = () => {
       <Card className={style.card}>
         <CardContent>
           <Typography variant="h6" />
-          <Graph2
+          <Graph
             yData={payload.y}
             step={xAxisStep}
             xAxisLabel={xAxisLabel}
-            xUnit={xUnit}
+            type={isEnsemble ? 'dots' : 'line'}
+            xTooltip={xTooltip}
             xScaleFactor={1}
             yAxisLabel={'Rgyr (Å)'}
             onSelect={setSelected}

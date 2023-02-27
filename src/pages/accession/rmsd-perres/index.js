@@ -29,7 +29,7 @@ import { ColormakerRegistry } from 'ngl';
 
 import ResidueSelector from '../../../components/residue-selector';
 
-import Graph2 from '../../../components/graph2';
+import Graph from '../../../components/graph';
 
 // Define permanent options for the "useInView"
 const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
@@ -82,7 +82,8 @@ const RmsdPerres = () => {
     analysisFrameCount,
     xAxisStep,
     xAxisLabel,
-    xUnit,
+    isEnsemble,
+    xTooltip,
     data,
   } = useMemo(() => {
     if (!topologyManager || !metadata || !payload) return {};
@@ -156,12 +157,15 @@ const RmsdPerres = () => {
 
     // If this is an ensemble we use frames as the x axis
     // If this is a trajectory we use time as the x axis
-    const xAxisStep =
-      metadata.TYPE === 'ensemble'
-        ? frameStep
-        : metadata.LENGTH / (analysisFrameCount - 1);
-    const xAxisLabel = metadata.TYPE === 'ensemble' ? 'Frames' : 'Time (ns)';
-    const xUnit = metadata.TYPE === 'ensemble' ? 'frame' : 'ns';
+    const isEnsemble = metadata.TYPE === 'ensemble';
+    const xAxisStep = isEnsemble
+      ? frameStep
+      : metadata.LENGTH / (analysisFrameCount - 1);
+    const xAxisLabel = isEnsemble ? 'Frames' : 'Time (ns)';
+    // Set the tooltip generator for when the mouse hovers the graph
+    const xTooltip = isEnsemble
+      ? xValue => 'frame ' + xValue
+      : xValue => +xValue.toFixed(2) + ' ns';
 
     // Load the required frames from the main trajectory
     const mainURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory?frames=1:${trajectoryFrameCount}:${frameStep}`;
@@ -177,7 +181,8 @@ const RmsdPerres = () => {
       analysisFrameCount,
       xAxisStep,
       xAxisLabel,
-      xUnit,
+      isEnsemble,
+      xTooltip,
       data,
     };
   }, [payload, topologyManager, metadata, accession, defaultRepresentations]);
@@ -279,11 +284,12 @@ const RmsdPerres = () => {
       </Card>
       <Card className={style.graphcard}>
         {selectedResidues.length > 0 ? (
-          <Graph2
+          <Graph
             yData={selectedData}
             step={xAxisStep}
             xAxisLabel={xAxisLabel}
-            xUnit={xUnit}
+            type={isEnsemble ? 'dots' : 'line'}
+            xTooltip={xTooltip}
             yAxisLabel={'RMSd (Å)'}
             onSelect={handleFrameSelection}
             className={style.graph}

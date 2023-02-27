@@ -37,20 +37,6 @@ export const NICE_NAMES = new Map([
   ['populations', 'Populations'],
 ]);
 
-// The color of the graphics for this analysis
-// WARNING: If no color is provided the graphics won't be visible
-export const COLORS = new Map([
-  ['dist', '#67b7dc'],
-  ['rmsd', '#67b7dc'],
-  ['rgyr', '#67b7dc'],
-  ['rgyrx', '#fdd400'],
-  ['rgyry', '#84b761'],
-  ['rgyrz', '#cc4748'],
-  ['rmsf', '#67b7dc'],
-  ['fluct', '#67b7dc'],
-  ['time', 'gray'],
-]);
-
 // The name how this analysis is tagged in the webpage
 // If no name is provided, the webpage will tag it with the defalt name
 export const COLLECTION_NAMES = new Map([

@@ -57,8 +57,8 @@ const dashStyles = [
 const rowsPerPageDefault = 10;
 const rowsPerPageOptions = [10, 25, 50, 100];
 
-const Graph2 = lazy(() =>
-  import(/* webpackChunkName: 'graph2' */ '../../../components/graph2'),
+const Graph = lazy(() =>
+  import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
 );
 
 // Define permanent options for the "useInView"
@@ -140,7 +140,13 @@ const Epitopes = () => {
   );
 
   // Set the epitopes formatted data
-  const { data, epitopesData, frameStep, frameCount } = useMemo(() => {
+  const {
+    data,
+    epitopesData,
+    frameStep,
+    frameCount,
+    xTooltip,
+  } = useMemo(() => {
     // Wait for data and metadata to be ready
     if (!payload || !metadata || !topologyManager) return {};
     // Get the main data
@@ -230,7 +236,10 @@ const Epitopes = () => {
     // Instantiate the selected epitopes state using the number of epitopes data
     setSelectedEpitopes(new Array(epitopesData.length).fill(null));
 
-    return { data, epitopesData, frameStep, frameCount };
+    // Set the tooltip generator for the graph hover
+    const xTooltip = xValue => 'frame ' + xValue;
+
+    return { data, epitopesData, frameStep, frameCount, xTooltip };
   }, [payload, metadata, topologyManager, epitopes]);
 
   // Use this hook to get the memoized NGL default representations
@@ -491,10 +500,10 @@ const Epitopes = () => {
             <Typography variant="h6">No epitope selected</Typography>
           </div>
         )}
-        <Graph2
+        <Graph
           yData={graphInputData}
           step={frameStep}
-          xUnit={'frame'}
+          xTooltip={xTooltip}
           xScaleFactor={1}
           xAxisLabel={'Frames'}
           yAxisLabel={`Exposure (%)`}

@@ -672,4 +672,13 @@ export class Topology {
     if (!color) return 'black';
     return color;
   };
+
+  // Get all atom colors according to their elements
+  getAtomElementColors = () => {
+    return this.atomElements.map(element => {
+      const color = elementColors[element];
+      if (!color) return 'black';
+      return color;
+    });
+  };
 }

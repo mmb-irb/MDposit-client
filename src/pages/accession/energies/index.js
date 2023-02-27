@@ -19,8 +19,8 @@ import InteractionSelector from '../../../components/interaction-selector';
 
 import style from './style.module.css';
 
-const Graph2 = lazy(() =>
-  import(/* webpackChunkName: 'graph2' */ '../../../components/graph2'),
+const Graph = lazy(() =>
+  import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
 );
 
 // Return the rounded summatory
@@ -64,6 +64,7 @@ const Energies = () => {
     esData,
     vdwData,
     bothData,
+    xTooltip,
   } = useMemo(() => {
     // Return if the payload is not ready
     if (!payload || !topologyManager) return {};
@@ -163,6 +164,10 @@ const Energies = () => {
       both: { data: data.both, color: 'black' },
     };
 
+    // Set the tooltip generator for the graph hover
+    const xTooltip = (_, xIndex) =>
+      'residue ' + ((data.xTags && data.xTags[xIndex]) || xIndex);
+
     return {
       data,
       dataError,
@@ -171,6 +176,7 @@ const Energies = () => {
       esData,
       vdwData,
       bothData,
+      xTooltip,
     };
   }, [
     payload,
@@ -332,10 +338,10 @@ const Energies = () => {
           </CardContent>
         ) : (
           <CardContent>
-            <Graph2
+            <Graph
               yData={esData}
               xAxisValues={data.xTags}
-              xUnit={'residue'}
+              xTooltip={xTooltip}
               title={'Electrostatic'}
               xScaleFactor={0.001}
               yAxisLabel={'Interaction energy (kcal/mol)'}
@@ -344,23 +350,23 @@ const Energies = () => {
               fullPrecision
               marks={marks}
             />
-            <Graph2
+            <Graph
               yData={vdwData}
               title={'vdW'}
               xAxisValues={data.xTags}
-              xUnit={'residue'}
+              xTooltip={xTooltip}
               yAxisLabel={'Interaction energy (kcal/mol)'}
               onSelect={handleResidueSelection}
               dataDisplay={vdwDisplay}
               fullPrecision
               marks={marks}
             />
-            <Graph2
+            <Graph
               yData={bothData}
               title={'Electrostatic+vdW'}
               xAxisLabel={'Residue'}
               xAxisValues={data.xTags}
-              xUnit={'residue'}
+              xTooltip={xTooltip}
               yAxisLabel={'Interaction energy (kcal/mol)'}
               onSelect={handleResidueSelection}
               dataDisplay={bothDisplay}

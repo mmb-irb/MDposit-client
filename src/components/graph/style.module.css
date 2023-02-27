@@ -1,5 +1,15 @@
-.graph-container {
+.default {
   height: 50vh;
+}
+
+.flexible {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.graph-container {
+  flex: 1;
 }
 
 .graph-container > svg,
@@ -15,11 +25,17 @@
 }
 
 .graph-legend > * {
-  margin: 0 1em !important;
+  margin: 0 1em;
 }
 
-.graph-legend.precision {
-  margin-top: 2ch;
-  margin-left: 25%;
-  width: 50%;
+.graph-display-legend {
+  margin: 0 1em;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.line-sample {
+  margin: 0.5em 1em;
 }

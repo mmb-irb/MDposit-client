@@ -41,8 +41,8 @@ const pocketsColor = 'grey';
 const surfaceColor = 'grey';
 const defaultRepresentationsColor = 'black';
 
-const Graph2 = lazy(() =>
-  import(/* webpackChunkName: 'graph2' */ '../../../components/graph2'),
+const Graph = lazy(() =>
+  import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
 );
 
 // Define permanent options for the "useInView"
@@ -242,6 +242,11 @@ const Pockets = () => {
     return [selectedMark];
   }, [selectedFrame]);
 
+  // Set the tooltip generator for the graph hover
+  const xTooltip = useMemo(() => {
+    return xValue => 'frame ' + xValue;
+  });
+
   // Handle the change of frame
   useEffect(() => {
     if (!viewerRef.current) return;
@@ -415,10 +420,10 @@ const Pockets = () => {
             <Typography variant="h6">No pocket selected</Typography>
           </div>
         )}
-        <Graph2
+        <Graph
           yData={graphInputData}
           step={frameStep}
-          xUnit={'frame'}
+          xTooltip={xTooltip}
           xScaleFactor={1}
           xAxisLabel={'Frames'}
           yAxisLabel={`Pocket volume (Å³)`}

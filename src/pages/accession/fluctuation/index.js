@@ -26,13 +26,13 @@ import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
 import style from './style.module.css';
 
-const Graph2 = lazy(() =>
-  import(/* webpackChunkName: 'graph' */ '../../../components/graph2'),
+const Graph = lazy(() =>
+  import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
 );
 
 const FluctuationAnalysis = () => {
   // Get the accession
-  const { accession } = useContext(ProjectCtx);
+  const { accession, topology } = useContext(ProjectCtx);
 
   // Send a request to the API with the url of the specific analysis
   const { loading, payload, error } = useAPI(
@@ -61,6 +61,29 @@ const FluctuationAnalysis = () => {
       attr: { fill: '#c8c8c8' },
     }));
   }, [selectedAtoms]);
+
+  // Set some memoized elements which depend on the topology
+  const { xColors, xTooltip } = useMemo(() => {
+    if (!topology) return {};
+    // Color graph rectangle according to the equivalent atom element
+    const xColors = topology.getAtomElementColors();
+    // Set the tooltip generator for when the mouse hovers the graph
+    // Display an atom label based on the x index
+    const xTooltip = (_, xIndex) => {
+      const atomNumber = xIndex + 1;
+      const tag = 'atom ' + atomNumber;
+      const atomName = topology.getAtomName(xIndex);
+      if (!atomName) return tag;
+      const residueIndex = topology.getAtomResidueIndex(xIndex);
+      const residueName = topology.getResidueName(residueIndex);
+      if (!residueName) return tag + ` (${atomName})`;
+      return tag + ` (${residueName} - ${atomName})`;
+    };
+    return { xColors, xTooltip };
+  }, [topology]);
+
+  // We require the topology for this analysis
+  if (!topology) return <Loading />;
 
   // Render loading or error messages according with the API response
   if (loading) return <Loading />;
@@ -108,11 +131,12 @@ const FluctuationAnalysis = () => {
       <Card className={style.card}>
         <CardContent>
           <Typography variant="h6" />
-          <Graph2
+          <Graph
             yData={payload.y}
             step={payload.step}
             xAxisLabel={'Atom'}
-            xUnit={'atom'}
+            xColors={xColors}
+            xTooltip={xTooltip}
             yAxisLabel={'Fluctuation (Å)'}
             type={'dash'}
             onHover={setHoveredAtom}

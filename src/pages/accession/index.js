@@ -48,11 +48,6 @@ const Files = lazy(() => import(/* webpackChunkName: 'files' */ './files'));
 const Trajectory = lazy(() =>
   import(/* webpackChunkName: 'trajectory' */ './trajectory'),
 );
-const GenericAnalysisPage = lazy(() =>
-  import(
-    /* webpackChunkName: 'generic-analysis-page' */ './generic-analysis-page'
-  ),
-);
 const Rmsds = lazy(() => import(/* webpackChunkName: 'rmsds' */ './rmsds'));
 const Rgyr = lazy(() => import(/* webpackChunkName: 'rgyr' */ './rgyr'));
 const Fluctuation = lazy(() =>
@@ -217,21 +212,6 @@ const SummarySwitch = ({ subPage, dataUrl }) => {
             render={() => (
               <Suspense fallback={<Loading />}>
                 <PCA />
-              </Suspense>
-            )}
-          />
-          <Route
-            path="/browse/:accession/dist"
-            exact
-            render={() => (
-              <Suspense fallback={<Loading />}>
-                <GenericAnalysisPage
-                  analysis="dist"
-                  //defaultPrecision={2 ** 6}
-                  xLabel="Time (ns)"
-                  xScaleFactor={0.001}
-                  yLabel="DIST (nm)"
-                />
               </Suspense>
             )}
           />
