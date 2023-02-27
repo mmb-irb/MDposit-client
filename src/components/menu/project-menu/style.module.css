@@ -27,11 +27,6 @@ https://stackoverflow.com/questions/23408539/how-can-i-make-a-displayflex-contai
   width: 650px;
 }
 
-.current {
-  color: #76ff03;
-  background-color: #607d8b;
-}
-
 .disabled {
   color: #999999;
 }

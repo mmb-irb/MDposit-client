@@ -13,6 +13,7 @@ import {
   Typography,
   AppBar,
 } from '@material-ui/core';
+import { useTheme } from '@material-ui/styles';
 import { Link } from 'react-router-dom';
 
 // Load the project contexts
@@ -23,8 +24,6 @@ import style from './style.module.css';
 // Set manually which references have entropies or epitopes
 // This needs to be updated by hand when there is a new reference with entropies or epitopes
 // This workaround prevents having to pass the references context to the root, which makes no sense
-// DANI: De hecho yo no pasaría ni el project al context del root
-// DANI: Habría que poner el project-menu dentro del accession, y que se una con el header solo visualmente
 const referencesWithEntropies = ['P0DTC2'];
 const hasEntropies = referenceId => {
   return referencesWithEntropies.indexOf(referenceId) > -1;
@@ -216,6 +215,11 @@ const ProjectMenu = ({ accession, subPage }) => {
     return tabs;
   }, [metadata, analyses, files]);
 
+  // Get the provided theme
+  const theme = useTheme();
+  const primaryColor = theme.palette.primary.main;
+  const secondaryColor = theme.palette.secondary.main;
+
   // Check if a string is found in the specified (by the 'index') dropTab links
   // If it is, return the same string. If it is not, return undefined
   const inDrop = (value, index) => {
@@ -294,11 +298,14 @@ const ProjectMenu = ({ accession, subPage }) => {
                                     onClick={() => handleClose(index)}
                                     component={Link}
                                     to={`/browse/${accession}/${analysis.dir}`}
-                                    className={
+                                    style={
                                       isCurrent(
                                         `/browse/${accession}/${analysis.dir}`,
                                       )
-                                        ? style.current
+                                        ? {
+                                            color: secondaryColor,
+                                            backgroundColor: primaryColor,
+                                          }
                                         : undefined
                                     }
                                   >
