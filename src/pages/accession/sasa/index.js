@@ -56,9 +56,12 @@ const Sasa = () => {
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
 
   // Get the current project data
-  const { accession, metadata, topology: topologyManager } = useContext(
-    ProjectCtx,
-  );
+  const {
+    accession,
+    metadata,
+    topology: topologyManager,
+    populations,
+  } = useContext(ProjectCtx);
 
   // Get the default representations
   const defaultRepresentations = useDefaultRepresentations();
@@ -84,9 +87,16 @@ const Sasa = () => {
     xAxisLabel,
     isEnsemble,
     xTooltip,
+    xWeights,
     data,
   } = useMemo(() => {
-    if (!topologyManager || !metadata || !payload) return {};
+    if (
+      !topologyManager ||
+      !metadata ||
+      !payload ||
+      (populations && populations.loading)
+    )
+      return {};
 
     // Check data to be coherent
     // Note that sasa analysis must always have the same number of residues that the topology
@@ -176,6 +186,14 @@ const Sasa = () => {
     const xTooltip = isEnsemble
       ? xValue => 'frame ' + xValue
       : xValue => +xValue.toFixed(2) + ' ns';
+    // Get the weigths for each data value corresponding frame
+    let xWeights;
+    if (populations && populations.payload) {
+      xWeights = [];
+      for (let i = 0; i < populations.payload.length; i += xAxisStep) {
+        xWeights.push(populations.payload[i]);
+      }
+    }
     // Load the required frames from the main trajectory
     const mainURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory?frames=1:${metadata.SNAPSHOTS}:${frameStep}`;
     const mainComponent = [
@@ -192,9 +210,17 @@ const Sasa = () => {
       xAxisLabel,
       isEnsemble,
       xTooltip,
+      xWeights,
       data,
     };
-  }, [payload, topologyManager, metadata, accession, defaultRepresentations]);
+  }, [
+    payload,
+    topologyManager,
+    metadata,
+    accession,
+    defaultRepresentations,
+    populations,
+  ]);
 
   // Get the residues list in model notation
   const { selectedData, selectedResidueIndices } = useMemo(() => {
@@ -273,9 +299,13 @@ const Sasa = () => {
   );
 
   // Render loading or error messages according with the API response
-  if (loading) return <Loading />;
+  if (loading || (populations && populations.loading)) return <Loading />;
   else if (error) return error.toString();
+  else if (populations && populations.error)
+    return populations.error.toString();
   else if (!payload) return 'Something bad happened';
+  else if (populations && !populations.payload)
+    return 'Something bad happened with populations';
 
   if (!topologyManager || !metadata) return <Loading />;
 
@@ -300,6 +330,7 @@ const Sasa = () => {
             xAxisLabel={xAxisLabel}
             yAxisLabel={'Relative SAS (Å²)'}
             type={isEnsemble ? 'dots' : 'line'}
+            xWeights={xWeights}
             xTooltip={xTooltip}
             onSelect={handleFrameSelection}
             className={style.graph}

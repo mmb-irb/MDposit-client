@@ -400,7 +400,8 @@ export default ({ location, match }) => {
         stateProjectData.identifier === accession)
     ) {
       // Save the current project data as the state project data and stop here
-      setProject(stateProjectData);
+      const newProject = new Project(stateProjectData);
+      setProject(newProject);
     }
   }
   // If current project data is still missing then query the API for it
@@ -441,7 +442,8 @@ export default ({ location, match }) => {
     else if (!projectQuery.payload)
       return 'Something bad happened with the project data';
     // Save the current project data as the state project data
-    setProject(projectQuery.payload);
+    const newProject = new Project(projectQuery.payload);
+    setProject(newProject);
   }
   // Wait for API requests to send the response
   if (references.loading) return <Loading />;
@@ -524,3 +526,41 @@ export default ({ location, match }) => {
     </ProjectCtx.Provider>
   );
 };
+
+// Set the project class
+class Project {
+  constructor(projectPayload) {
+    // Replicate all payload values in the project object
+    // This includes values such as metadata, files index, accesion, etc.
+    Object.entries(projectPayload).forEach(([key, value]) => {
+      this[key] = value;
+    });
+    // Set some empty internal variables whose value is requested/calculated and stored on demand
+    this.topology = null;
+    this.interactions = null;
+    this.references = null;
+    this._populations = null;
+    // Calculate a few internal things
+    // Check if the populations file is found in the files index
+    this.isPopulated = Boolean(
+      this.files &&
+        this.files.find(file => file.filename === 'populations.json'),
+    );
+  }
+  // Populations getter (populated ensembles only)
+  // Populations are requested only when this variable is read for the first time
+  // Then populations are stored so there is no need to repeat the query again
+  get populations() {
+    // Set the populations file request URL
+    let url = `${BASE_PATH_PROJECTS}${this.accession}/files/populations.json`;
+    // Request populations only if it is available
+    if (!this.isPopulated) url = null;
+    // Request populations only if we do not have it already
+    if (this._populations && this._populations.payload) url = null;
+    // Do the API query but save the result only if the url is not null
+    // Note that if url is null from the first render (i.e. there are no poluations at all) its value will be null
+    const query = useAPI(url);
+    if (url !== null) this._populations = query;
+    return this._populations;
+  }
+}

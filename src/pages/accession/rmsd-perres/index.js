@@ -56,9 +56,12 @@ const RmsdPerres = () => {
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
 
   // Get the current project data
-  const { accession, metadata, topology: topologyManager } = useContext(
-    ProjectCtx,
-  );
+  const {
+    accession,
+    metadata,
+    topology: topologyManager,
+    populations,
+  } = useContext(ProjectCtx);
 
   // Get the default representations
   const defaultRepresentations = useDefaultRepresentations();
@@ -85,8 +88,15 @@ const RmsdPerres = () => {
     isEnsemble,
     xTooltip,
     data,
+    xWeights,
   } = useMemo(() => {
-    if (!topologyManager || !metadata || !payload) return {};
+    if (
+      !topologyManager ||
+      !metadata ||
+      !payload ||
+      (populations && populations.loading)
+    )
+      return {};
 
     // Data is stored as RMSD per residue and per frame respectively
     const rmsdpr = payload.rmsdpr;
@@ -175,7 +185,16 @@ const RmsdPerres = () => {
         representations: representations,
       },
     ];
+    // Get the weigths for each data value corresponding frame
+    let xWeights;
+    if (populations && populations.payload) {
+      xWeights = [];
+      for (let i = 0; i < populations.payload.length; i += xAxisStep) {
+        xWeights.push(populations.payload[i]);
+      }
+    }
 
+    // Return values to be memoized
     return {
       mainComponent,
       analysisFrameCount,
@@ -184,8 +203,16 @@ const RmsdPerres = () => {
       isEnsemble,
       xTooltip,
       data,
+      xWeights,
     };
-  }, [payload, topologyManager, metadata, accession, defaultRepresentations]);
+  }, [
+    payload,
+    topologyManager,
+    metadata,
+    accession,
+    defaultRepresentations,
+    populations,
+  ]);
 
   // Get the residues list in model notation
   const { selectedData, selectedResidueIndices } = useMemo(() => {
@@ -263,9 +290,13 @@ const RmsdPerres = () => {
   );
 
   // Render loading or error messages according with the API response
-  if (loading) return <Loading />;
+  if (loading || (populations && populations.loading)) return <Loading />;
   else if (error) return error.toString();
-  else if (!payload) return 'Something bad happened';
+  else if (populations && populations.error)
+    return populations.error.toString();
+  else if (!payload) return 'Something bad happened with the analysis data';
+  else if (populations && !populations.payload)
+    return 'Something bad happened with populations';
 
   if (!topologyManager) return <Loading />;
 
@@ -289,6 +320,7 @@ const RmsdPerres = () => {
             step={xAxisStep}
             xAxisLabel={xAxisLabel}
             type={isEnsemble ? 'dots' : 'line'}
+            xWeights={xWeights}
             xTooltip={xTooltip}
             yAxisLabel={'RMSd (Å)'}
             onSelect={handleFrameSelection}

@@ -40,9 +40,13 @@ const rowsPerPageOptions = [10, 25, 50, 100];
 
 const Hbonds = () => {
   // Get the current project data
-  const { accession, topology: topologyManager, interactions } = useContext(
-    ProjectCtx,
-  );
+  const {
+    accession,
+    metadata,
+    topology: topologyManager,
+    interactions,
+    populations,
+  } = useContext(ProjectCtx);
 
   // Set a reference to the table element so we can scroll to it
   const tableRef = useRef();
@@ -70,9 +74,10 @@ const Hbonds = () => {
   const { loading, payload, error } = useAPI(url);
 
   // Set the processed data which will be displayed
-  const processedData = useMemo(() => {
+  const { processedData, weights } = useMemo(() => {
     // Return here if there is no payload or topology
-    if (!payload || !topologyManager) return;
+    if (!payload || !topologyManager || (populations && populations.loading))
+      return {};
 
     // Get the data whose name matches the interaction name
     // The newest format has 4 fields: acceptors, donors, hydrogens and hbonds
@@ -81,11 +86,13 @@ const Hbonds = () => {
       return dataset.name === interaction.name;
     });
     if (!data)
-      return `Dataset for the interaction "${interaction.name}" not found`;
+      return {
+        message: `Dataset for the interaction "${interaction.name}" not found`,
+      };
 
     // If data is empty it means no hydrogen bonds where found for this interaction
     if (data.hbonds.length === 0)
-      return 'No hydrogen bonds where found for this interaction';
+      return { message: 'No hydrogen bonds were found for this interaction' };
 
     // Get the number of bonds
     const bondCount = data.hbonds.length;
@@ -212,8 +219,40 @@ const Hbonds = () => {
     // Sort bond groups by status (all status added together)
     processedData.sort((a, b) => b.stability - a.stability);
 
-    return processedData;
-  }, [payload, topologyManager, interaction]);
+    // Calculate the frame step for recorded hydrogen bonds
+    const dataLength = data.hbonds[0].length;
+    const frameStep = Math.round(metadata.SNAPSHOTS / (dataLength - 1));
+    // Set the weigths in order to resize bonds bandwidth accordingly
+    let weights;
+    if (populations && populations.payload) {
+      // Get the weights for each data value corresponding frame
+      weights = [];
+      for (let i = 0; i < populations.payload.length; i += frameStep) {
+        weights.push(populations.payload[i]);
+      }
+      // Check weights and data to match in the number of values
+      const weigthCount = weights.length;
+      if (dataLength !== weigthCount)
+        throw new Error(
+          `Data values count (${dataLength}) does not match the weigths values count (${weigthCount})`,
+        );
+      // // Normalize weights
+      // // Find the minimum and maximum values in the weights array
+      // // NEVER FORGET: do not use Math.min and Math.max for long arrays
+      // const minimum = weights.reduce((cv, nv) => { return Math.min(cv, nv) }, Infinity);
+      // const maximum = weights.reduce((cv, nv) => { return Math.max(cv, nv) }, -Infinity);
+      // // Set the normalized minimum and maximum radius values
+      // // This in the graph is equivalent to 'times the default area'
+      // const normalizedMinimum = 1;
+      // const normalizedMaximum = 10;
+      // // Set a function to interpolate values
+      // const normalizer = (normalizedMaximum - normalizedMinimum) / (maximum - minimum)
+      // const interpolate = weight => normalizedMinimum + (weight - minimum) * normalizer;
+      // // Recalculate weights using the minimum values (equal to 1) as reference
+      // weights = weights.map(weight => interpolate(weight));
+    }
+    return { processedData, weights };
+  }, [payload, metadata, topologyManager, interaction, populations]);
 
   // Set all bonds to be displayed according to the current page and the number of bonds per page
   const displayedBondGroups = useMemo(() => {
@@ -224,9 +263,13 @@ const Hbonds = () => {
   }, [processedData, selectedPage, selectedRowsPerPage]);
 
   // Render loading or error messages according with the API response
-  if (loading) return <Loading />;
+  if (loading || (populations && populations.loading)) return <Loading />;
   else if (error) return error.toString();
-  else if (!payload) return 'Something bad happened';
+  else if (populations && populations.error)
+    return populations.error.toString();
+  else if (!payload) return 'Something bad happened with the analysis data';
+  else if (populations && !populations.payload)
+    return 'Something bad happened with populations data';
 
   if (!topologyManager) return <Loading />;
 
@@ -318,6 +361,7 @@ const Hbonds = () => {
                         <TableCell>
                           <BondStatus
                             status={bondGroup.status[i]}
+                            weights={weights}
                             onClick={() => {
                               const acceptor =
                                 bondGroup.acceptors[i] ||

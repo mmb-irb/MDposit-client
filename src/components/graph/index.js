@@ -59,6 +59,10 @@ const roatatedTextOffset = 9; // In px
 // They are very close to the axis values by default
 const axisLabelsOffset = 9; // In px
 
+// Set the default dot radius and thus calculate the default dot area
+const DEFAULT_DOT_RADIUS = 3;
+const DEFAULT_DOT_AREA = Math.PI * DEFAULT_DOT_RADIUS ** 2;
+
 const dPR = window.devicePixelRatio || 1;
 
 // According to d3 documentation
@@ -102,28 +106,11 @@ const isCanvasPowered = type => type === 'dash' || type === 'dots';
 // }
 
 const Graph = forwardRef(({ // The main data
-  yData, // Optional x tags
-  xAxisValues, step = 1, // Graph title
-  title, // The x axis label text
-  xAxisLabel, // The y axis label text
-  yAxisLabel, // The difference beyween x values
-  xScaleFactor = 1, // Color each different dot in the graph dependeing on its x index
-  // Note that this is only compatible with the dash type, not line
-  xColors, // Define the tooltip to be shown when the mose hovers the graph based in the x value
-  xTooltip, // Set the type of graph to render
-  // Accepted values: line, dash
-  type = 'line', onHover, onSelect, selfLegend = false, displayLegend = false, // Object with each dataset name and a value of true/false to set which data is displayed
-  dataDisplay, setDataDisplay, // Display the mean line in the graph
-  mean = false, // Display the standard deviation area in the graph
-  standardDeviation = false, // Set an extra margin around the graph
-  margin = defaultMargins, // Set if values in x axis is horizontal (false) or vertical (true)
-  flippedXAxisValues = false, // If true, draw all points in the graph no matter how many points are there
-  fullPrecision = false, // Force a classname for the overall component element
-  className, // Mark x values by displaying a vertical line in their positions
+  yData, xAxisValues, step = 1, title, xAxisLabel, yAxisLabel, xScaleFactor = 1, xColors, // Note that this is only compatible with dash/dots types, not line // Thea main data to be represented // Optional x tags // not sure // Graph title // The x axis label text // The y axis label text // The difference beyween x values // Color each different dot in the graph dependeing on its x index
+  xWeights, xTooltip, type = 'line', onHover, onSelect, selfLegend = false, displayLegend = false, dataDisplay, setDataDisplay, mean = false, standardDeviation = false, margin = defaultMargins, flippedXAxisValues = false, fullPrecision = false, className, marks }, ref) => { // Define the weights for each x value. This is only compatible with type = 'dots' and makes dots bigger // The function to set what to show on the tooltip based in the x value where the mouse is hovering // Set the type of graph to render. Accepted values: line, dash // Object with each dataset name and a value of true/false to set which data is displayed // dataDisplay setter // Display the mean line in the graph // Display the standard deviation area in the graph // Set an extra margin around the graph // Set if values in x axis is horizontal (false) or vertical (true) // If true, draw all points in the graph no matter how many points are there // Force a classname for the overall component element // Mark x values by displaying a vertical line in their positions
   // -  style: object with all the style names (keys) and their values according to d3
   // -  attr: object with all the attribute names (keys) and their values according to d3
   // -  x: the position of the mark according to the x axis
-  marks }, ref) => {
   // Set a fake dataset to allow the graph to work when no data is passed
   if (!yData || Object.keys(yData).length === 0) yData = yDataPlaceholder;
 
@@ -312,6 +299,7 @@ const Graph = forwardRef(({ // The main data
       requiredBottomOffset = previousValues.current.requiredBottomOffset,
       yAxisLabelHegiht = previousValues.current.yAxisLabelHegiht,
       xColors = previousValues.current.xColors,
+      xNormalizedWeights = previousValues.current.xNormalizedWeights,
     } = {}) => {
       // Change the graph size according to the left offset
       graph.attr('width', offset.left);
@@ -365,11 +353,12 @@ const Graph = forwardRef(({ // The main data
         });
       });
 
-      // Get the the urrent zoom 'k' value
+      // Get the the current zoom 'k' value
       // If it is bigger thant the maximum extent then use the maximum extent instead
       // This may happen when the dataset is changed while the zoom is in the maximum
       const k = Math.min(currentZoom.k, maxZoomExtent);
-      const precision = isCanvasPowered(type) ? 1 : getZoomPrecision(k);
+      const zoomPrecision = getZoomPrecision(k);
+      const precision = isCanvasPowered(type) ? 1 : zoomPrecision;
       const rescaleX = currentZoom.rescaleX.bind(currentZoom);
 
       // Save precision for further reference
@@ -411,7 +400,8 @@ const Graph = forwardRef(({ // The main data
       previousValues.current.xMin = xMin;
       previousValues.current.xMax = xMax;
 
-      // Set the x scale and save it to further reference
+      // Set a function which calculates de x position in screen
+      // Note that values from this function change when you grab/scroll in the graph
       const x = rescaleX(
         scaleLinear()
           .domain([xMin, xMax])
@@ -576,8 +566,12 @@ const Graph = forwardRef(({ // The main data
       // NEVER FORGET: We do not use d3 dots since they are way less efficient than canvas
       // In case it is a dash graph
       else if (isCanvasPowered(type) && canvasContext) {
+        // For the dash
         const dashWidth = Math.max(1, x(1) - x(0));
         const dashHeight = 5;
+        // For the dots
+        const startAngle = 0;
+        const endAngle = 2 * Math.PI;
         canvasContext.clearRect(0, 0, width, height);
         for (const [key, { data: values, color }] of Object.entries(data)) {
           if (!labels[key]) continue;
@@ -589,6 +583,8 @@ const Graph = forwardRef(({ // The main data
             index <= maxInView;
             index += 1
           ) {
+            // Skip the follwoing dot if the zoom precision says so
+            if (index % zoomPrecision !== 0) continue;
             // Color the rectangle according to the equivalent atom element
             if (xColors) {
               const atomColor = xColors[index];
@@ -608,17 +604,25 @@ const Graph = forwardRef(({ // The main data
             }
             // Draw a circle
             if (type === 'dots') {
+              // Set the x y positions
+              const xPosition =
+                (x(index * step * precision) - dashWidth / 2) * dPR;
+              const yPosition = (y(values[index]) - dashHeight / 2) * dPR;
+              // Set the radius, which may be affected by the x weights, when passed
+              let radius = DEFAULT_DOT_RADIUS; // Its 3
+              if (xNormalizedWeights) {
+                const weight = xNormalizedWeights[index];
+                const area = DEFAULT_DOT_AREA * weight;
+                radius = Math.sqrt(area / Math.PI);
+              }
+              // Draw the circle
               canvasContext.beginPath();
               canvasContext.arc(
-                // x position
-                (x(index * step * precision) - dashWidth / 2) * dPR,
-                // y position
-                (y(values[index]) - dashHeight / 2) * dPR,
-                // radius
-                3,
-                // no idea
-                0,
-                2 * Math.PI,
+                xPosition,
+                yPosition,
+                radius,
+                startAngle,
+                endAngle,
               );
               canvasContext.fill();
             }
@@ -627,7 +631,7 @@ const Graph = forwardRef(({ // The main data
       }
 
       // Calculate the width of a vertical lines used to highlight specific x values
-      const xUnitWidth = Math.max(1, x(precision * step) - x(0));
+      const xUnitWidth = Math.max(1, x(zoomPrecision * step) - x(0));
       previousValues.current.xUnitWidth = xUnitWidth;
       // Place vertical lines for specified marks
       marksRef.current({ marks });
@@ -666,7 +670,7 @@ const Graph = forwardRef(({ // The main data
         const [xValue] = mouse(nodes[index]);
         // Get the closest x axis index to the current mouse position
         const closestIndex =
-          Math.round(x.invert(xValue) / precision / step) * precision;
+          Math.round(x.invert(xValue) / zoomPrecision / step) * zoomPrecision;
         // Track the implicit position of all hovering dots
         // This is useful to know if dot texts would overlap
         const dotDownOffsets = {};
@@ -769,6 +773,7 @@ const Graph = forwardRef(({ // The main data
       previousValues.current.requiredBottomOffset = requiredBottomOffset;
       previousValues.current.yAxisLabelHegiht = yAxisLabelHegiht;
       previousValues.current.xColors = xColors;
+      previousValues.current.xNormalizedWeights = xNormalizedWeights;
     };
 
     onSelectRef.current = ({ onSelect } = {}) => {
@@ -893,6 +898,41 @@ const Graph = forwardRef(({ // The main data
     yAxisLabelHegiht,
     xColors,
   ]);
+
+  // Handle when weights change apart, since they must be normalized
+  useEffect(() => {
+    // Normalize xWeigths, when passed, so that the minimum values are 1
+    if (!xWeights) return;
+    // Check weights and data to match in the number of values
+    const expectedCount = xWeights.length;
+    Object.values(yData).forEach(value => {
+      const currentCount = value.data.length;
+      if (currentCount !== expectedCount)
+        throw new Error(
+          `Graph data values count (${currentCount}) does not match the weigths values count (${expectedCount})`,
+        );
+    });
+    // Find the minimum and maximum values in the weights array
+    // NEVER FORGET: do not use Math.min and Math.max for long arrays
+    const minimum = xWeights.reduce((cv, nv) => {
+      return Math.min(cv, nv);
+    }, Infinity);
+    const maximum = xWeights.reduce((cv, nv) => {
+      return Math.max(cv, nv);
+    }, -Infinity);
+    // Set the normalized minimum and maximum radius values
+    // This in the graph is equivalent to 'times the default area'
+    const normalizedMinimum = 1;
+    const normalizedMaximum = 10;
+    // Set a function to interpolate values
+    const normalizer =
+      (normalizedMaximum - normalizedMinimum) / (maximum - minimum);
+    const interpolate = weight =>
+      normalizedMinimum + (weight - minimum) * normalizer;
+    // Recalculate weights using the minimum values (equal to 1) as reference
+    const xNormalizedWeights = xWeights.map(weight => interpolate(weight));
+    drawRef.current({ xNormalizedWeights });
+  }, [xWeights, yData]);
 
   // Handle when user clicks on legend checkboxes
   const handleChange = useCallback(

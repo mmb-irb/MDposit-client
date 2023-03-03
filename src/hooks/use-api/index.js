@@ -3,7 +3,7 @@ import axios from 'axios';
 
 // Empty response
 const blank = {
-  loading: null,
+  loading: false,
   payload: null,
   error: null,
 };

@@ -30,7 +30,7 @@ const cents = num => Math.round(num * 100) / 100;
 
 const Rgyr = () => {
   // Get the current project metadata
-  const { accession, metadata } = useContext(ProjectCtx);
+  const { accession, metadata, populations } = useContext(ProjectCtx);
 
   // Send a request to the API with the url of the rgyr analysis
   const { loading, payload, error } = useAPI(
@@ -66,27 +66,49 @@ const Rgyr = () => {
     return [selectedMark];
   }, [selected]);
 
-  const { xAxisStep, xAxisLabel, isEnsemble, xTooltip } = useMemo(() => {
-    if (!payload) return {};
-    const dataLength = payload.y['rgyr'].data.length;
+  const {
+    xAxisStep,
+    xAxisLabel,
+    isEnsemble,
+    xTooltip,
+    xWeights,
+  } = useMemo(() => {
+    if (!payload || (populations && populations.loading)) return {};
     // If this is an ensemble we use frames as the x axis
     // If this is a trajectory we use time as the x axis
     const isEnsemble = metadata.TYPE === 'ensemble';
+    // Get the frames step
+    // WARNING: We want the time step in nanoseconds (ns)
+    // WARNING: Frequency is divided by 1000 since it is in picoseconds (ps)
+    const frameStep = payload.step;
     const xAxisStep = isEnsemble
-      ? metadata.SNAPSHOTS / (dataLength - 1)
-      : metadata.LENGTH / (dataLength - 1);
+      ? frameStep
+      : frameStep * (metadata.FREQUENCY / 1000);
     const xAxisLabel = isEnsemble ? 'Frames' : 'Time (ns)';
     // Set the tooltip generator for when the mouse hovers the graph
     const xTooltip = isEnsemble
       ? xValue => 'frame ' + +xValue.toFixed(0)
       : xValue => +xValue.toFixed(2) + ' ns';
-    return { xAxisStep, xAxisLabel, isEnsemble, xTooltip };
-  }, [payload, metadata]);
+    // Get the weigths for each data value corresponding frame
+    let xWeights;
+    if (populations && populations.payload) {
+      xWeights = [];
+      for (let i = 0; i < populations.payload.length; i += xAxisStep) {
+        xWeights.push(populations.payload[i]);
+      }
+    }
+
+    return { xAxisStep, xAxisLabel, isEnsemble, xTooltip, xWeights };
+  }, [payload, metadata, populations]);
 
   // Render loading or error messages according with the API response
-  if (loading) return <Loading />;
+  if (loading || (populations && populations.loading)) return <Loading />;
   else if (error) return error.toString();
-  else if (!payload) return 'Something bad happened';
+  else if (populations && populations.error)
+    return populations.error.toString();
+  else if (!payload) return 'Something bad happened with the analysis data';
+  else if (populations && !populations.payload)
+    return 'Something bad happened with populations';
 
   // Render
   return (
@@ -137,6 +159,7 @@ const Rgyr = () => {
             step={xAxisStep}
             xAxisLabel={xAxisLabel}
             type={isEnsemble ? 'dots' : 'line'}
+            xWeights={xWeights}
             xTooltip={xTooltip}
             xScaleFactor={1}
             yAxisLabel={'Rgyr (Å)'}

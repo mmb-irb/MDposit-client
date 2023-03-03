@@ -144,6 +144,7 @@ const FluctuationAnalysis = () => {
             mean={true}
             standardDeviation={true}
             marks={marks}
+            fullPrecision={true}
           />
           <div className={style.right}>
             <Button

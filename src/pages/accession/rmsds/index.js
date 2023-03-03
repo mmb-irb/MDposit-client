@@ -42,7 +42,7 @@ const colors = ['black', 'red', 'orange', 'yellow'];
 
 const Rmsds = () => {
   // Get the metadata
-  const { accession, metadata, analyses } = useContext(ProjectCtx);
+  const { accession, metadata, analyses, populations } = useContext(ProjectCtx);
   // Note that TM scores is not mandatory to load this page
   // Actually a simulation with no protein will have no TM score, so it is normal
   const hasTMscore = analyses.includes('tmscores');
@@ -77,6 +77,7 @@ const Rmsds = () => {
     xAxisLabel,
     isEnsemble,
     xTooltip,
+    xWeights,
   } = useMemo(() => {
     let payload;
     const type = selectedTab.type;
@@ -84,6 +85,7 @@ const Rmsds = () => {
     if (type === 'rmsd') payload = rmsdsPayload;
     if (type === 'tmscore') payload = tmscoresPayload;
     if (!payload) return {};
+    if (populations && populations.loading) return {};
     const rmsds = {};
     // Set the default graph display for the rmsds (all true)
     const defaultDisplay = {};
@@ -119,8 +121,26 @@ const Rmsds = () => {
     const xTooltip = isEnsemble
       ? xValue => 'frame ' + xValue
       : xValue => +xValue.toFixed(2) + ' ns';
-    return { rmsds, frameStep, xAxisStep, xAxisLabel, isEnsemble, xTooltip };
-  }, [metadata, rmsdsPayload, tmscoresPayload, selectedTab]);
+    // Get the weigths for each data value corresponding frame
+    let xWeights;
+    if (populations && populations.payload) {
+      xWeights = [];
+      for (let i = 0; i < populations.payload.length; i += xAxisStep) {
+        xWeights.push(populations.payload[i]);
+      }
+    }
+
+    // Return values to be memoized
+    return {
+      rmsds,
+      frameStep,
+      xAxisStep,
+      xAxisLabel,
+      isEnsemble,
+      xTooltip,
+      xWeights,
+    };
+  }, [metadata, rmsdsPayload, tmscoresPayload, selectedTab, populations]);
 
   // Set when one point in the graph is selected
   const [selected, setSelected] = useState(null);
@@ -136,12 +156,17 @@ const Rmsds = () => {
   }, [selected]);
 
   // Render loading or error messages according with the API response
-  if (rmsdsLoading || tmscoresLoading) return <Loading />;
+  if (rmsdsLoading || tmscoresLoading || (populations && populations.loading))
+    return <Loading />;
   else if (rmsdsError) return rmsdsError.toString();
   else if (tmscoresError) return tmscoresError.toString();
+  else if (populations && populations.error)
+    return populations.error.toString();
   else if (!rmsdsPayload) return 'Something bad happened with RMSD';
   else if (hasTMscore && !tmscoresPayload)
     return 'Something bad happened with TM score';
+  else if (populations && !populations.payload)
+    return 'Something bad happened with populations';
 
   // Set the y axis label according to if it is an RMSd or a TM score
   let yAxisLabel = 'RMSd (Å)';
@@ -223,6 +248,7 @@ const Rmsds = () => {
             step={xAxisStep}
             xAxisLabel={xAxisLabel}
             type={isEnsemble ? 'dots' : 'line'}
+            xWeights={xWeights}
             xTooltip={xTooltip}
             xScaleFactor={1}
             yAxisLabel={yAxisLabel}

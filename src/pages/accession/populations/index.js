@@ -19,10 +19,6 @@ import { ProjectCtx, PdbCtx } from '../../../contexts';
 
 import Loading from '../../../components/loading';
 
-import useAPI from '../../../hooks/use-api';
-
-import { BASE_PATH_PROJECTS } from '../../../utils/constants';
-
 // Define permanent options for the "useInView"
 const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
 
@@ -43,7 +39,7 @@ const Populations = () => {
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
 
   // Get the current project metadata
-  const { accession, metadata } = useContext(ProjectCtx);
+  const { metadata, populations } = useContext(ProjectCtx);
   // Get the current topology, including the residue names
   const pdbData = useContext(PdbCtx);
 
@@ -54,9 +50,7 @@ const Populations = () => {
   const [selectedFrame, setSelectedFrame] = useState(0);
 
   // Send a request to the API with the url of the rgyr analysis
-  const { loading, payload, error } = useAPI(
-    `${BASE_PATH_PROJECTS}${accession}/files/populations.json`,
-  );
+  const { loading, payload, error } = populations;
 
   // Set an array of objects, where each object includes the population value and the frame it belongs to
   // Populations are sorted so the biggest populations are first and there is a cutoff to exclude meaningless populations
