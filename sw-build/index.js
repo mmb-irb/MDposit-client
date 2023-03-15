@@ -22,6 +22,9 @@ const build = async () => {
         'precache-manifest.*.js', // manifest created by CRA
         'runtime-main.*.js', // webpack runtime (already injected in index.html)
       ],
+      // Rise the limit of the size which can be precached to 5 Mb
+      // Otherwise some react chunks may overcome the limit and you will see a lot of warnings when building
+      maximumFileSizeToCacheInBytes: 5000000,
     })
     .then(({ warnings, manifestEntries }) => {
       warnings.forEach(console.warn);
