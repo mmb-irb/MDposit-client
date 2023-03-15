@@ -133,7 +133,7 @@ const FluctuationAnalysis = () => {
           <Typography variant="h6" />
           <Graph
             yData={payload.y}
-            step={payload.step}
+            step={1} // Step is always 1 since x values are atomic indices and we always have all atoms
             xAxisLabel={'Atom'}
             xColors={xColors}
             xTooltip={xTooltip}
