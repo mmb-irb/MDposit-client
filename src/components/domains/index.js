@@ -70,52 +70,6 @@ const Domains = ({ setter }) => {
     };
     // Get custom domains in metadata
     const customDomains = metadata.CUSTOMS || [];
-    // Get domains from topology references
-    const referenceDomains = [];
-    if (referenceData) {
-      referenceData.forEach(reference => {
-        const referenceId = reference.uniprot;
-        const referenceDataDomains = reference.domains;
-        if (!referenceDataDomains) return;
-        // ----------------------------------------------------------------------------------------
-        // These domains are only specified for the reference sequence
-        // Residue selections must be mapped back to the current topology for each representation
-        referenceDataDomains.forEach(domain => {
-          const mappedDomain = {
-            name: domain.name,
-            description: domain.description,
-            representations: [],
-          };
-          domain.representations.forEach(representation => {
-            const selection = representation.selection;
-            const parsedSelection = rangedSelectionParser(selection);
-            // WARNING: A single reference residue may correspond to multiple topology residues
-            const mappedSelection = topologyManager.reference2absolute(
-              referenceId,
-              parsedSelection,
-            );
-            // Representations with a selection not present in topology are discarded
-            if (!mappedSelection || mappedSelection.length === 0) return;
-            // Transform the mapped selection, which comes in absolute numeration, to the source format
-            // The source numeration is compatible with NGL once parsed
-            const {
-              rangedSelection: nglSelection,
-              small,
-            } = topologyManager.absoluteSelectionToNgl(mappedSelection);
-            const newRepresentation = { ...representation };
-            newRepresentation.selection = nglSelection;
-            // parsedSelectionRanger returns 'small' = true when there are series of 3 residues or less
-            // These small residue selections will be not represented in cartoon due to an NGL bug
-            // https://github.com/nglviewer/ngl/issues/223
-            if (small) newRepresentation.type = 'licorice';
-            mappedDomain.representations.push(newRepresentation);
-          });
-          // Domains whose representatios have been all discarded are also discarded
-          if (mappedDomain.representations.length > 0)
-            referenceDomains.push(mappedDomain);
-        });
-      });
-    }
     // Get domains constructed from interactions
     const interactionDomains = [];
     if (interactions) {
@@ -150,6 +104,59 @@ const Domains = ({ setter }) => {
         });
       });
     }
+    // Get domains from topology references
+    // Skip those whose name matches with an interacting agent or custom domain
+    const referenceDomains = [];
+    if (referenceData) {
+      referenceData.forEach(reference => {
+        const referenceId = reference.uniprot;
+        const referenceDataDomains = reference.domains;
+        if (!referenceDataDomains) return;
+        // ----------------------------------------------------------------------------------------
+        // These domains are only specified for the reference sequence
+        // Residue selections must be mapped back to the current topology for each representation
+        referenceDataDomains.forEach(domain => {
+          const domainName = domain.name;
+          // Discard the domain if its name matches an already existing domain
+          if (customDomains.find(domain => domain.name === domainName)) return;
+          if (interactionDomains.find(domain => domain.name === domainName))
+            return;
+          const mappedDomain = {
+            name: reference.name + ' - ' + domainName,
+            description: domain.description,
+            representations: [],
+          };
+          domain.representations.forEach(representation => {
+            const selection = representation.selection;
+            const parsedSelection = rangedSelectionParser(selection);
+            // WARNING: A single reference residue may correspond to multiple topology residues
+            const mappedSelection = topologyManager.reference2absolute(
+              referenceId,
+              parsedSelection,
+            );
+            // Representations with a selection not present in topology are discarded
+            if (!mappedSelection || mappedSelection.length === 0) return;
+            // Transform the mapped selection, which comes in absolute numeration, to the source format
+            // The source numeration is compatible with NGL once parsed
+            const {
+              rangedSelection: nglSelection,
+              small,
+            } = topologyManager.absoluteSelectionToNgl(mappedSelection);
+            const newRepresentation = { ...representation };
+            newRepresentation.selection = nglSelection;
+            // parsedSelectionRanger returns 'small' = true when there are series of 3 residues or less
+            // These small residue selections will be not represented in cartoon due to an NGL bug
+            // https://github.com/nglviewer/ngl/issues/223
+            if (small) newRepresentation.type = 'licorice';
+            mappedDomain.representations.push(newRepresentation);
+          });
+          // Domains whose representatios have been all discarded are also discarded
+          if (mappedDomain.representations.length > 0)
+            referenceDomains.push(mappedDomain);
+        });
+      });
+    }
+    // Put all domains together
     const domains = [
       overallDomain,
       ...customDomains,

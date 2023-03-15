@@ -47,10 +47,11 @@ const useDefaultRepresentations = () => {
               opacity: 0.5,
               });
           */
-      // Show also all ligands with licorice representations
+      // Show also all ligands with licorice representations in case the have a selection
       const ligands = metadata.LIGANDS;
       if (ligands) {
         for (const ligand of ligands) {
+          if (!ligand.ngl) continue;
           reps.push({
             name: ligand.name,
             selection: ligand.ngl,
