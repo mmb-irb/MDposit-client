@@ -17,6 +17,7 @@ const useDefaultRepresentations = () => {
   const defaultRepresentations = useMemo(() => {
     const reps = [];
     const { chains, metadata, topology: topologyManager } = projectData;
+    const ligands = metadata && metadata.LIGANDS;
     if (metadata && chains) {
       const chainnames = metadata.CHAINNAMES;
       // Represent each protein chain
@@ -47,18 +48,6 @@ const useDefaultRepresentations = () => {
               opacity: 0.5,
               });
           */
-      // Show also all ligands with licorice representations in case the have a selection
-      const ligands = metadata.LIGANDS;
-      if (ligands) {
-        for (const ligand of ligands) {
-          if (!ligand.ngl) continue;
-          reps.push({
-            name: ligand.name,
-            selection: ligand.ngl,
-            type: 'licorice',
-          });
-        }
-      }
       // Represent all chains which are not in the 'chains' and 'ligands' list in licorice
       if (chainnames && !Array.isArray(chainnames)) {
         const chainsAndNames = Object.entries(chainnames);
@@ -83,6 +72,18 @@ const useDefaultRepresentations = () => {
     // If there is no metadata/chains then set up a defualt generic representation
     else {
       reps.push({ name: 'Main structure' });
+    }
+
+    // Show also all ligands with licorice representations in case the have a selection
+    if (ligands) {
+      for (const ligand of ligands) {
+        if (!ligand.ngl) continue;
+        reps.push({
+          name: ligand.name,
+          selection: ligand.ngl,
+          type: 'licorice',
+        });
+      }
     }
 
     // Add a representation for ions in spacefill in case there are residues with 1 atom
