@@ -1,9 +1,9 @@
 // React logic
 import React, { Suspense, lazy, useContext, useMemo, useState } from 'react';
-import { Link, Switch, Route } from 'react-router-dom';
+import { Link, Routes, Route, useLocation, useParams } from 'react-router-dom';
 
 // Visual assets
-import { Typography, Button } from '@material-ui/core';
+import { Typography, Button } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLink, faBook } from '@fortawesome/free-solid-svg-icons';
 
@@ -98,12 +98,35 @@ const Populations = lazy(() =>
   import(/* webpackChunkName: 'mutations' */ './populations'),
 );
 
+// Put subpage name and page component together
+const pageComponents = {
+  overview: Overview,
+  trajectory: Trajectory,
+  electrostatic: Electrostatic,
+  rgyr: Rgyr,
+  rmsds: Rmsds,
+  'rmsd-perres': RmsdPerres,
+  'rmsd-pairwise': RmsdPairwise,
+  pca: PCA,
+  fluctuation: Fluctuation,
+  sasa: Sasa,
+  'dist-perres': DistPerres,
+  hbonds: Hbonds,
+  energies: Energies,
+  pockets: Pockets,
+  mutations: Mutations,
+  epitopes: Epitopes,
+  populations: Populations,
+  files: Files,
+};
+
 const getDataURL = (accession, subPage) => {
   // First, few modifications muts be done over the client URL path to be compatible with the API
   let end;
   switch (subPage) {
     case 'overview':
     case 'trajectory':
+    case 'electrostatic':
       end = '';
       break;
     case 'rgyr':
@@ -151,207 +174,36 @@ const SummarySwitch = ({ subPage, dataUrl }) => {
   else if (pdbData.error) return pdbData.error.toString() + ' (in pdbData)';
   else if (!pdbData.file) return 'Something bad happened with the pdb data';
 
-  // DANI: Esto no entiendo que sentido tiene
-  // if (project.accession && accession !== project.accession) {
-  //   // it means that the accession we extracted from the URL is not actually an
-  //   // accession but an identifier (e.g. PDB accession), so, if it exists, redirect to it
-  //   return (
-  //     <Route
-  //       render={({ location }) => (
-  //         <Redirect
-  //           to={{
-  //             ...location,
-  //             pathname: location.pathname.replace(
-  //               accession,
-  //               project.accession,
-  //             ),
-  //           }}
-  //         />
-  //       )}
-  //     />
-  //   );
-  // }
+  // Get the component to be rendered according to the subpage name
+  const Component = pageComponents[subPage];
 
   // Render the accession
   return (
     <ErrorBoundary>
       {' '}
-      {/* Catch errors */}
       <PdbCtx.Provider value={pdbData}>
-        <Switch>
+        <Routes>
           <Route
-            path="/browse/:accession/overview"
-            exact
-            render={() => (
+            path={`/`}
+            element={
               <Suspense fallback={<Loading />}>
-                <Overview />
+                <Component />
               </Suspense>
-            )}
+            }
           />
           <Route
-            path="/browse/:accession/files"
-            exact
-            render={() => (
+            path={`/json`}
+            element={
               <Suspense fallback={<Loading />}>
-                <Files />
+                <JsonViewer url={dataUrl} />
               </Suspense>
-            )}
+            }
           />
           <Route
-            path="/browse/:accession/trajectory"
-            exact
-            render={props => (
-              <Suspense fallback={<Loading />}>
-                <Trajectory {...props} />
-              </Suspense>
-            )}
+            path="*"
+            element={'This route is not defined in the client accession'}
           />
-          <Route
-            path="/browse/:accession/pca"
-            exact
-            render={() => (
-              <Suspense fallback={<Loading />}>
-                <PCA />
-              </Suspense>
-            )}
-          />
-          <Route
-            path="/browse/:accession/rmsds"
-            exact
-            render={() => (
-              <Suspense fallback={<Loading />}>
-                <Rmsds />
-              </Suspense>
-            )}
-          />
-          <Route
-            path="/browse/:accession/rgyr"
-            exact
-            render={() => (
-              <Suspense fallback={<Loading />}>
-                <Rgyr />
-              </Suspense>
-            )}
-          />
-          <Route
-            path="/browse/:accession/fluctuation"
-            exact
-            component={() => (
-              <Suspense fallback={<Loading />}>
-                <Fluctuation />
-              </Suspense>
-            )}
-          />
-          <Route
-            path="/browse/:accession/rmsd-perres"
-            exact
-            render={props => (
-              <Suspense fallback={<Loading />}>
-                <RmsdPerres {...props} />
-              </Suspense>
-            )}
-          />
-          <Route
-            path="/browse/:accession/electrostatic"
-            exact
-            render={props => (
-              <Suspense fallback={<Loading />}>
-                <Electrostatic {...props} />
-              </Suspense>
-            )}
-          />
-          <Route
-            path="/browse/:accession/dist-perres"
-            exact
-            render={props => (
-              <Suspense fallback={<Loading />}>
-                <DistPerres {...props} />
-              </Suspense>
-            )}
-          />
-          <Route
-            path="/browse/:accession/rmsd-pairwise"
-            exact
-            render={props => (
-              <Suspense fallback={<Loading />}>
-                <RmsdPairwise {...props} />
-              </Suspense>
-            )}
-          />
-          <Route
-            path="/browse/:accession/hbonds"
-            exact
-            render={props => (
-              <Suspense fallback={<Loading />}>
-                <Hbonds {...props} />
-              </Suspense>
-            )}
-          />
-          <Route
-            path="/browse/:accession/energies"
-            exact
-            render={props => (
-              <Suspense fallback={<Loading />}>
-                <Energies {...props} />
-              </Suspense>
-            )}
-          />
-          <Route
-            path="/browse/:accession/pockets"
-            exact
-            render={props => (
-              <Suspense fallback={<Loading />}>
-                <Pockets {...props} />
-              </Suspense>
-            )}
-          />
-          <Route
-            path="/browse/:accession/sasa"
-            exact
-            render={props => (
-              <Suspense fallback={<Loading />}>
-                <Sasa {...props} />
-              </Suspense>
-            )}
-          />
-          <Route
-            path="/browse/:accession/mutations"
-            exact
-            render={props => (
-              <Suspense fallback={<Loading />}>
-                <Mutations {...props} />
-              </Suspense>
-            )}
-          />
-          <Route
-            path="/browse/:accession/epitopes"
-            exact
-            render={props => (
-              <Suspense fallback={<Loading />}>
-                <Epitopes {...props} />
-              </Suspense>
-            )}
-          />
-          <Route
-            path="/browse/:accession/populations"
-            exact
-            render={props => (
-              <Suspense fallback={<Loading />}>
-                <Populations {...props} />
-              </Suspense>
-            )}
-          />
-          <Route
-            path={`/browse/:accession/${subPage}/json`}
-            exact
-            render={props => (
-              <Suspense fallback={<Loading />}>
-                <JsonViewer {...props} url={dataUrl} />
-              </Suspense>
-            )}
-          />
-          <Route render={() => 'This route is not defined in the client'} />
-        </Switch>
+        </Routes>
       </PdbCtx.Provider>
     </ErrorBoundary>
   );
@@ -374,11 +226,14 @@ const LinkSwitch = ({ accession, subPage }) => {
   );
 };
 
-export default ({ location, match }) => {
+export default () => {
+  // Get the location adn the parameters
+  const location = useLocation();
+  const params = useParams();
   // Set a state to store the current project data
   const [project, setProject] = useState(null);
   // Find the project accession according to the URL
-  const accession = match.params.accession;
+  const accession = params.accession;
   // Set the current project data according to the requested accession
   let updatedProjectData = false;
   // Check the if the state project data matches the current accession
@@ -469,7 +324,7 @@ export default ({ location, match }) => {
   project.interactions = interactions.payload;
   project.references = references.payload;
   // Get the actual page where the user is going according to the URL
-  const page = match.params.subPage;
+  const page = params.subPage;
   // Set the footer line for the help tooltip
   const doc = docs.find(doc => doc.id === page); // doc may not exist
   const tooltip = doc && doc.page && (

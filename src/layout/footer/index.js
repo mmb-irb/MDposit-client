@@ -1,5 +1,5 @@
 import React from 'react';
-import { Paper, Toolbar } from '@material-ui/core';
+import { Paper, Toolbar } from '@mui/material';
 
 import LazyImg from '../../components/lazy-img';
 

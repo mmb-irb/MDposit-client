@@ -1,11 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-import {
-  Snackbar,
-  SnackbarContent,
-  Button,
-  IconButton,
-} from '@material-ui/core';
+import { Snackbar, SnackbarContent, Button, IconButton } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 
@@ -31,7 +26,12 @@ export default () => {
               <Button color="secondary" onClick={reload}>
                 Reload
               </Button>
-              <IconButton color="primary" onClick={reset} aria-label="close">
+              <IconButton
+                color="primary"
+                onClick={reset}
+                aria-label="close"
+                size="large"
+              >
                 <FontAwesomeIcon icon={faTimes} />
               </IconButton>
             </>,
@@ -40,7 +40,12 @@ export default () => {
         case 'install':
           setMessage('This website is now installed and available offline');
           setAction(
-            <IconButton color="primary" onClick={reset} aria-label="close">
+            <IconButton
+              color="primary"
+              onClick={reset}
+              aria-label="close"
+              size="large"
+            >
               <FontAwesomeIcon icon={faTimes} />
             </IconButton>,
           );

@@ -17,7 +17,7 @@ import {
   TablePagination,
   TableFooter,
   Typography,
-} from '@material-ui/core';
+} from '@mui/material';
 
 import Card from '../../../components/animated-card';
 import Loading from '../../../components/loading';
@@ -393,12 +393,12 @@ const Hbonds = () => {
                     count={processedData.length} // Total number of rows
                     rowsPerPage={selectedRowsPerPage} // The actual number of rows displayed
                     page={selectedPage} // The actual page
-                    onChangePage={(_, page) => {
+                    onPageChange={(_, page) => {
                       setSelectedPage(page);
                       // Scroll to the top of the table
                       tableRef.current.scrollIntoView();
                     }}
-                    onChangeRowsPerPage={({ target: { value } }) => {
+                    onRowsPerPageChange={({ target: { value } }) => {
                       setSelectedRowsPerPage(value);
                       setSelectedPage(0);
                     }}

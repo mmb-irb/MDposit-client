@@ -21,7 +21,7 @@ import {
   event,
 } from 'd3';
 
-import { FormControlLabel, Checkbox } from '@material-ui/core';
+import { FormControlLabel, Checkbox } from '@mui/material';
 
 import { NICE_NAMES } from '../../utils/constants';
 
@@ -106,8 +106,8 @@ const isCanvasPowered = type => type === 'dash' || type === 'dots';
 // }
 
 const Graph = forwardRef(({ // The main data
-  yData, xAxisValues, step = 1, title, xAxisLabel, yAxisLabel, xScaleFactor = 1, xColors, // Note that this is only compatible with dash/dots types, not line // Thea main data to be represented // Optional x tags // not sure // Graph title // The x axis label text // The y axis label text // The difference beyween x values // Color each different dot in the graph dependeing on its x index
-  xWeights, xTooltip, type = 'line', onHover, onSelect, selfLegend = false, displayLegend = false, dataDisplay, setDataDisplay, mean = false, standardDeviation = false, margin = defaultMargins, flippedXAxisValues = false, fullPrecision = false, className, marks }, ref) => { // Define the weights for each x value. This is only compatible with type = 'dots' and makes dots bigger // The function to set what to show on the tooltip based in the x value where the mouse is hovering // Set the type of graph to render. Accepted values: line, dash // Object with each dataset name and a value of true/false to set which data is displayed // dataDisplay setter // Display the mean line in the graph // Display the standard deviation area in the graph // Set an extra margin around the graph // Set if values in x axis is horizontal (false) or vertical (true) // If true, draw all points in the graph no matter how many points are there // Force a classname for the overall component element // Mark x values by displaying a vertical line in their positions
+  yData, xAxisValues, step = 1, title, xAxisLabel, yAxisLabel, xScaleFactor = 1, xColors, xWeights, xTooltip, type = 'line', onHover, onSelect, selfLegend = false, displayLegend = false, dataDisplay, setDataDisplay, mean = false, standardDeviation = false, margin = defaultMargins, flippedXAxisValues = false, fullPrecision = false, className, marks }, ref) => { // Note that this is only compatible with dash/dots types, not line // Thea main data to be represented // Optional x tags // not sure // Graph title // The x axis label text // The y axis label text // The difference beyween x values // Color each different dot in the graph dependeing on its x index
+  // Define the weights for each x value. This is only compatible with type = 'dots' and makes dots bigger // The function to set what to show on the tooltip based in the x value where the mouse is hovering // Set the type of graph to render. Accepted values: line, dash // Object with each dataset name and a value of true/false to set which data is displayed // dataDisplay setter // Display the mean line in the graph // Display the standard deviation area in the graph // Set an extra margin around the graph // Set if values in x axis is horizontal (false) or vertical (true) // If true, draw all points in the graph no matter how many points are there // Force a classname for the overall component element // Mark x values by displaying a vertical line in their positions
   // -  style: object with all the style names (keys) and their values according to d3
   // -  attr: object with all the attribute names (keys) and their values according to d3
   // -  x: the position of the mark according to the x axis

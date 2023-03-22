@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import cn from 'classnames';
 
-import { Fab } from '@material-ui/core';
+import { Fab } from '@mui/material';
 import { Link } from 'react-router-dom';
 
 import useToggleState from '../../hooks/use-toggle-state';

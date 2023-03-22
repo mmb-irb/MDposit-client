@@ -1,13 +1,7 @@
 import React, { memo, useState, useRef, useCallback } from 'react';
 import screenfull from 'screenfull';
 
-import {
-  IconButton,
-  Popover,
-  Paper,
-  Button,
-  ButtonGroup,
-} from '@material-ui/core';
+import { IconButton, Popover, Paper, Button, ButtonGroup } from '@mui/material';
 
 import style from './style.module.css';
 
@@ -24,6 +18,7 @@ const Chains = memo(({ // Array with all chain letters ("A","B","C"...)
       <IconButton
         {...buttonProps}
         onClick={event => setElement(event.currentTarget)}
+        size="large"
       >
         {children}
       </IconButton>

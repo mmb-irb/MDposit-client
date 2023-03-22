@@ -17,9 +17,10 @@ import { BASE_PATH_PROJECTS, PATH_MAIN_TOPOLOGY } from '../../utils/constants';
 
 // Load the topology class
 import { Topology } from '../../utils/topology-manager';
+import { useParams } from 'react-router-dom';
 
-const Embed = ({ match }) => {
-  const accession = match.params.accession;
+const Embed = () => {
+  const { accession } = useParams();
   const [project, setProject] = useState(null);
 
   // Get project data from the API if the current context data is wrong. 'payload' contains the main data.

@@ -23,7 +23,7 @@ import {
   faSquare,
 } from '@fortawesome/free-regular-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { Icon } from '@material-ui/core';
+import { Icon } from '@mui/material';
 
 // Set a simpler link component
 const Link = ({ name, id, url }) => (

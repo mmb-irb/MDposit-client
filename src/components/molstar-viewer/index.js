@@ -43,8 +43,8 @@ import { BASE_PATH_PROJECTS, PATH_MAIN_TOPOLOGY } from '../../utils/constants';
 // Used to just wait
 import { sleep } from 'timing-functions';
 
-import https from 'https';
-import http from 'http';
+import https from 'https-browserify';
+import http from 'stream-http';
 import url from 'url';
 
 // Load the molstar plugin context in a global and accessible place
@@ -518,7 +518,7 @@ const MolstarViewer = memo(
         // Get the current trajectories state using a trick
         // DANI: si intentas acceder a un state dentro de un callback te da el valor del state cuando se hizo el callback
         // DANI: Absurdo, pero es así, y esta es la forma de sortear el problema
-        let trajectoriesState;
+        let trajectoriesState = [];
         setTrajectories(current => {
           trajectoriesState = current;
           return current;

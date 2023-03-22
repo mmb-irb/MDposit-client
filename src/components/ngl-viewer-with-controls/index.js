@@ -20,7 +20,7 @@ import {
   Icon,
   IconButton,
   Slider,
-} from '@material-ui/core';
+} from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faDotCircle,
@@ -589,7 +589,11 @@ const NGLViewerWithControls = forwardRef(
               {settings && (
                 <div className={style['settings-controls']}>
                   <div className={style['stacked-icons']}>
-                    <IconButton title="Toggle spin" onClick={toggleSpinning}>
+                    <IconButton
+                      title="Toggle spin"
+                      onClick={toggleSpinning}
+                      size="large"
+                    >
                       <FontAwesomeIcon icon={faSyncAlt} />
                     </IconButton>
 
@@ -603,6 +607,7 @@ const NGLViewerWithControls = forwardRef(
                         if (getFocus) viewerRef.current.displayFocus();
                         else viewerRef.current.centerFocus();
                       }}
+                      size="large"
                     >
                       <FontAwesomeIcon icon={faDotCircle} />
                     </IconButton>
@@ -615,6 +620,7 @@ const NGLViewerWithControls = forwardRef(
                             : 'on (may display artifacts for simulation box border atoms)'
                         }`}
                         onClick={toggleSmooth}
+                        size="large"
                       >
                         <FontAwesomeIcon icon={smooth ? faImages : faVideo} />
                       </IconButton>
@@ -626,6 +632,7 @@ const NGLViewerWithControls = forwardRef(
                         toggleDarkBackground();
                         setAsync('dark-background', !darkBackground);
                       }}
+                      size="large"
                     >
                       <div
                         className={cn(style['background-toggle'], {
@@ -644,6 +651,7 @@ const NGLViewerWithControls = forwardRef(
                         togglePerspective();
                         setAsync('perspective', !perspective);
                       }}
+                      size="large"
                     >
                       <FontAwesomeIcon icon={perspective ? faSquare : faCube} />
                     </IconButton>
@@ -659,6 +667,7 @@ const NGLViewerWithControls = forwardRef(
                           throw new Error('Unrecognized current viewer');
                         });
                       }}
+                      size="large"
                     >
                       <FontAwesomeIcon
                         icon={Viewer === NGLViewer ? faStarOfLife : faShareAlt}
@@ -744,7 +753,11 @@ const NGLViewerWithControls = forwardRef(
             )}
           </Card>
           <CardContent style={{ padding: 0 }}>
-            {noTrajectory || (
+            {noTrajectory ? (
+              // Redner an empty div to avoid a Warning message since CardContent expect a ReactNode and an undefuned is not
+              <div />
+            ) : (
+              // Render the loading/progress bar in case there is a trajectory to be loaded
               <div
                 className={cn(style.progress, { [style.dark]: darkBackground })}
                 onClick={handleManualProgress}
@@ -766,6 +779,7 @@ const NGLViewerWithControls = forwardRef(
                   className={cn({ [style.hidden]: !close })}
                   disabled={!close}
                   onClick={close}
+                  size="large"
                 >
                   <FontAwesomeIcon icon={faTimes} />
                 </IconButton>
@@ -778,6 +792,7 @@ const NGLViewerWithControls = forwardRef(
                     nail();
                     toggleNailed();
                   }}
+                  size="large"
                 >
                   <div className={style['flip-container']}>
                     <div
@@ -805,12 +820,14 @@ const NGLViewerWithControls = forwardRef(
                       onClick={useCallback(() => handleFrameChange(-1), [
                         handleFrameChange,
                       ])}
+                      size="large"
                     >
                       <FontAwesomeIcon icon={faStepBackward} />
                     </IconButton>
                     <IconButton
                       title={playing ? 'Pause' : 'Play'}
                       onClick={togglePlaying}
+                      size="large"
                     >
                       <div className={style['flip-container']}>
                         <div
@@ -834,6 +851,7 @@ const NGLViewerWithControls = forwardRef(
                       onClick={useCallback(() => handleFrameChange(1), [
                         handleFrameChange,
                       ])}
+                      size="large"
                     >
                       <FontAwesomeIcon icon={faStepForward} />
                     </IconButton>
@@ -853,6 +871,7 @@ const NGLViewerWithControls = forwardRef(
                     [style['settings']]: settings,
                   })}
                   disabled={!screenfull.isEnabled}
+                  size="large"
                 >
                   <FontAwesomeIcon
                     icon={isFullscreen ? faCompress : faExpand}
@@ -864,6 +883,7 @@ const NGLViewerWithControls = forwardRef(
                     openSettings(previous => !previous);
                     viewerRef.current.autoResize();
                   }}
+                  size="large"
                 >
                   <FontAwesomeIcon icon={faCog} />
                 </IconButton>

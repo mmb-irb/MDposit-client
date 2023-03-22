@@ -1,9 +1,9 @@
 // React logic
 import React, { useRef, useEffect, createRef, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 // Visual assets
-import { MenuList, MenuItem, Typography } from '@material-ui/core';
+import { MenuList, MenuItem, Typography } from '@mui/material';
 
 // All text to be displayed is set previously here
 import { documentation } from './documentation';
@@ -110,8 +110,10 @@ const useStatistics = () => {
   if (collectionsError) throw new Error(collectionsError.toString());
 };
 
-const Help = ({ location }) => {
+const Help = () => {
   useStatistics();
+  // Get the location
+  const location = useLocation();
 
   // References to all documentation blocks will be stored here
   const containerRefs = useRef();

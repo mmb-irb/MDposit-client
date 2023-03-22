@@ -18,7 +18,7 @@ import {
   FormControlLabel,
   Checkbox,
   Typography,
-} from '@material-ui/core';
+} from '@mui/material';
 
 import Card from '../../../components/animated-card';
 import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';

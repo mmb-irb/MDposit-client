@@ -11,7 +11,7 @@ import {
   Select,
   Slider,
   IconButton,
-} from '@material-ui/core';
+} from '@mui/material';
 import {
   faEye,
   faEyeSlash,

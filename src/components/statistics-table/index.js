@@ -7,7 +7,7 @@ import {
   TableRow,
   TableCell,
   TableBody,
-} from '@material-ui/core';
+} from '@mui/material';
 
 import { NICE_NAMES } from '../../utils/constants';
 

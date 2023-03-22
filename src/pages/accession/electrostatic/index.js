@@ -3,7 +3,7 @@ import React, { useContext, useMemo, useState, useRef, useEffect } from 'react';
 import { useInView } from 'react-intersection-observer';
 
 import Card from '../../../components/animated-card';
-import { CardContent, Typography } from '@material-ui/core';
+import { CardContent, Typography } from '@mui/material';
 
 import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
 

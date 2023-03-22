@@ -1,15 +1,17 @@
 import React, { lazy, Suspense } from 'react';
-import { Switch, Route, Redirect } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { schedule } from 'timing-functions';
-import { MuiThemeProvider, createTheme } from '@material-ui/core/styles';
+import {
+  ThemeProvider,
+  StyledEngineProvider,
+  createTheme,
+} from '@mui/material/styles';
 
 // Layout
 import Body from '../layout/body';
 import Main from '../layout/main';
 import Header from '../layout/header';
 //import HomeFAB from '../components/home-fab';
-
-import ErrorBoundary from '../components/error-boundary';
 
 // Set the header colors (standard model colors)
 const primary = { main: '#5c6bc0' }; // Light indigo
@@ -81,79 +83,73 @@ const Base = () => {
     <Body>
       <Header />
       <Main>
-        <ErrorBoundary>
-          <Switch>
-            <Route
-              path="/"
-              exact
-              render={() => (
-                <Suspense fallback={null}>
-                  <Home />
-                </Suspense>
-              )}
-            />
-            <Route
-              path="/contact"
-              exact
-              render={() => (
-                <Suspense fallback={null}>
-                  <Contact />
-                </Suspense>
-              )}
-            />
-            <Route
-              path="/browse"
-              exact
-              render={props => (
-                <Suspense fallback={null}>
-                  <Browse {...props} />
-                </Suspense>
-              )}
-            />
-            <Route
-              path="/search"
-              exact
-              render={() => (
-                <Suspense fallback={null}>
-                  <CustomSearch />
-                </Suspense>
-              )}
-            />
-            <Route
-              path="/advanced-search"
-              exact
-              render={() => (
-                <Suspense fallback={null}>
-                  <AdvancedSearch />
-                </Suspense>
-              )}
-            />
-            <Route
-              path="/help"
-              exact
-              render={props => (
-                <Suspense fallback={null}>
-                  <Help {...props} />
-                </Suspense>
-              )}
-            />
-            <Redirect
-              from="/browse/:accession"
-              to="/browse/:accession/overview"
-              exact
-            />
-            <Route
-              path="/browse/:accession/:subPage"
-              render={props => (
-                <Suspense fallback={null}>
-                  <Accession location={props.location} match={props.match} />
-                </Suspense>
-              )}
-            />
-            <Route render={() => 404} />
-          </Switch>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <Suspense fallback={null}>
+                <Home />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/contact"
+            element={
+              <Suspense fallback={null}>
+                <Contact />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/browse"
+            element={
+              <Suspense fallback={null}>
+                <Browse />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/search"
+            element={
+              <Suspense fallback={null}>
+                <CustomSearch />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/advanced-search"
+            element={
+              <Suspense fallback={null}>
+                <AdvancedSearch />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/help"
+            element={
+              <Suspense fallback={null}>
+                <Help />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/browse/:accession/:subPage/*"
+            element={
+              <Suspense fallback={null}>
+                <Accession />
+              </Suspense>
+            }
+          />
+          <Route
+            path="*"
+            element={'This route is not defined in the client root'}
+          />
           {/*<Route path={['/:page', '/']} component={HomeFAB} />*/}
-        </ErrorBoundary>
+        </Routes>
+        {/* <Navigate
+          from="/browse/:accession"
+          to="/browse/:accession/overview"
+            /> */}
       </Main>
       <Suspense fallback={null}>
         <Footer />
@@ -167,20 +163,21 @@ const Base = () => {
 
 const Root = () => {
   return (
-    <MuiThemeProvider theme={theme}>
-      <Switch>
-        <Route
-          path="/embed/:accession"
-          exact
-          render={props => (
-            <Suspense fallback={null}>
-              <Embed {...props} />
-            </Suspense>
-          )}
-        />
-        <Route render={() => <Base />} />
-      </Switch>
-    </MuiThemeProvider>
+    <StyledEngineProvider injectFirst>
+      <ThemeProvider theme={theme}>
+        <Routes>
+          <Route
+            path="/embed/:accession"
+            element={
+              <Suspense fallback={null}>
+                <Embed />
+              </Suspense>
+            }
+          />
+          <Route path="*" element={<Base />} />
+        </Routes>
+      </ThemeProvider>
+    </StyledEngineProvider>
   );
 };
 

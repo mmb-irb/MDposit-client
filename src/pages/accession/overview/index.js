@@ -5,7 +5,7 @@ import {
   Button,
   Typography,
   Chip,
-} from '@material-ui/core';
+} from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faLink,
@@ -16,7 +16,7 @@ import Card from '../../../components/animated-card';
 import LazyImg from '../../../components/lazy-img';
 
 import { ProjectCtx } from '../../../contexts';
-import https from 'https';
+import https from 'https-browserify';
 
 import style from './style.module.css';
 

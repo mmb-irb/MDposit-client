@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useRef, forwardRef } from 'react';
-import { Card } from '@material-ui/core';
+import { Card } from '@mui/material';
 
 import reducedMotion from '../../utils/reduced-motion';
 

@@ -7,7 +7,7 @@ import React, {
 } from 'react';
 
 import Card from '../animated-card';
-import { CardContent, Chip } from '@material-ui/core';
+import { CardContent, Chip } from '@mui/material';
 
 import { ProjectCtx } from '../../contexts';
 

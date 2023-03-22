@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useState, useContext, useMemo } from 'react';
 
-import { CardContent, Typography, TextField } from '@material-ui/core';
+import { CardContent, Typography, TextField } from '@mui/material';
 
 import Card from '../../../components/animated-card';
 import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';

@@ -8,13 +8,13 @@ import {
   TableBody,
   TableRow,
   TableCell,
-} from '@material-ui/core';
+} from '@mui/material';
 
 import Card from '../../../components/animated-card';
 import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 import Loading from '../../../components/loading';
 
-import { Button } from '@material-ui/core';
+import { Button } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrashAlt } from '@fortawesome/free-regular-svg-icons';
 

@@ -8,7 +8,7 @@ import React, {
 } from 'react';
 import { useInView } from 'react-intersection-observer';
 
-import { Typography } from '@material-ui/core';
+import { Typography } from '@mui/material';
 
 import { color as d3color, scaleLinear } from 'd3';
 

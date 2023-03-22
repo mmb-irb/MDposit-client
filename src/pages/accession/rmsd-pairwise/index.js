@@ -1,6 +1,6 @@
 import React, { useContext, useState, useMemo } from 'react';
 
-import { CardContent, Chip, Typography } from '@material-ui/core';
+import { CardContent, Chip, Typography } from '@mui/material';
 
 import useAPI from '../../../hooks/use-api';
 

@@ -2,25 +2,28 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { parse, stringify } from 'qs';
 import { debounce } from 'lodash-es';
 
-import Icon from '@material-ui/core/Icon';
-import TextField from '@material-ui/core/TextField';
+import { Icon, TextField } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
 
 import { docs } from '../../../pages/help/documentation';
 
 import style from './style.module.css';
+import { useLocation, useNavigate } from 'react-router-dom';
 
+// Half second delay (500 ms) to process changes in the search bar
 const DEBOUNCE_DELAY = 500;
 
 // define non-changing props
 const inputProps = { 'aria-label': 'Search projects by text' };
 
 // This function is never called directly, but it is called indirectly by calling "debouncedUpdateLocation"
-export const updateLocation = (history, value) => {
-  const { search, ...nextSearchObject } = parse(history.location.search, {
+export const updateLocation = (location, history, value) => {
+  const { search, ...nextSearchObject } = parse(location.search, {
     ignoreQueryPrefix: true,
   });
+  // If should replace it would be like a history.replace
+  // Otheriwse it would be like a history.push
   const shouldReplace = Boolean(search) === Boolean(value);
   if (value) nextSearchObject.search = value;
   if (search === value) return;
@@ -28,9 +31,10 @@ export const updateLocation = (history, value) => {
   // Reset page to the first page
   nextSearchObject.page = undefined;
   // Update history
-  history[shouldReplace ? 'replace' : 'push']({
-    ...history.location,
+  history({
+    ...location,
     search: stringify(nextSearchObject),
+    replace: shouldReplace,
   });
 };
 
@@ -40,11 +44,14 @@ export const updateLocation = (history, value) => {
 const debouncedUpdateLocation = debounce(updateLocation, DEBOUNCE_DELAY);
 
 // This function is called each time that a letter is typed in the search bar
-const Search = ({ history }) => {
+const Search = () => {
+  // Get the history and the location
+  const location = useLocation();
+  const history = useNavigate();
   // Here, parse converts a query formatted search (e.g. "?search=x") in a string only with the text search (e.g. "x")
   // Return the parsed searh text (value) and a function to change this value (SetValue)
   const [value, setValue] = useState(
-    parse(history.location.search, { ignoreQueryPrefix: true }).search,
+    parse(location.search, { ignoreQueryPrefix: true }).search,
   );
   // Cancel the last debouncedUpdateLocation if it has not been executed yet because there is a new change
   useEffect(() => debouncedUpdateLocation.cancel, []);
@@ -52,9 +59,9 @@ const Search = ({ history }) => {
   const handleChange = useCallback(
     ({ target: { value } }) => {
       setValue(value);
-      debouncedUpdateLocation(history, value);
+      debouncedUpdateLocation(location, history, value);
     },
-    [history],
+    [location, history],
   );
   const doc = docs.find(doc => doc.id === 'browser');
 

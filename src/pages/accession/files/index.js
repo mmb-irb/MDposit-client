@@ -6,15 +6,15 @@ import prettyBytes from 'pretty-bytes';
 import {
   Icon,
   Divider,
-  ExpansionPanel,
-  ExpansionPanelSummary,
-  ExpansionPanelDetails,
-  ExpansionPanelActions,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  AccordionActions,
   Button,
   Typography,
   Chip,
   CardContent,
-} from '@material-ui/core';
+} from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFile } from '@fortawesome/free-regular-svg-icons';
 import { faChevronDown, faServer } from '@fortawesome/free-solid-svg-icons';
@@ -190,8 +190,8 @@ export default React.memo(() => {
               const href =
                 url || `${BASE_PATH_PROJECTS}${identifier}/files/${filename}`;
               return (
-                <ExpansionPanel key={filename}>
-                  <ExpansionPanelSummary
+                <Accordion key={filename}>
+                  <AccordionSummary
                     expandIcon={<FontAwesomeIcon icon={faChevronDown} />}
                     className={style.summary}
                   >
@@ -206,8 +206,8 @@ export default React.memo(() => {
                         </Typography>
                       )}
                     </div>
-                  </ExpansionPanelSummary>
-                  <ExpansionPanelDetails className={style.details}>
+                  </AccordionSummary>
+                  <AccordionDetails className={style.details}>
                     {frames && atoms && (
                       <div>
                         containing a total of {formatNumber(atoms)} atoms in{' '}
@@ -223,9 +223,9 @@ export default React.memo(() => {
                     <div>
                       link: <code>{href}</code>
                     </div>
-                  </ExpansionPanelDetails>
+                  </AccordionDetails>
                   <Divider variant="middle" />
-                  <ExpansionPanelActions>
+                  <AccordionActions>
                     {estimatedTime && (
                       <Chip
                         label={`estimated download time: ${estimatedTime}`}
@@ -247,8 +247,8 @@ export default React.memo(() => {
                     >
                       {url ? 'Go' : 'Download'}
                     </Button>
-                  </ExpansionPanelActions>
-                </ExpansionPanel>
+                  </AccordionActions>
+                </Accordion>
               );
             },
           )}

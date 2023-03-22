@@ -1,12 +1,20 @@
 import React, { useEffect } from 'react';
 import ReactGA from 'react-ga';
-import { Router } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { createHashHistory } from 'history';
 import { sleep } from 'timing-functions';
+
+// Wrapper component to improve handling of react component errors
+import ErrorBoundary from '../components/error-boundary';
 
 import Root from '../Root';
 // It is used to check if the user has the reduced motion setting active
 import reducedMotion from '../utils/reduced-motion';
+
+// Assign a couple of usual node environmental variables from npm modules
+// This is part of the fix to solve problems from updating webpack to v5
+window.Buffer = window.Buffer || require('buffer').Buffer;
+window.process = window.process || require('process');
 
 // Get the Google Analytics id
 const googleAnalyticsId = process.env.REACT_APP_GOOGLE_ANALYTICS_ID;
@@ -67,9 +75,13 @@ const App = () => {
     ReactGA.pageview(history.location.pathname);
   }, []);
   return (
-    <Router history={history}>
-      <Root />
-    </Router>
+    <ErrorBoundary>
+      <BrowserRouter history={history}>
+        <Routes>
+          <Route path="*" element={<Root />} />
+        </Routes>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 };
 

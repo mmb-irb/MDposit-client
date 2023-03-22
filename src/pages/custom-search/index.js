@@ -1,6 +1,6 @@
 // React
 import React, { useRef } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 // Additional components
 import Card from '../../components/animated-card'; // The exceled parcels in which almost all features are based
@@ -12,7 +12,7 @@ import {
   Button,
   FormControlLabel,
   Checkbox,
-} from '@material-ui/core';
+} from '@mui/material';
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
@@ -62,7 +62,7 @@ const CustomSearch = () => {
   const query = useRef(defaultQuery);
 
   // Get acces to the history so wen can redirect the user later
-  const history = useHistory();
+  const history = useNavigate();
 
   // Query all the available fields using the 'options' endpoint
   const projectionStrings = [];

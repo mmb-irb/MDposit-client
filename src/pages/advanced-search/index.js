@@ -1,6 +1,6 @@
 // React
 import React, { useState, useRef } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 // Additional components
 import Card from '../../components/animated-card'; // The exceled parcels in which almost all features are based
@@ -17,7 +17,7 @@ import {
   FormHelperText,
   FormControlLabel,
   Checkbox,
-} from '@material-ui/core';
+} from '@mui/material';
 import {
   faPlusCircle,
   faTrash,
@@ -129,7 +129,7 @@ const AdvancedSearch = () => {
   const [displayErrors, setDisplayErrors] = useState(false);
 
   // Get acces to the history so wen can redirect the user later
-  const history = useHistory();
+  const history = useNavigate();
 
   // This is a trick to force the page rerender
   const [, setUpdater] = useState(true);
@@ -325,6 +325,7 @@ const AdvancedSearch = () => {
               forceUpdate();
             }}
             className={style.trash}
+            size="large"
           >
             <FontAwesomeIcon icon={faTrash} size="xs" />
           </IconButton>
@@ -393,6 +394,7 @@ const AdvancedSearch = () => {
               forceUpdate();
             }}
             className={style.unpadded}
+            size="large"
           >
             <FontAwesomeIcon icon={faPlusCircle} />
           </IconButton>
@@ -404,6 +406,7 @@ const AdvancedSearch = () => {
                 forceUpdate();
               }}
               className={style.unpadded}
+              size="large"
             >
               <FontAwesomeIcon icon={faTrash} size="xs" />
             </IconButton>

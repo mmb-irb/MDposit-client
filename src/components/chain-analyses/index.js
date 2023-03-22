@@ -1,5 +1,4 @@
 import React, { memo, useEffect } from 'react';
-import PropertySetter from 'react-property-setter';
 
 import Loading from '../loading';
 
@@ -89,43 +88,30 @@ const ChainAnalyses = memo(({ chain, accession }) => {
         displayend={length}
       />
       <div className={style.entries}>
-        <PropertySetter property="data" value={sequence}>
-          <protvista-sequence
-            length={length}
-            displaystart={1}
-            displayend={length}
-            height="37"
-          />
-        </PropertySetter>
-        <PropertySetter property="data" value={sequence}>
-          <protvista-coloured-sequence
-            length={length}
-            scale="hydrophobicity-scale"
-            height="15"
-          />
-        </PropertySetter>
+        <protvista-sequence
+          length={length}
+          displaystart={1}
+          displayend={length}
+          height="37"
+        />
+        <protvista-coloured-sequence
+          length={length}
+          scale="hydrophobicity-scale"
+          height="15"
+        />
         {processedMatches.length
           ? processedMatches.map((match, index) => (
               <div
                 key={index} // I know...
               >
                 <span className={style.label}>{match.accession}</span>
-                <PropertySetter
-                  property="contributors"
-                  value={match.signatures || []}
-                >
-                  <PropertySetter property="data" value={[match]}>
-                    <protvista-interpro-track
-                      length={length}
-                      displaystart={1}
-                      displayend={length}
-                      shape="roundRectangle"
-                      class={
-                        match.signatures ? style['has-signatures'] : undefined
-                      }
-                    />
-                  </PropertySetter>
-                </PropertySetter>
+                <protvista-interpro-track
+                  length={length}
+                  displaystart={1}
+                  displayend={length}
+                  shape="roundRectangle"
+                  class={match.signatures ? style['has-signatures'] : undefined}
+                />
               </div>
             ))
           : 'No entry was found for this sequence'}

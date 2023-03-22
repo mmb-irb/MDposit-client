@@ -6,7 +6,7 @@ import {
   RadioGroup,
   TextField,
   Typography,
-} from '@material-ui/core';
+} from '@mui/material';
 
 import Loading from '../loading';
 

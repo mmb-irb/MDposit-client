@@ -8,7 +8,7 @@ import {
   MenuItem,
   TextField,
   IconButton,
-} from '@material-ui/core';
+} from '@mui/material';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExchangeAlt } from '@fortawesome/free-solid-svg-icons';
@@ -103,7 +103,11 @@ const InteractionSelector = ({
                 : currentInteraction.agent_2
             }
           />
-          <IconButton title={toggleOrderTooltip} onClick={changeOrder}>
+          <IconButton
+            title={toggleOrderTooltip}
+            onClick={changeOrder}
+            size="large"
+          >
             <FontAwesomeIcon icon={faExchangeAlt} />
           </IconButton>
           <TextField

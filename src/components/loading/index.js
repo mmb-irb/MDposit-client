@@ -2,7 +2,7 @@ import React, { useLayoutEffect } from 'react';
 import cn from 'classnames';
 //import { sleep, frame } from 'timing-functions';
 
-import { CircularProgress } from '@material-ui/core';
+import { CircularProgress } from '@mui/material';
 
 import useToggleState from '../../hooks/use-toggle-state';
 

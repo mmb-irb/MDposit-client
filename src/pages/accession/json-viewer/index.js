@@ -7,9 +7,7 @@ import useAPI from '../../../hooks/use-api';
 
 import Loading from '../../../components/loading';
 
-const JsonViewer = params => {
-  const url = params.url;
-
+const JsonViewer = ({ url }) => {
   // Send a request to the API with the url of the specific analysis
   const { loading, payload, error } = useAPI(url);
 

@@ -1,5 +1,5 @@
 import { schedule } from 'timing-functions';
-import { name } from '../../../package.json';
+import name from '../../../package.json';
 
 const KEY = `${name}-`;
 

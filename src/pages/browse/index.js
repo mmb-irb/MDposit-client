@@ -1,6 +1,6 @@
 // React logic
 import React, { useEffect, useLayoutEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 // String managers
 import { parse, stringify } from 'qs';
@@ -20,7 +20,7 @@ import {
   TableFooter,
   Typography,
   Chip,
-} from '@material-ui/core';
+} from '@mui/material';
 
 // Additional components
 import Card from '../../components/animated-card'; // The exceled parcels in which almost all features are based
@@ -224,7 +224,10 @@ const Row = ({ project, highlight, index }) => {
   );
 };
 
-const Browse = ({ location, history }) => {
+const Browse = () => {
+  // Get the location and the history
+  const location = useLocation();
+  const history = useNavigate();
   // Convert the URL string into an object
   // This "parse" comes from the "qs" library
   // WARNING: The default "parse" decoding behaviour has a strong conflict between '+' and blank space character
@@ -335,9 +338,9 @@ const Browse = ({ location, history }) => {
                 count={matchCount} // (MTP) Total number of rows
                 rowsPerPage={+search.limit || DEFAULT_LIMIT} // (MTP) The actual number of rows displayed
                 page={(+search.page || DEFAULT_PAGE) - 1} // (MTP) The actual page
-                onChangePage={(_, page) => {
+                onPageChange={(_, page) => {
                   // (MTP) When the page is changed
-                  history.push({
+                  history({
                     ...location, // Load all location variables: hast, pathname, search and state
                     // Convert into a single encoded string all parameters listed below
                     search: stringify({
@@ -351,9 +354,9 @@ const Browse = ({ location, history }) => {
                     }),
                   });
                 }}
-                onChangeRowsPerPage={({ target: { value } }) => {
+                onRowsPerPageChange={({ target: { value } }) => {
                   // (MTP) When the rowsPerPage is modified by the user
-                  history.push({
+                  history({
                     ...location, // Load all location variables: hast, pathname, search and state
                     // Convert into a single encoded string all parameters listed below
                     search: stringify({

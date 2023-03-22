@@ -20,7 +20,7 @@ import {
   FormControlLabel,
   Checkbox,
   Typography,
-} from '@material-ui/core';
+} from '@mui/material';
 
 import Card from '../../../components/animated-card';
 import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
@@ -465,12 +465,12 @@ const Epitopes = () => {
                   count={epitopesData.length} // Total number of rows
                   rowsPerPage={selectedRowsPerPage} // The actual number of rows displayed
                   page={selectedPage} // The actual page
-                  onChangePage={(_, page) => {
+                  onPageChange={(_, page) => {
                     setSelectedPage(page);
                     // Scroll to the top of the table
                     tableRef.current.scrollTop = 0;
                   }}
-                  onChangeRowsPerPage={({ target: { value } }) => {
+                  onRowsPerPageChange={({ target: { value } }) => {
                     setSelectedRowsPerPage(value);
                     setSelectedPage(0);
                   }}

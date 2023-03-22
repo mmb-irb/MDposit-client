@@ -2,7 +2,7 @@ import React, { useContext, useMemo, useEffect, useRef, useState } from 'react';
 
 import style from './style.module.css';
 
-import { CardContent, IconButton } from '@material-ui/core';
+import { CardContent, IconButton } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 
@@ -308,6 +308,7 @@ const ResidueSelector = ({
             title="Clean selections"
             onClick={cleanSelections}
             className={style.button}
+            size="large"
           >
             <FontAwesomeIcon icon={faTrash} />
           </IconButton>

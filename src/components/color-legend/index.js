@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 
-import { CardContent } from '@material-ui/core';
+import { CardContent } from '@mui/material';
 
 import style from './style.module.css';
 

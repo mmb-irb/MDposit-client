@@ -21,7 +21,7 @@ import movePoints from './move-points';
 import getDrawLegend from './get-draw-legend';
 import reducedMotion from '../../utils/reduced-motion';
 
-import { IconButton } from '@material-ui/core';
+import { IconButton } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faRandom } from '@fortawesome/free-solid-svg-icons';
 
@@ -445,6 +445,7 @@ const Projections = ({
           title="Switch axes"
           className={cn(style.switch, { [style.switched]: switched })}
           onClick={toggleSwitched}
+          size="large"
         >
           <FontAwesomeIcon icon={faRandom} />
         </IconButton>

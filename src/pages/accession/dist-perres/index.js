@@ -1,6 +1,6 @@
 import React, { useContext, useState, useMemo, useCallback } from 'react';
 
-import { CardContent, Tabs, Tab, Typography } from '@material-ui/core';
+import { CardContent, Tabs, Tab, Typography } from '@mui/material';
 
 import useAPI from '../../../hooks/use-api';
 

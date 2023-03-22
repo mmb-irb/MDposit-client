@@ -11,7 +11,7 @@ import {
   Checkbox,
   Tabs,
   Tab,
-} from '@material-ui/core';
+} from '@mui/material';
 
 import Card from '../../../components/animated-card';
 import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';

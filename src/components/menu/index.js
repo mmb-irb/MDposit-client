@@ -1,7 +1,7 @@
 import React, { lazy, Suspense } from 'react';
 
-import { Link, Switch, Route } from 'react-router-dom';
-import Button from '@material-ui/core/Button';
+import { Link, Routes, Route } from 'react-router-dom';
+import Button from '@mui/material/Button';
 
 import { BASE_PATH } from '../../utils/constants';
 
@@ -36,18 +36,17 @@ export default () => (
       <Button component="a" color="inherit" href={`${BASE_PATH}docs/`}>
         REST API
       </Button>
-      <Switch>
+      <Routes>
         <Route
           path="/browse"
-          exact
-          render={props => (
+          element={
             <Suspense fallback={null}>
               {/* Render the search bar */}
-              <Search {...props} />
+              <Search />
             </Suspense>
-          )}
+          }
         />
-      </Switch>
+      </Routes>
     </div>
   </menu>
 );

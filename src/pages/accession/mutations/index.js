@@ -12,7 +12,7 @@ import Card from '../../../components/animated-card';
 /*
 import {
   CardContent,
-} from '@material-ui/core';
+} from '@mui/material';
 */
 import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
 import useMutationsRepresentations from '../../../components/ngl-viewer/use-mutations-representations';

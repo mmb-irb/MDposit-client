@@ -35,8 +35,8 @@ import { cloneDeep } from 'lodash-es';
 // Used to just wait
 import { sleep } from 'timing-functions';
 
-import https from 'https';
-import http from 'http';
+import https from 'https-browserify';
+import http from 'stream-http';
 import url from 'url';
 
 const DEFAULT_NUMBER_OF_FRAMES = 25;
@@ -79,16 +79,16 @@ const COORDINATES_PER_ATOM = 3; // x, y and z
 const BYTES_PER_ATOM = BYTES_PER_COORDINATE * COORDINATES_PER_ATOM;
 
 // Set the NGL player speed limits
-// The actual 'speed' input limits are 0-100
+// The actual 'currentSpeed' input limits are 0-100
 // The speed set as the time to wait before moving to the next frame in miliseconds
 const minimumSpeed = 0;
 const maximumSpeed = 100;
 const slowestTimeout = 1000;
 const fastestTimeout = 50;
-const interpolateSpeed = speed => {
+const interpolateSpeed = currentSpeed => {
   return (
     slowestTimeout +
-    (speed - minimumSpeed) *
+    (currentSpeed - minimumSpeed) *
       ((fastestTimeout - slowestTimeout) / (maximumSpeed - minimumSpeed))
   );
 };
@@ -153,6 +153,9 @@ const NGLViewer = memo(
       const { file: pdbDataFile } = useContext(PdbCtx);
 
       const [isFirstCompStaged, setIsFirstCompStaged] = useState(false);
+      const [isMainTrajectoryStaged, setIsMainTrajectoryStaged] = useState(
+        false,
+      );
       // The last automatic camera focus
       const [focus, setFocus] = useState(initialFocus);
 
@@ -454,35 +457,30 @@ const NGLViewer = memo(
       const currentRequests = useRef([]);
 
       // Set a function to update the current loading progress
-      const updateLoadingProgress = useCallback(() => {
-        const mainComp = comps[0];
-        // Get all trajectories to be used as the current main trajecotry
-        const mainTrajectories = [];
-        // Get the current trajectories state using a trick
-        // DANI: si intentas acceder a un state dentro de un callback te da el valor del state cuando se hizo el callback
-        // DANI: Absurdo, pero es así, y esta es la forma de sortear el problema
-        let trajectoriesState;
-        setTrajectories(current => {
-          trajectoriesState = current;
-          return current;
-        });
-        mainComp.framedURLs.forEach(url => {
-          const trajectory = trajectoriesState.find(trajectory => {
-            return trajectory.url === url;
+      const updateLoadingProgress = useCallback(
+        currentTrajectories => {
+          const mainComp = comps[0];
+          // Get all trajectories to be used as the current main trajecotry
+          const mainTrajectories = [];
+          mainComp.framedURLs.forEach(url => {
+            const trajectory = currentTrajectories.find(trajectory => {
+              return trajectory.url === url;
+            });
+            if (trajectory) mainTrajectories.push(trajectory);
           });
-          if (trajectory) mainTrajectories.push(trajectory);
-        });
-        if (mainTrajectories.length === 0) return;
-        // Then calculate the average progress in all loading trajectories and update the progress state
-        const overallFrames = mainTrajectories
-          .map(trajectory => trajectory.frames)
-          .reduce((a, b) => a + b, 0);
-        const overallProgress =
-          mainTrajectories
-            .map(trajectory => trajectory.progress * trajectory.frames)
-            .reduce((a, b) => a + b, 0) / overallFrames;
-        onLoad(overallProgress);
-      }, [comps, setTrajectories, onLoad]);
+          if (mainTrajectories.length === 0) return;
+          // Then calculate the average progress in all loading trajectories and update the progress state
+          const overallFrames = mainTrajectories
+            .map(trajectory => trajectory.frames)
+            .reduce((a, b) => a + b, 0);
+          const overallProgress =
+            mainTrajectories
+              .map(trajectory => trajectory.progress * trajectory.frames)
+              .reduce((a, b) => a + b, 0) / overallFrames;
+          onLoad(overallProgress);
+        },
+        [comps, onLoad],
+      );
 
       // Download the requested trajectory data (frames)
       useEffect(() => {
@@ -529,9 +527,10 @@ const NGLViewer = memo(
                     chunk,
                   );
                   currentTrajectory.progress = trajectory.progress;
+                  // Update the current progess
+                  updateLoadingProgress(previousTrajectories);
                   return [...previousTrajectories];
                 });
-                updateLoadingProgress();
               })
               .on('end', () => {
                 // Save the main data in the ref
@@ -559,16 +558,32 @@ const NGLViewer = memo(
         };
       }, []);
 
+      // Set a state to keep track of the current working tasks in the viewer
+      // This is useful to update the upper left corner logs in the viewer
+      const [runningTasks, setRunningTasks] = useState(0);
+
+      // Update the running tasks count
+      const handleTasksChange = useCallback(
+        value => {
+          setRunningTasks(current => current + value);
+        },
+        [setRunningTasks],
+      );
+
       // Stage creation and removal on mounting and unmounting
       useEffect(() => {
         // set-up
-        stageRef.current = new Stage(containerRef.current);
+        const stage = new Stage(containerRef.current);
         // wait for a render to screen, then
         frame().then(() => {
-          if (!stageRef.current) return;
+          if (!stage) return;
           // make sure NGL knows the size it has available
-          stageRef.current.handleResize();
+          stage.handleResize();
         });
+        // Set a signal function to handle the update of running tasks count
+        stage.tasks.signals.countChanged.add(handleTasksChange);
+        // Save the stage reference
+        stageRef.current = stage;
         // clean-up
         return () => {
           // NOTE: following line causes to fail when loading a new viewer with
@@ -578,6 +593,22 @@ const NGLViewer = memo(
           stageRef.current = null;
         };
       }, []);
+
+      // Handle the upper left corner viewer logs
+      const viewerLogs = useMemo(() => {
+        if (!isFirstCompStaged) return `Loading structure`;
+        if (!pdbFile) return `No structure available`;
+        if (!requestedTrajectories.length && !noTrajectory)
+          return `No trajectory available`;
+        if (runningTasks > 0) return `Rendering...`;
+        return undefined; // Show nothing when everything was finished and fine
+      }, [
+        isFirstCompStaged,
+        pdbFile,
+        requestedTrajectories,
+        noTrajectory,
+        runningTasks,
+      ]);
 
       // background (with transition)
       useEffect(() => {
@@ -1160,6 +1191,8 @@ const NGLViewer = memo(
         if (!topologies || !trajectories || trajectories.length === 0) return;
 
         let frames = [];
+        // Save the trajectory player to setup the celanup function at the end of this useEffect
+        let trajectoryPlayer;
 
         comps.forEach((comp, c) => {
           // Find the topology which matches the component url
@@ -1297,6 +1330,8 @@ const NGLViewer = memo(
                 }
               }
             }
+            // Save the trajectory player
+            trajectoryPlayer = nglTrajectory.player;
           }
           // If there is not trajectory yet then create a new NGL trajectory
           else {
@@ -1337,8 +1372,19 @@ const NGLViewer = memo(
             }
             nglTrajectory.setFrame(0);
             frames.push(nglFile);
+            // Save the trajectory player
+            trajectoryPlayer = nglTrajectory.player;
+            setIsMainTrajectoryStaged(true);
           }
         });
+        // Removing NGL without removing signals from the trajectory player is fatal
+        // This raises the error "Uncaught TypeError: this._bindings is undefined"
+        // Set a cleanup function to prevent fatal errors
+        return () => {
+          if (!trajectoryPlayer) return;
+          trajectoryPlayer.signals.haltedRunning.removeAll();
+          //trajectoryPlayer.pause();
+        };
       }, [
         topologies,
         trajectories,
@@ -1360,7 +1406,6 @@ const NGLViewer = memo(
       ]);
 
       // Add a signaled handler to the main NGl file, which contains the mian trajectory
-      // It is mandatory to remove this handler in the cleanup function or the NGL will raise a fatal error
       useEffect(() => {
         // Set a function to make the trajectory never stop at any interpolation step
         // If it is stopped in the middle of an interpolation then jump to the next frame
@@ -1370,16 +1415,16 @@ const NGLViewer = memo(
           const currentFrame = nglTrajectory._currentFrame;
           nglTrajectory.setFrame(currentFrame);
         });
-        return () => nglTrajectory.player.signals.haltedRunning.removeAll();
       }, [mainNglFile]);
 
       // play/pause
-      const mainTraj =
-        stageRef.current &&
-        stageRef.current.compList[0] &&
-        stageRef.current.compList[0].trajList[0];
       useEffect(() => {
-        if (!(isFirstCompStaged && mainTraj)) return;
+        if (!(isFirstCompStaged && isMainTrajectoryStaged)) return;
+        const mainTraj =
+          stageRef.current &&
+          stageRef.current.compList[0] &&
+          stageRef.current.compList[0].trajList[0];
+        if (!mainTraj) throw new Error('Something is wrong with NGL');
         const { player } = stageRef.current.compList[0].trajList[0].trajectory;
         player.setParameters({
           // Set the interpolate step according to the total number of frames to show 1 by 1
@@ -1391,10 +1436,13 @@ const NGLViewer = memo(
         // However, if not paused, the surface representations never stop to be calculated
         if (noTrajectory) player.pause();
         else player[playing && isInView ? 'play' : 'pause']();
+        // Remvoing NGL while the animation is playing is fatal
+        // This raises the error "Uncaught TypeError: this._bindings is undefined"
+        // Set a cleanup function to prevent fatal errors
         return () => player.pause();
       }, [
         isFirstCompStaged,
-        mainTraj,
+        isMainTrajectoryStaged,
         playing,
         isInView,
         noTrajectory,
@@ -1430,11 +1478,11 @@ const NGLViewer = memo(
 
       // smoothing, player interpolation
       useEffect(() => {
-        if (!(isFirstCompStaged && mainTraj)) return;
+        if (!(isFirstCompStaged && isMainTrajectoryStaged)) return;
         stageRef.current.compList[0].trajList[0].trajectory.player.parameters.interpolateType = smooth
           ? 'linear'
           : '';
-      }, [isFirstCompStaged, mainTraj, smooth]);
+      }, [isFirstCompStaged, isMainTrajectoryStaged, smooth]);
 
       // to avoid sometimes when it's not rendering after loading
       useEffect(() => {
@@ -1756,6 +1804,9 @@ const NGLViewer = memo(
       // workaround to have multiple ref logic on one element
       // https://github.com/thebuilder/react-intersection-observer/issues/186#issuecomment-468641525
       const handleRef = node => {
+        // If node does not exist then do not assign null to containerRef
+        // This way cleanup functions from some useEffects can properly clean the last reference
+        if (!node) return;
         inViewRef(node);
         containerRef.current = node;
       };
@@ -1772,17 +1823,7 @@ const NGLViewer = memo(
               [style['light-theme']]: !darkBackground,
             })}
             // Display loading status data in the upper left corner of the NGL window
-            data-loading={
-              !isFirstCompStaged
-                ? `Loading structure`
-                : !pdbFile
-                ? `No structure available`
-                : !requestedTrajectories.length && !noTrajectory
-                ? `No trajectory available`
-                : stageRef.current && stageRef.current.tasks.count > 0
-                ? `Rendering...`
-                : undefined // Show nothing when everything was finished and fine
-            }
+            data-loading={viewerLogs}
           >
             <div ref={tooltipRef} className={style.tooltip}>
               {tooltipContent}

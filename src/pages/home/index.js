@@ -1,6 +1,6 @@
 // React logic
 import React from 'react';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 // Visual assets
 import {
@@ -8,7 +8,7 @@ import {
   Typography,
   TextField,
   InputAdornment,
-} from '@material-ui/core';
+} from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
 
@@ -43,7 +43,7 @@ const inputProps = {
 // Expose the project presentation
 const Home = () => {
   // Get acces to the history so wen can redirect the user later
-  const history = useHistory();
+  const history = useNavigate();
   // Render the home page
   return (
     <Card className={style.card}>
