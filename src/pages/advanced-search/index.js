@@ -484,7 +484,7 @@ const AdvancedSearch = () => {
     const stringQuery = JSON.stringify(parsedQuery);
     if (!stringQuery) return;
     // Then make a browse with the new query
-    history.push('/browse?query=' + stringQuery);
+    history('/browse?query=' + stringQuery);
   };
 
   return (

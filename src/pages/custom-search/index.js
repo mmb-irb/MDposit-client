@@ -153,7 +153,7 @@ const CustomSearch = () => {
 
     // Then make a browse with the new query
     const stringQuery = JSON.stringify(parsedQuery);
-    history.push('/browse?query=' + stringQuery);
+    history('/browse?query=' + stringQuery);
   };
 
   return (

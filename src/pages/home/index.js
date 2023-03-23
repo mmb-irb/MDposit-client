@@ -68,7 +68,7 @@ const Home = () => {
               if (event.key === 'Enter') {
                 //console.log(event.target.value);
                 const query = event.target.value;
-                history.push('/browse?search=' + query);
+                history('/browse?search=' + query);
                 //ev.preventDefault();
               }
             }}
