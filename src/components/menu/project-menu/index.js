@@ -245,7 +245,7 @@ const ProjectMenu = ({ accession, subPage }) => {
             <Tab
               key={index}
               component={Link}
-              to={`/browse/${accession}/${tab.dir}`}
+              to={`/id/${accession}/${tab.dir}`}
               label={tab.name}
               value={tab.dir}
               className={style['tab-link']}
@@ -297,10 +297,10 @@ const ProjectMenu = ({ accession, subPage }) => {
                                     key={a}
                                     onClick={() => handleClose(index)}
                                     component={Link}
-                                    to={`/browse/${accession}/${analysis.dir}`}
+                                    to={`/id/${accession}/${analysis.dir}`}
                                     style={
                                       isCurrent(
-                                        `/browse/${accession}/${analysis.dir}`,
+                                        `/id/${accession}/${analysis.dir}`,
                                       )
                                         ? {
                                             color: secondaryColor,

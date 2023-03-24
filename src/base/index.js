@@ -1,21 +1,12 @@
 import React, { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams, generatePath } from 'react-router-dom';
 import { schedule } from 'timing-functions';
-import {
-  ThemeProvider,
-  StyledEngineProvider,
-  createTheme,
-} from '@mui/material/styles';
 
 // Layout
 import Body from '../layout/body';
 import Main from '../layout/main';
 import Header from '../layout/header';
 //import HomeFAB from '../components/home-fab';
-
-// Set the header colors (standard model colors)
-const primary = { main: '#5c6bc0' }; // Light indigo
-const secondary = { main: '#fafafa' }; // Light grey
 
 const Footer = lazy(async () => {
   await schedule(100);
@@ -52,31 +43,14 @@ const Accession = lazy(() =>
 const Contact = lazy(() =>
   import(/* webpackChunkName: 'contact' */ '../pages/contact'),
 );
-const Embed = lazy(() =>
-  import(/* webpackChunkName: 'contact' */ '../pages/embed'),
-);
 
-const theme = createTheme({
-  typography: {
-    useNextVariants: true,
-  },
-  overrides: {
-    MuiTablePagination: {
-      toolbar: {
-        justifyContent: 'center',
-      },
-      spacer: {
-        flex: 0,
-      },
-    },
-  },
-  palette: { primary, secondary },
-  props: {
-    MuiTableCell: {
-      align: 'center',
-    },
-  },
-});
+// Set a custom Navigate which is smart enought to replace params in the 'to' path
+const SmartNavigate = props => {
+  const params = useParams();
+  // Can not overwrite props.to since it is read-only
+  const newTo = generatePath(props.to, params);
+  return <Navigate {...props} to={newTo} />;
+};
 
 const Base = () => {
   return (
@@ -93,7 +67,7 @@ const Base = () => {
             }
           />
           <Route
-            path="/contact"
+            path="contact"
             element={
               <Suspense fallback={null}>
                 <Contact />
@@ -101,7 +75,7 @@ const Base = () => {
             }
           />
           <Route
-            path="/browse"
+            path="browse"
             element={
               <Suspense fallback={null}>
                 <Browse />
@@ -109,7 +83,7 @@ const Base = () => {
             }
           />
           <Route
-            path="/search"
+            path="search"
             element={
               <Suspense fallback={null}>
                 <CustomSearch />
@@ -117,7 +91,7 @@ const Base = () => {
             }
           />
           <Route
-            path="/advanced-search"
+            path="advanced-search"
             element={
               <Suspense fallback={null}>
                 <AdvancedSearch />
@@ -125,31 +99,42 @@ const Base = () => {
             }
           />
           <Route
-            path="/help"
+            path="help"
             element={
               <Suspense fallback={null}>
                 <Help />
               </Suspense>
             }
           />
-          <Route
-            path="/browse/:accession/:subPage/*"
-            element={
-              <Suspense fallback={null}>
-                <Accession />
-              </Suspense>
-            }
-          />
+          <Route path="id" >
+            <Route index element={<Navigate to="/browse" replace />}/>
+            <Route path=":accession">
+              <Route index element={<SmartNavigate to="/id/:accession/overview" replace />}/>
+              <Route
+                path=":page/*"
+                element={
+                  <Suspense fallback={null}>
+                    <Accession />
+                  </Suspense>
+                }
+              />
+            </Route>
+          </Route>
           <Route
             path="*"
             element={'This route is not defined in the client root'}
           />
+          {/* These redirections are to keep old URLs compatible */}
+          <Route
+            path="/browse/:accession"
+            element={<SmartNavigate to="/id/:accession" replace />}
+          />
+          <Route
+            path="/browse/:accession/:page"
+            element={<SmartNavigate to="/id/:accession/:page" replace />}
+          />
           {/*<Route path={['/:page', '/']} component={HomeFAB} />*/}
         </Routes>
-        {/* <Navigate
-          from="/browse/:accession"
-          to="/browse/:accession/overview"
-            /> */}
       </Main>
       <Suspense fallback={null}>
         <Footer />
@@ -161,24 +146,4 @@ const Base = () => {
   );
 };
 
-const Root = () => {
-  return (
-    <StyledEngineProvider injectFirst>
-      <ThemeProvider theme={theme}>
-        <Routes>
-          <Route
-            path="/embed/:accession"
-            element={
-              <Suspense fallback={null}>
-                <Embed />
-              </Suspense>
-            }
-          />
-          <Route path="*" element={<Base />} />
-        </Routes>
-      </ThemeProvider>
-    </StyledEngineProvider>
-  );
-};
-
-export default Root;
+export default Base;

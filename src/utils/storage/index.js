@@ -1,7 +1,7 @@
 import { schedule } from 'timing-functions';
-import name from '../../../package.json';
+import pck from '../../../package.json';
 
-const KEY = `${name}-`;
+const KEY = `${pck.name}-`;
 
 const MAX_WAIT_TIME = 1000;
 

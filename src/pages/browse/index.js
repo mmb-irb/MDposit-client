@@ -153,7 +153,7 @@ const Row = ({ project, highlight, index }) => {
       <TableCell>
         <Link
           to={{
-            pathname: `/browse/${accession || identifier}/overview`,
+            pathname: `/id/${accession || identifier}/overview`,
             // We pass the selected project data so there is no need to query it again
             state: { projectData: project },
           }}
@@ -210,7 +210,7 @@ const Row = ({ project, highlight, index }) => {
                   className={style.analysis}
                   component={Link}
                   to={{
-                    pathname: `/browse/${accession || identifier}/${analysis}`,
+                    pathname: `/id/${accession || identifier}/${analysis}`,
                     // We pass the selected project data so there is no need to query it again
                     state: { projectData: project },
                   }}

@@ -1,5 +1,5 @@
 // React logic
-import React, { Suspense, lazy, useContext, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useContext, useMemo, useState } from 'react';
 import { Link, Routes, Route, useLocation, useParams } from 'react-router-dom';
 
 // Visual assets
@@ -217,7 +217,7 @@ const LinkSwitch = ({ accession, subPage }) => {
     <Button
       component={Link}
       target="_blank"
-      to={`/browse/${accession}/${subPage}/json`}
+      to={`/id/${accession}/${subPage}/json`}
       className={style['link-to-api']}
     >
       <FontAwesomeIcon icon={faBook} />
@@ -227,13 +227,13 @@ const LinkSwitch = ({ accession, subPage }) => {
 };
 
 export default () => {
-  // Get the location adn the parameters
+  // Get the location and the parameters
   const location = useLocation();
-  const params = useParams();
+  // Get the project accession according to the URL
+  // Get the actual page where the user is going according to the URL
+  const { accession, page } = useParams();
   // Set a state to store the current project data
   const [project, setProject] = useState(null);
-  // Find the project accession according to the URL
-  const accession = params.accession;
   // Set the current project data according to the requested accession
   let updatedProjectData = false;
   // Check the if the state project data matches the current accession
@@ -323,8 +323,6 @@ export default () => {
   project.topology = topologyManager;
   project.interactions = interactions.payload;
   project.references = references.payload;
-  // Get the actual page where the user is going according to the URL
-  const page = params.subPage;
   // Set the footer line for the help tooltip
   const doc = docs.find(doc => doc.id === page); // doc may not exist
   const tooltip = doc && doc.page && (
