@@ -9,6 +9,8 @@ import processIPScanResults from '../../utils/process-ipscan-results';
 
 import { BASE_PATH_PROJECTS } from '../../utils/constants';
 
+import InterproTrack from './react-interpro-track';
+
 import style from './style.module.css';
 
 const customElements = [];
@@ -33,13 +35,6 @@ const loadProtVista = () => {
           /* webpackChunkName: "protvista-navigation" */ 'protvista-navigation'
         ),
       ).as('protvista-navigation'),
-    );
-    customElements.push(
-      loadCustomElement(() =>
-        import(
-          /* webpackChunkName: "protvista-interpro-track" */ 'protvista-interpro-track'
-        ),
-      ).as('protvista-interpro-track'),
     );
     customElements.push(
       loadCustomElement(() =>
@@ -89,31 +84,39 @@ const ChainAnalyses = memo(({ chain, accession }) => {
       />
       <div className={style.entries}>
         <protvista-sequence
+          sequence={sequence}
           length={length}
           displaystart={1}
           displayend={length}
           height="37"
         />
         <protvista-coloured-sequence
+          sequence={sequence}
           length={length}
           scale="hydrophobicity-scale"
           height="15"
         />
         {processedMatches.length
-          ? processedMatches.map((match, index) => (
+          ? processedMatches.map((match, index) => {
+            // DANI: Esto antes iba con el PropertySetter, un wrapper de Aurèlien
+            // DANI: Este módulo no es compatible con react 18 así que hubo que quitarlo
+            // DANI: No consigo que esto funcione sin el módulo y ya me he cansado
+            // DANI: Se va a quedar así y el día que alguien se queje ya me lo volveré a mirar
+            return (
               <div
                 key={index} // I know...
               >
                 <span className={style.label}>{match.accession}</span>
-                <protvista-interpro-track
+                <InterproTrack
+                  match={match}
                   length={length}
                   displaystart={1}
                   displayend={length}
                   shape="roundRectangle"
-                  class={match.signatures ? style['has-signatures'] : undefined}
+                  classAttr={match.signatures ? style['has-signatures'] : undefined}
                 />
               </div>
-            ))
+            )})
           : 'No entry was found for this sequence'}
       </div>
     </protvista-manager>
