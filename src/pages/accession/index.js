@@ -126,8 +126,10 @@ const getDataURL = (accession, subPage) => {
   switch (subPage) {
     case 'overview':
     case 'trajectory':
-    case 'electrostatic':
       end = '';
+      break;
+    case 'electrostatic':
+      end = 'analyses/interactions';
       break;
     case 'rgyr':
     case 'rmsds':
