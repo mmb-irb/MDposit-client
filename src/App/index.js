@@ -77,7 +77,9 @@ const theme = createTheme({
 // If this is giving you problems then just replace the CustomRouter by a BrowserRouter
 
 // Set a custom history
-const history = createBrowserHistory();
+// Note that using createBrowserHistory instead may give you some problems which are not visible locally
+// Some dynamic paths may raise problems once the client is build in the server
+const history = createHashHistory();
 
 // Set a custom router
 const CustomRouter = ({ history, ...props }) => {
