@@ -1,7 +1,7 @@
-import React, { lazy, Suspense, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useEffect, useLayoutEffect } from 'react';
 import ReactGA from 'react-ga';
-import { HashRouter, Routes, Route } from 'react-router-dom';
-import { createHashHistory } from 'history';
+import { HashRouter, Routes, Route, BrowserRouter, Router } from 'react-router-dom';
+import { createHashHistory, createBrowserHistory } from 'history';
 import { sleep } from 'timing-functions';
 import {
   ThemeProvider,
@@ -67,38 +67,69 @@ const theme = createTheme({
   },
 });
 
-// Hijack a bit the block/userConfirm logic in the history library
-// DANI: No se bien que hace esto
-// CRITICAL WARNING: Since we are using createHashHistory we must use also HashRouter inetad of BrowserRouter
-// CRITICAL WARNING: Otherwise we will have problems with the chunk paths in some routes which is very hard to debug
-const history = createHashHistory({
-  // we don't really ask for the user confirmation...
-  async getUserConfirmation(nextPathname, callback) {
-    // if new path
-    if (nextPathname !== history.location.pathname) {
-      // get all current sections
-      const sections = Array.from(
-        document.querySelectorAll('main section'),
-      ).reverse();
-      sections.forEach((section, index) => {
-        if (!section.animate) return;
-        // and trigger animation out
-        section.animate(KEYFRAMES, {
-          fill: 'both',
-          easing: 'cubic-bezier(.33,-0.65,.56,1.1)',
-          duration: 500,
-          delay: Math.min(250, index * 100),
-        });
-      });
-      // if there were sections, wait a bit to let go away
-      if (sections.length) await sleep(500);
-    }
-    callback(true);
-  },
-});
+// ---------------------------------------------------------------------------------------------------
 
-// Will call getUserConfirmation everytime location changes
-history.block(nextLocation => nextLocation.pathname);
+// Hijack a bit the history to make a piece of logic run when the location changes right before the change
+// https://stackoverflow.com/questions/70646421/how-to-listen-for-route-change-in-react-router-dom-v6
+
+// This is not a technic but an artistic logic
+// It makes the cards fall down before changing the page
+// If this is giving you problems then just replace the CustomRouter by a BrowserRouter
+
+// Set a custom history
+const history = createBrowserHistory();
+
+// Set a custom router
+const CustomRouter = ({ history, ...props }) => {
+  const [state, setState] = useState({
+    action: history.action,
+    location: history.location
+  });
+
+  useLayoutEffect(() => {
+    // Note that we will not be able to access the current state value further if we don't want to rerener everything
+    // Fort his reason the current state location is observed only at the begining and then updated inside the function
+    let currentLocation = state.location.pathname;
+    history.listen(async newState => {
+      // If the location is about to change, run a few extra logic
+      const newLocation = newState.location.pathname;
+      if (currentLocation != newLocation) {
+        currentLocation = newLocation;
+        // Get all current sections
+        const sections = Array.from(
+          document.querySelectorAll('main section'),
+        ).reverse();
+        // Trigger animation out
+        let animated = false;
+        sections.forEach((section, index) => {
+          if (!section.animate) return;
+          animated = true;
+          section.animate(KEYFRAMES, {
+            fill: 'both',
+            easing: 'cubic-bezier(.33,-0.65,.56,1.1)',
+            duration: 500,
+            delay: Math.min(250, index * 100),
+          });
+        });
+        // If animations were triggered then wait a bit for it to happen
+        if (animated) await sleep(500);
+      }
+      // Go to the new location
+      return setState(newState);
+    })
+  }, [history]);
+
+  return (
+    <Router
+      {...props}
+      location={state.location}
+      navigationType={state.action}
+      navigator={history}
+    />
+  );
+};
+
+// ---------------------------------------------------------------------------------------------------
 
 // Go to the Root script, where there is a switch/route section with all pages
 const App = () => {
@@ -116,7 +147,7 @@ const App = () => {
     <ErrorBoundary>
       <StyledEngineProvider injectFirst>
         <ThemeProvider theme={theme}>
-          <HashRouter history={history}>
+          <CustomRouter history={history}>
             <Routes>
               <Route
                 path="/embed/:accession"
@@ -128,7 +159,7 @@ const App = () => {
               />
               <Route path="*" element={<Base />} />
             </Routes>
-          </HashRouter>
+          </CustomRouter>
         </ThemeProvider>
       </StyledEngineProvider>
     </ErrorBoundary>
