@@ -74,21 +74,27 @@ const Rgyr = () => {
     xWeights,
   } = useMemo(() => {
     if (!payload || (populations && populations.loading)) return {};
-    // If this is an ensemble we use frames as the x axis
-    // If this is a trajectory we use time as the x axis
-    const isEnsemble = metadata.TYPE === 'ensemble';
     // Get the frames step
-    // WARNING: We want the time step in nanoseconds (ns)
-    // WARNING: Frequency is divided by 1000 since it is in picoseconds (ps)
     const frameStep = payload.step;
-    const xAxisStep = isEnsemble
-      ? frameStep
-      : frameStep * (metadata.FREQUENCY / 1000);
-    const xAxisLabel = isEnsemble ? 'Frames' : 'Time (ns)';
-    // Set the tooltip generator for when the mouse hovers the graph
-    const xTooltip = isEnsemble
-      ? xValue => 'frame ' + +xValue.toFixed(0)
-      : xValue => +xValue.toFixed(2) + ' ns';
+    // Get the total time length
+    const timeLength = metadata.LENGTH;
+    // If this is an ensemble or we are missing the time length then we use frames as the x axis
+    // If this is a trajectory and we have the time length then we use time as the x axis
+    const isEnsemble = metadata.TYPE === 'ensemble';
+    let xAxisStep;
+    let xAxisLabel;
+    let xTooltip;
+    if (isEnsemble || !timeLength) {
+      xAxisStep = frameStep;
+      xAxisLabel = 'Frames';
+      xTooltip = xValue => 'frame ' + xValue;
+    }
+    else {
+      const timeStep = timeLength / metadata.SNAPSHOTS;
+      xAxisStep = frameStep * timeStep;
+      xAxisLabel = 'Time (ns)';
+      xTooltip = xValue => +xValue.toFixed(2) + ' ns';
+    }
     // Get the weigths for each data value corresponding frame
     let xWeights;
     if (populations && populations.payload) {

@@ -164,19 +164,25 @@ const RmsdPerres = () => {
 
     // Get the frames step from the analysis itself
     const frameStep = payload['step'];
+    // Get the total time length
+    const timeLength = metadata.LENGTH;
 
-    // If this is an ensemble we use frames as the x axis
-    // If this is a trajectory we use time as the x axis
+    // If this is an ensemble or we are missing the time length then we use frames as the x axis
+    // If this is a trajectory and we have the time length then we use time as the x axis
     const isEnsemble = metadata.TYPE === 'ensemble';
-    const xAxisStep = isEnsemble
-      ? frameStep
-      : metadata.LENGTH / (analysisFrameCount - 1);
-    const xAxisLabel = isEnsemble ? 'Frames' : 'Time (ns)';
-    // Set the tooltip generator for when the mouse hovers the graph
-    const xTooltip = isEnsemble
-      ? xValue => 'frame ' + xValue
-      : xValue => +xValue.toFixed(2) + ' ns';
-
+    let xAxisStep;
+    let xAxisLabel;
+    let xTooltip;
+    if (isEnsemble || !timeLength) {
+      xAxisStep = frameStep;
+      xAxisLabel = 'Frames';
+      xTooltip = xValue => 'frame ' + xValue;
+    }
+    else {
+      xAxisStep = timeLength / (analysisFrameCount - 1);
+      xAxisLabel = 'Time (ns)';
+      xTooltip = xValue => +xValue.toFixed(2) + ' ns';
+    }
     // Load the required frames from the main trajectory
     const mainURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory?frames=1:${trajectoryFrameCount}:${frameStep}`;
     const mainComponent = [
