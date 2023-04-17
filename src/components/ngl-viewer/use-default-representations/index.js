@@ -87,18 +87,22 @@ const useDefaultRepresentations = () => {
     }
 
     // Add a representation for ions in spacefill in case there are residues with 1 atom
-    const someSingleAtomResidue = structure.residueStore.atomCount.some(
-      count => count === 1,
-    );
-    if (someSingleAtomResidue) {
+    const singleAtomIndices = []
+    topologyManager.residueAtomIndices.forEach(atomIndices => {
+      if (atomIndices.length > 1) return;
+      singleAtomIndices.push(atomIndices[0]);
+    })
+    if (singleAtomIndices.length > 0) {
+      const singleAtomSelection = '@' + singleAtomIndices.join(',');
       reps.push({
         name: 'Ions',
-        selection: 'ion',
+        selection: singleAtomSelection,
         type: 'spacefill',
         color: 'element',
       });
     }
 
+    // Represent "Other" residues in low opacity grey licorice
     // Get all residues which are not already included on any previous section
     // Get also all residues which are represented as cartoon but are not protein or nucleic acid
     // i.e. residues which would not be represented by now
@@ -117,8 +121,6 @@ const useDefaultRepresentations = () => {
     for (let i = 0; i < residuesCount; i++) {
       if (representedResidues.indexOf(i) === -1) nonRepresentedResidues.push(i);
     }
-
-    // Represent those "Other" residues in low opacity grey licorice
     if (nonRepresentedResidues.length > 0) {
       const {
         rangedSelection: otherSelection,
