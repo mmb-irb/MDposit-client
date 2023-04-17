@@ -1,7 +1,7 @@
 import React, { lazy, Suspense, useState, useEffect, useLayoutEffect } from 'react';
 import ReactGA from 'react-ga';
-import { HashRouter, Routes, Route, BrowserRouter, Router } from 'react-router-dom';
-import { createHashHistory, createBrowserHistory } from 'history';
+import { Routes, Route, Router } from 'react-router-dom';
+import { createHashHistory } from 'history';
 import { sleep } from 'timing-functions';
 import {
   ThemeProvider,
