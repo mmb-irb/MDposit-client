@@ -121,6 +121,10 @@ const Domains = ({ setter }) => {
           if (customDomains.find(domain => domain.name === domainName)) return;
           if (interactionDomains.find(domain => domain.name === domainName))
             return;
+          // Discard the domain if its name matches the reference name
+          // This is quite usual: some references have domains which are basically the whole thing
+          // There may be a difference in the pole residues, but it is redundant anyway
+          if (reference.name === domainName) return;
           const mappedDomain = {
             name: reference.name + ' - ' + domainName,
             description: domain.description,
