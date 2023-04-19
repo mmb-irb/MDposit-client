@@ -11,7 +11,7 @@
     "path": "metadata.PDBIDS",
     "type": "string",
     "example": "6vxx",
-    "options": true
+    "options": false
   },
   {
     "name": "Name",
