@@ -1622,8 +1622,8 @@ const NGLViewer = memo(
               }
             Residue ${sourceResidue.residueNumber} (${atom.resname})`}
               {reference ? (
-                reference.id === 'sc' ? (
-                  <div style={{ color: 'salmon' }}>{'Synthetic construct'}</div>
+                reference.id === 'noref' ? (
+                  <div style={{ color: 'salmon' }}>{'No referable'}</div>
                 ) : (
                   <div>
                     <div style={{ color: 'lightGreen' }}>{referenceName}</div>
