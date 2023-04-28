@@ -1329,9 +1329,9 @@ const NGLViewer = memo(
                   nglPlayer.play();
                 }
               }
+              // Save the trajectory player
+              trajectoryPlayer = nglTrajectory.player;
             }
-            // Save the trajectory player
-            trajectoryPlayer = nglTrajectory.player;
           }
           // If there is not trajectory yet then create a new NGL trajectory
           else {
@@ -1369,12 +1369,13 @@ const NGLViewer = memo(
               });
               // Update the main NGL file
               setMainNglFile(nglFile);
+              // Set trajectory frame
+              nglTrajectory.setFrame(0);
+              frames.push(nglFile);
+              // Save the trajectory player
+              trajectoryPlayer = nglTrajectory.player;
+              setIsMainTrajectoryStaged(true);
             }
-            nglTrajectory.setFrame(0);
-            frames.push(nglFile);
-            // Save the trajectory player
-            trajectoryPlayer = nglTrajectory.player;
-            setIsMainTrajectoryStaged(true);
           }
         });
         // Removing NGL without removing signals from the trajectory player is fatal
