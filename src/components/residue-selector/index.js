@@ -122,6 +122,13 @@ const ResidueSelector = ({
   const [selectedResidues, setSelectedResidues] = forcedResiduesSelection
     ? forcedResiduesSelection
     : internalResiduesSelection;
+  // Set a reference to selected residues
+  // Use this to access to the dynamic value of the state in an already declared function
+  const selectedResiduesRef = useRef(selectedResidues);
+  // Update the reference all the time
+  useEffect (() => {
+    selectedResiduesRef.current = selectedResidues;
+  }, [selectedResidues]);
 
   // Add events to manage when the mouse hovers / outs / clicks on residues
   useEffect(() => {
@@ -145,36 +152,24 @@ const ResidueSelector = ({
       // Thats why it is done this work around with the residue index
       const residueIndex = residueElement.getAttribute('residueindex');
       const residue = residueData[residueIndex];
-      // Get the residue tagcolor if it has one. Otherwise get an available tagcolor for it
-      let index;
-      let selected;
-      let tagcolor = residue.tagcolor ? residue.tagcolor : getColor();
-      setSelectedResidues(previous => {
-        const newState = [...previous];
-        index = newState.indexOf(residue);
-        selected = index === -1;
-        // When it is selected
-        if (selected) {
-          residue.tagcolor = tagcolor;
-          newState.push(residue);
-        }
-        // When it is deselected
-        else {
-          residue.tagcolor = null;
-          newState.splice(index, 1);
-        }
-        return newState;
-      });
-      // Add a pointer and color it
-      if (selected) {
+      // Get the index of the selected residue
+      const index = selectedResiduesRef.current.indexOf(residue);
+      // Set if the current residue is already selected or not
+      const notSelected = index === -1;
+      // Set the tag color
+      const tagcolor = residue.tagcolor ? residue.tagcolor : getColor();
+      // In case it is not selected
+      if (notSelected) {
+        residue.tagcolor = tagcolor;
         // Call the 'onSelect' function passing the current selected residue object
         if (onSelect) onSelect(residue, residueIndex, tagcolor);
         const pointer = addPointer(residueElement);
         pointer.style['border-top-color'] = tagcolor;
         pointersRef.current.push(pointer);
+        selectedResiduesRef.current.push(residue);
       }
-      // Remove the pointer
       else {
+        residue.tagcolor = null;
         // Call the 'onDeselect' function passing the current deselected residue object
         if (onDeselect) onDeselect(residue, residueIndex, tagcolor);
         const pivot = residueElement.lastChild;
@@ -186,9 +181,12 @@ const ResidueSelector = ({
         // This is not a problem however for the state itself
         // The double run is a React conspiration to force you to keep updaters as pure functions
         pointersRef.current.splice(index, 1);
+        selectedResiduesRef.current.splice(index, 1);
       }
       // Set the hover pointer back
       addPointer(residueElement);
+      // Update the selected residues state
+      setSelectedResidues([ ...selectedResiduesRef.current ]);
     };
 
     // Highlight the residue when the mouse is over
