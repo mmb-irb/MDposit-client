@@ -87,8 +87,7 @@ const PCA = () => {
         // DANI: La trayectoria se carga selectivamente para los átomos a los que corresponde más adelante
         // DANI: Este sistema es un arreglo temporal
         // DANI: La idea sería cargar la topología ya filtrada, cosa que con NGL no es fácil (prefiero esperarme a MolStar)
-        selection:
-          '@' + parsedSelectionRanger(data.atoms, false).rangedSelection,
+        //selection: '@' + parsedSelectionRanger(data.atoms, false).rangedSelection,
         type: 'spacefill',
       },
     ];
@@ -108,12 +107,13 @@ const PCA = () => {
     const component = [
       {
         topologyURL: topologyURL,
+        topologySelection: '@' + parsedSelectionRanger(data.atoms, false).rangedSelection,
         trajectoryURLs: [projectionURL],
         representations: representations,
         // DANI: La representación oculta los átomos que no tienen coordenadas más arriba
         // DANI: Este sistema es un arreglo temporal
         // DANI: La idea sería cargar la topología ya filtrada, cosa que con NGL no es fácil (prefiero esperarme a MolStar)
-        trajectoryAtomIndices: data.atoms,
+        //trajectoryAtomIndices: data.atoms,
       },
     ];
 

@@ -37,7 +37,7 @@ import { sleep } from 'timing-functions';
 
 import https from 'https-browserify';
 import http from 'stream-http';
-import url from 'url';
+import { parse as urlParse } from 'url';
 
 const DEFAULT_NUMBER_OF_FRAMES = 25;
 const DEFAULT_ORIENTATION_TRANSITION_DURATION = 750; // 750 ms
@@ -200,6 +200,7 @@ const NGLViewer = memo(
           const newRequestedTopologies = [];
           comps.forEach(comp => {
             const url = comp.topologyURL || null;
+            const selection = comp.topologySelection || null;
             // Check if the url is new
             // Else, skip this url since it has been requested already
             const allRequestedTopologies = [
@@ -224,6 +225,7 @@ const NGLViewer = memo(
               // Add the topology to the list, so it will be requested to the API
               newRequestedTopologies.push({
                 url: url,
+                selection: selection,
                 loading: true,
                 requested: false,
                 error: null,
@@ -238,11 +240,12 @@ const NGLViewer = memo(
       // Set a state to store the downloaded topologies
       const [topologies, setTopologies] = useState([]);
 
-      // Download all requested topologies from the API
+      // Keep track of all requests in case we have to abort them further
+      const currentRequests = useRef([]);
+
+      // Download all requested topologies/structures from the API
       useEffect(() => {
-        let didCancel = false;
-        // Make an API request from each url
-        requestedTopologies.forEach((requestedTopology, t) => {
+        requestedTopologies.forEach(requestedTopology => {
           // Check if the requested url has the data already downloaded
           // If so, skip this request
           if (requestedTopology.file) return;
@@ -270,33 +273,59 @@ const NGLViewer = memo(
           // If there is an URL
           else {
             requestedTopology.requested = true;
-            // 'autoLoad' is the built in function from NGL to load data
-            autoLoad(url, { defaultRepresentation: false, ext: 'pdb' })
-              // If the request was sucessful
-              .then(
-                file =>
-                  !didCancel &&
-                  setTopologies(previous => {
-                    requestedTopology.loading = false;
-                    // Then check the loading state of all requested topologies and update the overall loading state
-                    const anyLoading = requestedTopologies.some(t => t.loading);
-                    setAnyLoadingTopology(anyLoading);
-                    const topology = { url: url, file: file };
-                    return [...previous, topology];
-                  }),
-              )
-              // If the request failed
-              .catch(error => {
-                if (didCancel) return;
-                requestedTopology.loading = false;
-                // Then check the loading state of all requested topologies and update the overall loading state
-                const anyLoading = requestedTopologies.some(t => t.loading);
-                setAnyLoadingTopology(anyLoading);
-                requestedTopology.error = error;
-              });
+            // Create the POST body
+            const postData = JSON.stringify({
+              selection : requestedTopology.selection
+            });
+            // Request the API
+            // http exception is added for local testing in http://localhost
+            const protocol = url.substring(0, 5) === 'https' ? https : http;
+            const requestOptions = urlParse(url);
+            // We use the POST method instead of the regular GET method to allow long atom selections
+            requestOptions.method = 'POST';
+            requestOptions.headers = {
+              'Content-Type': 'application/json',
+              'Content-Length': postData.length
+            }
+            const request = protocol.request(requestOptions, response => {
+              // Track the amout of bytes already downloaded
+              let responseContent = new ArrayBuffer(0);
+              response
+                .on('data', chunk => {
+                  responseContent = appendBuffer(responseContent, chunk);
+                })
+                .on('end', () => {
+                  const stringBlob = new Blob( [ responseContent ], { type: 'text/plain'} );
+                  autoLoad(stringBlob, { defaultRepresentation: false, ext: "pdb" })
+                    .then(file => {
+                      setTopologies(previous => {
+                        requestedTopology.loading = false;
+                        // Then check the loading state of all requested topologies and update the overall loading state
+                        const anyLoading = requestedTopologies.some(t => t.loading);
+                        setAnyLoadingTopology(anyLoading);
+                        const topology = { url: url, file: file };
+                        return [...previous, topology];
+                      })
+                    })
+                    .catch(error => {
+                      requestedTopology.loading = false;
+                      // Then check the loading state of all requested topologies and update the overall loading state
+                      const anyLoading = requestedTopologies.some(t => t.loading);
+                      setAnyLoadingTopology(anyLoading);
+                      requestedTopology.error = error;
+                    });                  
+                });
+            });
+            // Send the request data (POST method feature)
+            if (requestOptions.method === 'POST'){
+              request.write(postData);
+            }
+            // Close the request for it to actually start
+            // Note that this is required for the https.request altought it was not by https.get
+            request.end();
+            currentRequests.current.push(request);
           }
         });
-        return () => (didCancel = true);
       }, [requestedTopologies, pdbDataFile]);
 
       const mainComponent = comps[0];
@@ -454,7 +483,6 @@ const NGLViewer = memo(
 
       // Set a state to store trajectories data
       const [trajectories, setTrajectories] = useState([]);
-      const currentRequests = useRef([]);
 
       // Set a function to update the current loading progress
       const updateLoadingProgress = useCallback(
@@ -494,11 +522,26 @@ const NGLViewer = memo(
           trajectory.loading = true;
           trajectory.progress = 0;
 
+          // DANI: Todavía no me ha hecho falta hacer una selección larga de atomos/frames
+          // DANI: Todo está listo a nivel de API
+          // DANI: Solo hará falta reformar un poco el ngl-viewer-with-controls y este script
+          const postData = JSON.stringify({});
+
           // Request the API
           // http exception is added for local testing in http://localhost
-          const getter =
-            trajectory.url.substring(0, 5) === 'https' ? https.get : http.get;
-          const request = getter(url.parse(trajectory.url), response => {
+          const protocol = trajectory.url.substring(0, 5) === 'https' ? https : http;
+          const requestOptions = urlParse(trajectory.url);
+          // Check if the request points to the /trajectory endpoint or it is pointing to a file
+          const requestPathsteps = requestOptions.pathname.split('/')
+          const isTrajectoryEndpoint = requestPathsteps[requestPathsteps.length -1] === 'trajectory'
+          // We use the POST method instead of the regular GET method to allow long atom selections
+          // However, if we are retrieving a specific file the the POST method is not implemented
+          requestOptions.method = isTrajectoryEndpoint ? 'POST' : 'GET';
+          requestOptions.headers = {
+            'Content-Type': 'application/json',
+            'Content-Length': postData.length
+          }
+          const request = protocol.request(requestOptions, response => {
             const totalBytes = response.headers['content-length'];
             // Set the new trajectory
             setTrajectories(previousTrajectories => {
@@ -542,6 +585,13 @@ const NGLViewer = memo(
                 setAnyLoadingTrajectory(anyLoading);
               });
           });
+          // Send the request data (POST method feature)
+          if (requestOptions.method === 'POST'){
+            request.write(postData);
+          }
+          // Close the request for it to actually start
+          // Note that this is required for the https.request altought it was not by https.get
+          request.end();
           currentRequests.current.push(request);
         });
       }, [requestedTrajectories, updateLoadingProgress]);

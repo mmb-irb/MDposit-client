@@ -149,7 +149,8 @@ const NGLViewerWithControls = forwardRef(
       // All values are optional since missing values will be set by default
       //  {
       //    topologyURL: string, (used in pockets analysis)
-      //    trajectoryURLs: [ string ], (used in pca analysis)
+      //    topologySelection: string, (used in pca)
+      //    trajectoryURLs: [ string ], (used in pca)
       //    frame: int, (used in rmsd pairwise analysis)
       //    onlyTopology: bool, (used in pockets analysis)
       //    representations: [...],
@@ -255,13 +256,14 @@ const NGLViewerWithControls = forwardRef(
         allReps.push(...comp.representations);
       }
       // Create a new component for each additional representation with different component parameters
-      // (i.e. topologyURL, trajectoryURLs or frame)
+      // (i.e. topologyURL, topologySelection, trajectoryURLs or frame)
       for (const rep of additionalRepresentations) {
         // Set the component for this representation
         let comp;
         const search = comps.filter(
           c =>
             c.topologyURL === rep.topologyURL &&
+            c.topologySelection === rep.topologySelection &&
             (c.trajectoryURLs && c.trajectoryURLs.join()) ===
               (rep.trajectoryURLs && rep.trajectoryURLs.join()) &&
             c.frame === rep.frame,
@@ -281,6 +283,7 @@ const NGLViewerWithControls = forwardRef(
           // Set the component object
           const component = {
             topologyURL: rep.topologyURL,
+            topologySelection: rep.topologySelection,
             trajectoryURLs: rep.trajectoryURLs,
             frame: rep.frame,
             representations: [representation],
