@@ -37,6 +37,7 @@ export const TrajectoryMetadata = memo(() => {
   // Load metadata from the project context
   const { metadata } = useContext(ProjectCtx);
   const round2decimals = number => Math.round(number * 100) / 100;
+  const frequency = (metadata.LENGTH && metadata.SNAPSHOTS && round2decimals(metadata.LENGTH / metadata.SNAPSHOTS)) || null;
   if (metadata)
     // Render the whole metadata
     return (
@@ -216,11 +217,11 @@ export const TrajectoryMetadata = memo(() => {
             label="Frequency"
             title="Frequency of snapshots"
             value={
-              metadata.FREQUENCY === null
+              frequency === null
                 ? na
-                : Math.round(metadata.FREQUENCY * 100) / 100
+                : frequency
             }
-            disabled={metadata.FREQUENCY === null}
+            disabled={frequency === null}
             InputProps={{
               endAdornment: (
                 <InputAdornment variant="filled" position="end">
