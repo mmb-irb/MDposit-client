@@ -38,3 +38,7 @@
   margin: 1ch 0;
   white-space: pre-wrap;
 }
+
+.grey {
+  color: grey;
+}

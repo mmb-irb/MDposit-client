@@ -189,7 +189,7 @@ export default React.memo(() => {
               );
               const organisms = Array.from(
                 new Set((pdbMetadata.sources || '').split(COMMA_SEPARATOR)),
-              );
+              ).filter(organism => organism); // Remove empty organism strings
               // Set the url to get the pdb image
               const lowerPdb = pdbId.toLowerCase();
               const imgSrc =
@@ -227,7 +227,7 @@ export default React.memo(() => {
                         <div>
                           Organism
                           {organisms.length > 1 && 's'}:{' '}
-                          {organisms.map(organism => (
+                          {organisms.length > 0 ? organisms.map(organism => (
                             <Chip
                               key={organism}
                               label={organism}
@@ -235,7 +235,7 @@ export default React.memo(() => {
                               color="primary"
                               className={style.chip}
                             />
-                          ))}
+                          )) : <span className={style['grey']}>not available</span>}
                         </div>
                         <div>
                           Keyword
