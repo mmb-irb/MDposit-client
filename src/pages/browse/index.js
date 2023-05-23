@@ -72,6 +72,25 @@ const hasEpitopes = reference => {
   return referencesWithEpitopes.indexOf(reference) > -1;
 };
 
+// Set the allowed chips
+const allowedAnalysisChips = [
+  'rmsds',
+  'rgyr',
+  'fluctuation',
+  'pca',
+  'rmsd-perres',
+  'rmsd-pairwise',
+  'dist-perres',
+  'hbonds',
+  'electrostatic',
+  'energies',
+  'pockets',
+  'mutations',
+  'epitopes',
+  'sasa',
+  'populations',
+];
+
 const Row = ({ project, highlight, index }) => {
   // Harvest data from the project object
   const {
@@ -178,30 +197,25 @@ const Row = ({ project, highlight, index }) => {
       <TableCell>{(metadata && metadata.GROUPS) || na}</TableCell>
       {/* analyses */}
       <TableCell>
+        <Chip
+          key={'trajectory'}
+          clickable
+          className={style.analysis}
+          component={Link}
+          to={{
+            pathname: `/id/${accession || identifier}/trajectory`,
+            // We pass the selected project data so there is no need to query it again
+            state: { projectData: project },
+          }}
+          label={'Trajectory'}
+          variant="outlined"
+        />
         {analyses && analyses.length
           ? analyses
               // Available analyses are sorted alphabetically
               .sort()
-              // Display only allowed analysis
-              .filter(element =>
-                [
-                  'rmsds',
-                  'rgyr',
-                  'fluctuation',
-                  'pca',
-                  'rmsd-perres',
-                  'rmsd-pairwise',
-                  'dist-perres',
-                  'hbonds',
-                  'electrostatic',
-                  'energies',
-                  'pockets',
-                  'mutations',
-                  'epitopes',
-                  'sasa',
-                  'populations',
-                ].includes(element),
-              )
+              // Display only allowed chips
+              .filter(element => allowedAnalysisChips.includes(element))
               // For each analysis create a clickable button which links to the analysis route
               .map(analysis => (
                 <Chip
