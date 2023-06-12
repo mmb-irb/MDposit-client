@@ -7,6 +7,7 @@ import style from './style.module.css';
 import D3HeatmapGrid from '../d3-heatmap-grid';
 
 import ColorLegend from '../color-legend';
+import { ucs2 } from 'punycode';
 
 const Heatmap = ({
   // The expected data format is an complex object
@@ -74,7 +75,9 @@ const Heatmap = ({
         }
       }
     } else {
-      data = new Array(yMaxCells).fill(new Array(xMaxCells).fill(null));
+      // WARNING: Note that the list of lists has to be generated this way
+      // WARNING: If you fill the first array with an array then it will be same array for all values
+      data = new Array(yMaxCells).fill().map(u => new Array(xMaxCells).fill(null));
       if (xstep <= 1) {
         for (let y = 0; y < yMaxCells; y++) {
           data[y] = rData[Math.round(y * ystep)];
