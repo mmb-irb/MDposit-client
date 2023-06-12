@@ -36,6 +36,10 @@ const useDefaultRepresentations = () => {
           name: 'Protein',
           selection: 'protein',
         });
+        reps.push({
+          name: 'Nucleic acids',
+          selection: 'nucleic',
+        });
       }
 
       // Represent the mebrane if exist
