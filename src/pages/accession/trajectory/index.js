@@ -37,7 +37,8 @@ export const TrajectoryMetadata = memo(() => {
   // Load metadata from the project context
   const { metadata } = useContext(ProjectCtx);
   const round2decimals = number => Math.round(number * 100) / 100;
-  const frequency = (metadata.LENGTH && metadata.SNAPSHOTS && round2decimals(metadata.LENGTH / metadata.SNAPSHOTS)) || null;
+  // Calculate frequency and multiply it by 1000 since it will be represented in picoseconds
+  const frequency = (metadata.LENGTH && metadata.SNAPSHOTS && round2decimals(metadata.LENGTH / metadata.SNAPSHOTS) * 1000) || null;
   if (metadata)
     // Render the whole metadata
     return (
