@@ -1242,7 +1242,7 @@ const NGLViewer = memo(
 
         let frames = [];
         // Save the trajectory player to setup the celanup function at the end of this useEffect
-        let trajectoryPlayer;
+        let trajectoryHandler;
 
         comps.forEach((comp, c) => {
           // Find the topology which matches the component url
@@ -1379,8 +1379,8 @@ const NGLViewer = memo(
                   nglPlayer.play();
                 }
               }
-              // Save the trajectory player
-              trajectoryPlayer = nglTrajectory.player;
+              // Save the trajectory handler
+              trajectoryHandler = nglTrajectory;
             }
           }
           // If there is not trajectory yet then create a new NGL trajectory
@@ -1423,19 +1423,11 @@ const NGLViewer = memo(
               nglTrajectory.setFrame(0);
               frames.push(nglFile);
               // Save the trajectory player
-              trajectoryPlayer = nglTrajectory.player;
+              trajectoryHandler = nglTrajectory;
               setIsMainTrajectoryStaged(true);
             }
           }
         });
-        // Removing NGL without removing signals from the trajectory player is fatal
-        // This raises the error "Uncaught TypeError: this._bindings is undefined"
-        // Set a cleanup function to prevent fatal errors
-        return () => {
-          if (!trajectoryPlayer) return;
-          trajectoryPlayer.signals.haltedRunning.removeAll();
-          //trajectoryPlayer.pause();
-        };
       }, [
         topologies,
         trajectories,
@@ -1462,10 +1454,17 @@ const NGLViewer = memo(
         // If it is stopped in the middle of an interpolation then jump to the next frame
         if (!mainNglFile) return;
         const nglTrajectory = mainNglFile.trajectory;
-        nglTrajectory.player.signals.haltedRunning.add(() => {
+        const goToNextFrame = () => {
           const currentFrame = nglTrajectory._currentFrame;
           nglTrajectory.setFrame(currentFrame);
-        });
+        };
+        nglTrajectory.player.signals.haltedRunning.add(goToNextFrame);
+        // Removing NGL without removing signals from the trajectory player is fatal
+        // This raises the error "Uncaught TypeError: this._bindings is undefined"
+        // Set a cleanup function to prevent fatal errors
+        return () => {
+          nglTrajectory.player.signals.haltedRunning.remove(goToNextFrame);
+        }
       }, [mainNglFile]);
 
       // play/pause
