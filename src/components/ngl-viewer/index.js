@@ -281,8 +281,10 @@ const NGLViewer = memo(
             // http exception is added for local testing in http://localhost
             const protocol = url.substring(0, 5) === 'https' ? https : http;
             const requestOptions = urlParse(url);
-            // We use the POST method instead of the regular GET method to allow long atom selections
-            requestOptions.method = 'POST';
+            // We use the POST method instead of the regular GET method to allow long atom selections when requesting structure
+            // However, if we are requesting a file the POST method is not supported
+            const is_structure_endpoint = requestOptions.path.endsWith('/structure')
+            requestOptions.method = is_structure_endpoint ? 'POST' : 'GET';
             requestOptions.headers = {
               'Content-Type': 'application/json',
               'Content-Length': postData.length
