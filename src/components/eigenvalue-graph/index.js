@@ -187,6 +187,7 @@ const EigenvalueGraph = ({
         .attr('y', d => yEigen(d.eigenvalue))
         .attr('height', d => height - MARGIN.bottom - yEigen(d.eigenvalue));
       // full-height bars (for click and hover handlers)
+      if (!tooltipRef.current) return;
       const clickBars = refs.targetBars.selectAll('rect').data(processed);
       clickBars
         .enter()
