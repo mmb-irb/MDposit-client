@@ -14,8 +14,6 @@ import { ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
-import { parsedSelectionRanger } from '../../../utils/topology-manager';
-
 import plainTextExplanation from './plain-text-explanation';
 
 import style from './style.module.css';
@@ -67,7 +65,7 @@ const PCA = () => {
   }, [data, projections]);
 
   // Set the component to be passed to the NGL
-  const [representations, component] = useMemo(() => {
+  const [representations, components] = useMemo(() => {
     if (!data || !files) return [undefined, undefined];
 
     // Set the chains to be represented in the NGL viewer
@@ -84,10 +82,6 @@ const PCA = () => {
     const representations = [
       {
         name: 'PC projection',
-        // DANI: La trayectoria se carga selectivamente para los átomos a los que corresponde más adelante
-        // DANI: Este sistema es un arreglo temporal
-        // DANI: La idea sería cargar la topología ya filtrada, cosa que con NGL no es fácil (prefiero esperarme a MolStar)
-        //selection: '@' + parsedSelectionRanger(data.atoms, false).rangedSelection,
         type: 'spacefill',
       },
     ];
@@ -104,20 +98,17 @@ const PCA = () => {
     const topologyURL = `${BASE_PATH_PROJECTS}${accession}/files/structure`;
 
     // Set the NGL component
-    const component = [
+    const components = [
       {
         topologyURL: topologyURL,
-        topologySelection: '@' + parsedSelectionRanger(data.atoms, false).rangedSelection,
+        // WARNING: NGL does not support ranged syntax with atom indices (e.g. @0-2,13-15)
+        topologySelection: '@' + data.atoms.join(','),
         trajectoryURLs: [projectionURL],
         representations: representations,
-        // DANI: La representación oculta los átomos que no tienen coordenadas más arriba
-        // DANI: Este sistema es un arreglo temporal
-        // DANI: La idea sería cargar la topología ya filtrada, cosa que con NGL no es fácil (prefiero esperarme a MolStar)
-        //trajectoryAtomIndices: data.atoms,
       },
     ];
 
-    return [representations, component];
+    return [representations, components];
   }, [data, files, projections, accession]);
 
   if (loading) {
@@ -159,7 +150,7 @@ const PCA = () => {
                   projection={projections[0]}
                   framesSelect={false}
                   // Projections are backbone trajectories, same as the average.pdb topology
-                  components={component}
+                  components={components}
                   bounce={true}
                 />
               </CardContent>
@@ -191,7 +182,7 @@ const PCA = () => {
                 accession: accession,
                 requestedFrame: requestedFrame,
                 representations: representations,
-                //components: component
+                //components: components
               }
             : null
         }
