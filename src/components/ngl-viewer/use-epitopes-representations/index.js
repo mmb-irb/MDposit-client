@@ -19,7 +19,7 @@ const useEpitopesRepresentations = () => {
     // Get the residues on each reference epitopes in the current topology numeration
     const mappedResiduesPerReference = referenceData.map(reference => {
       // Get the reference name and epitopes
-      const referenceId = reference.id;
+      const referenceId = reference.uniprot;
       const referenceEpitopes = reference.epitopes;
       if (!referenceEpitopes) return [];
       // Save all epitope residues together and eliminate duplicates
