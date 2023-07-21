@@ -39,7 +39,7 @@ const Energies = () => {
   // Get the default representations
   const defaultRepresentations = useDefaultRepresentations();
 
-  // Send a request to the API with the url of the rgyr analysis
+  // Send a request to the API with the url of the energies analysis
   const { loading, payload, error } = useAPI(
     `${BASE_PATH_PROJECTS}${accession}/analyses/energies/`,
   );

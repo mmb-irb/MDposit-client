@@ -1,0 +1,41 @@
+.default {
+  height: 50vh;
+}
+
+.flexible {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.graph-container {
+  flex: 1;
+}
+
+.graph-container > svg,
+.graph-container > canvas {
+  cursor: crosshair;
+  position: absolute;
+}
+
+.graph-legend {
+  justify-content: center;
+  align-items: center;
+  margin-top: 1ch;
+}
+
+.graph-legend > * {
+  margin: 0 1em;
+}
+
+.graph-display-legend {
+  margin: 0 1em;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.line-sample {
+  margin: 0.5em 1em;
+}

@@ -19,6 +19,7 @@ import { Link } from 'react-router-dom';
 // Load the project contexts
 import { ProjectCtx } from '../../../contexts';
 
+import { NICE_NAMES } from '../../../utils/constants';
 import style from './style.module.css';
 
 // Set manually which references have entropies or epitopes
@@ -205,12 +206,17 @@ const ProjectMenu = ({ accession, subPage }) => {
     ];
 
     // In case the simulation comes from a Markov state model, add the populations analysis to the tabs
-    if (metadata && metadata.METHOD === 'Markov state model (MSM)')
-      tabs[2].drops[3].analyses.push({
-        name: 'Populations',
-        dir: 'populations',
-        cond: files && files.find(file => file.filename === 'populations.json'),
-      });
+    if (metadata && metadata.METHOD === 'Markov state model (MSM)'){
+      const condition = files && files.find(file => file.filename === 'populations.json');
+      ['populations', 'markov'].forEach(direction => {
+        tabs[2].drops[3].analyses.push({
+          name: NICE_NAMES.get(direction),
+          dir: direction,
+          cond: condition,
+        });
+      })
+    }
+      
 
     return tabs;
   }, [metadata, analyses, files]);

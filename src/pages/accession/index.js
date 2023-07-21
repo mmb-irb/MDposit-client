@@ -55,11 +55,11 @@ const Fluctuation = lazy(() =>
 );
 const PCA = lazy(() => import(/* webpackChunkName: 'pca' */ './pca'));
 const RmsdPerres = lazy(() =>
-  import(/* webpackChunkName: 'trajectory' */ './rmsd-perres'),
+  import(/* webpackChunkName: 'rmsd-perres' */ './rmsd-perres'),
 );
 
 const Electrostatic = lazy(() =>
-  import(/* webpackChunkName: 'trajectory' */ './electrostatic'),
+  import(/* webpackChunkName: 'electrostatic' */ './electrostatic'),
 );
 
 const DistPerres = lazy(() =>
@@ -85,17 +85,21 @@ const Mutations = lazy(() =>
 );
 
 const Epitopes = lazy(() =>
-  import(/* webpackChunkName: 'mutations' */ './epitopes'),
+  import(/* webpackChunkName: 'epitopes' */ './epitopes'),
 );
 
 const Sasa = lazy(() => import(/* webpackChunkName: 'sasa' */ './sasa'));
 
 const JsonViewer = lazy(() =>
-  import(/* webpackChunkName: 'sasa' */ './json-viewer'),
+  import(/* webpackChunkName: 'json' */ './json-viewer'),
 );
 
 const Populations = lazy(() =>
   import(/* webpackChunkName: 'mutations' */ './populations'),
+);
+
+const MarkovGraph = lazy(() =>
+  import(/* webpackChunkName: 'markov' */ './markov'),
 );
 
 // Put subpage name and page component together
@@ -117,6 +121,7 @@ const pageComponents = {
   mutations: Mutations,
   epitopes: Epitopes,
   populations: Populations,
+  markov: MarkovGraph,
   files: Files,
 };
 
@@ -154,6 +159,9 @@ const getDataURL = (accession, subPage) => {
     case 'populations':
       end = `files/populations.json`;
       break;
+    case 'markov':
+        end = `files/populations.json`;
+        break;
     default:
       return null; // No button is rendered
   }

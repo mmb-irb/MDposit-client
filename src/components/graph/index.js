@@ -738,7 +738,7 @@ const Graph = forwardRef(({ // The main data
             if (d === 'x') {
               const number = closestIndex * step * xScaleFactor;
               if (number < 0) return;
-              return xTooltip(number, closestIndex);
+              return xTooltip && xTooltip(number, closestIndex);
             }
             // Dot over data
             else {

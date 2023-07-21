@@ -35,6 +35,7 @@ export const NICE_NAMES = new Map([
   ['epitopes', 'Epitopes'],
   ['sasa', 'Solvent accessible surface'],
   ['populations', 'Populations'],
+  ['markov', 'Markov Graph'],
 ]);
 
 // The name how this analysis is tagged in the webpage

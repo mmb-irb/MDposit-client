@@ -59,7 +59,6 @@
     "enzyme": "3.10.0",
     "enzyme-to-json": "3.4.2",
     "http": "npm:stream-http@3.2.0",
-    "husky": "^8.0.3",
     "jest-environment-jsdom-fourteen": "0.1.0",
     "jest-image-snapshot": "6.1.0",
     "lint-staged": "9.4.2",

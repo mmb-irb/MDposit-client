@@ -89,6 +89,7 @@ const allowedAnalysisChips = [
   'epitopes',
   'sasa',
   'populations',
+  'markov'
 ];
 
 const Row = ({ project, highlight, index }) => {
