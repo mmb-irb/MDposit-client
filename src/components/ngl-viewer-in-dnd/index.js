@@ -71,6 +71,7 @@ const NGLViewerSpawner = ({ newViewer, nailing = true, onNail, onClose }) => {
         if (onNail) onNail(newViewer);
         usedIds.current.push(newViewer.id);
       };
+    // Add the current viewer to the viewers list
     viewers.push(newViewer);
   }
 

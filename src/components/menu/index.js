@@ -3,6 +3,14 @@ import React, { lazy, Suspense } from 'react';
 import { Link, Routes, Route } from 'react-router-dom';
 import Button from '@mui/material/Button';
 
+import HomeIcon from '@mui/icons-material/Home';
+import WebIcon from '@mui/icons-material/Web';
+import SearchIcon from '@mui/icons-material/Search';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import TimelineIcon from '@mui/icons-material/Timeline';
+import HelpIcon from '@mui/icons-material/Help';
+import MailIcon from '@mui/icons-material/Mail';
+
 import { BASE_PATH } from '../../utils/constants';
 
 import style from './style.module.css';
@@ -17,24 +25,64 @@ export default () => (
         component={Link}
         color="inherit"
         to="/"
-        className={style['home-text-button']}
+        startIcon={<HomeIcon />}
+        className={style.button}
       >
         Home
       </Button>
-      <Button component={Link} color="inherit" to="/browse">
+      <Button
+        component={Link}
+        color="inherit"
+        to="/browse"
+        startIcon={<WebIcon />}
+        className={style.button}
+      >
         Browse
       </Button>
-      <Button component={Link} color="inherit" to="/search">
+      <Button
+        component={Link}
+        color="inherit"
+        to="/search"
+        startIcon={<SearchIcon />}
+        className={style.button}
+      >
         Search
       </Button>
-      <Button component={Link} color="inherit" to="/help">
+      <Button
+        component="a"
+        color="inherit"
+        href={`${BASE_PATH}docs/`}
+        startIcon={<ChevronRightIcon />}
+        className={style.button}
+      >
+        REST API
+      </Button>
+      <Button
+        component={Link}
+        color="inherit"
+        to="/meta"
+        startIcon={<TimelineIcon />}
+        className={style.button}
+      >
+        Meta-analysis
+      </Button>
+      <Button
+        component={Link}
+        color="inherit"
+        to="/help"
+        startIcon={<HelpIcon />}
+        className={style.button}
+      >
         Help
       </Button>
-      <Button component={Link} color="inherit" to="/contact">
+      <Button
+        component={Link}
+        color="inherit"
+        to="/contact"
+        startIcon={<MailIcon />}
+        className={style.button}
+      >
         Contact
-      </Button>
-      <Button component="a" color="inherit" href={`${BASE_PATH}docs/`}>
-        REST API
       </Button>
       <Routes>
         <Route

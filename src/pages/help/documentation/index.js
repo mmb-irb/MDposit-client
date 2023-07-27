@@ -25,8 +25,8 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Icon } from '@mui/material';
 
-// Set a simpler link component
-const Link = ({ name, id, url }) => (
+// Set a simpler TextLink component
+const TextLink = ({ name, id, url }) => (
   <>
     <a
       href={id ? `/help#/help#${id}` : url}
@@ -69,25 +69,25 @@ export const documentation = [
         body: (
           <>
             {webpageName} is part of the{' '}
-            <Link name={'BioExcel'} url={'https://bioexcel.eu/'} /> center. The
+            <TextLink name={'BioExcel'} url={'https://bioexcel.eu/'} /> center. The
             platform is being developed from the{' '}
-            <Link
+            <TextLink
               name={'Molecular Modeling and Bioinformatics'}
               url={'http://mmb.irbbarcelona.org/www/'}
             />{' '}
             group at{' '}
-            <Link
+            <TextLink
               name={'IRB Barcelona'}
               url={'https://www.irbbarcelona.org/en'}
             />{' '}
             in collaboration with the{' '}
-            <Link
+            <TextLink
               name={'Barcelona Supercomputing Center'}
               url={'https://www.bsc.es/'}
             />
             . This project started as a branch of the MoDEL-CNS project, which
             was supported by the{' '}
-            <Link
+            <TextLink
               name={'Human Brain Project'}
               url={'https://www.humanbrainproject.eu/en/'}
             />
@@ -102,11 +102,11 @@ export const documentation = [
           <>
             Simulations in {webpageName} proceed from several different sources.
             Some simulations are downloaded from global repsoitories such as{' '}
-            <Link name={'MolSSI'} url={'https://covid.molssi.org/'} />. In
+            <TextLink name={'MolSSI'} url={'https://covid.molssi.org/'} />. In
             addition, the platform contains simulations sent from research
             groups. In case you want to share your simulations with{' '}
             {webpageName} please{' '}
-            <Link
+            <TextLink
               name={'contact us'}
               url={'http://mmb.irbbarcelona.org/www/locationmap'}
             />
@@ -144,7 +144,7 @@ export const documentation = [
             <br />
             Protein aminoacid sequences are mapped against their corresponding
             reference sequences. (e.g. spike proteins are mapped against the{' '}
-            <Link
+            <TextLink
               name={'Wuhan-Hu-1/2019'}
               url={'https://www.ncbi.nlm.nih.gov/nuccore/MN908947'}
             />{' '}
@@ -162,7 +162,7 @@ export const documentation = [
         body: (
           <>
             Data is stored in a{' '}
-            <Link name={'MongoDB'} url={'https://www.mongodb.com/'} /> database.
+            <TextLink name={'MongoDB'} url={'https://www.mongodb.com/'} /> database.
             <br />
             <br />
             <b>Trajectory data</b>
@@ -195,7 +195,7 @@ export const documentation = [
             Trajectory data may be retrieved in the source format or it may be
             exported to other formats. The API has a built in parser to mdcrd
             format. In order to export to other formats (xtc, trr) the API has
-            implemented <Link name={'Chemfiles'} id={'chemfiles'} />.
+            implemented <TextLink name={'Chemfiles'} id={'chemfiles'} />.
             <br />
             <br />
             <b>Metadata and analyses</b>
@@ -238,7 +238,7 @@ export const documentation = [
           <>
             Data in this page is mostly provided by the simulation authors.
             Additional details about the original pdb structure are mined from
-            the <Link name={'PDB web page'} url={'https://www.rcsb.org/'} />.
+            the <TextLink name={'PDB web page'} url={'https://www.rcsb.org/'} />.
           </>
         ),
         page: (
@@ -250,7 +250,7 @@ export const documentation = [
             simulation, author and group names, type of simulation, program
             which carried the simulation and its version, original structure PDB
             data, ligand references to DrugBank and ChEMBL, contact details and
-            links to the simulation sources, license and citation.
+            TextLinks to the simulation sources, license and citation.
           </>
         ),
       },
@@ -260,7 +260,7 @@ export const documentation = [
         body: (
           <>
             The trajectory displayed in the{' '}
-            <Link name={'viewer'} id={'ngl-viewer'} /> is a subset of frames
+            <TextLink name={'viewer'} id={'ngl-viewer'} /> is a subset of frames
             from the project main trajectory (25 frames by default). Loading all
             frames is not allowed for performance reasons.
             <br />
@@ -268,9 +268,9 @@ export const documentation = [
             Predefined representation sets come from three different sources:
             <br />- Documented domains in the reference sequence (manually
             gathered from{' '}
-            <Link name={'Uniprot'} url={'https://www.uniprot.org/'} />)
+            <TextLink name={'Uniprot'} url={'https://www.uniprot.org/'} />)
             <br />- Each defined interacting agent (see{' '}
-            <Link name={'data processing'} id={'processing'} />)
+            <TextLink name={'data processing'} id={'processing'} />)
             <br />
             - Custom sets defined by the simulation authors
             <br />
@@ -280,7 +280,7 @@ export const documentation = [
             <br />
             <br />
             The protein functional analysis contains the families, domains, and
-            sites, that an <Link name={'InterProScan'} id={'interpro'} />{' '}
+            sites, that an <TextLink name={'InterProScan'} id={'interpro'} />{' '}
             analysis revealed for each of the chain sequences. This is a
             prediction that might be helpful to discover functions, or to find
             similar structures for example.
@@ -512,8 +512,8 @@ export const documentation = [
         header: 'RMSds',
         body: (
           <>
-            RMSds page includes both <Link name={'RMSd'} id={'rmsd'} /> and{' '}
-            <Link name={'TM score'} id={'tm-score'} /> analyses together.
+            RMSds page includes both <TextLink name={'RMSd'} id={'rmsd'} /> and{' '}
+            <TextLink name={'TM score'} id={'tm-score'} /> analyses together.
           </>
         ),
         page: (
@@ -568,7 +568,7 @@ export const documentation = [
             frames along the trajectory.
             <br />
             <br />
-            This analysis is powered by <Link name={'Gromacs'} id={'gromacs'} />
+            This analysis is powered by <TextLink name={'Gromacs'} id={'gromacs'} />
             .
           </>
         ),
@@ -585,12 +585,12 @@ export const documentation = [
             <br />
             <br />
             This analysis is powered by the{' '}
-            <Link
+            <TextLink
               name={'tmscoring'}
               url={'https://pypi.org/project/tmscoring/'}
             />{' '}
             python module. Click{' '}
-            <Link
+            <TextLink
               name={'here'}
               url={'https://zhanglab.ccmb.med.umich.edu/TM-score/'}
             />{' '}
@@ -611,7 +611,7 @@ export const documentation = [
             values which are not true.
             <br />
             <br />
-            This analysis is powered by <Link name={'PyTraj'} id={'pytraj'} />.
+            This analysis is powered by <TextLink name={'PyTraj'} id={'pytraj'} />.
           </>
         ),
         page: (
@@ -670,7 +670,7 @@ export const documentation = [
             alpha carbon atoms for performance reasons.
             <br />
             <br />
-            This analysis is powered by <Link name={'PyTraj'} id={'pytraj'} />.
+            This analysis is powered by <TextLink name={'PyTraj'} id={'pytraj'} />.
           </>
         ),
         page: (
@@ -717,7 +717,7 @@ export const documentation = [
             analysis is performed over up to 5000 frames along the trajectory.
             <br />
             <br />
-            This analysis is powered by <Link name={'Gromacs'} id={'gromacs'} />
+            This analysis is powered by <TextLink name={'Gromacs'} id={'gromacs'} />
             .
           </>
         ),
@@ -765,7 +765,7 @@ export const documentation = [
             whole trajectory after fitting to the first frame.
             <br />
             <br />
-            This analysis is powered by <Link name={'Gromacs'} id={'gromacs'} />
+            This analysis is powered by <TextLink name={'Gromacs'} id={'gromacs'} />
             .
           </>
         ),
@@ -817,7 +817,7 @@ export const documentation = [
             for performance reasons.
             <br />
             <br />
-            This analysis is powered by <Link name={'Gromacs'} id={'gromacs'} />
+            This analysis is powered by <TextLink name={'Gromacs'} id={'gromacs'} />
             .
           </>
         ),
@@ -841,7 +841,7 @@ export const documentation = [
             <br />
             <br />
             In case one bar is selected then a{' '}
-            <Link name={'viewer'} id={'ngl-viewer'} /> will appear with the
+            <TextLink name={'viewer'} id={'ngl-viewer'} /> will appear with the
             corresponding pca projection trajectory or eigen vector. Use the
             mouse inside the NGL window to move, rotate or zoom the camera. You
             can get topology data of any atom by placing the mouse over it. Also
@@ -855,7 +855,7 @@ export const documentation = [
             In case two bars are selected then the PCA projections along the
             chosen eigenvectors are shown. The color stands for the trajectory
             time. Click any point in the graph to open a new{' '}
-            <Link name={'viewer'} id={'ngl-viewer'} /> showing the selected
+            <TextLink name={'viewer'} id={'ngl-viewer'} /> showing the selected
             frame.
             <br />
             <br />
@@ -875,7 +875,7 @@ export const documentation = [
             on each residue in order to get the SAS per atom per residue values.
             <br />
             <br />
-            This analysis is powered by <Link name={'Gromacs'} id={'gromacs'} />
+            This analysis is powered by <TextLink name={'Gromacs'} id={'gromacs'} />
             .
           </>
         ),
@@ -934,7 +934,7 @@ export const documentation = [
             calculated.
             <br />
             <br />
-            This analysis is powered by <Link name={'PyTraj'} id={'pytraj'} />.
+            This analysis is powered by <TextLink name={'PyTraj'} id={'pytraj'} />.
           </>
         ),
         page: (
@@ -1039,7 +1039,7 @@ export const documentation = [
             - donor' atoms angle is superior to 135 degrees.
             <br />
             <br />
-            This analysis is powered by <Link name={'PyTraj'} id={'pytraj'} />.
+            This analysis is powered by <TextLink name={'PyTraj'} id={'pytraj'} />.
           </>
         ),
         page: (
@@ -1100,14 +1100,14 @@ export const documentation = [
             interacting agents the storng bond itself will be ignored. Both
             atoms implicated in the bond will be exlucded from the analysis.
             Strong bonds are guessed by atoms distance and radius, using the{' '}
-            <Link name={'VMD'} id={'vmd'} /> logic.
+            <TextLink name={'VMD'} id={'vmd'} /> logic.
             <br />
             <br />
             This analysis requires atomic charges to work and thus it will not
             be run when charges are not provided by authors.
             <br />
             <br />
-            This analysis is powered by <Link name={'CMIP'} id={'cmip'} />.
+            This analysis is powered by <TextLink name={'CMIP'} id={'cmip'} />.
           </>
         ),
         page: (
@@ -1173,7 +1173,7 @@ export const documentation = [
             <br />
             <br />
             This analysis is powered by{' '}
-            <Link name={'MDpocket'} id={'mdpocket'} />.
+            <TextLink name={'MDpocket'} id={'mdpocket'} />.
           </>
         ),
         page: (

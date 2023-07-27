@@ -36,12 +36,15 @@ const AdvancedSearch = lazy(() =>
 const CustomSearch = lazy(() =>
   import(/* webpackChunkName: 'custom-search' */ '../pages/custom-search'),
 );
-const Help = lazy(() => import(/* webpackChunkName: 'help' */ '../pages/help'));
-const Accession = lazy(() =>
-  import(/* webpackChunkName: 'accession' */ '../pages/accession'),
+const MetaAnalysis = lazy(() =>
+import(/* webpackChunkName: 'meta-analysis' */ '../pages/meta-analysis'),
 );
+const Help = lazy(() => import(/* webpackChunkName: 'help' */ '../pages/help'));
 const Contact = lazy(() =>
   import(/* webpackChunkName: 'contact' */ '../pages/contact'),
+);
+const Accession = lazy(() =>
+  import(/* webpackChunkName: 'accession' */ '../pages/accession'),
 );
 
 // Set a custom Navigate which is smart enought to replace params in the 'to' path
@@ -63,14 +66,6 @@ const Base = () => {
             element={
               <Suspense fallback={null}>
                 <Home />
-              </Suspense>
-            }
-          />
-          <Route
-            path="contact"
-            element={
-              <Suspense fallback={null}>
-                <Contact />
               </Suspense>
             }
           />
@@ -99,10 +94,26 @@ const Base = () => {
             }
           />
           <Route
+            path="meta"
+            element={
+              <Suspense fallback={null}>
+                <MetaAnalysis />
+              </Suspense>
+            }
+          />
+          <Route
             path="help"
             element={
               <Suspense fallback={null}>
                 <Help />
+              </Suspense>
+            }
+          />
+          <Route
+            path="contact"
+            element={
+              <Suspense fallback={null}>
+                <Contact />
               </Suspense>
             }
           />
