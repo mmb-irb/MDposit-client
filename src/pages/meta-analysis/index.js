@@ -120,12 +120,12 @@ const MetaAnalysis = () => {
         <br />
         <br />
         Meta-analyses are analyses which use several MDs as input. This database is specially suited for this task 
-        since it is endowed with a <TextLink name={'REST API'} url={BASE_PATH + 'docs/'} />. Programtic access to the database allows 
-        to automatize data requests and thus build powerfull meta-analyses.
+        since it is endowed with a <TextLink name={'REST API'} url={BASE_PATH + 'docs/'} />. 
+        Programmatic access to the database allows to automatize data requests and thus build powerful meta-analyses.
         The following examples are supported by <TextLink name={'Binder'} url={'https://mybinder.org/'} />, 
         which opens interactive <span style={{ color: 'green' }}>Jupyter Notebooks</span>.
         Note that you can edit code or run the analysis online with no need to install any software.
-        Here we suggest some meta-analyses but you are very welcome to make you own ones!
+        Here we suggest some meta-analyses but you are very welcome to make your own ones!
         <hr className={style.hr} />
         {availableAnalyses.map((analysis, index) => (
           <div
