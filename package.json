@@ -86,12 +86,6 @@
       "enzyme-to-json/serializer"
     ]
   },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged",
-      "pre-push": "CI=true npm test -- --coverage"
-    }
-  },
   "lint-staged": {
     "src/**/*.{js,json,css}": [
       "prettier --single-quote --write",
