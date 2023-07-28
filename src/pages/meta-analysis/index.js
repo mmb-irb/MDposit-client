@@ -70,13 +70,9 @@ const availableAnalyses = [
 ];
 
 // Set a simpler TextLink component
-const TextLink = ({ name, id, url }) => (
+const TextLink = ({ name, url }) => (
   <>
-    <a
-      href={id ? `/help#/help#${id}` : url}
-      target="_blank"
-      rel="noreferrer noopener"
-    >
+    <a href={url} target="_blank" rel="noreferrer noopener" >
       {name}
     </a>
   </>
@@ -142,9 +138,10 @@ const MetaAnalysis = () => {
               {analysis.title}
             </Typography>
             <div key={'text'}>{analysis.docs}</div>
-            <ReactMarkdown>
-              {`[![Binder](https://mybinder.org/badge_logo.svg)](${binderRepoBaseUrl}${analysis.notebook})`}
-            </ReactMarkdown>
+            <ReactMarkdown
+              children={`[![Binder](https://mybinder.org/badge_logo.svg)](${binderRepoBaseUrl}${analysis.notebook})`}
+              linkTarget="_blank"
+            />
             <hr className={style.hr} />
           </div>
         ))}
