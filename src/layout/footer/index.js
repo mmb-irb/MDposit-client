@@ -16,6 +16,8 @@ import logoHBP from '../../images/logo-hbp.png';
 import logoHBPWebP from '../../images/logo-hbp.webp';
 import logoEbrains from '../../images/logo-ebrains.png';
 import logoEbrainsWebP from '../../images/logo-ebrains.webp';
+import logoMDDB from '../../images/logo-mddb.png';
+import logoMDDBWebP from '../../images/logo-mddb.webp';
 
 // Show two images which are also links: Human Brain Project and IRB Barcelona
 const Footer = React.memo(() => (
@@ -86,6 +88,17 @@ const Footer = React.memo(() => (
               src={logoEbrains}
               loading="lazy"
               alt="EBRAINS website"
+            />
+          </picture>
+        </a>
+        <a href="https://mddbr.eu/" target="_blank" rel="noreferrer noopener">
+          <picture>
+            <source type="image/webp" srcSet={logoMDDBWebP} />
+            <LazyImg
+              height="50px"
+              src={logoMDDB}
+              loading="lazy"
+              alt="MDDB website"
             />
           </picture>
         </a>
