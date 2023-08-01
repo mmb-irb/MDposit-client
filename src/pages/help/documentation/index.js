@@ -52,7 +52,7 @@ export const documentation = [
         <br />
         {webpageName} is an open platform designed to provide web access to
         atomistic molecular dynamics (MD) simulations. The aim of this
-        initiative is to ease and promote data sharing along the wide-world
+        initiative is to ease and promote data sharing along the world-wide
         scientific community in order to contribute in research.
         <br />
         <br />
@@ -149,7 +149,7 @@ export const documentation = [
               url={'https://www.ncbi.nlm.nih.gov/nuccore/MN908947'}
             />{' '}
             reference sequence). This allows to number residues in the structure
-            according to the widely know reference numeration (which may not
+            according to the widely known reference numeration (which may not
             match the original topology numeration). In addition, this mapping
             allows to show residue-related bibliographic data for residues in
             the structure (e.g. epitopes).
@@ -170,7 +170,7 @@ export const documentation = [
             Atom positions along the trajectory are stored as files where each
             coordinate is a 32 bit float in Little Endian binary and there are
             no separators between coordinates, atoms or frames. The file has not
-            headers or footers as well. This format is size efficient and allows
+            headers or footers either. This format is size efficient and allows
             to retrieve specific frame and atom coordinates without the need of
             reading the file. The byte position of any range of coordinates may
             be easily calculated beforehand.
@@ -220,16 +220,16 @@ export const documentation = [
             <br />
             <br />
             Browser searches the database by any total or partial coincidence
-            with the accesion number, simulation name, description, author or
+            with the accession number, simulation name, description, author or
             group names.
             <br />
             <br />
-            In addition, internal accesions may be used to search a simulation.
+            In addition, internal accessions may be used to search a simulation.
             In this case the id must be whole, not partial.
           </>
         ),
         text:
-          'Use the browser to search a specific simulation by its accesion number, name, description, author or group names. Any total or partial coincidence works.',
+          'Use the browser to search a specific simulation by its accession number, name, description, author or group names. Any total or partial coincidence works.',
       },
       {
         id: 'overview',
@@ -302,7 +302,7 @@ export const documentation = [
             displays the main simulation dinamically and interactively. Use the
             mouse inside the NGL window to move, rotate or zoom the camera. You
             can get topology data of any atom by placing the mouse over it. Also
-            some controls ara available under the NGL viewer in order to
+            some controls are available under the NGL viewer in order to
             play/pause the trajectory, go fullscreen or change the viewer
             settings. Place the mouse over any button to show a summary title.
             Note that this is not the whole trajectory, but a small subset of
@@ -439,11 +439,11 @@ export const documentation = [
             The "Settings" button opens a new panel inside the viewer which
             allows to change the display of the viewer and the representations
             themselves. The right part of the panel includes a list with all
-            current reprentations. It is allowed to change the tpye, colour and
-            opaciy of each representation as well as adding new representations
+            current representations. It is allowed to change the type, colour and
+            opacity of each representation as well as adding new representations
             with custom atom selections. This panel includes some controls at
             the left side:
-            <br />- The "Toogle spin" button{' '}
+            <br />- The "Toggle spin" button{' '}
             <Icon>
               <FontAwesomeIcon icon={faSyncAlt} />
             </Icon>{' '}
@@ -608,7 +608,7 @@ export const documentation = [
             frame) and its conformations in up to 200 frames along the
             trajectory. Membrane residues are excluded from this analysis since
             they are prone to jump across boundaries thus having high RMSD
-            values which are not true.
+            values.
             <br />
             <br />
             This analysis is powered by <TextLink name={'PyTraj'} id={'pytraj'} />.
@@ -810,11 +810,12 @@ export const documentation = [
           <>
             PCA (Principal Component Analysis) calculates and diagonalizes the
             (mass-weighted) covariance matrix from up to 2000 frames along the
-            trajectory in order to obtain eigenvectors. Then the relevant
-            eigenvectors (greater than 1% explained variance) are analyzed thus
-            generating a projection of the trajectory 20 frames long for each
-            one. Note that PCA analysis is performed only with backbone atoms
-            for performance reasons.
+            trajectory in order to obtain a set of orthogonal eigenvectors and 
+            its associated eigenvalues. Then a set of conformations (20 frames) 
+            are projected into the eigenvectors 2D space (e.g. Principal Component 
+            1 and Principal Component 2) for the relevant eigenvectors (the ones 
+            with explained variance greater than 1%). Note that PCA analysis 
+            is performed only with backbone atoms for performance reasons.
             <br />
             <br />
             This analysis is powered by <TextLink name={'Gromacs'} id={'gromacs'} />
@@ -976,11 +977,11 @@ export const documentation = [
       },
       {
         id: 'electrostatic',
-        header: 'Electrostatic potencial suerface',
+        header: 'Electrostatic potencial surface',
         body: (
           <>
-            The Electrostatic potencial suerface is not an analysis but a
-            representation. Interface residue from both interacting agents are
+            The Electrostatic potencial surface is not an analysis but a
+            representation. Interface residues from both interacting agents are
             displayed. One of them is represented as a surface which is colored
             according to the atomic charges. In case atomic charges are missing
             the color is the{' '}
@@ -1017,7 +1018,7 @@ export const documentation = [
             represented in low opacity grey cartoon. Both the 'surfaced' and the
             'sticked' agent names are shown next to the interaction selector.
             The representation of both agent interfaces may be switched with the
-            toogle button between their names.
+            toggle button between their names.
             <br />
             <br />
             Note that trajectory is not loaded in this context because the
@@ -1031,12 +1032,12 @@ export const documentation = [
         header: 'Hydrogen bonds',
         body: (
           <>
-            Hydrogen bonds analysis computes whenever an hydrogen bond is formed
+            Hydrogen bonds analysis computes whenever a hydrogen bond is formed
             for up to 200 frames along the trajectory. Only hydrogen bonds
             between different interacting agents are observed. An acceptor and a
-            donor atom are considered to form an hydrogen bond when the distance
-            between them is inferior to 3 Ångstroms and the 'acceptor - hydrogen
-            - donor' atoms angle is superior to 135 degrees.
+            donor atom are considered to form a hydrogen bond when the distance
+            between them is lower than 3 Ångstroms and the 'acceptor - hydrogen
+            - donor' atoms angle is higher than 135 degrees.
             <br />
             <br />
             This analysis is powered by <TextLink name={'PyTraj'} id={'pytraj'} />.
@@ -1089,16 +1090,16 @@ export const documentation = [
         header: 'Energies',
         body: (
           <>
-            Energies analysis computes the Electorstatic and Van der Waals
+            Energies analysis computes the Electrostatic and Van der Waals
             forces and the sum of both values for all residues from each pair of
             interacting agents for up to 100 frames along the trajectory. Energy
             averages per residue are calculated for the overall, start and end
             of the trajectory. The start and end averages are calculated from
             the first 20% and last 20% of frames of the previous subset.
             Energies are calculated for each atom individually and then added by
-            residues. In case of strong bonds (e.g. covalend bonds) between two
-            interacting agents the storng bond itself will be ignored. Both
-            atoms implicated in the bond will be exlucded from the analysis.
+            residues. In case of strong bonds (e.g. covalent bonds) between two
+            interacting agents the strong bond itself will be ignored. Both
+            atoms implicated in the bond will be excluded from the analysis.
             Strong bonds are guessed by atoms distance and radius, using the{' '}
             <TextLink name={'VMD'} id={'vmd'} /> logic.
             <br />
@@ -1186,7 +1187,7 @@ export const documentation = [
             Hover any pocket row to highlight the pocket region in the viewer.
             Click any pocket checkbox to show the pocket permanently in the
             viewer and display its volume thorugh the trajectory in the graph.
-            Toogle the overall pockets checkbox to show/hidde all pocket
+            Toggle the overall pockets checkbox to show/hidde all pocket
             regions.
             <br />
             <br />
@@ -1285,10 +1286,10 @@ export const documentation = [
               PDB
             </a>{' '}
             . A systematic search was performed with the parameters 'Source
-            Organism Taxonomy Name' equals 'SARS-CoV-2' + 'Homo sapiens' and
+            Organism Taxonomy Name' as 'SARS-CoV-2' + 'Homo sapiens' and
             'Additional Structure Keywords' contains phrase 'antibody'. Last
             search was performed on December 2021 with more than 260 results.
-            For each structure, SARS-CoV-2 interface residues with the human
+            For each structure, SARS-CoV-2 interface residues with the 
             antibody were found by using a distance cutoff of 5 Ångstroms
             between atoms. In addition, the Solvent Accessible Surface (SAS) was
             calculated for these residues alone (removing all other residues).
