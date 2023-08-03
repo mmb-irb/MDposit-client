@@ -106,8 +106,14 @@ const useStatistics = () => {
     ];
   }, [collectionsPayload, summaryPayload]);
 
-  if (summaryError) throw new Error(summaryError.toString());
-  if (collectionsError) throw new Error(collectionsError.toString());
+  // Handle possible errors
+  [summaryError, collectionsError].forEach(error => {
+    if (!error) return;
+    // In case we are having connection problems let the help page load anyway, since most of it is cached
+    if (error.message === 'Network Error') return;
+    // If the error is diferrent then make it obvious
+    throw new Error(error.message);
+  });
 };
 
 const Help = () => {

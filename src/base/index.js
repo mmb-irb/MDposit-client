@@ -8,6 +8,8 @@ import Main from '../layout/main';
 import Header from '../layout/header';
 //import HomeFAB from '../components/home-fab';
 
+import ErrorBoundary from '../components/error-boundary';
+
 const Footer = lazy(async () => {
   await schedule(100);
   const module = await import(
@@ -60,92 +62,94 @@ const Base = () => {
     <Body>
       <Header />
       <Main>
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <Suspense fallback={null}>
-                <Home />
-              </Suspense>
-            }
-          />
-          <Route
-            path="browse"
-            element={
-              <Suspense fallback={null}>
-                <Browse />
-              </Suspense>
-            }
-          />
-          <Route
-            path="search"
-            element={
-              <Suspense fallback={null}>
-                <CustomSearch />
-              </Suspense>
-            }
-          />
-          <Route
-            path="advanced-search"
-            element={
-              <Suspense fallback={null}>
-                <AdvancedSearch />
-              </Suspense>
-            }
-          />
-          <Route
-            path="meta"
-            element={
-              <Suspense fallback={null}>
-                <MetaAnalysis />
-              </Suspense>
-            }
-          />
-          <Route
-            path="help"
-            element={
-              <Suspense fallback={null}>
-                <Help />
-              </Suspense>
-            }
-          />
-          <Route
-            path="contact"
-            element={
-              <Suspense fallback={null}>
-                <Contact />
-              </Suspense>
-            }
-          />
-          <Route path="id" >
-            <Route index element={<Navigate to="/browse" replace />}/>
-            <Route path=":accession">
-              <Route index element={<SmartNavigate to="/id/:accession/overview" replace />}/>
-              <Route
-                path=":page/*"
-                element={
-                  <Suspense fallback={null}>
-                    <Accession />
-                  </Suspense>
-                }
-              />
+        <ErrorBoundary>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <Suspense fallback={null}>
+                  <Home />
+                </Suspense>
+              }
+            />
+            <Route
+              path="browse"
+              element={
+                <Suspense fallback={null}>
+                  <Browse />
+                </Suspense>
+              }
+            />
+            <Route
+              path="search"
+              element={
+                <Suspense fallback={null}>
+                  <CustomSearch />
+                </Suspense>
+              }
+            />
+            <Route
+              path="advanced-search"
+              element={
+                <Suspense fallback={null}>
+                  <AdvancedSearch />
+                </Suspense>
+              }
+            />
+            <Route
+              path="meta"
+              element={
+                <Suspense fallback={null}>
+                  <MetaAnalysis />
+                </Suspense>
+              }
+            />
+            <Route
+              path="help"
+              element={
+                <Suspense fallback={null}>
+                  <Help />
+                </Suspense>
+              }
+            />
+            <Route
+              path="contact"
+              element={
+                <Suspense fallback={null}>
+                  <Contact />
+                </Suspense>
+              }
+            />
+            <Route path="id" >
+              <Route index element={<Navigate to="/browse" replace />}/>
+              <Route path=":accession">
+                <Route index element={<SmartNavigate to="/id/:accession/overview" replace />}/>
+                <Route
+                  path=":page/*"
+                  element={
+                    <Suspense fallback={null}>
+                      <Accession />
+                    </Suspense>
+                  }
+                />
+              </Route>
             </Route>
-          </Route>
-          <Route
-            path="*"
-            element={'This route is not defined in the client root'}
-          />
-          {/* These redirections are to keep old URLs compatible */}
-          <Route
-            path="/browse/:accession"
-            element={<SmartNavigate to="/id/:accession" replace />}
-          />
-          <Route
-            path="/browse/:accession/:page"
-            element={<SmartNavigate to="/id/:accession/:page" replace />}
-          />
-          {/*<Route path={['/:page', '/']} component={HomeFAB} />*/}
-        </Routes>
+            <Route
+              path="*"
+              element={'This route is not defined in the client root'}
+            />
+            {/* These redirections are to keep old URLs compatible */}
+            <Route
+              path="/browse/:accession"
+              element={<SmartNavigate to="/id/:accession" replace />}
+            />
+            <Route
+              path="/browse/:accession/:page"
+              element={<SmartNavigate to="/id/:accession/:page" replace />}
+            />
+            {/*<Route path={['/:page', '/']} component={HomeFAB} />*/}
+          </Routes>
+        </ErrorBoundary>
       </Main>
       <Suspense fallback={null}>
         <Footer />
