@@ -77,10 +77,11 @@ const useStatistics = () => {
       : [{ title: 'Loading...', value: 1, color: 'lightgrey' }];
 
     // Set the legend
+    const summatory = collections && collections.reduce((current_value, [key, value]) => current_value + value, 0);
     const legendData =
       collections &&
       collections.map(([key, value], i) => ({
-        label: (COLLECTION_NAMES.get(key) || key) + ' (' + value + ')',
+        label: (COLLECTION_NAMES.get(key) || key) + ' (' + (Math.round((value / summatory) * 10000 ) / 100) + ' %)',
         color: colors[i],
       }));
     // Return the component
@@ -122,8 +123,9 @@ const useStatistics = () => {
       : [{ title: 'Loading...', value: 1, color: 'lightgrey' }];
 
     // Set the legend
+    const summatory = methods && methods.reduce((current_value, [key, value]) => current_value + value, 0);
     const legendData = methods && methods.map(([key, value], i) => ({
-      label: key + ' (' + value + ')',
+      label: key + ' (' + (Math.round((value / summatory) * 10000 ) / 100) + ' %)',
       color: colors[i],
     }));
 
