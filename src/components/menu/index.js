@@ -52,6 +52,7 @@ export default () => (
         component="a"
         color="inherit"
         href={`${BASE_PATH}docs/`}
+        target={"_blank"}
         startIcon={<ChevronRightIcon />}
         className={style.button}
       >
