@@ -1,7 +1,12 @@
-.horizontal {
+.main {
   display: flex;
   flex-direction: row;
   height: 90vh;
+}
+
+.horizontal {
+  display: flex;
+  flex-direction: row;
 }
 
 .menu {

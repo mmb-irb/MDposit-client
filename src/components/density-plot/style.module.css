@@ -1,0 +1,8 @@
+.default {
+  height: 50vh;
+}
+
+.graph-container {
+  flex: 1;
+  height: 100%;
+}

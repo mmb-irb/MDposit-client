@@ -16,17 +16,42 @@ import style from './style.module.css';
 import { PieChart } from 'react-minimal-pie-chart';
 import distinctColors from 'distinct-colors';
 import SimpleLegend from '../../components/simple-legend';
+import Histogram from '../../components/histogram';
 
 // Save the original introduction children
 const introductionChildren = [
   ...documentation.find(doc => doc.id === 'introduction').children,
 ];
 
-// Inject the summary object to the documentation
+// Build and inject the statistics component to the documentation
+// Note that this component is injected when data is not yet downloaded as a placeholder
+// This prevents suddent vertical shifts as data is being downloaded
 const useStatistics = () => {
   // Use the API to get the summary
   const summaryUrl = `${BASE_PATH_PROJECTS}/summary`;
   const { payload: summaryPayload, error: summaryError } = useAPI(summaryUrl);
+  // Build the summary component
+  // If summary data is not yet downloaded then replace their values with 'Loading...' messages
+  const SummaryComponent = useMemo(() => {
+    return (
+      <>
+        Total number of simulations:{' '}
+        {summaryPayload ? summaryPayload.projectsCount : 'Loading...'}
+        <br />
+        Total amount of simulation time (μs):{' '}
+        {summaryPayload ? Math.round(summaryPayload.totalTime / 1000) : 'Loading...'}
+        <br />
+        Total amount of frames:{' '}
+        {summaryPayload ? summaryPayload.totalFrames : 'Loading...'}
+        <br />
+        Total number of stored files:{' '}
+        {summaryPayload ? summaryPayload.totalFiles : 'Loading...'}
+        <br />
+        Total number of stored analyses:{' '}
+        {summaryPayload ? summaryPayload.totalAnalyses : 'Loading...'}
+      </>
+    )
+  }, [summaryPayload]);
 
   // Use the API to get the collections options
   const collectionsUrl = `${BASE_PATH_PROJECTS}/options?projection=metadata.COLLECTIONS`;
@@ -34,7 +59,9 @@ const useStatistics = () => {
     collectionsUrl,
   );
 
-  useMemo(() => {
+  // Build the collections component
+  // If collections data is not yet downloaded then show a blank pie chart
+  const CollectionsComponent = useMemo(() => {
     // Set the data to be represented on the pie chart
     const collections =
       collectionsPayload &&
@@ -56,63 +83,143 @@ const useStatistics = () => {
         label: (COLLECTION_NAMES.get(key) || key) + ' (' + value + ')',
         color: colors[i],
       }));
+    // Return the component
+    return (
+      <div className={style.horizontal}>
+        <PieChart
+          data={pieChartData}
+          //label={({ dataEntry }) => dataEntry.value}
+          className={style.piechart}
+        />
+        {legendData && (
+          <SimpleLegend entries={legendData} className={style.legend} />
+        )}
+      </div>
+    )
+  }, [collectionsPayload]);
 
-    // Set the summary object
-    const summary = {
+  // Use the API to get MD method options
+  const methodsUrl = `${BASE_PATH_PROJECTS}/options?projection=metadata.METHOD`;
+  const { payload: methodsPayload, error: methodsError } = useAPI(
+    methodsUrl,
+  );
+
+  // Build the collections component
+  // If collections data is not yet downloaded then show a blank pie chart
+  const MethodsComponent = useMemo(() => {
+    // Remove the classical MD count since it would eclipse the rest of MD methods
+    methodsPayload && delete methodsPayload['metadata.METHOD']['Classical MD'];
+    // Set the data to be represented on the pie chart
+    const methods = methodsPayload && Object.entries(methodsPayload['metadata.METHOD']);
+    if (methods) methods.sort((a, b) => b[1] - a[1]);
+    const colors = methods && distinctColors({ count: methods.length });
+    const pieChartData = methods
+      ? methods.map(([key, value], i) => ({
+          title: key,
+          value: value,
+          color: colors[i],
+        }))
+      : [{ title: 'Loading...', value: 1, color: 'lightgrey' }];
+
+    // Set the legend
+    const legendData = methods && methods.map(([key, value], i) => ({
+      label: key + ' (' + value + ')',
+      color: colors[i],
+    }));
+
+    // Return the component
+    return (
+      <div className={style.horizontal}>
+        <PieChart
+          data={pieChartData}
+          //label={({ dataEntry }) => dataEntry.value}
+          className={style.piechart}
+        />
+        {legendData && (
+          <SimpleLegend entries={legendData} className={style.legend} />
+        )}
+      </div>
+    )
+  }, [methodsPayload]);
+
+  // Use the API to get the snapshots options
+  const snapshotsUrl = `${BASE_PATH_PROJECTS}/options?projection=metadata.SNAPSHOTS`;
+  const { payload: snapshotsPayload, error: snapshotsError } = useAPI(
+    snapshotsUrl,
+  );
+
+  // Build the snapshots component
+  // If snapshots data is not yet downloaded then show an empty plot
+  const SnapshotsComponent = useMemo(() => {
+    return (
+      <Histogram
+        data={snapshotsPayload && snapshotsPayload["metadata.SNAPSHOTS"]}
+        xAxisLabelText={'Number of snapshots'}
+        yAxisLabelText={'Number of MDs'}
+        onHover={d => `There are ${d.length} MDs with a number of snapshots between ${d.x0} and ${d.x1}`}
+      />
+    )
+  }, [snapshotsPayload]);
+
+  // Use the API to get the atoms options
+  const atomsUrl = `${BASE_PATH_PROJECTS}/options?projection=metadata.SYSTATS`;
+  const { payload: atomsPayload, error: atomsError } = useAPI(
+    atomsUrl,
+  );
+
+  // Build the atoms component
+  // If atoms data is not yet downloaded then show an empty plot
+  const AtomsComponent = useMemo(() => {
+    return (
+      <Histogram
+        data={atomsPayload && atomsPayload["metadata.SYSTATS"]}
+        xAxisLabelText={'Number of atoms'}
+        yAxisLabelText={'Number of MDs'}
+        color={"#ffcc00"}
+        onHover={d => `There are ${d.length} MDs with a number of atoms between ${d.x0} and ${d.x1}`}
+      />
+    )
+  }, [atomsPayload]);
+
+  // Finally build the statistics component from all subcomponents and inject it in the docs
+  useMemo(() => {
+    const StatisticsComponent = {
       id: 'summary',
-      header: 'Data summary',
+      header: 'Data summary and statistics',
       body: (
         <>
-          Here is a summary of the database contents:
+          Here is a summary of the database contents and a few statistics:
           <br />
           <br />
-          Total number of simulations:{' '}
-          {summaryPayload ? summaryPayload.projectsCount : 'Loading...'}
-          <br />
-          Total amount of simulation time (μs):{' '}
-          {summaryPayload
-            ? Math.round(summaryPayload.totalTime / 1000)
-            : 'Loading...'}
-          <br />
-          Total amount of frames:{' '}
-          {summaryPayload ? summaryPayload.totalFrames : 'Loading...'}
-          <br />
-          Total number of stored files:{' '}
-          {summaryPayload ? summaryPayload.totalFiles : 'Loading...'}
-          <br />
-          Total number of stored analyses:{' '}
-          {summaryPayload ? summaryPayload.totalAnalyses : 'Loading...'}
+          {SummaryComponent}
           <br />
           <br />
           Simulations per collection:
-          <div className={style.horizontal}>
-            <PieChart
-              data={pieChartData}
-              //label={({ dataEntry }) => dataEntry.value}
-              className={style.piechart}
-            />
-            {legendData && (
-              <SimpleLegend entries={legendData} className={style.legend} />
-            )}
-          </div>
+          {CollectionsComponent}
+          Simulations per non-classical MD method:
+          {MethodsComponent}
+          <br />
+          <br />
+          Snapshots per simulation:
+          {SnapshotsComponent}
+          <br />
+          <br />
+          Atoms per simulation:
+          {AtomsComponent}
         </>
       ),
     };
-
     // Add summary to documentation
     documentation.find(doc => doc.id === 'introduction').children = [
       ...introductionChildren,
-      summary,
+      StatisticsComponent,
     ];
-  }, [collectionsPayload, summaryPayload]);
+  }, [SummaryComponent, CollectionsComponent, MethodsComponent, SnapshotsComponent, AtomsComponent]);
 
-  // Handle possible errors
-  [summaryError, collectionsError].forEach(error => {
-    if (!error) return;
-    // In case we are having connection problems let the help page load anyway, since most of it is cached
-    if (error.message === 'Network Error') return;
-    // If the error is diferrent then make it obvious
-    throw new Error(error.message);
+  // Handle possible errors by just showing a log error in the console
+  // Thus we allow the rest of the page to keep loading
+  [summaryError, collectionsError, methodsError, snapshotsError, atomsError].forEach(error => {
+    if (error) console.error(error.message);
   });
 };
 
@@ -142,7 +249,7 @@ const Help = () => {
   }, [location.hash]);
 
   return (
-    <div className={style.horizontal}>
+    <div className={style.main}>
       <MenuList className={style.menu}>
         {documentation.map((doc, index) => (
           <details key={index} className={style.section} open>
