@@ -207,14 +207,16 @@ const ProjectMenu = ({ accession, subPage }) => {
 
     // In case the simulation comes from a Markov state model, add the populations analysis to the tabs
     if (metadata && metadata.METHOD === 'Markov state model (MSM)'){
-      const condition = files && files.find(file => file.filename === 'populations.json');
-      ['populations', 'markov'].forEach(direction => {
-        tabs[2].drops[3].analyses.push({
-          name: NICE_NAMES.get(direction),
-          dir: direction,
-          cond: condition,
-        });
-      })
+      tabs[2].drops[3].analyses.push({
+        name: NICE_NAMES.get('populations'),
+        dir: 'populations',
+        cond: files && files.find(file => file.filename === 'populations.json'),
+      });
+      tabs[2].drops[3].analyses.push({
+        name: NICE_NAMES.get('markov'),
+        dir: 'markov',
+        cond: analyses && analyses.includes('markov'),
+      });
     }
       
 
