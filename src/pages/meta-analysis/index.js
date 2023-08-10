@@ -14,6 +14,8 @@ import { BASE_PATH } from '../../utils/constants';
 
 // Set the base URL to the repository where the binder enviornment and the workflows are stored
 const binderRepoBaseUrl = 'https://mybinder.org/v2/gh/bioexcel/bioexcel_covid19_workflows/HEAD?labpath=notebooks%2F';
+// Set the URL to the github repo which sources the binder
+const githubRepoBaseUrl = 'https://github.com/bioexcel/bioexcel_covid19_workflows'
 
 // Set the available analyses, their introduction and the name of the notebook in the binder repository
 // Include also an id for further reference. Note that this id may be visible in the URL
@@ -126,6 +128,13 @@ const MetaAnalysis = () => {
         which opens interactive <span style={{ color: 'green' }}>Jupyter Notebooks</span>.
         Note that you can edit code or run the analysis online with no need to install any software.
         Here we suggest some meta-analyses but you are very welcome to make your own ones!
+        <br />
+        <br />
+        Original notebooks and the environment setup to run the examples are available here:
+        <ReactMarkdown
+          children={`[![GitHub repository](https://badgen.net/badge/icon/github?icon=github&label)](${githubRepoBaseUrl})`}
+          linkTarget="_blank"
+        />
         <hr className={style.hr} />
         {availableAnalyses.map((analysis, index) => (
           <div
