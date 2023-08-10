@@ -300,6 +300,7 @@ const Graph = forwardRef(({ // The main data
       yAxisLabelHegiht = previousValues.current.yAxisLabelHegiht,
       xColors = previousValues.current.xColors,
       xNormalizedWeights = previousValues.current.xNormalizedWeights,
+      xTooltip = previousValues.current.xTooltip,
     } = {}) => {
       // Change the graph size according to the left offset
       graph.attr('width', offset.left);
@@ -774,6 +775,7 @@ const Graph = forwardRef(({ // The main data
       previousValues.current.yAxisLabelHegiht = yAxisLabelHegiht;
       previousValues.current.xColors = xColors;
       previousValues.current.xNormalizedWeights = xNormalizedWeights;
+      previousValues.current.xTooltip = xTooltip;
     };
 
     onSelectRef.current = ({ onSelect } = {}) => {
@@ -884,6 +886,7 @@ const Graph = forwardRef(({ // The main data
       requiredBottomOffset,
       yAxisLabelHegiht,
       xColors,
+      xTooltip,
     });
   }, [
     yData,
@@ -897,6 +900,7 @@ const Graph = forwardRef(({ // The main data
     requiredBottomOffset,
     yAxisLabelHegiht,
     xColors,
+    xTooltip,
   ]);
 
   // Handle when weights change apart, since they must be normalized
