@@ -18,11 +18,6 @@ import distinctColors from 'distinct-colors';
 import SimpleLegend from '../../components/simple-legend';
 import Histogram from '../../components/histogram';
 
-// Save the original introduction children
-const introductionChildren = [
-  ...documentation.find(doc => doc.id === 'introduction').children,
-];
-
 // Build and inject the statistics component to the documentation
 // Note that this component is injected when data is not yet downloaded as a placeholder
 // This prevents suddent vertical shifts as data is being downloaded
@@ -203,19 +198,23 @@ const useStatistics = () => {
           <br />
           <br />
           Snapshots per simulation:
+          <br />
+          <br />
           {SnapshotsComponent}
           <br />
           <br />
           Atoms per simulation:
+          <br />
+          <br />
           {AtomsComponent}
         </>
       ),
     };
     // Add summary to documentation
-    documentation.find(doc => doc.id === 'introduction').children = [
-      ...introductionChildren,
-      StatisticsComponent,
-    ];
+    const introduction = documentation.find(doc => doc.id === 'introduction');
+    // In case there is a summary already, from a previous render, delete it
+    if (introduction.children[introduction.children.length - 1].id === 'summary') introduction.children.pop();
+    introduction.children.push(StatisticsComponent);
   }, [SummaryComponent, CollectionsComponent, MethodsComponent, SnapshotsComponent, AtomsComponent]);
 
   // Handle possible errors by just showing a log error in the console

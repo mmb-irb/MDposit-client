@@ -23,9 +23,13 @@ const dataPlaceholder = {};
 const margin = {
   top: 10,
   right: 30,
-  left: 55,
-  bottom: 40,
+  left: 90,
+  bottom: 60,
 };
+
+// Set the size of the axis numbers
+const axisNumbersFontSize = "16px";
+const axisLabelsFontSize = "24px";
 
 const Histogram = forwardRef(({
   // Data containing an object with count of different values
@@ -69,9 +73,11 @@ const Histogram = forwardRef(({
 
     // Set  axis labels
     const xAxisLabel = graph.append("text")
-      .attr("text-anchor", "middle");
+      .attr("text-anchor", "middle")
+      .style("font-size", axisLabelsFontSize);
     const yAxisLabel = graph.append("text")
       .attr("text-anchor", "middle")
+      .style("font-size", axisLabelsFontSize);
 
     // Set functions to update axis label texts when their specific input changes
     // Also call them now for this first time
@@ -171,13 +177,15 @@ const Histogram = forwardRef(({
       // Set axis positions
       x.range([margin.left, margin.left + actualWidth]);
       xAxis.attr("transform", "translate(0," + (margin.top + actualHeight) + ")")
-        .call(axisBottom(x).ticks(columnsCount));
+        .call(axisBottom(x).ticks(columnsCount))
+        .style("font-size", axisNumbersFontSize);
       y.range([margin.top + actualHeight, margin.top]);
-      yAxis.attr("transform", "translate(" + margin.left + ", 0)").call(axisLeft(y));
+      yAxis.attr("transform", "translate(" + margin.left + ", 0)").call(axisLeft(y))
+        .style("font-size", axisNumbersFontSize);
       // Set axis label positions
       const xAxisLabelMargin = 5;
       xAxisLabel.attr("x", margin.left + actualWidth / 2).attr("y", height - xAxisLabelMargin);
-      const yAxisLabelMargin = 12;
+      const yAxisLabelMargin = 20;
       yAxisLabel.attr("x", yAxisLabelMargin).attr("y", margin.top + actualHeight / 2)
         .attr("transform", `rotate(-90, ${yAxisLabelMargin}, ${margin.top + actualHeight / 2})`);
 
