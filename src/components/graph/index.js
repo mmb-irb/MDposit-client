@@ -283,6 +283,9 @@ const Graph = forwardRef(({ // The main data
       y: graph.append('g'),
     };
 
+    // Set an independent dot which is in the x axis and holds the x tooltip
+    const xDot = graph.append('g');
+
     // This ref allows to update the graph without having to remake the whole graph
     drawRef.current = ({
       data = previousValues.current.data,
@@ -642,7 +645,7 @@ const Graph = forwardRef(({ // The main data
       allDotGroups.selectAll('g.dot-group').remove();
       const dotGroups = allDotGroups
         .selectAll('g.dot-group')
-        .data([...dataKeys, 'x'])
+        .data([...dataKeys])
         .enter()
         .append('g')
         .attr('class', 'dot-group')
@@ -660,6 +663,27 @@ const Graph = forwardRef(({ // The main data
         .style('paint-order', 'stroke')
         .attr('y', '-5px')
         .attr('fill', d => (data[d] && data[d].color) || 'black')
+        .attr('stroke', 'rgba(255, 255, 255, 0.5)')
+        .attr('stroke-width', 5)
+        .attr('filter', textBackgroundURL);
+
+      // Set the dot over the x axis and the label highlighting the selected x value
+      xDot.selectAll('g').remove();
+      const actualXDot = xDot.append('g')
+        .attr('opacity', 0);
+      actualXDot
+        .append('circle')
+        .attr('cx', 0)
+        .attr('cy', 0)
+        .attr('r', 5)
+        .attr('fill', 'black');
+      actualXDot
+        .append('text')
+        .style('text-anchor', 'middle')
+        .style('font-weight', 'bold')
+        .style('paint-order', 'stroke')
+        .attr('y', '-5px')
+        .attr('fill', 'black')
         .attr('stroke', 'rgba(255, 255, 255, 0.5)')
         .attr('stroke-width', 5)
         .attr('filter', textBackgroundURL);
@@ -687,8 +711,6 @@ const Graph = forwardRef(({ // The main data
           .selectAll('g.dot-group')
           // Set the y position of the dot
           .attr('transform', d => {
-            // The x bottom axis for the x value
-            if (d === 'x') return `translate(0, ${height - offset.bottom})`;
             if (!labels[d]) return;
             // Just over the correspondong line for other values
             const offsetDown = (y(data[d].data[closestIndex]) || 0) + 2.5;
@@ -699,7 +721,6 @@ const Graph = forwardRef(({ // The main data
           .attr('opacity', d => (d === 'x' || labels[d] ? 1 : 0))
           .selectAll('text')
           .attr('transform', d => {
-            if (d === 'x') return `translate(0, ${-3})`;
             if (!labels[d]) return;
             // Find if an offset is too close to others and then move it to a better place (above)
             let dotDownOffset = dotDownOffsets[d];
@@ -734,17 +755,23 @@ const Graph = forwardRef(({ // The main data
             return `translate(0, ${extra - 3})`;
           })
           // Set the dot text in the x axis
-          .text(d => {
-            // Dot in x axes
-            if (d === 'x') {
-              const number = closestIndex * step * xScaleFactor;
-              if (number < 0) return;
-              return xTooltip && xTooltip(number, closestIndex);
-            }
-            // Dot over data
-            else {
-              return Math.round(data[d].data[closestIndex] * 100) / 100;
-            }
+          .text(d => Math.round(data[d].data[closestIndex] * 100) / 100);
+        xDot
+          // Set the x position of the dot
+          .attr('transform', `translate(${x(closestIndex * step)}, 0)`)
+          // Dots become invisible if the closest index is not between the minimum and the maximum
+          .attr('opacity', closestIndex * step >= xMin && closestIndex * step < xMax ? 1 : 0);
+        actualXDot
+          // Set the y position of the dot
+          .attr('transform', `translate(0, ${height - offset.bottom})`)
+          .attr('opacity', 1)
+          .selectAll('text')
+          .attr('transform', `translate(0, ${offset.bottom})`)
+          // Set the dot text in the x axis
+          .text(() => {
+            const number = closestIndex * step * xScaleFactor;
+            if (number < 0) return;
+            return xTooltip && xTooltip(number, closestIndex);
           });
 
         if (onHover) {
@@ -760,6 +787,7 @@ const Graph = forwardRef(({ // The main data
 
       graph.on('mouseout', () => {
         allDotGroups.selectAll('g.dot-group').attr('opacity', 0);
+        actualXDot.attr('opacity', 0);
         if (onHover) onHover(null);
       });
 
