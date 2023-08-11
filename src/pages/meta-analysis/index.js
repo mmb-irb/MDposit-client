@@ -68,6 +68,22 @@ const availableAnalyses = [
       </>
     ),
     notebook: 'ace2_rbd_interaction_analysis.ipynb'
+  },
+  {
+    id: 'protein_nucleic',
+    title: 'Protein-nucleic acid interaction analysis',
+    docs:(
+      <>
+        In this example we intend to analyze the interaction between the SARS-CoV-2 polymerase complex and a fragment of RNA. 
+        We want to find and visualize the aminoacid with the highest electrostatic and Van der Waals energies and thus the one 
+        which is carrying the interaction.
+        <br />
+        <br />
+        For this test we will use Polymerase atomistic MD trajectories already loaded in the BioExcel-Covid19 database from 
+        different groups.
+      </>
+    ),
+    notebook: 'polymerase_analysis.ipynb'
   }
 ];
 
