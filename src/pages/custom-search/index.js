@@ -1,5 +1,5 @@
 // React
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 // Additional components
@@ -12,6 +12,10 @@ import {
   Button,
   FormControlLabel,
   Checkbox,
+  Autocomplete,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from '@mui/material';
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -49,6 +53,88 @@ const escapeRegExp = input => {
   return input.replace(/[-[/\]{}()*+?.,\\^$|#\s]/g, '\\$&');
 };
 
+// Parse the query to an HTML string which may be passed as an URL
+// Note that this function is called only at the end, when the search button is pressed
+// The actual query is build below in the code
+const parseQuery = currentQuery => {
+  // If the query is empty then do not search
+  if (Object.keys(currentQuery).length === 0) return;
+  // Set a function to parse our queries to a mongo query object
+  const parsedQuery = {};
+  let errors = 0;
+  const parseAndAddQuery = ([key, value]) => {
+    // DANI: Aquí me he quedado. Esto debería ser idéntico para las ref queries. Habría que aislar esta función.
+    // Get the current field to know which is the expected type
+    const currentField = availableFields.find(f => f.path === key);
+    // Provided that value will allways be a string (or string array) do the corresponding parsing
+    const parseType = string => {
+      if (string === naTag) return { $eq: null };
+      if (currentField.type === 'string') return string;
+      if (currentField.type === 'int' || currentField.type === 'float')
+        return +string;
+      if (currentField.type === 'boolean') return string === 'true';
+    };
+    // In case it is a string search it means it comes from a string textfield
+    if (typeof value === 'string') {
+      const parsedValue = escapeRegExp(value);
+      parsedQuery[key] = { $regex: parsedValue, $options: 'i' };
+      return;
+    }
+    // In case it has min or max propierties it comes from a number range pair of textfields
+    if (value.min || value.max) {
+      const parsedValue = {};
+      if (value.min) {
+        if (isNaN(+value.min)) return ++errors;
+        parsedValue['$gt'] = +value.min;
+      }
+      if (value.max) {
+        if (isNaN(+value.max)) return ++errors;
+        parsedValue['$lt'] = +value.max;
+      }
+      parsedQuery[key] = parsedValue;
+      return;
+    }
+    if (!Array.isArray(value))
+      throw new Error('Wrong ' + key + ' -> ' + value);
+    // If value is not one of the previous it must be an array, so it comes from checkboxes
+    // If value array has only one element then search only for this option
+    if (value.length === 1) {
+      parsedQuery[key] = parseType(value[0]);
+      return;
+    }
+    // Otherwise we must use a $or operand for each option
+    // In case more than one field have more than one option we must use $and operand to declare multiple $or operands
+    // So, if there is already an $and operator push the new $or operand to it
+    const currentAnd = parsedQuery['$and'];
+    if (currentAnd) {
+      currentAnd.push({ $or: value.map(v => ({ [key]: parseType(v) })) });
+      return;
+    }
+    // In case there is no $and operator but there is already an $or operand we must create the $and operator
+    // Then the old $or operator must be copied into the $and operator and deleted from the query object
+    const currentOr = parsedQuery['$or'];
+    if (currentOr) {
+      parsedQuery['$and'] = [
+        { $or: currentOr },
+        { $or: value.map(v => ({ [key]: parseType(v) })) },
+      ];
+      delete parsedQuery['$or'];
+      return;
+    }
+    // In case there is no $and/$or operators we set the first $or operator alone
+    parsedQuery['$or'] = value.map(v => ({ [key]: parseType(v) }));
+  };
+
+  // Prase the query
+  Object.entries(currentQuery).forEach(entry => parseAndAddQuery(entry));
+
+  // This may happen when a numeric textfield has text
+  if (errors > 0) return;
+
+  // Return the query made a single URL string
+  return '/browse?query=' + JSON.stringify(parsedQuery);
+};
+
 // Set the tag to be shown for null and undefined values
 const naTag = 'Not defined';
 
@@ -64,115 +150,44 @@ const CustomSearch = () => {
   // Get acces to the history so wen can redirect the user later
   const history = useNavigate();
 
-  // Query all the available fields using the 'options' endpoint
-  const projectionStrings = [];
-  availableFields.forEach(field => {
-    if (field.options) projectionStrings.push('projection=' + field.path);
-  });
-  const projectionQuery = projectionStrings.join('&');
-
-  // Build the API URL for the request
-  const apiUrl = `${BASE_PATH_PROJECTS}/options?${projectionQuery}`;
-  const { payload, error } = useAPI(apiUrl);
-
-  if (error) return error.toString();
-
-  // Parse the query to an HTML string which may be passed as an URL
-  const search = () => {
-    // If the query is empty do not search
-    const currentQuery = query.current;
-    if (Object.keys(currentQuery).length === 0) return;
-
-    // Parse the query to a mongo query object
-    const parsedQuery = {};
-    let errors = 0;
-    Object.entries(currentQuery).forEach(([key, value]) => {
-      // Get the current field to know which is the expected type
-      const currentField = availableFields.find(f => f.path === key);
-      // Provided that value will allways be a string (or string array) do the corresponding parsing
-      const parseType = string => {
-        if (string === naTag) return { $eq: null };
-        if (currentField.type === 'string') return string;
-        if (currentField.type === 'int' || currentField.type === 'float')
-          return +string;
-        if (currentField.type === 'boolean') return string === 'true';
-      };
-      // In case it is a string search it means it comes from a string textfield
-      if (typeof value === 'string') {
-        const parsedValue = escapeRegExp(value);
-        parsedQuery[key] = { $regex: parsedValue, $options: 'i' };
-        return;
-      }
-      // In case it has min or max propierties it comes from a number range pair of textfields
-      if (value.min || value.max) {
-        const parsedValue = {};
-        if (value.min) {
-          if (isNaN(+value.min)) return ++errors;
-          parsedValue['$gt'] = +value.min;
-        }
-        if (value.max) {
-          if (isNaN(+value.max)) return ++errors;
-          parsedValue['$lt'] = +value.max;
-        }
-        parsedQuery[key] = parsedValue;
-        return;
-      }
-      if (!Array.isArray(value))
-        throw new Error('Wrong ' + key + ' -> ' + value);
-      // If value is not one of the previous it must be an array, so it comes from checkboxes
-      // If value array has only one element then search only for this option
-      if (value.length === 1) {
-        parsedQuery[key] = parseType(value[0]);
-        return;
-      }
-      // Otherwise we must use a $or operand for each option
-      // In case more than one field have more than one option we must use $and operand to declare multiple $or operands
-      // So, if there is already an $and operator push the new $or operand to it
-      const currentAnd = parsedQuery['$and'];
-      if (currentAnd) {
-        currentAnd.push({ $or: value.map(v => ({ [key]: parseType(v) })) });
-        return;
-      }
-      // In case there is no $and operator but there is already an $or operand we must create the $and operator
-      // Then the old $or operator must be copied into the $and operator and deleted from the query object
-      const currentOr = parsedQuery['$or'];
-      if (currentOr) {
-        parsedQuery['$and'] = [
-          { $or: currentOr },
-          { $or: value.map(v => ({ [key]: parseType(v) })) },
-        ];
-        delete parsedQuery['$or'];
-        return;
-      }
-      // In case there is no $and/$or operators we set the first $or operator alone
-      parsedQuery['$or'] = value.map(v => ({ [key]: parseType(v) }));
-    });
-
-    // This may happen when a numeric textfield has text
-    if (errors > 0) return;
-
-    // Then make a browse with the new query
-    const stringQuery = JSON.stringify(parsedQuery);
-    history('/browse?query=' + stringQuery);
+  // Make a function to parse the query once built and browse
+  const parseAndSearch = () => {
+    const browseURL = parseQuery(query.current);
+    history(browseURL);
   };
 
+  // Query all the available fields using the 'options' endpoint
+  const projectionStrings = availableFields.filter(field => field.options).map(field => 'projection=' + field.path);
+  const projectionQuery = projectionStrings.join('&');
+
+  // Build the API URL for the options requests
+  // DANI: Se piden todas las options de golpe, lo cual no es muy eficiente y la API tarda 3 segundos aprox
+  // DANI: Hemos decidido que este valor se guardará en la db y se actualizará periódicamente, cosa mucho más eficiente
+  const optionsUrl = `${BASE_PATH_PROJECTS}/options?${projectionQuery}`;
+  const { payload: optionsPayload, error: optionsError } = useAPI(optionsUrl);
+
+  // Stop here if any of the requests failed
+  if (optionsError) return optionsError.toString();
+
+  // Here is where queries are built by the user
   return (
     <Card className={style.tall}>
       <CardContent>
-        Use the <b>search</b> menu to create a specific query. Go to{' '}
-        <a href="/#/advanced-search">advanced search</a> for a most complex
-        query.
+        Use the <b>search</b> menu to create a specific query.
+        Go to{' '} <a href="/#/advanced-search">advanced search</a> for a most complex query.
         <hr style={{ color: 'lightGrey' }} />
         {availableFields.map((field, f) => (
-          <details key={f} className={style.section} open={f === 0}>
-            <summary className={style.summary}>{field.name}</summary>
-            {payload ? (
-              (() => {
-                // Save the current query
+          <Accordion key={f} defaultExpanded={f === 0}>
+            <AccordionSummary className={style.summary}>{field.name}</AccordionSummary>
+            <AccordionDetails className={style.section}>
+              {(() => {
+                // Get the corresponding payload
+                if (!optionsPayload) return <Loading />;
+                // Save the current queries
                 const currentQuery = query.current;
                 // In case it is a field with options (i.e. input is specified through checkboxes)
                 if (field.options) {
-                  const fieldData = payload[field.path];
+                  const fieldData = optionsPayload[field.path];
                   // In case we have nulls or undefineds we merge them in a single 'Not defined' field
                   let notDefined = 0;
                   if (fieldData.null) {
@@ -180,40 +195,78 @@ const CustomSearch = () => {
                     delete fieldData.null;
                   }
                   if (notDefined > 0) fieldData[naTag] = notDefined;
-                  // For each entry generate a checkbox
-                  const entries = Object.entries(fieldData);
-                  return entries.map(([option, count], i) => (
-                    <FormControlLabel
-                      key={i}
-                      onChange={({ target: { checked } }) => {
-                        if (checked) {
-                          if (currentQuery[field.path])
-                            currentQuery[field.path].push(option);
-                          else currentQuery[field.path] = [option];
-                        } else {
-                          const currentIndex = currentQuery[field.path].indexOf(
-                            option,
-                          );
-                          currentQuery[field.path].splice(currentIndex, 1);
-                          if (currentQuery[field.path].length === 0)
-                            delete currentQuery[field.path];
-                        }
-                      }}
-                      control={
-                        <Checkbox
-                          defaultChecked={
-                            currentQuery[field.path] &&
-                            currentQuery[field.path].indexOf(option) !== -1
+                  // If the field values are set to be selectable as checkboxes
+                  if (field.checkbox) {
+                    // For each entry generate a checkbox
+                    const entries = Object.entries(fieldData).sort(([aKey, aCount], [bKey, bCount]) => bCount - aCount);
+                    return entries.map(([option, count], i) => (
+                      <FormControlLabel
+                        key={i}
+                        onChange={({ target: { checked } }) => {
+                          if (checked) {
+                            if (currentQuery[field.path])
+                              currentQuery[field.path].push(option);
+                            else currentQuery[field.path] = [option];
+                          } else {
+                            const currentIndex = currentQuery[field.path].indexOf(
+                              option,
+                            );
+                            currentQuery[field.path].splice(currentIndex, 1);
+                            if (currentQuery[field.path].length === 0)
+                              delete currentQuery[field.path];
                           }
-                          style={{ color: 'black' }}
-                          inputProps={{ 'data-key': option }}
+                        }}
+                        control={
+                          <Checkbox
+                            defaultChecked={
+                              currentQuery[field.path] &&
+                              currentQuery[field.path].indexOf(option) !== -1
+                            }
+                            style={{ color: 'black' }}
+                            inputProps={{ 'data-key': option }}
+                          />
+                        }
+                        label={`${option} (${count})`}
+                        style={{ color: 'black' }}
+                        //className={style.outlined}
+                      />
+                    ));
+                  }
+                  else {
+                    const handleInputChange = ({ target: { value } }) => {
+                      currentQuery[field.path] = value;
+                      if (value === '') delete currentQuery[field.path];
+                    };
+                    const options = Object.entries(fieldData).map(
+                      ([value, count]) => ({ label: value, count })
+                    ).sort((a, b) => b.count - a.count);
+                    return (
+                      <div className={style.aligned}>
+                        Contains{' '}
+                        <Autocomplete
+                          options={options}
+                          getOptionLabel={option => option.label}
+                          renderOption={(props, option) => <li {...props}>{option.label + ' (' + option.count + ')'}</li>}
+                          sx={{ width: '50vh' }}
+                          clearOnBlur={false}
+                          renderInput={(params) => 
+                            <TextField
+                              {...params}
+                              title={'Type here the value for the specified field'}
+                              defaultValue={currentQuery[field.path]}
+                              // When pressing enter
+                              onKeyPress={event => {
+                                if (event.key === 'Enter') handleInputChange(event);
+                              }}
+                              // When clicking out, pressing tabulator, etc.
+                              onBlur={handleInputChange}
+                              placeholder={'e.g. ' + field.example}
+                              className={style.spaced}
+                            />}
                         />
-                      }
-                      label={`${option} (${count})`}
-                      style={{ color: 'black' }}
-                      //className={style.outlined}
-                    />
-                  ));
+                      </div>
+                    );
+                  }
                 }
                 // In case it is a field without options (i.e. input is specified through a textfield)
                 else {
@@ -306,14 +359,12 @@ const CustomSearch = () => {
                     );
                   }
                 }
-              })()
-            ) : (
-              <Loading />
-            )}
-          </details>
+              })()}
+            </AccordionDetails>
+          </Accordion>
         ))}
-        <div className={style.right}>
-          <Button variant="contained" onClick={search} className={style.search}>
+        <div className={style.button}>
+          <Button variant="contained" onClick={parseAndSearch} className={style.search}>
             <FontAwesomeIcon icon={faSearch} />
             &nbsp;
             <span>Search</span>

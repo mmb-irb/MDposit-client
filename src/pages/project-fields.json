@@ -4,14 +4,16 @@
     "path": "metadata.COLLECTIONS",
     "type": "string",
     "example": "cv19",
-    "options": true
+    "options": true,
+    "checkbox" : true
   },
   {
     "name": "PDB id",
     "path": "metadata.PDBIDS",
     "type": "string",
     "example": "6vxx",
-    "options": false
+    "options": true,
+    "checkbox" : false
   },
   {
     "name": "Name",
@@ -32,56 +34,64 @@
     "path": "metadata.AUTHORS",
     "type": "string",
     "example": "D. E. Shaw Research",
-    "options": false
+    "options": true,
+    "checkbox" : false
   },
   {
     "name": "Groups",
     "path": "metadata.GROUPS",
     "type": "string",
     "example": "Amaro Lab",
-    "options": false
+    "options": true,
+    "checkbox" : false
   },
   {
     "name": "Program",
     "path": "metadata.PROGRAM",
     "type": "string",
     "example": "Gromacs",
-    "options": true
+    "options": true,
+    "checkbox" : true
   },
   {
     "name": "Type",
     "path": "metadata.TYPE",
     "type": "string",
     "example": "ensemble",
-    "options": true
+    "options": true,
+    "checkbox" : true
   },
   {
     "name": "MD method",
     "path": "metadata.METHOD",
     "type": "string",
     "example": "Classical MD",
-    "options": true
+    "options": true,
+    "checkbox" : true
   },
   {
     "name": "Ligand name",
     "path": "metadata.LIGANDS.name",
     "type": "string",
     "example": "aclidinium",
-    "options": false
+    "options": true,
+    "checkbox" : false
   },
   {
     "name": "Ligand DrugBank accession",
     "path": "metadata.LIGANDS.drugbank",
     "type": "string",
     "example": "DB08897",
-    "options": false
+    "options": true,
+    "checkbox" : false
   },
   {
     "name": "Ligand ChEMBL accession",
     "path": "metadata.LIGANDS.chembl",
     "type": "string",
     "example": "CHEMBL1194325",
-    "options": false
+    "options": true,
+    "checkbox" : false
   },
   {
     "name": "Citation",
@@ -109,42 +119,48 @@
     "path": "metadata.TIMESTEP",
     "type": "float",
     "example": "2",
-    "options": true
+    "options": true,
+    "checkbox" : true
   },
   {
     "name": "Force field",
     "path": "metadata.FF",
     "type": "string",
     "example": "CHARMM36m",
-    "options": true
+    "options": true,
+    "checkbox" : true
   },
   {
     "name": "Water type",
     "path": "metadata.WAT",
     "type": "string",
     "example": "TIP3",
-    "options": true
+    "options": true,
+    "checkbox" : true
   },
   {
     "name": "Temperature (K)",
     "path": "metadata.TEMP",
     "type": "float",
     "example": "300",
-    "options": true
+    "options": true,
+    "checkbox" : true
   },
   {
     "name": "Ensemble",
     "path": "metadata.ENSEMBLE",
     "type": "string",
     "example": "NPT",
-    "options": true
+    "options": true,
+    "checkbox" : true
   },
   {
     "name": "Boxtype",
     "path": "metadata.BOXTYPE",
     "type": "string",
     "example": "Triclinic",
-    "options": true
+    "options": true,
+    "checkbox" : true
   },
   {
     "name": "System atom count",
@@ -166,5 +182,33 @@
     "type": "int",
     "example": "any integer number",
     "options": false
+  },
+  {
+    "name": "Uniprot id",
+    "path": "metadata.REFERENCES",
+    "type": "string",
+    "example": "Q9BYF1",
+    "options": true
+  },
+  {
+    "name": "Uniprot organism",
+    "path": "references.organism",
+    "type": "string",
+    "example": "Homo sapiens",
+    "options": true
+  },
+  {
+    "name": "Uniprot gene",
+    "path": "references.gene",
+    "type": "string",
+    "example": "ACE2",
+    "options": true
+  },
+  {
+    "name": "Uniprot name",
+    "path": "references.name",
+    "type": "string",
+    "example": "Angiotensin-converting enzyme 2",
+    "options": true
   }
 ]

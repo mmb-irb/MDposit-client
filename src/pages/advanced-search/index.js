@@ -119,6 +119,14 @@ const signLogic = (positive1, positive2) => {
   }
 };
 
+// DANI: a esta página dejé de darle mantenimiento al introducir las queries a la colección de references
+// DANI: con la implementación actual de la API esto rompe un poco la idea de una única query
+// DANI: las queries a references van por separado internamente en la API
+// DANI: los resultados de queries a projects y queries a references se suman mediante AND por defecto
+// DANI: montar un sistema en que el usuario pueda decidir sumar estos resultados miedante un OR es un marrón
+// DANI: no permitir un OR entre estos campos no sería coherente, y dificil de entender para el usuario
+// DANI: prefiero dejar de mantener esta versión de búsqueda de momento y centrarme en la otra
+
 // Advanced search page
 const AdvancedSearch = () => {
   // Save the query
@@ -191,6 +199,7 @@ const AdvancedSearch = () => {
   const Represent = ({ object, parent, index }) => {
     // Find the field options
     // Field options include logicals
+    // DANI: descartamos fields de references, que no funcionarían por defecto
     const fieldOptions = availableFields.map(field => field.name);
     const logicOptions = availableLogics.map(operand => operand.name);
     const fieldsAndLogics = [...logicOptions, ...fieldOptions];
@@ -491,7 +500,7 @@ const AdvancedSearch = () => {
     <Card className={style.tall}>
       <CardContent>
         Use the <b>advanced search</b> query builder to create complex database
-        queries.
+        queries.<br />
         <hr style={{ color: 'lightGrey' }} />
         <Represent object={query.current} />
         <div className={style.right}>

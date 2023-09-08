@@ -7,6 +7,7 @@
 }
 
 .spaced {
+  width: 50vh;
   margin-left: 0.5em;
   margin-right: 0.5em;
 }
@@ -54,8 +55,9 @@
   margin: 0.5em;
 }
 
-.right {
+.button {
   text-align: right;
+  margin-top: 1em;
 }
 
 .search {

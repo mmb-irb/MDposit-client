@@ -258,6 +258,7 @@ const Browse = () => {
   const searchString = stringify({
     search: search.search,
     query: search.query,
+    ref: search.ref,
     page: search.page || DEFAULT_PAGE,
     limit: search.limit || DEFAULT_LIMIT,
   });
