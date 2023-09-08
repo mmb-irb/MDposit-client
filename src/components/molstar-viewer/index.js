@@ -253,7 +253,7 @@ const MolstarViewer = memo(
                 //url: null,
                 //loading: false,
                 // DANI: hardcodeo temporal
-                url: `${BASE_PATH_PROJECTS}${accession}${PATH_MAIN_TOPOLOGY}`,
+                url: `${BASE_PATH_PROJECTS}/${accession}${PATH_MAIN_TOPOLOGY}`,
                 loading: true,
                 requested: false,
                 error: null,
@@ -391,7 +391,7 @@ const MolstarViewer = memo(
           // Here, if you ask for the trajectory.bin instead of just trajectory, you get the whole file
           // This is because the only route of the API accepting frames selection is the "trajectory" endpoint
           // Other paths such as "trajectory.bin" will be processed as "/:files"
-          const baseUrl = `${BASE_PATH_PROJECTS}${accession}/files/trajectory`;
+          const baseUrl = `${BASE_PATH_PROJECTS}/${accession}/files/trajectory`;
 
           comps.forEach((comp, c) => {
             if (comp.onlyTopology) return;

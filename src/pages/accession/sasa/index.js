@@ -73,7 +73,7 @@ const Sasa = () => {
 
   // Send a request to the API with the url of the specific analysis
   const { loading, payload, error } = useAPI(
-    `${BASE_PATH_PROJECTS}${accession}/analyses/sasa/`,
+    `${BASE_PATH_PROJECTS}/${accession}/analyses/sasa/`,
   );
 
   // Set when one point in the graph is selected
@@ -201,7 +201,7 @@ const Sasa = () => {
       }
     }
     // Load the required frames from the main trajectory
-    const mainURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory?frames=1:${metadata.SNAPSHOTS}:${frameStep}`;
+    const mainURL = `${BASE_PATH_PROJECTS}/${accession}/files/trajectory?frames=1:${metadata.SNAPSHOTS}:${frameStep}`;
     const mainComponent = [
       {
         trajectoryURLs: [mainURL],

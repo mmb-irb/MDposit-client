@@ -97,7 +97,7 @@ const Pockets = () => {
 
   // Send a request to the API with the url of the rgyr analysis
   const { loading, payload, error } = useAPI(
-    `${BASE_PATH_PROJECTS}${accession}/analyses/pockets/`,
+    `${BASE_PATH_PROJECTS}/${accession}/analyses/pockets/`,
   );
 
   const { data, frameStep } = useMemo(() => {
@@ -127,7 +127,7 @@ const Pockets = () => {
     if (!data) return;
 
     // Load the required frames from the main trajectory
-    const mainURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory?frames=1:${metadata.SNAPSHOTS}:${frameStep}`;
+    const mainURL = `${BASE_PATH_PROJECTS}/${accession}/files/trajectory?frames=1:${metadata.SNAPSHOTS}:${frameStep}`;
 
     // Set the surface representation of each pocket
     const pocketSurfaceRepresentations = data.map(pocket => {
@@ -159,7 +159,7 @@ const Pockets = () => {
       // NGL
       const pocketName = pocket.name;
       const pocketComponent = {
-        topologyURL: `${BASE_PATH_PROJECTS}${accession}/files/${pocketName}.pdb`,
+        topologyURL: `${BASE_PATH_PROJECTS}/${accession}/files/${pocketName}.pdb`,
         onlyTopology: true,
         representations: [
           {

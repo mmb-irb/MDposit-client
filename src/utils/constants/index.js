@@ -1,6 +1,6 @@
 export const BASE_PATH = process.env.REACT_APP_REST_ROOT;
 
-export const BASE_PATH_PROJECTS = BASE_PATH + 'current/projects/';
+export const BASE_PATH_PROJECTS = BASE_PATH + 'current/projects';
 
 export const MAIN_STRUCTURE_FILENAME = 'md.imaged.rot.dry.pdb';
 

@@ -68,7 +68,7 @@ const Hbonds = () => {
   const [selectedHB, setSelectedHB] = useState(null);
 
   // Set the API url for the heatmap data
-  const url = `${BASE_PATH_PROJECTS}${accession}/analyses/hbonds/`;
+  const url = `${BASE_PATH_PROJECTS}/${accession}/analyses/hbonds/`;
 
   // Send a request to the API with the url of the specific analysis
   const { loading, payload, error } = useAPI(url);

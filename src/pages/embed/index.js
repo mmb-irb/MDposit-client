@@ -24,17 +24,17 @@ const Embed = () => {
   const [project, setProject] = useState(null);
 
   // Get project data from the API if the current context data is wrong. 'payload' contains the main data.
-  const projectRequest = useAPI(`${BASE_PATH_PROJECTS}${accession}/`);
+  const projectRequest = useAPI(`${BASE_PATH_PROJECTS}/${accession}/`);
 
   // Load the structure data form the API
   const pdbData = useNGLFile(
-    `${BASE_PATH_PROJECTS}${accession}${PATH_MAIN_TOPOLOGY}`,
+    `${BASE_PATH_PROJECTS}/${accession}${PATH_MAIN_TOPOLOGY}`,
     // This attribute was included before: defaultRepresentation: false
     { defaultRepresentation: false, ext: 'pdb' },
   );
 
   // Request topology data to the API
-  const topology = useAPI(`${BASE_PATH_PROJECTS}${accession}/topology`);
+  const topology = useAPI(`${BASE_PATH_PROJECTS}/${accession}/topology`);
 
   // While loading
   if (projectRequest.loading) return <Loading />;

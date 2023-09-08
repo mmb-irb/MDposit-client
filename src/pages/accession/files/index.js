@@ -126,7 +126,7 @@ export default React.memo(() => {
               size="large"
               color="primary"
               component="a"
-              href={`${BASE_PATH_PROJECTS}${identifier}/files/${main_structure.filename}`}
+              href={`${BASE_PATH_PROJECTS}/${identifier}/files/${main_structure.filename}`}
               download={main_structure.filename}
               target="_blank"
             >
@@ -160,7 +160,7 @@ export default React.memo(() => {
               size="large"
               color="primary"
               component="a"
-              href={`${BASE_PATH_PROJECTS}${identifier}/files/${main_trajectory.filename}`}
+              href={`${BASE_PATH_PROJECTS}/${identifier}/files/${main_trajectory.filename}`}
               download={main_trajectory.filename}
               target="_blank"
             >
@@ -188,7 +188,7 @@ export default React.memo(() => {
             }) => {
               const estimatedTime = length && getEstimate(length);
               const href =
-                url || `${BASE_PATH_PROJECTS}${identifier}/files/${filename}`;
+                url || `${BASE_PATH_PROJECTS}/${identifier}/files/${filename}`;
               return (
                 <Accordion key={filename}>
                   <AccordionSummary

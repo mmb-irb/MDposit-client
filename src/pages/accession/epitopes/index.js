@@ -136,7 +136,7 @@ const Epitopes = () => {
 
   // Send a request to the API with the url of the rgyr analysis
   const { loading, payload, error } = useAPI(
-    `${BASE_PATH_PROJECTS}${accession}/analyses/sasa/`,
+    `${BASE_PATH_PROJECTS}/${accession}/analyses/sasa/`,
   );
 
   // Set the epitopes formatted data
@@ -250,7 +250,7 @@ const Epitopes = () => {
   // Set the main component to be passed to NGL
   const components = useMemo(() => {
     // Load the required frames from the main trajectory
-    const trajectoryURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory?frames=1:${metadata.SNAPSHOTS}:${frameStep}`;
+    const trajectoryURL = `${BASE_PATH_PROJECTS}/${accession}/files/trajectory?frames=1:${metadata.SNAPSHOTS}:${frameStep}`;
     // Set the representations
     const representations = [];
     // Reduce the opacity of all default representations and set their color as black

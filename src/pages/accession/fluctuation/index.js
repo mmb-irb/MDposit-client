@@ -36,7 +36,7 @@ const FluctuationAnalysis = () => {
 
   // Send a request to the API with the url of the specific analysis
   const { loading, payload, error } = useAPI(
-    `${BASE_PATH_PROJECTS}${accession}/analyses/fluctuation/`,
+    `${BASE_PATH_PROJECTS}/${accession}/analyses/fluctuation/`,
   );
 
   // Fluctuation analysis comes in nanometers (nm) and we want it in Ångstroms

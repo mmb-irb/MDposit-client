@@ -51,7 +51,7 @@ const Markov = () => {
 
   // Send a request to the API with the url of the analysis
   const { loading, payload, error } = useAPI(
-    `${BASE_PATH_PROJECTS}${accession}/analyses/markov/`,
+    `${BASE_PATH_PROJECTS}/${accession}/analyses/markov/`,
   );
 
   // Download all markov screenshots
@@ -62,7 +62,7 @@ const Markov = () => {
     const markov_screenshot_filenames = filenames.filter(filename => filename.includes('markov_screenshot'));
     // Sort them according to their numeration so they match
     return markov_screenshot_filenames.map(
-      markov_screenshot_filename => `${BASE_PATH_PROJECTS}${accession}/files/${markov_screenshot_filename}`
+      markov_screenshot_filename => `${BASE_PATH_PROJECTS}/${accession}/files/${markov_screenshot_filename}`
     );
   }, [files]);
   // Now perform the API calls

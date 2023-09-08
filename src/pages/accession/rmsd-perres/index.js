@@ -73,7 +73,7 @@ const RmsdPerres = () => {
 
   // Send a request to the API with the url of the specific analysis
   const { loading, payload, error } = useAPI(
-    `${BASE_PATH_PROJECTS}${accession}/analyses/rmsd-perres/`,
+    `${BASE_PATH_PROJECTS}/${accession}/analyses/rmsd-perres/`,
   );
 
   // Set when one point in the graph is selected
@@ -184,7 +184,7 @@ const RmsdPerres = () => {
       xTooltip = xValue => +xValue.toFixed(2) + ' ns';
     }
     // Load the required frames from the main trajectory
-    const mainURL = `${BASE_PATH_PROJECTS}${accession}/files/trajectory?frames=1:${trajectoryFrameCount}:${frameStep}`;
+    const mainURL = `${BASE_PATH_PROJECTS}/${accession}/files/trajectory?frames=1:${trajectoryFrameCount}:${frameStep}`;
     const mainComponent = [
       {
         trajectoryURLs: [mainURL],

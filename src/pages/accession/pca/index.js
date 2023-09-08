@@ -42,7 +42,7 @@ const PCA = () => {
 
   // Load the main data from the API
   const { loading, payload, error } = useAPI(
-    `${BASE_PATH_PROJECTS}${accession}/analyses/pca/`,
+    `${BASE_PATH_PROJECTS}/${accession}/analyses/pca/`,
   );
   const data = payload && payload.data;
 
@@ -90,12 +90,12 @@ const PCA = () => {
     let projectionURL;
     if (projections[0] !== undefined) {
       const projectionNumber = ('0' + (projections[0] + 1)).slice(-2);
-      projectionURL = `${BASE_PATH_PROJECTS}${accession}/files/pca.trajectory_${projectionNumber}.bin`;
+      projectionURL = `${BASE_PATH_PROJECTS}/${accession}/files/pca.trajectory_${projectionNumber}.bin`;
     }
 
     // Get the topology URL
     // It has to be the main topology but with a specific selection of atoms
-    const topologyURL = `${BASE_PATH_PROJECTS}${accession}/files/structure`;
+    const topologyURL = `${BASE_PATH_PROJECTS}/${accession}/files/structure`;
 
     // Set the NGL component
     const components = [

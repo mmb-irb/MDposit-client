@@ -175,7 +175,7 @@ const SummarySwitch = ({ subPage, dataUrl }) => {
   const accession = project.accession || project.identifier;
   // Load the structure data from the API
   const pdbData = useNGLFile(
-    `${BASE_PATH_PROJECTS}${accession}${PATH_MAIN_TOPOLOGY}`,
+    `${BASE_PATH_PROJECTS}/${accession}${PATH_MAIN_TOPOLOGY}`,
     // This attribute was included before: defaultRepresentation: false
     { defaultRepresentation: false, ext: 'pdb' },
   );
@@ -274,7 +274,7 @@ export default () => {
   // Thus setting the url as null is a workaround to not perform the query
   const projectURL = updatedProjectData
     ? null
-    : `${BASE_PATH_PROJECTS}${accession}/`;
+    : `${BASE_PATH_PROJECTS}/${accession}/`;
   const projectQuery = useAPI(projectURL);
   // Make some modifications to the project data once loaded
   useMemo(() => {
@@ -286,16 +286,16 @@ export default () => {
   }, [project]);
   // Now request the API for additional
   // Request to API the references data
-  const references = useAPI(`${BASE_PATH_PROJECTS}${accession}/references`);
+  const references = useAPI(`${BASE_PATH_PROJECTS}/${accession}/references`);
   // DANI: No toda esta información es necesaria desde el principio, hay que reconsiderar
   // Request topology data to the API
-  const topology = useAPI(`${BASE_PATH_PROJECTS}${accession}/topology`);
+  const topology = useAPI(`${BASE_PATH_PROJECTS}/${accession}/topology`);
   // Request interactions data to the API in case there are interactions in this project
   const projectInteractions = project && project.metadata.INTERACTIONS;
   const thereAreInteractions =
     projectInteractions && projectInteractions.length > 0;
   const interactionsURL = thereAreInteractions
-    ? `${BASE_PATH_PROJECTS}${accession}/analyses/interactions`
+    ? `${BASE_PATH_PROJECTS}/${accession}/analyses/interactions`
     : null;
   const interactions = useAPI(interactionsURL);
   // If we are waiting for the API response...
@@ -415,7 +415,7 @@ class Project {
   // Then populations are stored so there is no need to repeat the query again
   get populations() {
     // Set the populations file request URL
-    let url = `${BASE_PATH_PROJECTS}${this.accession}/files/populations.json`;
+    let url = `${BASE_PATH_PROJECTS}/${this.accession}/files/populations.json`;
     // Request populations only if it is available
     if (!this.isPopulated) url = null;
     // Request populations only if we do not have it already

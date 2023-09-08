@@ -42,7 +42,7 @@ const DistPerres = () => {
   const [display, setDisplay] = useState('mean');
 
   // Set the API url for the heatmap data
-  const url = `${BASE_PATH_PROJECTS}${accession}/analyses/dist-perres/`;
+  const url = `${BASE_PATH_PROJECTS}/${accession}/analyses/dist-perres/`;
 
   const { loading, payload, error } = useAPI(url);
 

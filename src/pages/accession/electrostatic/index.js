@@ -20,8 +20,6 @@ import useDefaultRepresentations from '../../../components/ngl-viewer/use-defaul
 import { ColormakerRegistry } from 'ngl';
 import { color as d3color, scaleLinear } from 'd3';
 
-//import { BASE_PATH_PROJECTS } from '../../../utils/constants';
-
 // Define permanent options for the "useInView"
 const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
 
