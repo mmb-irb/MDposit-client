@@ -210,5 +210,12 @@
     "type": "string",
     "example": "Angiotensin-converting enzyme 2",
     "options": true
+  },
+  {
+    "name": "Uniprot protein function",
+    "path": "references.functions",
+    "type": "string",
+    "example": "RNA binding",
+    "options": true
   }
 ]

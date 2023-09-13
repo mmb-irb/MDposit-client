@@ -1,7 +1,15 @@
 .card {
   margin: 1em 0;
+  height: 8em;
+  overflow-y: auto;
 }
 
 .chips {
   margin: 0.2em;
+}
+
+.title {
+  font-size: large;
+  margin-right: 1em;
+  cursor: pointer;
 }

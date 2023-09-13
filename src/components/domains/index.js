@@ -110,11 +110,18 @@ const Domains = ({ setter }) => {
     if (referenceData) {
       referenceData.forEach(reference => {
         const referenceId = reference.uniprot;
-        const referenceDataDomains = reference.domains;
-        if (!referenceDataDomains) return;
+        // Collect all domains in reference data
+        let referenceDataDomains = [];
+        // Domains in the 'domains' filed are automatically mined from uniprot
+        if (reference.domains) referenceDataDomains = referenceDataDomains.concat(reference.domains);
+        // Domains in the 'custom_domains' filed are added by hand in the database and they are not common
+        if (reference.custom_domains) referenceDataDomains = referenceDataDomains.concat(reference.custom_domains);
+        // If there are not domains at all then stop here
+        if (referenceDataDomains.length === 0) return;
         // ----------------------------------------------------------------------------------------
         // These domains are only specified for the reference sequence
-        // Residue selections must be mapped back to the current topology for each representation
+        // Residue selections must be mapped back to the current topology for each domain
+        // Custom reference domains may contain a 'representations' field instead of a 'selection' field
         referenceDataDomains.forEach(domain => {
           const domainName = domain.name;
           // Discard the domain if its name matches an already existing domain
@@ -127,10 +134,11 @@ const Domains = ({ setter }) => {
           if (reference.name === domainName) return;
           const mappedDomain = {
             name: reference.name + ' - ' + domainName,
-            description: domain.description,
+            description: domain.description, // It may not have description
             representations: [],
           };
-          domain.representations.forEach(representation => {
+          // Set a function to modify a representation by parsing its selections to NGL
+          const parseRepresentationSelection = representation => {
             const selection = representation.selection;
             const parsedSelection = rangedSelectionParser(selection);
             // WARNING: A single reference residue may correspond to multiple topology residues
@@ -153,7 +161,14 @@ const Domains = ({ setter }) => {
             // https://github.com/nglviewer/ngl/issues/223
             if (small) newRepresentation.type = 'licorice';
             mappedDomain.representations.push(newRepresentation);
-          });
+          };
+          if (domain.selection) {
+            const domainRepresentation = { name: domainName, selection: domain.selection };
+            parseRepresentationSelection(domainRepresentation);
+          }
+          if (domain.representations) {
+            domain.representations.forEach(parseRepresentationSelection);
+          }
           // Domains whose representatios have been all discarded are also discarded
           if (mappedDomain.representations.length > 0)
             referenceDomains.push(mappedDomain);
@@ -248,7 +263,7 @@ const Domains = ({ setter }) => {
       {domains && domains.length > 0 && (
         <Card className={style.card}>
           <CardContent>
-            {'Domains: '}
+            <a className={style.title}>Domains</a>
             {domains.map((dom, d) => (
               <Chip
                 key={dom.name}
