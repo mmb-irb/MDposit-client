@@ -194,7 +194,11 @@ const CustomSearch = () => {
                     notDefined += fieldData.null;
                     delete fieldData.null;
                   }
-                  if (notDefined > 0) fieldData[naTag] = notDefined;
+                  // DANI: De momento los not defined se descartan y ya
+                  // DANI: Está bien poder ver cuantos 'not defined' hay en cada campo, el problema es que la query no va
+                  // DANI: Es complicado dar soporte a esto por los muchos formatos en los campos y los muchos tipos de faltas
+                  // DANI: Not defined puede ser una lista vacía, un null, etc.
+                  //if (notDefined > 0) fieldData[naTag] = notDefined;
                   // If the field values are set to be selectable as checkboxes
                   if (field.checkbox) {
                     // For each entry generate a checkbox
