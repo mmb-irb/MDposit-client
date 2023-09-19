@@ -184,6 +184,27 @@
     "options": false
   },
   {
+    "name": "Sequence",
+    "path": "metadata.SEQUENCES",
+    "type": "string",
+    "example": "VNLTTRT",
+    "options": false
+  },
+  {
+    "name": "Domains",
+    "path": "metadata.DOMAINS",
+    "type": "string",
+    "example": "Receptor-binding domain (RBD)",
+    "options": true
+  },
+  {
+    "name": "Post translational modifications",
+    "path": "metadata.PTM",
+    "type": "string",
+    "example": "Glycosylation",
+    "options": true
+  },
+  {
     "name": "Uniprot id",
     "path": "metadata.REFERENCES",
     "type": "string",
