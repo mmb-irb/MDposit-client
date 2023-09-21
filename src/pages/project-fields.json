@@ -205,6 +205,22 @@
     "options": true
   },
   {
+    "name": "Multimeric form",
+    "path": "metadata.MULTIMERIC",
+    "type": "string",
+    "example": "Dimer",
+    "options": true,
+    "checkbox" : true
+  },
+  {
+    "name": "Type of partner interactions",
+    "path": "metadata.INTERACTIONS.type",
+    "type": "string",
+    "example": "protein-protein",
+    "options": true,
+    "checkbox" : true
+  },
+  {
     "name": "Uniprot id",
     "path": "metadata.REFERENCES",
     "type": "string",
