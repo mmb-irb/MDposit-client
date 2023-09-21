@@ -147,6 +147,7 @@ const getDataURL = (accession, subPage) => {
     case 'hbonds':
     case 'energies':
     case 'pockets':
+    case 'markov':
       end = `analyses/${subPage}`;
       break;
     case 'files':
@@ -159,9 +160,6 @@ const getDataURL = (accession, subPage) => {
     case 'populations':
       end = `files/populations.json`;
       break;
-    case 'markov':
-        end = `files/populations.json`;
-        break;
     default:
       return null; // No button is rendered
   }

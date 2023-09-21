@@ -1366,6 +1366,37 @@ export const documentation = [
           </>
         ),
       },
+      {
+        id: 'markov',
+        header: 'Markov Graph',
+        body: (
+          <>
+            Equilibirum populations are provided by the authors of the Markov State Model ensemble.
+            RMSD matrix reflecting the RMSD value between each pair of states is precalculated.
+            Data includes the 20 most populated states only.
+          </>
+        ),
+        page: (
+          <>
+            This is the Markov graph.
+            <br />
+            <br />
+            States with the highest equilibrium population in the Markov State Model are displayed.
+            Each state is represented by a node with a screenshot of the corresponding structure.
+            Node radii are proportional to their state equilibrium populations.
+            Links between states represent their RMSD similarity.
+            Thickness of each link is an interpolation between the lower (more thick) and higher (less thick)
+            RMSD values among the displayed links.
+            Hover any node to plot its state equilibrium population and corresponding ensemble frame.
+            Click any node to show the state structure in the <a
+              href="/help#/help#ngl-viewer"
+              target="_blank"
+              rel="noreferrer noopener"
+            > molecular viewer</a>.
+            Use the sliders below to change the number of nodes or links to be displayed in the graph.
+          </>
+        ),
+      },
     ],
   },
 
