@@ -22,6 +22,7 @@ const RmsdPairwise = () => {
   // Get the current project data
   const {
     accession,
+    accessionAndMdNumber,
     metadata,
     interactions: defaultInteractions,
     topology: topologyManager,
@@ -37,7 +38,7 @@ const RmsdPairwise = () => {
   const [selectedInteraction, setSelectedInteraction] = useState(0);
 
   // Set the API url for the heatmap data
-  const url = `${BASE_PATH_PROJECTS}/${accession}/analyses/rmsd-pairwise/`;
+  const url = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/rmsd-pairwise/`;
 
   const { loading, payload, error } = useAPI(url);
 

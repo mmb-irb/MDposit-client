@@ -1,4 +1,5 @@
 import React, { useContext, useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   CardContent,
   CardActions,
@@ -34,7 +35,7 @@ const typeSettings = {
 };
 
 export default React.memo(() => {
-  const { accession, identifier, published, metadata, references } = useContext(
+  const { accession, accessionAndMdNumber, identifier, published, metadata, references, mds } = useContext(
     ProjectCtx,
   );
   // Download pdb information for every pdb id in metadata
@@ -97,7 +98,8 @@ export default React.memo(() => {
       {metadata && (
         <Card className={style.card}>
           <CardContent className={style['card-content']}>
-            <Typography variant="h6">{metadata.NAME || 'Unnamed'}</Typography>
+            <a className={style.title}>{metadata.NAME || 'Unnamed'}</a>
+            <a className={style.grey}>({metadata.mdName})</a>
             <div className={style['summary-list']}>
               {metadata.TYPE && (
                 <Chip
@@ -139,6 +141,25 @@ export default React.memo(() => {
                   </div>
                 ))}
             </div>
+          </CardContent>
+        </Card>
+      )}
+      {mds && (
+        <Card className={style.card}>
+          <CardContent className={style['card-content']}>
+            <Typography variant="h6">Available MDs</Typography>
+            {mds.map((mdName, mdIndex) => (
+              <Chip
+                key={mdIndex}
+                title={mdName}
+                className={style.chip}
+                variant="outlined"
+                label={mdName}
+                clickable
+                component={Link}
+                to={{ pathname: `/id/${accession || identifier}.${mdIndex + 1}` }}
+              />
+            ))}
           </CardContent>
         </Card>
       )}

@@ -30,11 +30,11 @@ const cents = num => Math.round(num * 100) / 100;
 
 const Rgyr = () => {
   // Get the current project metadata
-  const { accession, metadata, populations } = useContext(ProjectCtx);
+  const { accession, accessionAndMdNumber, metadata, populations } = useContext(ProjectCtx);
 
   // Send a request to the API with the url of the rgyr analysis
   const { loading, payload, error } = useAPI(
-    `${BASE_PATH_PROJECTS}/${accession}/analyses/rgyr/`,
+    `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/rgyr/`,
   );
 
   // Rgyr analysis comes in nanometers (nm) and we want it in Ångstroms (Å) so we must multuply by 10 all values

@@ -42,7 +42,7 @@ const colors = ['black', 'red', 'orange', 'yellow'];
 
 const Rmsds = () => {
   // Get the metadata
-  const { accession, metadata, analyses, populations } = useContext(ProjectCtx);
+  const { accession, accessionAndMdNumber, metadata, analyses, populations } = useContext(ProjectCtx);
   // Note that TM scores is not mandatory to load this page
   // Actually a simulation with no protein will have no TM score, so it is normal
   const hasTMscore = analyses.includes('tmscores');
@@ -52,7 +52,7 @@ const Rmsds = () => {
     loading: rmsdsLoading,
     payload: rmsdsPayload,
     error: rmsdsError,
-  } = useAPI(`${BASE_PATH_PROJECTS}/${accession}/analyses/rmsds/`);
+  } = useAPI(`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/rmsds/`);
 
   // Send a request to the API with the url of the specific analysis
   const {
@@ -60,7 +60,7 @@ const Rmsds = () => {
     payload: tmscoresPayload,
     error: tmscoresError,
   } = useAPI(
-    hasTMscore ? `${BASE_PATH_PROJECTS}/${accession}/analyses/tmscores/` : null,
+    hasTMscore ? `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/tmscores/` : null,
   );
 
   // Set which tab is selected

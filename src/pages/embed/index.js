@@ -20,21 +20,21 @@ import { Topology } from '../../utils/topology-manager';
 import { useParams } from 'react-router-dom';
 
 const Embed = () => {
-  const { accession } = useParams();
+  const { accession: accessionAndMdNumber } = useParams();
   const [project, setProject] = useState(null);
 
   // Get project data from the API if the current context data is wrong. 'payload' contains the main data.
-  const projectRequest = useAPI(`${BASE_PATH_PROJECTS}/${accession}/`);
+  const projectRequest = useAPI(`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/`);
 
   // Load the structure data form the API
   const pdbData = useNGLFile(
-    `${BASE_PATH_PROJECTS}/${accession}${PATH_MAIN_TOPOLOGY}`,
+    `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}${PATH_MAIN_TOPOLOGY}`,
     // This attribute was included before: defaultRepresentation: false
     { defaultRepresentation: false, ext: 'pdb' },
   );
 
   // Request topology data to the API
-  const topology = useAPI(`${BASE_PATH_PROJECTS}/${accession}/topology`);
+  const topology = useAPI(`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/topology`);
 
   // While loading
   if (projectRequest.loading) return <Loading />;

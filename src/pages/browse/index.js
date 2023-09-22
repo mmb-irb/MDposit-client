@@ -102,6 +102,7 @@ const Row = ({ project, highlight, index }) => {
     metadata,
     analyses,
     files,
+    mds
   } = project;
   // Declare a hook from a type called "useRef"
   const ref = useRef(null);
@@ -134,7 +135,7 @@ const Row = ({ project, highlight, index }) => {
   // Push the populations analysis if we have the populations.json file
   if (
     files &&
-    files.find(file => file.filename === 'populations.json') &&
+    files.find(file => file === 'populations.json') &&
     analyses &&
     !analyses.includes('populations')
   )
@@ -180,9 +181,10 @@ const Row = ({ project, highlight, index }) => {
         >
           <Highlight highlight={highlight}>
             {accession || identifier}
-            {!published && ' (not published)'}
+            {!published && <div>(not published)</div>}
           </Highlight>
         </Link>
+        {mds && <div className={style.small}>{`${mds.length} MDs`}</div>}
       </TableCell>
       {/* name */}
       <TableCell>

@@ -34,6 +34,8 @@ import { ProjectCtx } from '../../../contexts';
 
 import style from './style.module.css';
 
+import Loading from '../../../components/loading';
+
 // Classify files per groups according to their file format
 /*
 const groupPerTypeReducer = (group, file) => {
@@ -86,16 +88,23 @@ const api = [
 ];
 
 export default React.memo(() => {
-  const { identifier, files } = useContext(ProjectCtx);
+  // Load project data
+  const { identifier, fileDescriptors } = useContext(ProjectCtx);
 
-  // const groupedFiles = Object.entries(
-  //   files.reduce(groupPerTypeReducer, newGroup()),
-  // ).filter(([, set]) => set.size);
+  // Send a request to the API with the url of the rgyr analysis
+  const { loading, payload, error } = fileDescriptors;
 
-  const main_structure = files.find(
+  // Render loading or error messages according with the API response
+  if (loading) return <Loading />;
+  else if (error) return error.toString();
+  else if (!payload) return 'Something bad happened with file descriptors';
+
+  // Find the main structure file among file descriptors
+  const main_structure = payload.find(
     file => file.filename === MAIN_STRUCTURE_FILENAME,
   );
-  const main_trajectory = files.find(
+  // Find the main trajectory file among file descriptors
+  const main_trajectory = payload.find(
     file => file.filename === MAIN_TRAJECTORY_FILENAME,
   );
 
@@ -126,8 +135,8 @@ export default React.memo(() => {
               size="large"
               color="primary"
               component="a"
-              href={`${BASE_PATH_PROJECTS}/${identifier}/files/${main_structure.filename}`}
-              download={main_structure.filename}
+              href={`${BASE_PATH_PROJECTS}/${identifier}/files/${MAIN_STRUCTURE_FILENAME}`}
+              download={MAIN_STRUCTURE_FILENAME}
               target="_blank"
             >
               Download
@@ -160,8 +169,8 @@ export default React.memo(() => {
               size="large"
               color="primary"
               component="a"
-              href={`${BASE_PATH_PROJECTS}/${identifier}/files/${main_trajectory.filename}`}
-              download={main_trajectory.filename}
+              href={`${BASE_PATH_PROJECTS}/${identifier}/files/${MAIN_TRAJECTORY_FILENAME}`}
+              download={MAIN_TRAJECTORY_FILENAME}
               target="_blank"
             >
               Download

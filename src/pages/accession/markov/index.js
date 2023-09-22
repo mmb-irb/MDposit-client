@@ -38,7 +38,7 @@ const minLinkWidth = 1;
 const Markov = () => {
 
   // Get the current project metadata
-  const { accession, files } = useContext(ProjectCtx);
+  const { accession, accessionAndMdNumber, files } = useContext(ProjectCtx);
 
   // Set when one point in the graph is selected
   const [selectedFrame, setSelectedFrame] = useState(null);
@@ -51,18 +51,17 @@ const Markov = () => {
 
   // Send a request to the API with the url of the analysis
   const { loading, payload, error } = useAPI(
-    `${BASE_PATH_PROJECTS}/${accession}/analyses/markov/`,
+    `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/markov/`,
   );
 
   // Download all markov screenshots
   // First set the URLs for the API
   const markov_screenshots_urls = useMemo(() => {
     // Find markov screenshot filenames
-    const filenames = files.map(file => file.filename);
-    const markov_screenshot_filenames = filenames.filter(filename => filename.includes('markov_screenshot'));
+    const markov_screenshot_filenames = files.filter(filename => filename.includes('markov_screenshot'));
     // Sort them according to their numeration so they match
     return markov_screenshot_filenames.map(
-      markov_screenshot_filename => `${BASE_PATH_PROJECTS}/${accession}/files/${markov_screenshot_filename}`
+      markov_screenshot_filename => `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/${markov_screenshot_filename}`
     );
   }, [files]);
   // Now perform the API calls

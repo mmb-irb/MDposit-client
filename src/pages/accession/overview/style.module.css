@@ -42,3 +42,13 @@
 .grey {
   color: grey;
 }
+
+/* copy of Typography component */
+.title {
+  font-family: "Roboto","Helvetica","Arial",sans-serif;
+  font-weight: 500;
+  font-size: 1.25rem;
+  line-height: 1.6;
+  letter-spacing: 0.0075em;
+  margin-right: 0.5em;
+}

@@ -27,6 +27,7 @@ const DistPerres = () => {
   // Get the current project data
   const projectData = useContext(ProjectCtx);
   const accession = projectData.accession;
+  const accessionAndMdNumber = projectData.accessionAndMdNumber;
 
   // The interaction to be displayed
   const [selectedInteraction, setSelectedInteraction] = useState(0);
@@ -42,7 +43,7 @@ const DistPerres = () => {
   const [display, setDisplay] = useState('mean');
 
   // Set the API url for the heatmap data
-  const url = `${BASE_PATH_PROJECTS}/${accession}/analyses/dist-perres/`;
+  const url = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/dist-perres/`;
 
   const { loading, payload, error } = useAPI(url);
 

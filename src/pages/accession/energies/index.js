@@ -32,7 +32,7 @@ const getSum = values => {
 
 const Energies = () => {
   // Get the current project data
-  const { accession, topology: topologyManager, interactions } = useContext(
+  const { accession, accessionAndMdNumber, topology: topologyManager, interactions } = useContext(
     ProjectCtx,
   );
 
@@ -41,7 +41,7 @@ const Energies = () => {
 
   // Send a request to the API with the url of the energies analysis
   const { loading, payload, error } = useAPI(
-    `${BASE_PATH_PROJECTS}/${accession}/analyses/energies/`,
+    `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/energies/`,
   );
 
   // The interaction to be displayed

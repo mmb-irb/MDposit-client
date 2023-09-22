@@ -64,3 +64,8 @@
   transform: translate(0px, -9px);
   width: 100px;
 }
+
+.small {
+  color: grey;
+  font-size: small;
+}

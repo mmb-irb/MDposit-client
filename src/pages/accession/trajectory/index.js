@@ -312,8 +312,7 @@ const Analyses = memo(() => {
   // 'chains' is undefined if no chains were loaded in this project
   const {
     chains,
-    accession,
-    identifier,
+    accessionAndMdNumber,
     topology: topologyManager,
   } = useContext(ProjectCtx);
   // Portals create a window where a web page is pre rendered without navigating to
@@ -476,7 +475,7 @@ const Analyses = memo(() => {
                 {/* ChainAnalyses is the main visual asset */}
                 <ChainAnalyses
                   chain={chain}
-                  accession={accession || identifier}
+                  accession={accessionAndMdNumber}
                 />
               </li>
             );

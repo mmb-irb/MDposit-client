@@ -48,9 +48,9 @@ const loadProtVista = () => {
 };
 
 // The result of this function is memoized since it is a heavy work
-const ChainAnalyses = memo(({ chain, accession }) => {
+const ChainAnalyses = memo(({ chain, accessionAndMdNumber }) => {
   const { loading, payload, error } = useAPI(
-    `${BASE_PATH_PROJECTS}/${accession}/chains/${chain}`,
+    `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/chains/${chain}`,
   );
 
   useEffect(() => {

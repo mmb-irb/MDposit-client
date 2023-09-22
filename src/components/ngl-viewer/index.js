@@ -145,7 +145,8 @@ const NGLViewer = memo(
       // data from context
       const {
         accession,
-        files,
+        accessionAndMdNumber,
+        fileDescriptors,
         curatedOrientation,
         topology: topologyManager,
         references: referenceData,
@@ -358,6 +359,13 @@ const NGLViewer = memo(
       // If the component is not the main component and has no frame specified, use the first frame
       // Only the main component (the first) is allowed to load multiple frames by the moment
       useMemo(() => {
+        // Send a request to the API with the url of the rgyr analysis
+        const { loading, payload, error } = fileDescriptors;
+        // If we do not have file descritors yet then stop here
+        if (loading) return;
+        // Throw it in case something went wrong with the donwload
+        else if (error) throw error;
+        else if (!payload) throw new Error('Something bad happened with file descriptors');
         // Finally update the trajectories state
         setRequestedTrajectories(currentTrajectories => {
           // Save the new requetsed trajectories
@@ -367,7 +375,7 @@ const NGLViewer = memo(
           // Here, if you ask for the trajectory.bin instead of just trajectory, you get the whole file
           // This is because the only route of the API accepting frames selection is the "trajectory" endpoint
           // Other paths such as "trajectory.bin" will be processed as "/:files"
-          const baseUrl = `${BASE_PATH_PROJECTS}/${accession}/files/trajectory`;
+          const baseUrl = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/trajectory`;
 
           comps.forEach((comp, c) => {
             if (comp.onlyTopology) return;
@@ -396,15 +404,15 @@ const NGLViewer = memo(
               if (trajectoryFilename === 'trajectory')
                 trajectoryFilename = 'trajectory.bin';
 
-              // Get the 'files' summary of the required trajectory
-              const trajectoryFile = files.find(file => {
+              // Get the file descriptor of the required trajectory
+              const trajectoryFileDescriptor = payload.find(file => {
                 return file.filename === trajectoryFilename;
               });
-              if (!trajectoryFile)
+              if (!trajectoryFileDescriptor)
                 throw new Error(
                   `Trajectory "${trajectoryFilename}" is missing`,
                 );
-              const trajectoryMetadata = trajectoryFile.metadata;
+              const trajectoryMetadata = trajectoryFileDescriptor.metadata;
 
               // Get the number of frames in the whole trajectory
               const trajectoryFrames = trajectoryMetadata.frames;
@@ -481,7 +489,7 @@ const NGLViewer = memo(
           // Otherwise we return the previous array to do no trigger dependencies
           return currentTrajectories;
         });
-      }, [accession, comps, files, requestedFramesNumber]);
+      }, [accession, comps, fileDescriptors, requestedFramesNumber]);
 
       // Set a state to store trajectories data
       const [trajectories, setTrajectories] = useState([]);

@@ -125,7 +125,7 @@ const pageComponents = {
   files: Files,
 };
 
-const getDataURL = (accession, subPage) => {
+const getDataURL = (accessionAndMdNumber, subPage) => {
   // First, few modifications muts be done over the client URL path to be compatible with the API
   let end;
   switch (subPage) {
@@ -163,17 +163,16 @@ const getDataURL = (accession, subPage) => {
     default:
       return null; // No button is rendered
   }
-  return `${BASE_PATH}current/projects/${accession}/${end}`;
+  return `${BASE_PATH}current/projects/${accessionAndMdNumber}/${end}`;
 };
 
 // Render the accession summary
 const SummarySwitch = ({ subPage, dataUrl }) => {
   // Load the project context
   const project = useContext(ProjectCtx);
-  const accession = project.accession || project.identifier;
   // Load the structure data from the API
   const pdbData = useNGLFile(
-    `${BASE_PATH_PROJECTS}/${accession}${PATH_MAIN_TOPOLOGY}`,
+    `${BASE_PATH_PROJECTS}/${project.accessionAndMdNumber}${PATH_MAIN_TOPOLOGY}`,
     // This attribute was included before: defaultRepresentation: false
     { defaultRepresentation: false, ext: 'pdb' },
   );
@@ -218,14 +217,14 @@ const SummarySwitch = ({ subPage, dataUrl }) => {
 };
 
 // Render a button which links to the API
-const LinkSwitch = ({ accession, subPage }) => {
-  const jsonURL = getDataURL(accession, subPage);
+const LinkSwitch = ({ accessionAndMdNumber, subPage }) => {
+  const jsonURL = getDataURL(accessionAndMdNumber, subPage);
   if (!jsonURL) return null;
   return (
     <Button
       component={Link}
       target="_blank"
-      to={`/id/${accession}/${subPage}/json`}
+      to={`/id/${accessionAndMdNumber}/${subPage}/json`}
       className={style['link-to-api']}
     >
       <FontAwesomeIcon icon={faBook} />
@@ -234,34 +233,42 @@ const LinkSwitch = ({ accession, subPage }) => {
   );
 };
 
+// Set a function to see if project data matches the one requested
+const checkProjectDataUpdated = (projectData, requestedAccession, requestedMdNumber) => {
+  // Check accesions match
+  if (!projectData) return false;
+  if (projectData.accession !== requestedAccession && projectData.identifier !== requestedAccession) return false;
+  // If the project has not mds at all the we are good
+  if (!projectData.mdNumber) return true;
+  // Otherwise we must check MD numbers match
+  const requiredMdNumber = requestedMdNumber !== null ? requestedMdNumber : projectData.mdref + 1;
+  if (projectData.mdNumber !== requiredMdNumber) return false;
+  return true;
+};
+
 export default () => {
   // Get the location and the parameters
   const location = useLocation();
   // Get the project accession according to the URL
   // Get the actual page where the user is going according to the URL
-  const { accession, page } = useParams();
+  const { accession: accessionAndMdNumber, page } = useParams();
+  const accessionSplits = accessionAndMdNumber.split('.');
+  const accession = accessionSplits[0];
+  const mdNumber = accessionSplits.length > 1 ? +accessionSplits[1] : null;
   // Set a state to store the current project data
   const [project, setProject] = useState(null);
   // Set the current project data according to the requested accession
   let updatedProjectData = false;
   // Check the if the state project data matches the current accession
   // If so, set the state project data as the current project data
-  if (
-    project &&
-    (project.accession === accession || project.identifier === accession)
-  )
-    updatedProjectData = true;
+  updatedProjectData = checkProjectDataUpdated(project, accession, mdNumber);
   // In case we are still missing the current project data, check if we have some project data in the location state
   // This may happen when we come from the browser: the selected project data is passed through the state
   // This way we do not have to query again for it
   // If the state project data matches the current accession then set it as the current project data
   if (!updatedProjectData) {
     const stateProjectData = location.state && location.state.projectData;
-    if (
-      stateProjectData &&
-      (stateProjectData.accession === accession ||
-        stateProjectData.identifier === accession)
-    ) {
+    if (checkProjectDataUpdated(stateProjectData, accession, mdNumber)) {
       // Save the current project data as the state project data and stop here
       const newProject = new Project(stateProjectData);
       setProject(newProject);
@@ -272,7 +279,7 @@ export default () => {
   // Thus setting the url as null is a workaround to not perform the query
   const projectURL = updatedProjectData
     ? null
-    : `${BASE_PATH_PROJECTS}/${accession}/`;
+    : `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/`;
   const projectQuery = useAPI(projectURL);
   // Make some modifications to the project data once loaded
   useMemo(() => {
@@ -284,16 +291,16 @@ export default () => {
   }, [project]);
   // Now request the API for additional
   // Request to API the references data
-  const references = useAPI(`${BASE_PATH_PROJECTS}/${accession}/references`);
+  const references = useAPI(`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/references`);
   // DANI: No toda esta información es necesaria desde el principio, hay que reconsiderar
   // Request topology data to the API
-  const topology = useAPI(`${BASE_PATH_PROJECTS}/${accession}/topology`);
+  const topology = useAPI(`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/topology`);
   // Request interactions data to the API in case there are interactions in this project
   const projectInteractions = project && project.metadata.INTERACTIONS;
   const thereAreInteractions =
     projectInteractions && projectInteractions.length > 0;
   const interactionsURL = thereAreInteractions
-    ? `${BASE_PATH_PROJECTS}/${accession}/analyses/interactions`
+    ? `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/interactions`
     : null;
   const interactions = useAPI(interactionsURL);
   // If we are waiting for the API response...
@@ -328,6 +335,7 @@ export default () => {
   // This class contains several functions for topology data managment and it is widely use among the different pages
   const topologyManager = new Topology(topology.payload, project.metadata);
   // Instead of creating a new context for some of the downloaded data, we include it in the project context
+  project.accessionAndMdNumber = accessionAndMdNumber;
   project.topology = topologyManager;
   project.interactions = interactions.payload;
   project.references = references.payload;
@@ -353,16 +361,16 @@ export default () => {
   const fullpath = location.pathname;
   const isJson = fullpath.substr(fullpath.length - 5) === '/json';
   // Set the API URL to obtain the corresponding web page data
-  const dataUrl = getDataURL(accession, page);
+  const dataUrl = getDataURL(accessionAndMdNumber, page);
   // Return the accession routes
   return (
     // Set the project context, which is used by different scripts including this
     <ProjectCtx.Provider value={project}>
-      <ProjectMenu accession={accession} subPage={page} />
+      <ProjectMenu accessionAndMdNumber={accessionAndMdNumber} subPage={page} />
       <span className={style.container}>
         {/* Render the accession */}
         <Typography variant="h6" className={style.title}>
-          {accession} - {NICE_NAMES.get(page) || page}
+          {accessionAndMdNumber} - {NICE_NAMES.get(page) || page}
           {isJson ? ' (raw data)' : ''}
           {!isJson && doc && doc.page && (
             <Info tooltip={tooltip} className={style.info} />
@@ -379,7 +387,7 @@ export default () => {
             &nbsp;REST API
           </Button>
         ) : (
-          <LinkSwitch accession={accession} subPage={page} />
+          <LinkSwitch accession={accessionAndMdNumber} subPage={page} />
         )}
       </span>
       {/* Load the main data summary */}
@@ -392,7 +400,7 @@ export default () => {
 class Project {
   constructor(projectPayload) {
     // Replicate all payload values in the project object
-    // This includes values such as metadata, files index, accesion, etc.
+    // This includes values such as metadata, files index, accession, etc.
     Object.entries(projectPayload).forEach(([key, value]) => {
       this[key] = value;
     });
@@ -401,12 +409,24 @@ class Project {
     this.interactions = null;
     this.references = null;
     this._populations = null;
+    this._fileDescriptors = null;
     // Calculate a few internal things
     // Check if the populations file is found in the files index
     this.isPopulated = Boolean(
-      this.files &&
-        this.files.find(file => file.filename === 'populations.json'),
+      this.files && this.files.find(filename => filename === 'populations.json'),
     );
+  }
+  // File descriptors getter
+  get fileDescriptors() {
+    // Set the populations file request URL
+    let url = `${BASE_PATH_PROJECTS}/${this.accession}/files?descriptor`;
+    // Request populations only if we do not have it already
+    if (this._fileDescriptors && this._fileDescriptors.payload) url = null;
+    // Do the API query but save the result only if the url is not null
+    // Note that if url is null from the first render (i.e. there are no poluations at all) its value will be null
+    const query = useAPI(url);
+    if (url !== null) this._fileDescriptors = query;
+    return this._fileDescriptors;
   }
   // Populations getter (populated ensembles only)
   // Populations are requested only when this variable is read for the first time

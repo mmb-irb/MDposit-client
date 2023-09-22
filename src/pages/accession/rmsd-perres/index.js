@@ -58,6 +58,7 @@ const RmsdPerres = () => {
   // Get the current project data
   const {
     accession,
+    accessionAndMdNumber,
     metadata,
     topology: topologyManager,
     populations,
@@ -73,7 +74,7 @@ const RmsdPerres = () => {
 
   // Send a request to the API with the url of the specific analysis
   const { loading, payload, error } = useAPI(
-    `${BASE_PATH_PROJECTS}/${accession}/analyses/rmsd-perres/`,
+    `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/rmsd-perres/`,
   );
 
   // Set when one point in the graph is selected
@@ -184,7 +185,7 @@ const RmsdPerres = () => {
       xTooltip = xValue => +xValue.toFixed(2) + ' ns';
     }
     // Load the required frames from the main trajectory
-    const mainURL = `${BASE_PATH_PROJECTS}/${accession}/files/trajectory?frames=1:${trajectoryFrameCount}:${frameStep}`;
+    const mainURL = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/trajectory?frames=1:${trajectoryFrameCount}:${frameStep}`;
     const mainComponent = [
       {
         trajectoryURLs: [mainURL],

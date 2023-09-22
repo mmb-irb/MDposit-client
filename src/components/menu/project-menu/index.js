@@ -36,7 +36,7 @@ const hasEpitopes = referenceId => {
 
 // Render the menu of the project (i.e. the inferior header)
 // It only appears when the user is inside a project
-const ProjectMenu = ({ accession, subPage }) => {
+const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
   // Get the current project metadata
   // WARNING: context may be missing in the first renders
   const { metadata, analyses, files } = useContext(ProjectCtx) || {
@@ -210,7 +210,7 @@ const ProjectMenu = ({ accession, subPage }) => {
       tabs[2].drops[3].analyses.push({
         name: NICE_NAMES.get('populations'),
         dir: 'populations',
-        cond: files && files.find(file => file.filename === 'populations.json'),
+        cond: files && files.find(file => file === 'populations.json'),
       });
       tabs[2].drops[3].analyses.push({
         name: NICE_NAMES.get('markov'),
@@ -253,7 +253,7 @@ const ProjectMenu = ({ accession, subPage }) => {
             <Tab
               key={index}
               component={Link}
-              to={`/id/${accession}/${tab.dir}`}
+              to={`/id/${accessionAndMdNumber}/${tab.dir}`}
               label={tab.name}
               value={tab.dir}
               className={style['tab-link']}
@@ -305,10 +305,10 @@ const ProjectMenu = ({ accession, subPage }) => {
                                     key={a}
                                     onClick={() => handleClose(index)}
                                     component={Link}
-                                    to={`/id/${accession}/${analysis.dir}`}
+                                    to={`/id/${accessionAndMdNumber}/${analysis.dir}`}
                                     style={
                                       isCurrent(
-                                        `/id/${accession}/${analysis.dir}`,
+                                        `/id/${accessionAndMdNumber}/${analysis.dir}`,
                                       )
                                         ? {
                                             color: secondaryColor,
