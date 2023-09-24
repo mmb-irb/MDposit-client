@@ -983,6 +983,7 @@ const NGLViewer = memo(
 
       // Highlight specific atoms
       useEffect(() => {
+        if (!topologyManager) return;
         // DANI: He tenido que quitar la condicion de 'instanceof Set' porque sino no me entraba en el heatmap
         //if (!pdbFile || !(selectedAtoms instanceof Set) || !(selectedAtoms)) {
         if (!isFirstCompStaged || !selectedAtoms) {
@@ -1059,7 +1060,7 @@ const NGLViewer = memo(
 
       // Highlight specific residues
       useEffect(() => {
-        if (!isFirstCompStaged || !selectedResidueIndices) return;
+        if (!topologyManager || !isFirstCompStaged || !selectedResidueIndices) return;
         // Set a representation name. This is useful to find this representation further
         const nameHighlight = '*highlightedResidues';
         const previousHighlightRepresentation = stageRef.current.compList[0].reprList.find(
@@ -1556,6 +1557,7 @@ const NGLViewer = memo(
       // It is run just once but some parts inside keep running on change events
       // listen to change event from nightingale component
       useEffect(() => {
+        if (!topologyManager) return;
         const handler = ({ detail }) => {
           // escape case for event listener
           if (
@@ -1643,7 +1645,7 @@ const NGLViewer = memo(
 
       // Customize the NGL tooltip
       useEffect(() => {
-        if (!topologyManager) return;
+        if (!topologyManager || !referenceData) return;
         // Set a new tooltip
         const tooltip = tooltipRef.current;
         // WARNING: The following line is dangerous since you are manipulating the DOM outside of React
@@ -1670,8 +1672,8 @@ const NGLViewer = memo(
           const reference = topologyManager.absolute2reference(
             atom.residueIndex,
           );
-          const currentReferenceData =
-            reference && referenceData.find(r => r.uniprot === reference.id);
+          const currentReferenceData = reference &&
+            referenceData.find(r => r.uniprot === reference.id);
           const referenceName =
             reference && currentReferenceData && currentReferenceData.name;
           return (

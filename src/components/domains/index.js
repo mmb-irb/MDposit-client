@@ -27,9 +27,9 @@ const Domains = ({ setter }) => {
   // Get the current project data
   const {
     metadata,
-    references: referenceData,
-    topology: topologyManager,
-    interactions,
+    references,
+    topology,
+    interactions
   } = useContext(ProjectCtx);
 
   // Set the first domain (the overall) as the default selected domain
@@ -63,6 +63,7 @@ const Domains = ({ setter }) => {
   //    },
   // ]
   const domains = useMemo(() => {
+    if (!topology) return;
     // Set the overall domain
     const overallDomain = {
       name: 'Overall',
@@ -90,7 +91,7 @@ const Domains = ({ setter }) => {
           if (current) return;
           const {
             rangedSelection: nglSelection,
-          } = topologyManager.absoluteSelectionToNgl(agent.residues);
+          } = topology.absoluteSelectionToNgl(agent.residues);
           interactionDomains.push({
             name: agent.name,
             representations: [
@@ -107,8 +108,8 @@ const Domains = ({ setter }) => {
     // Get domains from topology references
     // Skip those whose name matches with an interacting agent or custom domain
     const referenceDomains = [];
-    if (referenceData) {
-      referenceData.forEach(reference => {
+    if (references) {
+      references.forEach(reference => {
         const referenceId = reference.uniprot;
         // Collect all domains in reference data
         let referenceDataDomains = [];
@@ -142,7 +143,7 @@ const Domains = ({ setter }) => {
             const selection = representation.selection;
             const parsedSelection = rangedSelectionParser(selection);
             // WARNING: A single reference residue may correspond to multiple topology residues
-            const mappedSelection = topologyManager.reference2absolute(
+            const mappedSelection = topology.reference2absolute(
               referenceId,
               parsedSelection,
             );
@@ -153,7 +154,7 @@ const Domains = ({ setter }) => {
             const {
               rangedSelection: nglSelection,
               small,
-            } = topologyManager.absoluteSelectionToNgl(mappedSelection);
+            } = topology.absoluteSelectionToNgl(mappedSelection);
             const newRepresentation = { ...representation };
             newRepresentation.selection = nglSelection;
             // parsedSelectionRanger returns 'small' = true when there are series of 3 residues or less
@@ -209,14 +210,14 @@ const Domains = ({ setter }) => {
     defaultRepresentations,
     mutationsRepresentation,
     epitopesRepresentation,
-    topologyManager,
-    referenceData,
+    topology,
+    references,
     interactions,
   ]);
 
   // Add the selected domain (if any) configuration to the viewer
   useEffect(() => {
-    if (!domains) return {};
+    if (!domains) return;
     const currentSelectedDomain = domains[selectedDomain];
     const currentSelectedRepresentations = currentSelectedDomain.representations.map(
       rep => {
@@ -257,6 +258,9 @@ const Domains = ({ setter }) => {
     const initialFocus = { comp: 0, sele: focusSelection };
     setter({ representations, initialFocus });
   }, [domains, selectedDomain, overlapedDomain, setter]);
+
+  // If project data is still loading then stop here
+  if (!domains) return <Loading />;
 
   return (
     <Suspense fallback={<Loading />}>

@@ -12,14 +12,15 @@ const greyColorPlan = ['grey', 'yellow', 'red'];
 
 // Use this hook to get the memoized NGL default representations
 const useMutationsRepresentations = () => {
-  // Get the topology data
-  const { topology: topologyManager, references: referenceData } = useContext(
-    ProjectCtx,
-  );
+  // Get project data
+  const {
+    topology: topologyManager,
+    references: referenceData
+  } = useContext(ProjectCtx);
 
   // Set the representations for the NGL viewer
   const mutationRepresentations = useMemo(() => {
-    if (!referenceData) return;
+    if (!topologyManager || !referenceData) return;
     // Check that at least 1 of the references has entropies
     const anyReferenceMutations = referenceData.some(
       reference => !!reference.entropies,

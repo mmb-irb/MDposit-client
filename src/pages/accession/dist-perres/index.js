@@ -25,9 +25,7 @@ const heatmapMaximumColor = { r: 255, g: 0, b: 0 };
 // Distance per residue analysis
 const DistPerres = () => {
   // Get the current project data
-  const projectData = useContext(ProjectCtx);
-  const accession = projectData.accession;
-  const accessionAndMdNumber = projectData.accessionAndMdNumber;
+  const { accessionAndMdNumber, topology, interactions } = useContext(ProjectCtx);
 
   // The interaction to be displayed
   const [selectedInteraction, setSelectedInteraction] = useState(0);
@@ -57,8 +55,7 @@ const DistPerres = () => {
     isReduced,
   } = useMemo(() => {
     // Return if the payload is not ready
-    if (loading || error || !payload) return {};
-    const { topology: topologyManager, interactions } = projectData;
+    if (loading || error || !payload || !topology || !interactions) return {};
 
     // Get the selected interaction
     const interaction = interactions[selectedInteraction];
@@ -161,7 +158,7 @@ const DistPerres = () => {
     // Convert the residues from topology numeration to standard numeration to use them as labels
     const [xLabels, yLabels] = [residuesX, residuesY].map(residues =>
       residues.map(residue => {
-        const { label } = topologyManager.absolute2standard(residue);
+        const { label } = topology.absolute2standard(residue);
         return label;
       }),
     );
@@ -185,7 +182,8 @@ const DistPerres = () => {
     loading,
     error,
     payload,
-    projectData,
+    topology,
+    interactions,
     selectedInteraction,
     selectedResidues,
     display,
@@ -198,9 +196,9 @@ const DistPerres = () => {
     residue => {
       // We must check the residue has an alpha carbon
       // If not, there is no atom to use a distance reference, so return null
-      const hasCA = projectData.topology.residueHasCAlpha(residue);
+      const hasCA = topology.residueHasCAlpha(residue);
       // Set the numeration
-      const source = projectData.topology.absolute2sourceResidue(residue);
+      const source = topology.absolute2sourceResidue(residue);
       return {
         forResidue: residue,
         forDistance: hasCA
@@ -208,7 +206,7 @@ const DistPerres = () => {
           : null,
       };
     },
-    [projectData],
+    [topology],
   );
 
   // Memoize heatmap handler functions
@@ -241,7 +239,7 @@ const DistPerres = () => {
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
 
-  if (!projectData) return <Loading />;
+  if (!topology || !interactions) return <Loading />;
 
   // Handles when the tabs are switched
   const handleTabs = (event, newValue) => {
@@ -255,7 +253,7 @@ const DistPerres = () => {
         <CardContent className={style.horizontal}>
           <Typography variant="h6">Residues selection:</Typography>
           <InteractionSelector
-            interactions={projectData.interactions}
+            interactions={interactions}
             selectedInteraction={selectedInteraction}
             setSelectedInteraction={setSelectedInteraction}
             selectedResidues={selectedResidues}
@@ -304,7 +302,7 @@ const DistPerres = () => {
         newViewer={
           selected
             ? {
-                accession: accession,
+                accession: accessionAndMdNumber,
                 selectedResidueIndices: selected.residues,
                 // WARNING: Distance is not always available
                 // This only works when both residues have alpha carbon

@@ -15,6 +15,8 @@ import style from './style.module.css';
 
 import { BASE_PATH_PROJECTS, PATH_MAIN_TOPOLOGY } from '../../utils/constants';
 
+// Load the project class
+import { Project } from '../../utils/project-manager';
 // Load the topology class
 import { Topology } from '../../utils/topology-manager';
 import { useParams } from 'react-router-dom';
@@ -43,7 +45,7 @@ const Embed = () => {
   if (!projectRequest.payload) return null;
 
   // Set the final project data to be loaded in context
-  const projectData = projectRequest.payload;
+  const projectData = new Project(projectRequest.payload);
   if (!project) {
     setProject(projectData);
     return;
@@ -53,21 +55,11 @@ const Embed = () => {
   else if (pdbData.error) return pdbData.error.toString();
   else if (!pdbData.file) return 'Something bad happened with the pdb data';
 
-  if (topology.loading) return <Loading />;
-  else if (topology.error) return topology.error.toString();
-  else if (!topology.payload) return 'Something bad happened with the topology';
-
   // Make some modifications to the project data once loaded
   // If accession is missing then set the identifier as the accession
   if (!project.accession) project.accession = project.identifier;
   // Order chain indices by alphabetic number when we have new project data
   if (project.chains) project.chains.sort();
-
-  // Setup the topology
-  // This class contains several functions for topology data managment and it is widely use among the different pages
-  const topologyManager = new Topology(topology.payload, projectData.metadata);
-  // This class is added to the project context
-  projectData.topology = topologyManager;
 
   return (
     <ErrorBoundary>

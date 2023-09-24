@@ -133,6 +133,7 @@ const ResidueSelector = ({
   // Add events to manage when the mouse hovers / outs / clicks on residues
   useEffect(() => {
     const manager = document.getElementById('manager');
+    if (!manager) return;
     const handleMouseOver = event => {
       const residue = event.target;
       if (residue.lang !== 'residue') return;
@@ -228,6 +229,9 @@ const ResidueSelector = ({
     setSelectedResidues([]);
     if (onClean) onClean();
   };
+
+  // If topology data is not yet loaded then wait
+  if (!topologyManager) return;
 
   // Render
   return (

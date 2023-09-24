@@ -8,15 +8,15 @@ import { nglSelection2absolute } from '../../../utils/topology-manager';
 // Use this hook to get the memoized NGL default representations
 const useDefaultRepresentations = () => {
   // Get the current project metadata and chains
-  const projectData = useContext(ProjectCtx);
+  const { chains, metadata, topology } = useContext(ProjectCtx);
   // Get current structure
   const { file: structure } = useContext(PdbCtx);
   //console.log(structure.residueMap.get(0).isCg());
   // Set the chains to be represented in the NGL viewer by default
   // WARNING: This is experimental and may have some bugs
   const defaultRepresentations = useMemo(() => {
+    if (!topology) return [];
     const reps = [];
-    const { chains, metadata, topology: topologyManager } = projectData;
     const ligands = metadata && metadata.LIGANDS;
     if (metadata && chains) {
       const chainnames = metadata.CHAINNAMES;
@@ -92,7 +92,7 @@ const useDefaultRepresentations = () => {
 
     // Add a representation for ions in spacefill in case there are residues with 1 atom
     const singleAtomIndices = []
-    topologyManager.residueAtomIndices.forEach(atomIndices => {
+    topology.residueAtomIndices.forEach(atomIndices => {
       if (atomIndices.length > 1) return;
       singleAtomIndices.push(atomIndices[0]);
     })
@@ -120,7 +120,7 @@ const useDefaultRepresentations = () => {
       );
       representedResidues.push(...residues);
     });
-    const residuesCount = topologyManager.getResiduesCount();
+    const residuesCount = topology.getResiduesCount();
     const nonRepresentedResidues = [];
     for (let i = 0; i < residuesCount; i++) {
       if (representedResidues.indexOf(i) === -1) nonRepresentedResidues.push(i);
@@ -128,7 +128,7 @@ const useDefaultRepresentations = () => {
     if (nonRepresentedResidues.length > 0) {
       const {
         rangedSelection: otherSelection,
-      } = topologyManager.absoluteSelectionToNgl(nonRepresentedResidues);
+      } = topology.absoluteSelectionToNgl(nonRepresentedResidues);
       reps.push({
         name: 'Other',
         selection: otherSelection,
@@ -139,7 +139,7 @@ const useDefaultRepresentations = () => {
     }
 
     return reps;
-  }, [projectData, structure]);
+  }, [chains, metadata, topology, structure]);
 
   return defaultRepresentations;
 };

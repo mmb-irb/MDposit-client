@@ -21,8 +21,8 @@ import { docs } from '../help/documentation';
 // Load the 3 contexts
 import { ProjectCtx, PdbCtx } from '../../contexts';
 
-// Load the topology class
-import { Topology } from '../../utils/topology-manager';
+// Load the project class
+import { Project } from '../../utils/project-manager';
 
 // Constants
 import {
@@ -289,20 +289,6 @@ export default () => {
     // Order chain indices by alphabetic number when we have new project data
     if (project.chains) project.chains.sort();
   }, [project]);
-  // Now request the API for additional
-  // Request to API the references data
-  const references = useAPI(`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/references`);
-  // DANI: No toda esta información es necesaria desde el principio, hay que reconsiderar
-  // Request topology data to the API
-  const topology = useAPI(`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/topology`);
-  // Request interactions data to the API in case there are interactions in this project
-  const projectInteractions = project && project.metadata.INTERACTIONS;
-  const thereAreInteractions =
-    projectInteractions && projectInteractions.length > 0;
-  const interactionsURL = thereAreInteractions
-    ? `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/interactions`
-    : null;
-  const interactions = useAPI(interactionsURL);
   // If we are waiting for the API response...
   if (!updatedProjectData) {
     // If we are still waiting for the API then stop here
@@ -315,30 +301,8 @@ export default () => {
     const newProject = new Project(projectQuery.payload);
     setProject(newProject);
   }
-  // Wait for API requests to send the response
-  if (references.loading) return <Loading />;
-  else if (references.error)
-    return references.error.toString() + ' (in references)';
-  else if (!references.payload)
-    return 'Something bad happened with the references data';
-  if (topology.loading) return <Loading />;
-  else if (topology.error) return topology.error.toString() + ' (in topology)';
-  else if (!topology.payload)
-    return 'Something bad happened with the topology data';
-  if (interactions.loading) return <Loading />;
-  else if (interactions.error)
-    return interactions.error.toString() + ' (in interactions)';
-  else if (thereAreInteractions && !interactions.payload)
-    return 'Something bad happened with the interactions data';
-  if (!project) return; // Should not happen, but sometimes...
-  // Setup the topology
-  // This class contains several functions for topology data managment and it is widely use among the different pages
-  const topologyManager = new Topology(topology.payload, project.metadata);
-  // Instead of creating a new context for some of the downloaded data, we include it in the project context
-  project.accessionAndMdNumber = accessionAndMdNumber;
-  project.topology = topologyManager;
-  project.interactions = interactions.payload;
-  project.references = references.payload;
+  // Should not happen, but sometimes...
+  if (!project) return;
   // Set the footer line for the help tooltip
   const doc = docs.find(doc => doc.id === page); // doc may not exist
   const tooltip = doc && doc.page && (
@@ -395,53 +359,3 @@ export default () => {
     </ProjectCtx.Provider>
   );
 };
-
-// Set the project class
-class Project {
-  constructor(projectPayload) {
-    // Replicate all payload values in the project object
-    // This includes values such as metadata, files index, accession, etc.
-    Object.entries(projectPayload).forEach(([key, value]) => {
-      this[key] = value;
-    });
-    // Set some empty internal variables whose value is requested/calculated and stored on demand
-    this.topology = null;
-    this.interactions = null;
-    this.references = null;
-    this._populations = null;
-    this._fileDescriptors = null;
-    // Calculate a few internal things
-    // Check if the populations file is found in the files index
-    this.isPopulated = Boolean(
-      this.files && this.files.find(filename => filename === 'populations.json'),
-    );
-  }
-  // File descriptors getter
-  get fileDescriptors() {
-    // Set the populations file request URL
-    let url = `${BASE_PATH_PROJECTS}/${this.accession}/files?descriptor`;
-    // Request populations only if we do not have it already
-    if (this._fileDescriptors && this._fileDescriptors.payload) url = null;
-    // Do the API query but save the result only if the url is not null
-    // Note that if url is null from the first render (i.e. there are no poluations at all) its value will be null
-    const query = useAPI(url);
-    if (url !== null) this._fileDescriptors = query;
-    return this._fileDescriptors;
-  }
-  // Populations getter (populated ensembles only)
-  // Populations are requested only when this variable is read for the first time
-  // Then populations are stored so there is no need to repeat the query again
-  get populations() {
-    // Set the populations file request URL
-    let url = `${BASE_PATH_PROJECTS}/${this.accession}/files/populations.json`;
-    // Request populations only if it is available
-    if (!this.isPopulated) url = null;
-    // Request populations only if we do not have it already
-    if (this._populations && this._populations.payload) url = null;
-    // Do the API query but save the result only if the url is not null
-    // Note that if url is null from the first render (i.e. there are no poluations at all) its value will be null
-    const query = useAPI(url);
-    if (url !== null) this._populations = query;
-    return this._populations;
-  }
-}

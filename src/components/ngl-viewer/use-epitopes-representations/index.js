@@ -5,19 +5,19 @@ import { ProjectCtx } from '../../../contexts';
 // Use this hook to get the memoized NGL default representations
 const useEpitopesRepresentations = () => {
   // Get the current project data
-  const { references: referenceData, topology: topologyManager } = useContext(
+  const { references, topology } = useContext(
     ProjectCtx,
   );
   // Set the representations for the NGL viewer
   const epitopesRepresentations = useMemo(() => {
-    if (!referenceData) return;
+    if (!references || !topology) return [];
     // Check that at least 1 of the references has epitopes
-    const anyReferenceEpitopes = referenceData.some(
+    const anyReferenceEpitopes = references.some(
       reference => !!reference.epitopes,
     );
-    if (!anyReferenceEpitopes) return;
+    if (!anyReferenceEpitopes) return [];
     // Get the residues on each reference epitopes in the current topology numeration
-    const mappedResiduesPerReference = referenceData.map(reference => {
+    const mappedResiduesPerReference = references.map(reference => {
       // Get the reference name and epitopes
       const referenceId = reference.uniprot;
       const referenceEpitopes = reference.epitopes;
@@ -28,7 +28,7 @@ const useEpitopesRepresentations = () => {
       );
       const allResidues = [].concat.apply([], epitopeResidues);
       const uniqueResidues = Array.from(new Set(allResidues));
-      const mappedResidues = topologyManager.reference2absolute(
+      const mappedResidues = topology.reference2absolute(
         referenceId,
         uniqueResidues,
       );
@@ -42,7 +42,7 @@ const useEpitopesRepresentations = () => {
     );
     // Transform mapped residues, which comes in absolute numeration, to the source format
     // The source numeration is compatible with NGL once parsed
-    const { rangedSelection, small } = topologyManager.absoluteSelectionToNgl(
+    const { rangedSelection, small } = topology.absoluteSelectionToNgl(
       allMappedResidues,
     );
     const reps = [
@@ -54,7 +54,7 @@ const useEpitopesRepresentations = () => {
       },
     ];
     return reps;
-  }, [topologyManager, referenceData]);
+  }, [topology, references]);
 
   return epitopesRepresentations;
 };

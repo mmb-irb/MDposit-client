@@ -37,7 +37,7 @@ const Electrostatic = () => {
   const viewerRef = useRef(null);
 
   // Get the current project data
-  const projectData = useContext(ProjectCtx);
+  const { topology, interactions } = useContext(ProjectCtx);
 
   // The interaction to be displayed
   const [selectedInteraction, setSelectedInteraction] = useState(0);
@@ -50,10 +50,9 @@ const Electrostatic = () => {
 
   // Set the representations for the NGL viewer
   const { representations, initialFocus } = useMemo(() => {
-    if (!projectData) return {};
-    const { topology: topologyManager, interactions } = projectData;
+    if (!topology || !interactions) return {};
     // In case there are charges, use them to create a color scale to pain the surface area
-    const charges = topologyManager.atomCharges;
+    const charges = topology.atomCharges;
     let colorScheme;
     if (charges) {
       // Set the color scale according to the maximum and minimum values
@@ -87,7 +86,7 @@ const Electrostatic = () => {
       interaction.interface_indices_2,
     ].map(interf =>
       interf.map(
-        res => topologyManager.absolute2sourceResidue(res).nglSelection,
+        res => topology.absolute2sourceResidue(res).nglSelection,
       ),
     );
 
@@ -132,7 +131,7 @@ const Electrostatic = () => {
     const initialFocus = { comp: 0, sele: wholeInterface.join(' or ') };
 
     return { representations, initialFocus };
-  }, [projectData, defaultRepresentations, selectedInteraction]);
+  }, [topology, interactions, defaultRepresentations, selectedInteraction]);
 
   // Update representations type and color when the selected order changes
   useEffect(() => {
@@ -157,15 +156,15 @@ const Electrostatic = () => {
     });
   }, [representations, selectedOrder]);
 
-  if (!projectData) return <Loading />;
+  // If data is loaded but there are no interactions
+  if (!interactions || interactions.length === 0)
+  return 'There are no interactions';
+
+  if (!topology || !interactions) return <Loading />;
 
   const handleToggleOrder = () => {
     setSelectedOrder(previous => !previous);
   };
-
-  const interactions = projectData.interactions;
-  if (!interactions || interactions.length === 0)
-    return 'There are no interactions';
 
   return (
     <>
