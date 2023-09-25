@@ -12,10 +12,18 @@ import style from './style.module.css';
 
 import { BASE_PATH } from '../../utils/constants';
 
-// Set the base URL to the repository where the binder enviornment and the workflows are stored
-const binderRepoBaseUrl = 'https://mybinder.org/v2/gh/bioexcel/bioexcel_covid19_workflows/HEAD?labpath=notebooks%2F';
 // Set the URL to the github repo which sources the binder
 const githubRepoBaseUrl = 'https://github.com/bioexcel/bioexcel_covid19_workflows'
+// Set the URL to the github jupyer notebook viewer
+const githubJupyterViewer = githubRepoBaseUrl + '/blob/main/notebooks/';
+// Set the base URL to the repository where the binder enviornment and the workflows are stored
+const binderRepoBaseUrl = 'https://mybinder.org/v2/gh/bioexcel/bioexcel_covid19_workflows/HEAD?labpath=notebooks%2F';
+
+// Set some markdown badges
+const githubBadge = '![GitHub repository](https://badgen.net/badge/icon/github?icon=github&label)';
+const jupyterBadge = '![Jupyter Notebook](https://img.shields.io/badge/jupyter-%23FA0F00.svg?style=for-the-badge&logo=jupyter&logoColor=white)';
+const binderBadge = '![Binder](https://mybinder.org/badge_logo.svg)';
+
 
 // Set the available analyses, their introduction and the name of the notebook in the binder repository
 // Include also an id for further reference. Note that this id may be visible in the URL
@@ -148,7 +156,7 @@ const MetaAnalysis = () => {
         <br />
         Original notebooks and the environment setup to run the examples are available here:
         <ReactMarkdown
-          children={`[![GitHub repository](https://badgen.net/badge/icon/github?icon=github&label)](${githubRepoBaseUrl})`}
+          children={`[${githubBadge}](${githubRepoBaseUrl})`}
           linkTarget="_blank"
         />
         <hr className={style.hr} />
@@ -164,7 +172,11 @@ const MetaAnalysis = () => {
             </Typography>
             <div key={'text'}>{analysis.docs}</div>
             <ReactMarkdown
-              children={`[![Binder](https://mybinder.org/badge_logo.svg)](${binderRepoBaseUrl}${analysis.notebook})`}
+              children={`[${jupyterBadge}](${githubJupyterViewer}${analysis.notebook})`}
+              linkTarget="_blank"
+            />
+            <ReactMarkdown
+              children={`[${binderBadge}](${binderRepoBaseUrl}${analysis.notebook})`}
               linkTarget="_blank"
             />
             <hr className={style.hr} />
