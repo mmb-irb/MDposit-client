@@ -16,7 +16,8 @@ export class Project {
         // Calculate a few internal things
         // Get the accession and the MD number in a single string which is useful to make API requests
         // If project is in the old format then do not add the point and the MD number
-        this.accessionAndMdNumber = this.mds ? `${this.accession}.${this.mdNumber}` : this.accession;
+        const accessionOrId = this.accession || this.identifier;
+        this.accessionAndMdNumber = this.mds ? `${accessionOrId}.${this.mdNumber}` : accessionOrId;
         // Check if there are interactions
         this.hasInteractions = Boolean(this.metadata.INTERACTIONS && this.metadata.INTERACTIONS.length > 0);
         // Check if the populations file is found in the files index
