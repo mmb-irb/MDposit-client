@@ -475,7 +475,7 @@ const Analyses = memo(() => {
                 {/* ChainAnalyses is the main visual asset */}
                 <ChainAnalyses
                   chain={chain}
-                  accession={accessionAndMdNumber}
+                  accessionAndMdNumber={accessionAndMdNumber}
                 />
               </li>
             );
