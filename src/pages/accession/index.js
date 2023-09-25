@@ -351,7 +351,7 @@ export default () => {
             &nbsp;REST API
           </Button>
         ) : (
-          <LinkSwitch accession={accessionAndMdNumber} subPage={page} />
+          <LinkSwitch accessionAndMdNumber={accessionAndMdNumber} subPage={page} />
         )}
       </span>
       {/* Load the main data summary */}
