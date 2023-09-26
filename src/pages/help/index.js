@@ -30,13 +30,16 @@ const useStatistics = () => {
   const SummaryComponent = useMemo(() => {
     return (
       <>
-        Total number of simulations:{' '}
+        Total number of projects:{' '}
         {summaryPayload ? summaryPayload.projectsCount : 'Loading...'}
         <br />
-        Total amount of simulation time (μs):{' '}
+        Total number of MDs:{' '}
+        {summaryPayload ? summaryPayload.mdCount : 'Loading...'}
+        <br />
+        Total amount of MD time (μs):{' '}
         {summaryPayload ? Math.round(summaryPayload.totalTime / 1000) : 'Loading...'}
         <br />
-        Total amount of frames:{' '}
+        Total amount of MD frames:{' '}
         {summaryPayload ? summaryPayload.totalFrames : 'Loading...'}
         <br />
         Total number of stored files:{' '}
@@ -140,23 +143,34 @@ const useStatistics = () => {
   }, [methodsPayload]);
 
   // Use the API to get the snapshots options
-  const snapshotsUrl = `${BASE_PATH_PROJECTS}/options?projection=metadata.SNAPSHOTS`;
-  const { payload: snapshotsPayload, error: snapshotsError } = useAPI(
-    snapshotsUrl,
-  );
+  const snapshotsUrl = `${BASE_PATH_PROJECTS}/options?projection=mds.frames`;
+  const { payload: snapshotsPayload, error: snapshotsError } = useAPI(snapshotsUrl);
+
+  // Use the API to get the snapshots options
+  const oldSnapshotsUrl = `${BASE_PATH_PROJECTS}/options?query={"mds":{"$exists":false}}&projection=metadata.SNAPSHOTS`;
+  const { payload: oldSnapshotsPayload, error: oldSnapshotsError } = useAPI(oldSnapshotsUrl);
 
   // Build the snapshots component
   // If snapshots data is not yet downloaded then show an empty plot
   const SnapshotsComponent = useMemo(() => {
+    // Merge both the new and the old format frame counts
+    const frameCounts = snapshotsPayload && oldSnapshotsPayload && { ...snapshotsPayload['mds.frames'] };
+    if (oldSnapshotsPayload) {
+      Object.entries(oldSnapshotsPayload['metadata.SNAPSHOTS']).forEach(([frameCount, amount]) => {
+        let currentAmount = frameCounts[frameCount] || 0;
+        currentAmount += amount;
+        frameCounts[frameCount] = currentAmount;
+      })
+    }
     return (
       <Histogram
-        data={snapshotsPayload && snapshotsPayload["metadata.SNAPSHOTS"]}
+        data={frameCounts}
         xAxisLabelText={'Number of snapshots'}
         yAxisLabelText={'Number of MDs'}
         onHover={d => `There are ${d.length} MDs with a number of snapshots between ${d.x0} and ${d.x1}`}
       />
     )
-  }, [snapshotsPayload]);
+  }, [snapshotsPayload, oldSnapshotsPayload]);
 
   // Use the API to get the atoms options
   const atomsUrl = `${BASE_PATH_PROJECTS}/options?projection=metadata.SYSTATS`;
@@ -171,7 +185,7 @@ const useStatistics = () => {
       <Histogram
         data={atomsPayload && atomsPayload["metadata.SYSTATS"]}
         xAxisLabelText={'Number of atoms'}
-        yAxisLabelText={'Number of MDs'}
+        yAxisLabelText={'Number of projects'}
         color={"#ffcc00"}
         onHover={d => `There are ${d.length} MDs with a number of atoms between ${d.x0} and ${d.x1}`}
       />
@@ -191,19 +205,19 @@ const useStatistics = () => {
           {SummaryComponent}
           <br />
           <br />
-          Simulations per collection:
+          Projects per collection:
           {CollectionsComponent}
-          Simulations per non-classical MD method:
+          Projects per non-classical MD method:
           {MethodsComponent}
           <br />
           <br />
-          Snapshots per simulation:
+          Snapshots per MD:
           <br />
           <br />
           {SnapshotsComponent}
           <br />
           <br />
-          Atoms per simulation:
+          System atoms per project:
           <br />
           <br />
           {AtomsComponent}
@@ -219,7 +233,7 @@ const useStatistics = () => {
 
   // Handle possible errors by just showing a log error in the console
   // Thus we allow the rest of the page to keep loading
-  [summaryError, collectionsError, methodsError, snapshotsError, atomsError].forEach(error => {
+  [summaryError, collectionsError, methodsError, snapshotsError, oldSnapshotsError, atomsError].forEach(error => {
     if (error) console.error(error.message);
   });
 };
