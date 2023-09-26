@@ -155,7 +155,7 @@ const useStatistics = () => {
   const SnapshotsComponent = useMemo(() => {
     // Merge both the new and the old format frame counts
     const frameCounts = snapshotsPayload && oldSnapshotsPayload && { ...snapshotsPayload['mds.frames'] };
-    if (oldSnapshotsPayload) {
+    if (snapshotsPayload && oldSnapshotsPayload) {
       Object.entries(oldSnapshotsPayload['metadata.SNAPSHOTS']).forEach(([frameCount, amount]) => {
         let currentAmount = frameCounts[frameCount] || 0;
         currentAmount += amount;
