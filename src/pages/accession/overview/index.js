@@ -99,7 +99,7 @@ export default React.memo(() => {
         <Card className={style.card}>
           <CardContent className={style['card-content']}>
             <a className={style.title}>{metadata.NAME || 'Unnamed'}</a>
-            <a className={style.grey}>({metadata.mdName})</a>
+            {metadata.mdName && <a className={style.grey}>({metadata.mdName})</a>}
             <div className={style['summary-list']}>
               {metadata.TYPE && (
                 <Chip
