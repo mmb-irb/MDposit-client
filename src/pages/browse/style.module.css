@@ -35,6 +35,10 @@
   opacity: 0.6;
 }
 
+.center {
+  text-align: center;
+}
+
 /* If we had no valid results we render a 'no results' message inside a card */
 /* z-index prevents this element to be overlaped by overlaped elements because of the opacity */
 .no-results-card {

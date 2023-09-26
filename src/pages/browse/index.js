@@ -171,7 +171,7 @@ const Row = ({ project, highlight, index }) => {
       className={cn({ [style['not-published']]: !published })}
     >
       {/* accession */}
-      <TableCell>
+      <TableCell className={style.center}>
         <Link
           to={{
             pathname: `/id/${accession || identifier}/overview`,
@@ -187,7 +187,7 @@ const Row = ({ project, highlight, index }) => {
         {mds && <div className={style.small}>{`${mds.length} MDs`}</div>}
       </TableCell>
       {/* name */}
-      <TableCell>
+      <TableCell className={style.center}>
         <Highlight highlight={highlight}>
           {metadata && metadata.NAME
             ? metadata.NAME
@@ -197,9 +197,9 @@ const Row = ({ project, highlight, index }) => {
         </Highlight>
       </TableCell>
       {/* groups */}
-      <TableCell>{(metadata && metadata.GROUPS) || na}</TableCell>
+      <TableCell className={style.center}>{(metadata && metadata.GROUPS) || na}</TableCell>
       {/* analyses */}
-      <TableCell>
+      <TableCell className={style.center}>
         <Chip
           key={'trajectory'}
           clickable
@@ -319,10 +319,10 @@ const Browse = () => {
           {/* Table head with the names of each colum */}
           <TableHead className={style['table-head']}>
             <TableRow>
-              <TableCell>accession</TableCell>
-              <TableCell>name</TableCell>
-              <TableCell>groups</TableCell>
-              <TableCell>analyses</TableCell>
+              <TableCell className={style.center}>accession</TableCell>
+              <TableCell className={style.center}>name</TableCell>
+              <TableCell className={style.center}>groups</TableCell>
+              <TableCell className={style.center}>analyses</TableCell>
             </TableRow>
           </TableHead>
           {/* Table body with the content, which is defined above in the Row constant */}
