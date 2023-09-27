@@ -36,9 +36,12 @@ const useStatistics = () => {
         Total number of MDs:{' '}
         {summaryPayload ? summaryPayload.mdCount : 'Loading...'}
         <br />
-        Total amount of MD time (μs):{' '}
-        {summaryPayload ? Math.round(summaryPayload.totalTime / 1000) : 'Loading...'}
-        <br />
+        {/*
+          DANI: Funciona. Solo lo he quitado temporalmente por un tema "político"
+          Total amount of MD time (μs):{' '}
+          {summaryPayload ? Math.round(summaryPayload.totalTime / 1000) : 'Loading...'}
+          <br />
+        */}
         Total amount of MD frames:{' '}
         {summaryPayload ? summaryPayload.totalFrames : 'Loading...'}
         <br />
