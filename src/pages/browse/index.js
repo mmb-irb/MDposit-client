@@ -142,9 +142,9 @@ const Row = ({ project, highlight, index }) => {
     analyses.push('populations');
 
   // Check if any metadata reference has entropies
-  const references = metadata && metadata.REFERENCES;
+  const metadataReferences = metadata && metadata.REFERENCES;
   const anySuitableReferenceWithEntropies =
-    references && references.some(reference => hasEntropies(reference));
+    metadataReferences && metadataReferences.some(reference => hasEntropies(reference));
   // Push the mutations analysis if so
   if (
     anySuitableReferenceWithEntropies &&
@@ -154,7 +154,7 @@ const Row = ({ project, highlight, index }) => {
     analyses.push('mutations');
   // Check if any metadata reference has a map and its reference data has entropies
   const anySuitableReferenceWithEpitopes =
-    references && references.some(reference => hasEpitopes(reference));
+    metadataReferences && metadataReferences.some(reference => hasEpitopes(reference));
   // Push the entropies analysis if so
   if (
     anySuitableReferenceWithEpitopes &&

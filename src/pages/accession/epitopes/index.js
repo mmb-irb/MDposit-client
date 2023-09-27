@@ -91,6 +91,7 @@ const Epitopes = () => {
 
   // Get the references data
   const epitopes = useMemo(() => {
+    if (!referenceData) return [];
     const epitopes = [];
     referenceData.forEach(reference => {
       const referenceEpitopes = reference.epitopes;
@@ -149,7 +150,7 @@ const Epitopes = () => {
     xTooltip,
   } = useMemo(() => {
     // Wait for data and metadata to be ready
-    if (!payload || !metadata || !topologyManager) return {};
+    if (!payload || !metadata || !topologyManager || epitopes.length === 0) return {};
     // Get the main data
     const data = payload.saspf;
     // Calculate the frames step of the first residue SAS analysis
@@ -250,6 +251,7 @@ const Epitopes = () => {
 
   // Set the main component to be passed to NGL
   const components = useMemo(() => {
+    if (!epitopesData) return;
     // Load the required frames from the main trajectory
     const trajectoryURL = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/trajectory?frames=1:${metadata.SNAPSHOTS}:${frameStep}`;
     // Set the representations
@@ -315,7 +317,7 @@ const Epitopes = () => {
   // Set the graph parameters
   const graphInputData = useMemo(() => {
     // Wait for data and metadata to be ready
-    if (!data || !metadata) return;
+    if (!data || !metadata || !epitopesData) return;
 
     // Set the input objets for the graph and when they must be displayed
     const graphInputData = {};
@@ -366,7 +368,7 @@ const Epitopes = () => {
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
 
-  if (!topologyManager) return <Loading />;
+  if (!topologyManager || !referenceData) return <Loading />;
 
   const firstEpitopeIndex = selectedPage * selectedRowsPerPage;
   const lastEpitopeIndex = (selectedPage + 1) * selectedRowsPerPage;
