@@ -24,30 +24,67 @@ const githubBadge = '![GitHub repository](https://badgen.net/badge/icon/github?i
 const jupyterBadge = '![Jupyter Notebook](https://img.shields.io/badge/jupyter-%23FA0F00.svg?style=for-the-badge&logo=jupyter&logoColor=white)';
 const binderBadge = '![Binder](https://mybinder.org/badge_logo.svg)';
 
-
 // Set the available analyses, their introduction and the name of the notebook in the binder repository
 // Include also an id for further reference. Note that this id may be visible in the URL
 const availableAnalyses = [
   {
-    id: 'basics',
-    title: 'Basic data request',
+    id: 'tutorials',
+    title: 'Tutorials',
+    isSection : true,
+  },
+  {
+    id: 'browsing',
+    title: 'Browsing projects',
     docs:(
       <>
-        This is a practical tutorial on how to request basic data from the BioExcel-Covid19 REST API.
-        <br />
-        <br />
-        In this tutorial we cover the following topics:
-        <ol>
-          <li>Browsing MDs</li>
-          <li>Retrieving some MD metadata</li>
-          <li>Downloading some MD structure and trajectory</li>
-          <li>Visualizing structure and trajectory in Jupyter Notebook</li>
-          <li>Downloading some MD analysis</li>
-          <li>Visualizing analysis data in Jupyter Notebook</li>
-        </ol>
+        This tutorial shows an example of how to browse among the different entries (projects). 
+        Each project contains metadata such as names of the authors, parameters of the simulation, etc.
       </>
     ),
-    notebook: 'data_requests.ipynb'
+    notebook: 'browse_tutorial.ipynb'
+  },
+  {
+    id: 'projects',
+    title: 'Mining project data',
+    docs:(
+      <>
+        This tutorial shows an example of how to mine data from a specific project. 
+        The project is the main entry in the database and it contains mostly metadata, 
+        but it is also an index of additional data which may be requested as well.
+      </>
+    ),
+    notebook: 'project_tutorial.ipynb'
+  },
+  {
+    id: 'trajectory',
+    title: 'Visualizing trajectory data',
+    docs:(
+      <>
+        This tutorial shows an example of how to download structure and trajectory data 
+        from a specific project. Then data is loaded into a molecular viewer and displayed.
+      </>
+    ),
+    notebook: 'trajectory_tutorial.ipynb'
+  },
+  {
+    id: 'precalculated',
+    title: 'Pre-calculated analyses',
+    isSection : true,
+  },
+  {
+    id: 'rmsd',
+    title: 'RMSD analysis',
+    docs:(
+      <>
+        In this example we reproduce the pre-calculated RMSD analysis performed by the data processing workflow.
+      </>
+    ),
+    notebook: 'rmsd_analysis.ipynb'
+  },
+  {
+    id: 'usecases',
+    title: 'Meta-analysis use cases',
+    isSection : true,
   },
   {
     id: 'protein_ligands',
@@ -131,7 +168,11 @@ const MetaAnalysis = () => {
             key={index}
             component={Link}
             to={`/meta#${analysis.id}`}
-            style={{ whiteSpace: 'normal' }}
+            style={{
+              whiteSpace: 'normal',
+              fontWeight: analysis.isSection ? 'bold' : 'normal',
+              fontSize: analysis.isSection ? 'larger' : 'normal'
+            }}
           >
             {analysis.title}
           </MenuItem>
@@ -167,18 +208,20 @@ const MetaAnalysis = () => {
             ref={r => (analysisRefs.current[index] = r)}
             className={style.paragraph}
           >
-            <Typography variant={'h6'} className={style.header}>
+            <Typography variant={analysis.isSection ? 'h5' : 'h6'} className={style.header}>
               {analysis.title}
             </Typography>
-            <div key={'text'}>{analysis.docs}</div>
-            <ReactMarkdown
-              children={`[${jupyterBadge}](${githubJupyterViewer}${analysis.notebook})`}
-              linkTarget="_blank"
-            />
-            <ReactMarkdown
-              children={`[${binderBadge}](${binderRepoBaseUrl}${analysis.notebook})`}
-              linkTarget="_blank"
-            />
+            {!analysis.isSection && <>
+              <div key={'text'}>{analysis.docs}</div>
+              <ReactMarkdown
+                children={`[${jupyterBadge}](${githubJupyterViewer}${analysis.notebook})`}
+                linkTarget="_blank"
+              />
+              <ReactMarkdown
+                children={`[${binderBadge}](${binderRepoBaseUrl}${analysis.notebook})`}
+                linkTarget="_blank"
+              />
+            </>}
             <hr className={style.hr} />
           </div>
         ))}
