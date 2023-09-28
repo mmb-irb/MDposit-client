@@ -17,7 +17,7 @@ export const NICE_NAMES = new Map([
   ['dist', 'DIST'],
   ['rmsd', 'RMSd'],
   ['rmsds', 'RMSds'],
-  ['rgyr', 'Rgyr'],
+  ['rgyr', 'Radius of gyration'],
   ['rgyrx', 'RgyrX'],
   ['rgyry', 'RgyrY'],
   ['rgyrz', 'RgyrZ'],

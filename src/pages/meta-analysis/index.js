@@ -76,10 +76,30 @@ const availableAnalyses = [
     title: 'RMSD analysis',
     docs:(
       <>
-        In this example we reproduce the pre-calculated RMSD analysis performed by the data processing workflow.
+        In this example we reproduce the pre-calculated root mean squared deviation analysis (RMSD) performed by the data processing workflow.
       </>
     ),
     notebook: 'rmsd_analysis.ipynb'
+  },
+  {
+    id: 'rmsf',
+    title: 'Fluctuation analysis',
+    docs:(
+      <>
+        In this example we reproduce the pre-calculated atom fluctuation analysis (RMSF) performed by the data processing workflow.
+      </>
+    ),
+    notebook: 'rmsf_analysis.ipynb'
+  },
+  {
+    id: 'rgyr',
+    title: 'Radius of gyration analysis',
+    docs:(
+      <>
+        In this example we reproduce the pre-calculated radius of gyrations analysis (RGYR) performed by the data processing workflow.
+      </>
+    ),
+    notebook: 'rgyr_analysis.ipynb'
   },
   {
     id: 'usecases',
