@@ -182,7 +182,7 @@ const NGLViewerWithControls = forwardRef(
     const { metadata } = useContext(ProjectCtx);
     // Use metadata to limit available frmaes number
     const frameNumbers = useMemo(() => {
-      const maximumSnapshots = metadata.SNAPSHOTS;
+      const maximumSnapshots = metadata.mdFrames;
       const frameNumbers = [...defaultFrameNumbers];
       // Remove values over the maximim number of frames
       for (let i = frameNumbers.length - 1; i >= 0; i--) {
@@ -199,7 +199,7 @@ const NGLViewerWithControls = forwardRef(
           label: maximumSnapshots.toString(),
         });
       return frameNumbers;
-    }, [metadata.SNAPSHOTS]);
+    }, [metadata.mdFrames]);
     // Use this hook to get the memoized NGL default representations
     const defaultRepresentations = useDefaultRepresentations();
 
@@ -442,7 +442,7 @@ const NGLViewerWithControls = forwardRef(
     const [load, setLoad] = useState(0);
     const [isFullscreen, setIsFullscreen] = useState(screenfull.isFullscreen);
     const [requestedFramesNumber, setRequestedFramesNumber] = useState(
-      Math.min(defualtFrameNumber, metadata.SNAPSHOTS),
+      Math.min(defualtFrameNumber, metadata.mdFrames),
     );
     const [speed, setSpeed] = useState(useMemo(() => get('speed', 50), []));
     const [settings, openSettings] = useState(false);

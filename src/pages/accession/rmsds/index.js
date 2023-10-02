@@ -107,23 +107,29 @@ const Rmsds = () => {
     });
     setDisplay(defaultDisplay);
     // Get the frames step
-    const frameStep = payload.step;
+    const analysisFrameStep = payload.step;
     // Get the total time length
-    const timeLength = metadata.LENGTH;
+    const framesTimeStep = metadata.FRAMESTEP;
     // If this is an ensemble or we are missing the time length then we use frames as the x axis
     // If this is a trajectory and we have the time length then we use time as the x axis
     const isEnsemble = metadata.TYPE === 'ensemble';
     let xAxisStep;
     let xAxisLabel;
     let xTooltip;
-    if (isEnsemble || !timeLength) {
-      xAxisStep = frameStep;
+    if (isEnsemble || !framesTimeStep) {
+      xAxisStep = analysisFrameStep;
       xAxisLabel = 'Frames';
       xTooltip = xValue => 'frame ' + xValue;
     }
     else {
-      const timeStep = timeLength / metadata.SNAPSHOTS;
-      xAxisStep = frameStep * timeStep;
+      // DANI: Esto es lo correcto
+      const analysisTimeStep = analysisFrameStep * framesTimeStep
+      xAxisStep = analysisTimeStep;
+      // DANI: De esta forma siempre cuarda, pero es trampa
+      // DANI: Si el step está mal cuadrará también tapando así el problema
+      //const timeLength = metadata.FRAMESTEP * metadata.mdFrames;
+      //const analysisSteps = payload.data[0].values.length;
+      //xAxisStep = timeLength / analysisSteps;
       xAxisLabel = 'Time (ns)';
       xTooltip = xValue => +xValue.toFixed(2) + ' ns';
     }

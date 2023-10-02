@@ -109,7 +109,7 @@ const Pockets = () => {
     // All pockets must have the same frames step
     const frameNumber = data[0].volumes.length;
     const frameStep =
-      payload.step || Math.floor(metadata.SNAPSHOTS / (frameNumber - 1));
+      payload.step || Math.floor(metadata.mdFrames / (frameNumber - 1));
     // Instantiate the selected pockets state using the number of pockets
     // Setting the surfaces as hidden by default returns some warnings but everything works fine
     // e.g. 'Unexpected value NaN parsing y1 attribute'
@@ -127,7 +127,7 @@ const Pockets = () => {
     if (!data) return;
 
     // Load the required frames from the main trajectory
-    const mainURL = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/trajectory?frames=1:${metadata.SNAPSHOTS}:${frameStep}`;
+    const mainURL = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/trajectory?frames=1:${metadata.mdFrames}:${frameStep}`;
 
     // Set the surface representation of each pocket
     const pocketSurfaceRepresentations = data.map(pocket => {

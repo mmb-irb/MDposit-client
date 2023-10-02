@@ -176,7 +176,7 @@ const Sasa = () => {
     // Get the frames step from the analysis itself
     const frameStep = payload['step'];
     // Get the total time length
-    const timeLength = metadata.LENGTH;
+    const timeLength = metadata.timeLength;
     // If this is an ensemble or we are missing the time length then we use frames as the x axis
     // If this is a trajectory and we have the time length then we use time as the x axis
     const isEnsemble = metadata.TYPE === 'ensemble';
@@ -202,7 +202,7 @@ const Sasa = () => {
       }
     }
     // Load the required frames from the main trajectory
-    const mainURL = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/trajectory?frames=1:${metadata.SNAPSHOTS}:${frameStep}`;
+    const mainURL = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/trajectory?frames=1:${metadata.mdFrames}:${frameStep}`;
     const mainComponent = [
       {
         trajectoryURLs: [mainURL],

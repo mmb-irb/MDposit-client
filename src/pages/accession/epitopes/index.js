@@ -157,7 +157,7 @@ const Epitopes = () => {
     // All residues must have the same frames step
     const frameCount = data[0].length;
     const frameStep =
-      payload.step || Math.floor(metadata.SNAPSHOTS / (frameCount - 1));
+      payload.step || Math.floor(metadata.mdFrames / (frameCount - 1));
     // Set the input objets for the graph
     const epitopesData = [];
     epitopes.forEach(
@@ -253,7 +253,7 @@ const Epitopes = () => {
   const components = useMemo(() => {
     if (!epitopesData) return;
     // Load the required frames from the main trajectory
-    const trajectoryURL = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/trajectory?frames=1:${metadata.SNAPSHOTS}:${frameStep}`;
+    const trajectoryURL = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/trajectory?frames=1:${metadata.mdFrames}:${frameStep}`;
     // Set the representations
     const representations = [];
     // Reduce the opacity of all default representations and set their color as black

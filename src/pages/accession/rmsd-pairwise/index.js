@@ -72,7 +72,7 @@ const RmsdPairwise = () => {
     // Calculate the step
     // DANI: Esto no es del todo correcto pero hace que los números de frames siempre cuadren
     const dataLength = rmsds.length;
-    const AxesStep = Math.floor(metadata.SNAPSHOTS / (dataLength - 1));
+    const AxesStep = Math.floor(metadata.mdFrames / (dataLength - 1));
 
     // DANI: Esto es lo correcto
     // DANI: En algunos análisis antiguos las frames no cuadran y hay que rehacerlos

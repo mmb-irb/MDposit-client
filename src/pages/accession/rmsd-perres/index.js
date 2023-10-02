@@ -161,12 +161,12 @@ const RmsdPerres = () => {
     const analysisFrameCount = firstResidueData.length;
 
     // Get the number of frames in the trajectory
-    const trajectoryFrameCount = metadata.SNAPSHOTS;
+    const trajectoryFrameCount = metadata.mdFrames;
 
     // Get the frames step from the analysis itself
     const frameStep = payload['step'];
     // Get the total time length
-    const timeLength = metadata.LENGTH;
+    const timeLength = metadata.timeLength;
 
     // If this is an ensemble or we are missing the time length then we use frames as the x axis
     // If this is a trajectory and we have the time length then we use time as the x axis

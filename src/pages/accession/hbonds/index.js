@@ -222,7 +222,7 @@ const Hbonds = () => {
 
     // Calculate the frame step for recorded hydrogen bonds
     const dataLength = data.hbonds[0].length;
-    const frameStep = Math.round(metadata.SNAPSHOTS / (dataLength - 1));
+    const frameStep = Math.round(metadata.mdFrames / (dataLength - 1));
     // Set the weigths in order to resize bonds bandwidth accordingly
     let weights;
     if (populations && populations.payload) {

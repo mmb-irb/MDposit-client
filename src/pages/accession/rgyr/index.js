@@ -73,25 +73,30 @@ const Rgyr = () => {
     xTooltip,
     xWeights,
   } = useMemo(() => {
-    if (!payload || (populations && populations.loading)) return {};
+    if (!payload || (populations && populations.loading) || !metadata) return {};
     // Get the frames step
-    const frameStep = payload.step;
+    const analysisFrameStep = payload.step;
     // Get the total time length
-    const timeLength = metadata.LENGTH;
+    const framesTimeStep = metadata.FRAMESTEP;
     // If this is an ensemble or we are missing the time length then we use frames as the x axis
     // If this is a trajectory and we have the time length then we use time as the x axis
     const isEnsemble = metadata.TYPE === 'ensemble';
     let xAxisStep;
     let xAxisLabel;
     let xTooltip;
-    if (isEnsemble || !timeLength) {
-      xAxisStep = frameStep;
+    if (isEnsemble || !framesTimeStep) {
+      xAxisStep = analysisFrameStep;
       xAxisLabel = 'Frames';
       xTooltip = xValue => 'frame ' + xValue;
     }
     else {
-      const timeStep = timeLength / metadata.SNAPSHOTS;
-      xAxisStep = frameStep * timeStep;
+      // DANI: Esto es lo correcto, pero dado que hay analysis con el step mal de momento lo tapamos
+      //const analysisTimeStep = analysisFrameStep * framesTimeStep
+      //xAxisStep = analysisTimeStep;
+      // DANI: De esta forma siempre cuarda, pero si realmente el step era correcto entonces el eje estará mal
+      const timeLength = metadata.FRAMESTEP * metadata.mdFrames;
+      const analysisSteps = payload.y.rgyr.data.length;
+      xAxisStep = timeLength / analysisSteps;
       xAxisLabel = 'Time (ns)';
       xTooltip = xValue => +xValue.toFixed(2) + ' ns';
     }

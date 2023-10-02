@@ -13,6 +13,10 @@ export class Project {
         Object.entries(projectPayload).forEach(([key, value]) => {
             this[key] = value;
         });
+        // Calculate any additional metadata
+        if (!this.metadata.mdFrames) this.metadata.mdFrames = this.metadata.SNAPSHOTS;
+        this.metadata.timeLength = this.metadata.FRAMESTEP && this.metadata.mdFrames &&
+            this.metadata.FRAMESTEP * this.metadata.mdFrames;
         // Calculate a few internal things
         // Get the accession and the MD number in a single string which is useful to make API requests
         // If project is in the old format then do not add the point and the MD number

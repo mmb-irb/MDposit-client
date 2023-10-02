@@ -101,15 +101,15 @@
     "options": false
   },
   {
-    "name": "Snapshots",
-    "path": "metadata.SNAPSHOTS",
+    "name": "Number of frames",
+    "path": "mds.frames",
     "type": "int",
     "example": "any integer number",
     "options": false
   },
   {
-    "name": "Length (ns)",
-    "path": "metadata.LENGTH",
+    "name": "Framestep (ns)",
+    "path": "metadata.FRAMESTEP",
     "type": "float",
     "example": "any number",
     "options": false

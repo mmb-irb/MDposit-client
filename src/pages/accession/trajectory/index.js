@@ -38,7 +38,7 @@ export const TrajectoryMetadata = memo(() => {
   const { metadata } = useContext(ProjectCtx);
   const round2decimals = number => Math.round(number * 100) / 100;
   // Calculate frequency and multiply it by 1000 since it will be represented in picoseconds
-  const frequency = (metadata.LENGTH && metadata.SNAPSHOTS && round2decimals(metadata.LENGTH / metadata.SNAPSHOTS) * 1000) || null;
+  const frequency = (metadata.FRAMESTEP && metadata.FRAMESTEP * 1000) || null;
   if (metadata)
     // Render the whole metadata
     return (
@@ -182,8 +182,8 @@ export const TrajectoryMetadata = memo(() => {
             className={style['text-field']}
             label="Length"
             title="Simulation length"
-            value={metadata.LENGTH === null ? na : metadata.LENGTH}
-            disabled={metadata.LENGTH === null}
+            value={metadata.timeLength === null ? na : metadata.timeLength}
+            disabled={metadata.timeLength === null}
             InputProps={{
               endAdornment: (
                 <InputAdornment variant="filled" position="end">
@@ -210,8 +210,8 @@ export const TrajectoryMetadata = memo(() => {
             className={style['text-field']}
             label="Snapshots"
             title="Number of snapshots"
-            value={metadata.SNAPSHOTS === null ? na : metadata.SNAPSHOTS}
-            disabled={metadata.SNAPSHOTS === null}
+            value={metadata.mdFrames === null ? na : metadata.mdFrames}
+            disabled={metadata.mdFrames === null}
           />
           <TextField
             className={style['text-field']}
