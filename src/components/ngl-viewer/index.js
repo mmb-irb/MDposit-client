@@ -1683,18 +1683,26 @@ const NGLViewer = memo(
                 chainName ? '(' + chainName + ')' : ''
               }
             Residue ${sourceResidue.residueNumber} (${atom.resname})`}
-              {reference ? (
-                reference.id === 'noref' ? (
-                  <div style={{ color: 'salmon' }}>{'No referable'}</div>
-                ) : (
+              {(() => {
+                // If there is not reference at all it means it is not even a protein
+                if (!reference) return;
+                // No referable flag is for proteins which are not to be referenced
+                // e.g. antibodies, synthetic constructs, etc.
+                if (reference.id === 'noref') return (
+                  <div style={{ color: 'orange' }}>{'No referable'}</div>
+                );
+                // The not found flag is for proteins which failed to be aligned in a blast
+                if (reference.id === 'notfound') return (
+                  <div style={{ color: 'salmon' }}>{'Reference not found'}</div>
+                );
+                // Show the reference and its residue references number
+                return (
                   <div>
                     <div style={{ color: 'lightGreen' }}>{referenceName}</div>
                     <div>{`- Residue ${reference.index}`}</div>
                   </div>
                 )
-              ) : (
-                <div style={{ color: 'salmon' }}>{'No reference'}</div>
-              )}
+              })()}
             </>
           );
           /*
