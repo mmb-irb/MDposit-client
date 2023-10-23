@@ -5,7 +5,8 @@
     "type": "string",
     "example": "cv19",
     "options": true,
-    "checkbox" : true
+    "checkbox" : true,
+    "defaultOpen" : true
   },
   {
     "name": "PDB id",
