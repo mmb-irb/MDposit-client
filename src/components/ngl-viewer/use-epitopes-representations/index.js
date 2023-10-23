@@ -10,12 +10,12 @@ const useEpitopesRepresentations = () => {
   );
   // Set the representations for the NGL viewer
   const epitopesRepresentations = useMemo(() => {
-    if (!references || !topology) return [];
+    if (!references || !topology) return;
     // Check that at least 1 of the references has epitopes
     const anyReferenceEpitopes = references.some(
       reference => !!reference.epitopes,
     );
-    if (!anyReferenceEpitopes) return [];
+    if (!anyReferenceEpitopes) return;
     // Get the residues on each reference epitopes in the current topology numeration
     const mappedResiduesPerReference = references.map(reference => {
       // Get the reference name and epitopes
