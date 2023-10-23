@@ -145,7 +145,7 @@ const Rmsds = () => {
     // Return values to be memoized
     return {
       rmsds,
-      frameStep,
+      frameStep: analysisFrameStep,
       xAxisStep,
       xAxisLabel,
       isEnsemble,
@@ -157,6 +157,8 @@ const Rmsds = () => {
   // Set when one point in the graph is selected
   const [selected, setSelected] = useState(null);
   const selectedFrame = selected * frameStep;
+  console.log(selected);
+  console.log(frameStep);
 
   // Set the mark for selected
   const marks = useMemo(() => {

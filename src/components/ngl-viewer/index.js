@@ -717,21 +717,30 @@ const NGLViewer = memo(
 
       // frames
       // Update the controls progress
-      const handleFrameChange = useCallback(
-        frame => {
-          //console.log('FRAME: ' + frame);
-          if (!onProgress) return;
-          if (noTrajectory) return;
-          if (!isFirstCompStaged) return;
-          if (!stageRef.current.compList[0].trajList[0]) return;
-          const frameCount =
-            stageRef.current.compList[0].trajList[0].expectedFrames;
+      useEffect(() => {
+        // Check if we are prepared to add the frame change handler and if t is required
+        if (!onProgress || noTrajectory || !isFirstCompStaged || !isMainTrajectoryStaged) return;
+        // Get the first component and check it exists
+        const firstComp = stageRef.current && stageRef.current.compList && stageRef.current.compList[0];
+        if (!firstComp) throw new Error('Something went wrong with the viewer first component');
+        // Get the first (and porbably only) trajectory handler and check it exists
+        const trajectoryHandler = firstComp.trajList && firstComp.trajList[0];
+        if (!trajectoryHandler) throw new Error('Something went wrong with the viewer trajectory handler');
+        // Get the frame count of the final number of frames (once the whole trajectory is loaded)
+        const frameCount = trajectoryHandler.expectedFrames;
+        // Set the actual function to handle frame change internally in the component
+        const frameHandler = frame => {
           //console.log('NGL frameCount: ' + frameCount);
           const progress = clamp(frame / (frameCount - 1), 0, 1);
           onProgress(progress);
-        },
-        [isFirstCompStaged, noTrajectory, onProgress],
-      );
+        };
+        // Add the frame handler to the component signals
+        trajectoryHandler.signals.frameChanged.add(frameHandler);
+        // Set a cleanup function to remove the frame handler when there is need
+        return () => {
+          trajectoryHandler.signals.frameChanged.remove(frameHandler);
+        };
+      }, [isFirstCompStaged, isMainTrajectoryStaged, noTrajectory, onProgress]);
 
       // Resize logic
       // declare handler
@@ -1420,7 +1429,6 @@ const NGLViewer = memo(
               // Save the expected frames number here in the NGL file
               // This is further use by the frame change handler
               nglFile.expectedFrames = trajectoryFinalExpectedFrames;
-              nglFile.signals.frameChanged.add(handleFrameChange);
               // Set animation player parameters
               const timeout = interpolateSpeed(speed);
               nglTrajectory.player.setParameters({
@@ -1442,7 +1450,6 @@ const NGLViewer = memo(
       }, [
         topologies,
         trajectories,
-        handleFrameChange,
         comps,
         noTrajectory,
         setMainNglFile,
