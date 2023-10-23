@@ -210,7 +210,7 @@ const useStatistics = () => {
           <br />
           Projects per collection:
           {CollectionsComponent}
-          Projects per non-classical MD method:
+          Projects per non-equilibrium MD method:
           {MethodsComponent}
           <br />
           <br />
