@@ -265,7 +265,7 @@ const Energies = () => {
             toggleOrderTooltip={'Toggle interactors'}
           />
         </CardContent>
-        {dataError ? null : (
+        {dataError || !data ? null : (
           <CardContent>
             <legend>Overall energies summatory</legend>
             <div>

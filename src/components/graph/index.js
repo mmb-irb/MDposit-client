@@ -766,7 +766,9 @@ const Graph = forwardRef(({ // The main data
           .attr('transform', `translate(0, ${height - offset.bottom})`)
           .attr('opacity', 1)
           .selectAll('text')
-          .attr('transform', `translate(0, ${offset.bottom})`)
+          // Set the y position of the text under the dot
+          // This text size is similar to graph labels size so this is good enough
+          .attr('transform', `translate(0, ${labelsHeight})`)
           // Set the dot text in the x axis
           .text(() => {
             const number = closestIndex * step * xScaleFactor;
