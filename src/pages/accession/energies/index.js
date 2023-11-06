@@ -234,6 +234,8 @@ const Energies = () => {
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
 
+  if (!topologyManager) return <Loading />;
+
   // Check if there is only 1 residue
   const singleResidue = data && data.es.length === 1;
 
