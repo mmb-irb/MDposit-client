@@ -17,7 +17,7 @@ import Card from '../../../components/animated-card';
 import LazyImg from '../../../components/lazy-img';
 
 import { ProjectCtx } from '../../../contexts';
-import https from 'https-browserify';
+import http from 'stream-http';
 
 import style from './style.module.css';
 
@@ -46,9 +46,9 @@ export default React.memo(() => {
     // Store requests so we can abort them all in the useEffect cleanup function in case they were not completed on time
     const requests = [];
     pdbIds.forEach(pdbId => {
-      const url = `https://mmb.irbbarcelona.org/api/pdb/${pdbId}/entry`;
+      const url = `http://mdb-login.bsc.es/api/pdb/${pdbId}/entry`;
       let body = '';
-      const request = https.get(url, response => {
+      const request = http.get(url, response => {
         response.on('data', chunk => {
           body += chunk;
         });
