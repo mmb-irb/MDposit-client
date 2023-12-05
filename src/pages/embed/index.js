@@ -13,7 +13,7 @@ import Loading from '../../components/loading';
 
 import style from './style.module.css';
 
-import { BASE_PATH_PROJECTS, PATH_MAIN_TOPOLOGY } from '../../utils/constants';
+import { BASE_PATH_PROJECTS, MAIN_STRUCTURE_FILENAME } from '../../utils/constants';
 
 // Load the project class
 import { Project } from '../../utils/project-manager';
@@ -30,7 +30,7 @@ const Embed = () => {
 
   // Load the structure data form the API
   const pdbData = useNGLFile(
-    `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}${PATH_MAIN_TOPOLOGY}`,
+    `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/${MAIN_STRUCTURE_FILENAME}`,
     // This attribute was included before: defaultRepresentation: false
     { defaultRepresentation: false, ext: 'pdb' },
   );

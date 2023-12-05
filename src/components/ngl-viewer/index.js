@@ -140,7 +140,7 @@ const NGLViewer = memo(
       // Save the components object into a local constant which can be modified
       const comps = useMemo(() => components, [components]);
 
-      // If no URL is provided then use the main trajectory (the 'md.imaged.rot.xtc' file) // URL to find the trajectory data in the API
+      // If no URL is provided then use the main trajectory // URL to find the trajectory data in the API
       // True when we just want to display a static structure // Requeste number of frames to display
       // data from context
       const {
@@ -186,7 +186,7 @@ const NGLViewer = memo(
       // Download all requested topologies: Each component may have a different structure URL.
       // Set the first component topology as the 'pdbData'
       // If a topologyURL is provided, download data form the API
-      // Otherwise, use the context pdbData (i.e. the 'md.imaged.rot.dry.pdb' file)
+      // Otherwise, use the main structure
 
       // Set a state to store the topology requests
       const [requestedTopologies, setRequestedTopologies] = useState([]);

@@ -133,8 +133,8 @@ export default React.memo(() => {
                     </a>
                   </div>
                 ))}
-              {metadata.warnings &&
-                metadata.warnings.map((warning, w) => (
+              {metadata.WARNINGS &&
+                metadata.WARNINGS.map((warning, w) => (
                   <div key={w} style={{ fontWeight: 'bold' }}>
                     <FontAwesomeIcon icon={faExclamationTriangle} size={'lg'} />
                     {' ' + warning.message}

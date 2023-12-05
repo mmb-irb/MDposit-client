@@ -28,7 +28,7 @@ import { Project } from '../../utils/project-manager';
 import {
   BASE_PATH,
   BASE_PATH_PROJECTS,
-  PATH_MAIN_TOPOLOGY,
+  MAIN_STRUCTURE_FILENAME,
   NICE_NAMES,
 } from '../../utils/constants';
 
@@ -166,13 +166,20 @@ const getDataURL = (accessionAndMdNumber, subPage) => {
   return `${BASE_PATH}current/projects/${accessionAndMdNumber}/${end}`;
 };
 
+const VALID_STRUCTURE_FILENAMES = [
+  MAIN_STRUCTURE_FILENAME,
+  'md.imaged.rot.dry.pdb'
+];
+
 // Render the accession summary
 const SummarySwitch = ({ subPage, dataUrl }) => {
   // Load the project context
   const project = useContext(ProjectCtx);
+  const structureFilename = VALID_STRUCTURE_FILENAMES.find(filename => project.files.includes(filename));
+  // Find the first valid structure filename found in the project
   // Load the structure data from the API
   const pdbData = useNGLFile(
-    `${BASE_PATH_PROJECTS}/${project.accessionAndMdNumber}${PATH_MAIN_TOPOLOGY}`,
+    `${BASE_PATH_PROJECTS}/${project.accessionAndMdNumber}/files/${structureFilename}`,
     // This attribute was included before: defaultRepresentation: false
     { defaultRepresentation: false, ext: 'pdb' },
   );

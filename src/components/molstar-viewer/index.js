@@ -38,7 +38,7 @@ import { ProjectCtx, PdbCtx } from '../../contexts';
 import style from './style.module.css';
 
 // To get frames
-import { BASE_PATH_PROJECTS, PATH_MAIN_TOPOLOGY } from '../../utils/constants';
+import { BASE_PATH_PROJECTS, MAIN_STRUCTURE_FILENAME } from '../../utils/constants';
 
 // Used to just wait
 import { sleep } from 'timing-functions';
@@ -176,7 +176,7 @@ const MolstarViewer = memo(
       // Save the components object into a local constant which can be modified
       const comps = useMemo(() => components, [components]);
 
-      // If no URL is provided then use the main trajectory (the 'md.imaged.rot.xtc' file) // URL to find the trajectory data in the API
+      // If no URL is provided then use the main trajectory // URL to find the trajectory data in the API
       // True when we just want to display a static structure // Requeste number of frames to display
       // data from context
       const {
@@ -220,7 +220,7 @@ const MolstarViewer = memo(
       // Download all requested topologies: Each component may have a different structure URL.
       // Set the first component topology as the 'pdbData'
       // If a topologyURL is provided, download data form the API
-      // Otherwise, use the context pdbData (i.e. the 'md.imaged.rot.dry.pdb' file)
+      // Otherwise, use the main structure
 
       // Set a state to store the topology requests
       const [requestedTopologies, setRequestedTopologies] = useState([]);
@@ -254,7 +254,7 @@ const MolstarViewer = memo(
                 //url: null,
                 //loading: false,
                 // DANI: hardcodeo temporal
-                url: `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}${PATH_MAIN_TOPOLOGY}`,
+                url: `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/${MAIN_STRUCTURE_FILENAME}`,
                 loading: true,
                 requested: false,
                 error: null,

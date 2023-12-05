@@ -122,6 +122,20 @@ const Row = ({ project, highlight, index }) => {
     return () => animation.cancel();
   }, [index]);
 
+  // In case we retrieve an errored entry
+  if (project.error) return (
+    <TableRow ref={ref} className={style['not-published']}>
+      {/* accession */}
+      <TableCell className={style.center}> Errored entry </TableCell>
+      {/* name */}
+      <TableCell className={style.center}> {project.error} </TableCell>
+      {/* groups */}
+      <TableCell className={style.center}> - </TableCell>
+      {/* analyses */}
+      <TableCell className={style.center}> - </TableCell>
+    </TableRow>
+  );
+
   // Push the electrostatic surface analysis if we have interactions in metadata
   if (
     metadata &&
@@ -341,7 +355,7 @@ const Browse = () => {
                 project={project} // Load identifier, accession, published, pdbInfo and analyses
                 highlight={search.search} // Load the highlight
                 index={index} // Load the index
-                key={project.identifier} // Add a key for react to do not complain
+                key={index} // Add a key for react to do not complain
               />
             ))}
           </TableBody>
