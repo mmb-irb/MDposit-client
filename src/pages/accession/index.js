@@ -166,20 +166,14 @@ const getDataURL = (accessionAndMdNumber, subPage) => {
   return `${BASE_PATH}current/projects/${accessionAndMdNumber}/${end}`;
 };
 
-const VALID_STRUCTURE_FILENAMES = [
-  MAIN_STRUCTURE_FILENAME,
-  'md.imaged.rot.dry.pdb'
-];
-
 // Render the accession summary
 const SummarySwitch = ({ subPage, dataUrl }) => {
   // Load the project context
   const project = useContext(ProjectCtx);
-  const structureFilename = VALID_STRUCTURE_FILENAMES.find(filename => project.files.includes(filename));
   // Find the first valid structure filename found in the project
   // Load the structure data from the API
   const pdbData = useNGLFile(
-    `${BASE_PATH_PROJECTS}/${project.accessionAndMdNumber}/files/${structureFilename}`,
+    `${BASE_PATH_PROJECTS}/${project.accessionAndMdNumber}/files/${MAIN_STRUCTURE_FILENAME}`,
     // This attribute was included before: defaultRepresentation: false
     { defaultRepresentation: false, ext: 'pdb' },
   );
