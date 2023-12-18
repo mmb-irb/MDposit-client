@@ -198,7 +198,7 @@ const Row = ({ project, highlight, index }) => {
             {!published && <div>(not published)</div>}
           </Highlight>
         </Link>
-        {mds && <div className={style.small}>{`${mds.length} MDs`}</div>}
+        {mds && mds.length > 1 && <div className={style.small}>{`${mds.length} MDs`}</div>}
       </TableCell>
       {/* name */}
       <TableCell className={style.center}>
