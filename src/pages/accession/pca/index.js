@@ -90,7 +90,7 @@ const PCA = () => {
     let projectionURL;
     if (projections[0] !== undefined) {
       const projectionNumber = ('0' + (projections[0] + 1)).slice(-2);
-      projectionURL = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/pca.trajectory_${projectionNumber}.bin`;
+      projectionURL = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/pca_trajectory_${projectionNumber}.bin`;
     }
 
     // Get the topology URL
