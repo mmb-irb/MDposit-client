@@ -1,5 +1,5 @@
 // React logic
-import React, { useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 // String managers
@@ -22,13 +22,15 @@ import {
   Chip,
 } from '@mui/material';
 
+import LazyImg from '../../components/lazy-img';
+
 // Additional components
 import Card from '../../components/animated-card'; // The exceled parcels in which almost all features are based
 import Highlight from '../../components/highlight'; // Used to underline text
 import Loading from '../../components/loading'; // Displays an animated "loading" circle
 
-// Hooks
-import useAPI from '../../hooks/use-api'; // API acces
+// API acces
+import useAPI from '../../hooks/use-api';
 
 // Constants
 import { BASE_PATH_PROJECTS, NICE_NAMES } from '../../utils/constants';
@@ -38,6 +40,7 @@ import style from './style.module.css';
 
 // It is used to check if the user has the reduced motion setting active
 import reducedMotion from '../../utils/reduced-motion';
+import { SCREENSHOT_FILENAME } from '../../utils/constants';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -92,7 +95,7 @@ const allowedAnalysisChips = [
   'markov'
 ];
 
-const Row = ({ project, highlight, index }) => {
+const Row = ({ project, highlight, index, previewUrl }) => {
   // Harvest data from the project object
   const {
     identifier,
@@ -210,8 +213,16 @@ const Row = ({ project, highlight, index }) => {
             : na}
         </Highlight>
       </TableCell>
-      {/* groups */}
-      <TableCell className={style.center}>{(metadata && metadata.GROUPS) || na}</TableCell>
+      {/* preview */}
+      <TableCell className={style.center}>
+        <LazyImg
+          src={previewUrl}
+          width="110"
+          height="110"
+          loading="lazy"
+          alt={`Project preview`}
+        />
+      </TableCell>
       {/* analyses */}
       <TableCell className={style.center}>
         <Chip
@@ -287,8 +298,7 @@ const Browse = () => {
   // Save the previous payload. It is rendered in low opacity when the new payload is empty
   const previousPayload = useRef(null);
 
-  // Download all necessary data from the API
-  // 'payload' contains the main data
+  // Projects data from the API
   const ApiUrl = `${BASE_PATH_PROJECTS}?${searchString}`;
   const { loading, payload, error } = useAPI(ApiUrl);
 
@@ -298,10 +308,11 @@ const Browse = () => {
 
   // When error
   // This usually happens when the API does not work properly
-  if (error) {
-    return error.toString();
-  }
+  if (error) return error.toString();
 
+  // Download project screenshots
+  // First set the URLs for the API
+  
   // Define the results for the final render since it won't support 'null's
   let results;
   let matchCount = 0;
@@ -314,6 +325,9 @@ const Browse = () => {
     matchCount = previousPayload.current.filteredCount;
   } else results = [];
 
+  // Set the screenshot URLs for the API
+  const screenshotsUrls = results.map(project => `${BASE_PATH_PROJECTS}/${project.identifier}/files/${SCREENSHOT_FILENAME}`);
+
   // When success
   return (
     <Card>
@@ -325,9 +339,7 @@ const Browse = () => {
               No results were found
             </Typography>
           </Card>
-        ) : (
-          []
-        )}
+        ) : []}
         <Table>
           {/*className={cn({ [style['invalid-results']]: !payload })} */}
           {/* Table head with the names of each colum */}
@@ -335,7 +347,7 @@ const Browse = () => {
             <TableRow>
               <TableCell className={style.center}>accession</TableCell>
               <TableCell className={style.center}>name</TableCell>
-              <TableCell className={style.center}>groups</TableCell>
+              <TableCell className={style.center}>preview</TableCell>
               <TableCell className={style.center}>analyses</TableCell>
             </TableRow>
           </TableHead>
@@ -355,6 +367,7 @@ const Browse = () => {
                 project={project} // Load identifier, accession, published, pdbInfo and analyses
                 highlight={search.search} // Load the highlight
                 index={index} // Load the index
+                previewUrl={screenshotsUrls[index]}
                 key={index} // Add a key for react to do not complain
               />
             ))}

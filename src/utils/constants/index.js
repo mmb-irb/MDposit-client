@@ -6,6 +6,8 @@ export const MAIN_STRUCTURE_FILENAME = 'structure.pdb';
 
 export const MAIN_TRAJECTORY_FILENAME = 'trajectory.xtc';
 
+export const SCREENSHOT_FILENAME = 'screenshot.jpg';
+
 // The name how this analysis is tagged in the webpage
 // If no name is provided, the webpage will tag it with the defalt name
 export const NICE_NAMES = new Map([
