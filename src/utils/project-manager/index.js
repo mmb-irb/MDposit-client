@@ -46,7 +46,7 @@ export class Project {
         topology: `/topology`,
         interactions: `/analyses/interactions`,
         references: `/references`,
-        fileDescriptors: `/files?descriptor`,
+        fileDescriptors: `/filenotes`,
         populations: `/files/populations.json`,
     }
     // Set a function to query the API and store the response for internal variables
