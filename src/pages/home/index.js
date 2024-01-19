@@ -84,8 +84,8 @@ const Home = () => {
             the Human Brain Project, and the Molecular Dynamics Data Bank funded from 
             the European Union's Horizon 2020 Framework Programme for Research and Innovation under Specific
             Grant Agreements No. 675728 (BioExcel), No. 823830 (BioExcel-2), No. 720270 (Human Brain Project SGA1), 
-            No. 785907 (Human Brain Project SGA2), No. 945539 (Human Brain Project SGA3) 
-            and No. 101094651 (Molecular Dynamics Data Bank).
+            No. 785907 (Human Brain Project SGA2) and No. 945539 (Human Brain Project SGA3) and by the Horizon Europe
+            Programme under No. 101093290 (BioExcel-3) and No. 101094651 (Molecular Dynamics Data Bank).
           </div>
           <div className={style['acknowledgements-logo']}>
             <source type="image/webp" srcSet={euLogoWebP} />
