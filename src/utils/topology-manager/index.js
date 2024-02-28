@@ -466,7 +466,7 @@ export class Topology {
     const chain = this.chainNames[chainIndex]; // e.g. 'A'
     const icode = this.residueIcodes && this.residueIcodes[residueIndex];
     // Formated selection to select this specific residue in NGL
-    const nglSelection = ':' + chain + ' and ' + residueNumber;
+    const nglSelection = ':' + chain + ' and ' + residueNumber + ' ^' + icode;
     // Additional residue data
     const type = this.residueNames[residueIndex];
     const letter = getResidueTypeLetter(type);
