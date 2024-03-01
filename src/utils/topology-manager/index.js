@@ -427,14 +427,16 @@ export class Topology {
     let number;
     let labelNumber;
     const ref = this.absolute2reference(absolute);
+    if (!source) source = this.absolute2sourceResidue(absolute);
     if (ref !== null) {
       number = ref.index;
       labelNumber = `${number}`;
     } else {
-      if (!source) source = this.absolute2sourceResidue(absolute);
       number = source.residue;
       labelNumber = `${number}*`;
     }
+    // Get the insertion code
+    const icode = source.icode ? source.icode : '';
     // Get the type and the chain of the residue
     let { type, chain } = this.getAbsoluteResidueMetadata(absolute, {
       type: true,
@@ -450,7 +452,7 @@ export class Topology {
     if (type) labelType = `(${type})`;
     else labelType = ``;
     // Build the label to be shown
-    const label = labelChain + labelNumber + labelType;
+    const label = labelChain + labelNumber + icode + labelType;
     return { label, chain, number, type };
   };
 
