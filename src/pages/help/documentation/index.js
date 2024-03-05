@@ -818,8 +818,8 @@ export const documentation = [
             is performed only with backbone atoms for performance reasons.
             <br />
             <br />
-            This analysis is powered by <TextLink name={'Gromacs'} id={'gromacs'} />
-            .
+            This analysis is powered by <TextLink name={'scikit-learn'} id={'sklearn'} />.<br/>
+            Projections are generated with the aid of <TextLink name={'MDtraj'} id={'mdtraj'} />.
           </>
         ),
         page: (
@@ -1505,6 +1505,20 @@ export const documentation = [
         ),
       },
       {
+        id: 'mdtraj',
+        header: 'MDtraj',
+        body: (
+          <>
+            Robert T. McGibbon, Kyle A. Beauchamp, Matthew P. Harrigan, Christoph Klein,
+            Jason M. Swails, Carlos X. Hernández, Christian R. Schwantes, Lee-Ping Wang,
+            Thomas J. Lane, Vijay S. Pande,
+            MDTraj: A Modern Open Library for the Analysis of Molecular Dynamics
+            Trajectories, Biophysical journal, Volume 109, Issue 8, 20 October 2015,
+            Pages 1528-1532, http://doi.org/10.1016/j.bpj.2015.08.015
+          </>
+        ),
+      },
+      {
         id: 'pytraj',
         header: 'PyTraj',
         body: (
@@ -1512,6 +1526,16 @@ export const documentation = [
             Software for Processing and Analysis of Molecular Dynamics
             Trajectory Data. Daniel R. Roe and Thomas E. Cheatham, III. Journal
             of Chemical Theory and Computation 2013 9 (7), 3084-3095
+          </>
+        ),
+      },
+      {
+        id: 'sklearn',
+        header: 'scikit-learn',
+        body: (
+          <>
+            Scikit-learn: Machine Learning in Python, Pedregosa et al., JMLR 12,
+            pp. 2825-2830, 2011
           </>
         ),
       },
