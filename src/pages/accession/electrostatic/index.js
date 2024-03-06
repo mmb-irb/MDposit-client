@@ -86,7 +86,7 @@ const Electrostatic = () => {
       interaction.interface_indices_2,
     ].map(interf =>
       interf.map(
-        res => topology.absolute2sourceResidue(res).nglSelection,
+        residueIndex => topology.getResidueByIndex(residueIndex).nglSelection,
       ),
     );
 

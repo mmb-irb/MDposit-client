@@ -98,23 +98,13 @@ const RmsdPairwise = () => {
     const interactionInterface1 =
       interaction.interface_indices_1 &&
       interaction.interface_indices_1
-        .map(
-          res =>
-            '(' +
-            topologyManager.absolute2sourceResidue(res).nglSelection +
-            ')',
-        )
+        .map(res => `(${topologyManager.getResidueByIndex(res).nglSelection})`)
         .join(' or ');
 
     const interactionInterface2 =
       interaction.interface_indices_2 &&
       interaction.interface_indices_2
-        .map(
-          res =>
-            '(' +
-            topologyManager.absolute2sourceResidue(res).nglSelection +
-            ')',
-        )
+        .map(res => `(${topologyManager.getResidueByIndex(res).nglSelection})`)
         .join(' or ');
     // Get also the number of the interacting agents
     const agent1 = interaction.agent_1;

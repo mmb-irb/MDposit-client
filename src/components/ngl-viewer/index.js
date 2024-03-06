@@ -1084,7 +1084,7 @@ const NGLViewer = memo(
         // Get the residues input
         const residueNglSelections = selectedResidueIndices.map(
           residueIndex =>
-            topologyManager.absolute2sourceResidue(residueIndex).nglSelection,
+            topologyManager.getResidueByIndex(residueIndex).nglSelection,
         );
         // Transform the residues list into an NGL selection
         const overallNglSelection = Array.from(
@@ -1567,53 +1567,34 @@ const NGLViewer = memo(
         if (!topologyManager) return;
         const handler = ({ detail }) => {
           // escape case for event listener
-          if (
-            !detail ||
-            !(detail.eventtype === 'click' || detail.eventtype === 'reset')
-          ) {
-            return;
-          }
+          if (!detail || !(detail.eventtype === 'click' || detail.eventtype === 'reset')) return;
           let highlight = '';
-          for (const manager of document.querySelectorAll(
-            'protvista-manager',
-          )) {
+          for (const manager of document.querySelectorAll('protvista-manager')) {
             // get highlight value for each manager
             const thisHiglight = manager.attributeValues.get('highlight');
             // Get the chain letter to know which chain has been selected
             const chain = manager.attributes.chain.value;
-            if (!thisHiglight) {
-              // if none, escape
-              continue;
-            }
+            // if none, escape
+            if (!thisHiglight) continue;
             // Start and end values are in model numeration
             // DANI: This is totally by chance. I didn't program this previous part
             const [start, end] = thisHiglight.split(':');
-            const sourceStart = topologyManager.model2sourceResidue({
-              chain,
-              residue: start,
-            });
-            const sourceEnd = topologyManager.model2sourceResidue({
-              chain,
-              residue: end,
-            });
+            const sourceStart = topologyManager.getResidueByParameters(chain, +start);
+            const sourceEnd = topologyManager.getResidueByParameters(chain, +end);
             if (sourceStart.chain !== sourceEnd.chain)
               throw new Error(`Range from multiple chains is not supported`);
-            highlight += ` or :${sourceStart.chain} and ${sourceStart.residueNumber}-${sourceEnd.residueNumber}`;
+            highlight += ` or :${sourceStart.chain} and ${sourceStart.number}-${sourceEnd.number}`;
           }
           highlight = highlight.substr(4); // remove initial ' or '
 
           const structureComponent = stageRef.current.compList[0];
 
-          const previousStructureRepresentation =
-            structureComponent &&
+          const previousStructureRepresentation = structureComponent &&
             structureComponent.reprList.find(
               representation => representation.name === 'structure',
             );
-          if (previousStructureRepresentation) {
-            structureComponent.removeRepresentation(
-              previousStructureRepresentation,
-            );
-          }
+          if (previousStructureRepresentation)
+            structureComponent.removeRepresentation(previousStructureRepresentation);
           // no highlight, then default coloring
           if (!highlight) {
             structureComponent.addRepresentation('cartoon', {
@@ -1669,44 +1650,36 @@ const NGLViewer = memo(
           // WARNING: a.residueIndex is correct but we must convert it to source first
           // In some cases 1 residue can have multiple absolute residue indexes
           // (e.g. hydrogens at the end)
-          const sourceResidue = topologyManager.absolute2sourceResidue(
-            atom.residueIndex,
-          );
-          const chainName = topologyManager.getMetadataChainname(
-            sourceResidue.chain,
-          );
-          // Find the reference and the reference name to be represented
-          const reference = topologyManager.absolute2reference(
-            atom.residueIndex,
-          );
-          const currentReferenceData = reference &&
-            referenceData.find(r => r.uniprot === reference.id);
-          const referenceName =
-            reference && currentReferenceData && currentReferenceData.name;
+          const residue = topologyManager.getResidueByIndex(atom.residueIndex);
+          const chainName = topologyManager.getMetadataChainname(residue.chain);
+          // Find the reference id and the reference name to be represented
+          const referenceId = residue.referenceId;
+          const currentReferenceData = referenceId &&
+            referenceData.find(r => r.uniprot === referenceId);
+          const referenceName = referenceId &&
+            currentReferenceData && currentReferenceData.name;
           return (
             <>
               {`Atom ${atom.index} (${atom.atomname})
-            Chain ${sourceResidue.chain} ${
-                chainName ? '(' + chainName + ')' : ''
-              }
-            Residue ${sourceResidue.residueNumber} (${atom.resname})`}
+                Chain ${residue.chain} ${chainName ? '(' + chainName + ')' : ''}
+                Residue ${residue.number} (${atom.resname})`}
               {(() => {
                 // If there is not reference at all it means it is not even a protein
-                if (!reference) return;
+                if (!referenceId) return;
                 // No referable flag is for proteins which are not to be referenced
                 // e.g. antibodies, synthetic constructs, etc.
-                if (reference.id === 'noref') return (
+                if (referenceId === 'noref') return (
                   <div style={{ color: 'orange' }}>{'No referable'}</div>
                 );
                 // The not found flag is for proteins which failed to be aligned in a blast
-                if (reference.id === 'notfound') return (
+                if (referenceId === 'notfound') return (
                   <div style={{ color: 'salmon' }}>{'Reference not found'}</div>
                 );
                 // Show the reference and its residue references number
                 return (
                   <div>
                     <div style={{ color: 'lightGreen' }}>{referenceName}</div>
-                    <div>{`- Residue ${reference.index}`}</div>
+                    <div>{`- Residue ${residue.referenceNumber}`}</div>
                   </div>
                 )
               })()}

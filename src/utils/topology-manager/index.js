@@ -7,14 +7,13 @@ const ngl = require('ngl');
 // However, it may be better to pass them the topology as an argument since the context may be null
 
 // There are 4 different residue numeration types in the client:
-// - Absolute: From 0 to 'n'
+// - Absolute/Index: From 0 to 'n'
 //   Used in some internal managments
-// - Source: The numbers in the original topology file
+// - Original/Source: The numbers in the original topology file
 //   Source numbers may be repeated, have gaps or do not start at 0 or 1. May include icodes.
 //   They are also the usual numeration in analyses from the database
 // - Reference: The number in a reference topology, which is a standard
 // - (DEPRECATED) Model: From 1 to 'n' for each chain
-//   Usual numeration in data representation for this web
 
 // This function transforms a range selection string into a numeric array
 // It handles abbreviated selection syntax to literal selection syntax
@@ -249,6 +248,94 @@ const elementColors = {
   P: 'orange',
 };
 
+// Set a residue handler
+class Residue {
+  // Constructor expects the resiude index (absolute numeration)
+  constructor(topology, residueIndex) {
+    this.topology = topology;
+    this.index = residueIndex;
+  }
+  // Original residue number (source numeration)
+  get number () {
+    return this.topology.residueNumbers[this.index];
+  }
+  // Chain index
+  get chainIndex () {
+    return this.topology.residueChainIndices[this.index];
+  }
+  // Chain name
+  get chain () {
+    return this.topology.chainNames[this.chainIndex];
+  }
+  // Insertion code
+  get icode () {
+    return this.topology.residueIcodes && this.topology.residueIcodes[residueIndex];
+  }
+  // NGL selection of this specific residue
+  get nglSelection () {
+    return `:${this.chain} and ${this.number} ^${this.icode}`;
+  }
+  // Residue name
+  get type () {
+    return this.topology.residueNames[this.index];
+  }
+  // Residue standard letter (e.g. ARG -> R)
+  get letter () {
+    return getResidueTypeLetter(this.type);
+  }
+  // Reference protein index in the topology
+  get referenceIndex () {
+    if (!this.topology.residueReferenceIndices) return null;
+    return this.topology.residueReferenceIndices[this.index];
+  }
+  // Reference protein id
+  get referenceId () {
+    const referenceIndex = this.referenceIndex;
+    if (referenceIndex === null) return null;
+    return this.topology.references[referenceIndex];
+  }
+  // Reference protein residue number (reference numeration)
+  get referenceNumber () {
+    return this.topology.residueReferenceNumbers[this.index];
+  }
+  // Standard label for display
+  get standardLabel () {
+    // Add the chain to the label only if there is more than ona chain
+    let labelChain = '';
+    if (this.topology.chainNames.length > 1 ) labelChain = `${this.chain}:`;
+    // Use the reference numeration if possible
+    // Use the source numeration otherwise
+    const referenceNumber = this.referenceNumber;
+    let labelNumber;
+    if (referenceNumber !== null) labelNumber = `${referenceNumber}`;
+    else labelNumber = `${this.number}*`;
+    // Get the insertion code
+    let labelIcode = this.icode;
+    if (!labelIcode) labelIcode = '';
+    // Get the residue name
+    const labelType = `(${this.type})`;
+    // Finally return the label
+    return labelChain + labelNumber + labelIcode + labelType;
+  }
+  // Atom indices for atoms which belong to this residue
+  get atomIndices () {
+    return this.topology.residueAtomIndices[this.index];
+  }
+  // Number of atoms which belong to this residue
+  get atomCount () {
+    return this.atomIndices.length;
+  }
+  // Check if the residue has an alpha carbon
+  get hasCAlpha () {
+    for (const atomIndex of this.atomIndices) {
+      const atomName = this.topology.getAtomName(atomIndex);
+      if (atomName === 'CA') return true;
+    }
+    return false;
+  }
+
+};
+
 export class Topology {
   constructor(topology, metadata) {
     // Save the topology data as it comes
@@ -284,23 +371,17 @@ export class Topology {
     // i.e. set which atoms are contained on every residue and which residues are contained on every chain
     // WARNING: Note that arrays of empty arrays can not be filled as when filled with nulls or empty strings
     // WARNING: We must fill them with this complicated method or all empty arrays would be the same array
-    this.residueAtomIndices = Array.from(
-      Array(this.residueNames.length),
-      () => [],
-    );
+    this.residueAtomIndices = Array.from(Array(this.residueNames.length), () => []);
     for (const [atomIndex, residueIndex] of this.atomResidueIndices.entries()) {
       this.residueAtomIndices[residueIndex].push(atomIndex);
     }
-    this.chainResidueIndices = Array.from(
-      Array(this.chainNames.length),
-      () => [],
-    );
-    for (const [
-      residueIndex,
-      chainIndex,
-    ] of this.residueChainIndices.entries()) {
+    this.chainResidueIndices = Array.from(Array(this.chainNames.length), () => []);
+    for (const [ residueIndex, chainIndex ] of this.residueChainIndices.entries()) {
       this.chainResidueIndices[chainIndex].push(residueIndex);
     }
+    this.chainResidueNumbers = this.chainResidueIndices.map(
+      residueIndices => residueIndices.map(residueIndex => this.residueNumbers[residueIndex])
+    );
     // Save also the metadata chain names
     // They are not letters ('A', 'B', etc.) but actual names ('Spike', 'Glycans', etc.)
     this.metadataChainNames = metadata.CHAINNAMES;
@@ -328,16 +409,6 @@ export class Topology {
   // Return all atom absolute numbers from resiude absolute number
   getResidueAtoms = residueIndex => {
     return this.residueAtomIndices[residueIndex];
-  };
-
-  // Check if a residue has an alpha carbon (i.e. it is a regular aminoacid)
-  residueHasCAlpha = residueIndex => {
-    const atoms = this.getResidueAtoms(residueIndex);
-    for (const atom of atoms) {
-      const name = this.getAtomName(atom);
-      if (name === 'CA') return true;
-    }
-    return false;
   };
 
   // Get the total number of atoms from a resiude absolute number
@@ -384,21 +455,8 @@ export class Topology {
   };
 
   // --------------------------------------------------------------------
-  // FORMAT CONVERSIONS
+  // RESIDUE PARSING
   // --------------------------------------------------------------------
-
-  // This function converts absolute residue numbers to topology reference residue numbers
-  // If the residue is not mapped for whatever the reason then return null
-  // e.g. the topology map may be missing or the residue may be not protein
-  // Note that each absolute residue may belong to only 1 reference
-  absolute2reference = residue => {
-    if (!this.references) return null;
-    const referenceIndex = this.residueReferenceIndices[residue];
-    if (referenceIndex === null) return null;
-    const reference = this.references[referenceIndex];
-    const residueReferenceNumber = this.residueReferenceNumbers[residue];
-    return { id: reference, index: residueReferenceNumber };
-  };
 
   // This function converts a list of topology reference residue numbers to current topology residue numbers
   // The reference must be specified with the topology reference name, since there may be more than 1 reference
@@ -418,129 +476,37 @@ export class Topology {
     return absoluteResidues;
   };
 
-  // Get the standard numeration from a residue in absolute numeration
-  // Standard numeration is the numeration to be displayed in figures
-  // The equivalent source residue may be passed to skip having to calculate it again
-  absolute2standard = (absolute, source = null) => {
-    // Use the reference numeration, when possible, and the source numeration when not
-    // When no referenced, add a '*' to warn the user that the numeration is not "official"
-    let number;
-    let labelNumber;
-    const ref = this.absolute2reference(absolute);
-    if (!source) source = this.absolute2sourceResidue(absolute);
-    if (ref !== null) {
-      number = ref.index;
-      labelNumber = `${number}`;
-    } else {
-      number = source.residue;
-      labelNumber = `${number}*`;
-    }
-    // Get the insertion code
-    const icode = source.icode ? source.icode : '';
-    // Get the type and the chain of the residue
-    let { type, chain } = this.getAbsoluteResidueMetadata(absolute, {
-      type: true,
-      chain: true,
-    });
-    // Check if there is only one chain and, if so, skip the chain in the label
-    let labelChain;
-    if (this.chainNames.length === 1) labelChain = ``;
-    else labelChain = `${chain}:`;
-    // If the residue has a type then surround it with parenthesis
-    // Residues usually have it
-    let labelType;
-    if (type) labelType = `(${type})`;
-    else labelType = ``;
-    // Build the label to be shown
-    const label = labelChain + labelNumber + icode + labelType;
-    return { label, chain, number, type };
-  };
-
   // This function converts absolute residue numbers to topology residue numbers
-  absolute2sourceResidue = residueIndex => {
+  getResidueByIndex = residueIndex => {
     const count = this.residueNumbers.length;
-    if (residueIndex >= count)
-      throw new Error(
-        `The residue index ${residueIndex} is out of range. There are ${count} residues in the topology`,
-      );
-    const residueNumber = this.residueNumbers[residueIndex];
-    const chainIndex = this.getResidueChainIndex(residueIndex);
-    const chain = this.chainNames[chainIndex]; // e.g. 'A'
-    const icode = this.residueIcodes && this.residueIcodes[residueIndex];
-    // Formated selection to select this specific residue in NGL
-    const nglSelection = ':' + chain + ' and ' + residueNumber + ' ^' + icode;
-    // Additional residue data
-    const type = this.residueNames[residueIndex];
-    const letter = getResidueTypeLetter(type);
-    //console.log(residue + ' => ' + relativeresidue);
-    return {
-      chain,
-      residue: residueNumber, // In order to solve incompatibilities between funcions
-      residueNumber,
-      icode,
-      nglSelection,
-      type,
-      letter,
-    };
-  };
-
-  // Get the reference numeration from a source formatted resiude
-  source2referenceResidue = ({ chain, residue, icode }) => {
-    // Check arguments to be valid
-    const absolute = this.source2absoluteResidue({ chain, residue, icode });
-    const reference = this.absolute2reference(absolute);
-    return reference;
+    if (residueIndex >= count) throw new Error(
+      `The residue index ${residueIndex} is out of range. There are ${count} residues in the topology`,
+    );
+    return new Residue(this, residueIndex);
   };
 
   // This function converts topology residue numbers to absolute residue numbers
-  source2absoluteResidue = ({ chain, residue, icode }) => {
-    for (const [residueIndex, residueNumber] of this.residueNumbers.entries()) {
-      if (residueNumber !== residue) continue;
-      const chainIndex = this.getResidueChainIndex(residueIndex);
-      const chainName = this.chainNames[chainIndex];
-      if (chainName !== chain) continue;
-      const residueIcode =
-        this.residueIcodes && this.residueIcodes[residueIndex];
-      if (icode && residueIcode !== icode) continue;
-      return residueIndex;
-    }
-    throw new Error(
-      'The requested chain (' +
-        chain +
-        '), residue number (' +
-        residue +
-        ') and icode (' +
-        icode +
-        ') did not match any residue',
-    );
-  };
-
-  // Get the standard numeration from a residue in source format
-  // Standard numeration is the numeration to be displayed in figures
-  // It is the reference numeration, when possible, and the source numeration when not
-  source2standard = source => {
-    const absolute = this.source2absoluteResidue(source);
-    return this.absolute2standard(absolute, source);
-  };
-
-  // DEPRECATED
-  // WARNING: Model format is used to solve a situation where the NGL output numeration is in model format
-  // WARNING: This is totally by chance
-  // This function converts model residue numbers to absolute residue numbers
-  model2absoluteResidue = ({ chain, residue }) => {
+  getResidueByParameters = (chain, number, icode = '') => {
+    // Get the first residue index of residues belonging to this chain
     const chainIndex = this.getChainIndex(chain);
-    const chainResidues = this.chainResidueIndices[chainIndex];
-    return chainResidues[+residue + 1];
-  };
-
-  // DEPRECATED
-  // WARNING: Model format is used to solve a situation where the NGL output numeration is in model format
-  // WARNING: This is totally by chance
-  // This function converts model residue numbers to source residue numbers
-  model2sourceResidue = ({ chain, residue }) => {
-    const absolute = this.model2absoluteResidue({ chain, residue });
-    const source = this.absolute2sourceResidue(absolute);
-    return source;
+    const firstResideeIndex = this.residueChainIndices.indexOf(chainIndex);
+    if (firstResideeIndex === -1) throw new Error(`Chain ${chain} does not exist`);
+    // Now iterate residues starting at this index
+    for (let residueIndex = firstResideeIndex; residueIndex < this.residueChainIndices.length; residueIndex++) {
+      const residue = new Residue(this, residueIndex);
+      // If this resiude does not belong to the requested chain already then we give up
+      if (residue.chainIndex !== chainIndex) break;
+      // Check if the residue number matches
+      if (residue.number !== number) continue;
+      // Check if the insertion code matches
+      if (residue.icode !== icode) continue;
+      // If everything matches then return this residue
+      return residue;
+    }
+    // There should always be a match
+    throw new Error(
+      `Residue with chain ${chain}, number ${number} and icode ${icode} does not exist`,
+    );
   };
 
   // --------------------------------------------------------------------
@@ -592,12 +558,6 @@ export class Topology {
     return output;
   };
 
-  // Same function that above but for residues in source format
-  getSourceResidueMetadata = (residue, requests) => {
-    const absolute = this.source2absoluteResidue(residue);
-    return this.getAbsoluteResidueMetadata(absolute, requests);
-  };
-
   // Do the same that the previous function but from absolute residues
   // e.g. [0, 1, 2, 3, ...] => nglSelection = "(A: and 1, 3-5) or (B: and 1)"
   // In addition track if there is any small serie (i.e. 3 residues or less)
@@ -607,18 +567,12 @@ export class Topology {
     let small = false;
     let rangedSelection = '';
     // Parse each residue in complex notation
-    const parsedResidues = selection.map(residue =>
-      this.absolute2sourceResidue(residue),
-    );
+    const parsedResidues = selection.map(residueIndex => this.getResidueByIndex(residueIndex));
     // Get unique chains
-    const chains = parsedResidues
-      .map(r => r.chain)
-      .filter((v, i, a) => a.indexOf(v) === i);
+    const chains = parsedResidues.map(r => r.chain).filter((v, i, a) => a.indexOf(v) === i);
     // For each chain, get all residues and "range" them
     chains.forEach(chain => {
-      const chainResidues = parsedResidues
-        .filter(v => v.chain === chain)
-        .map(r => r.residue);
+      const chainResidues = parsedResidues.filter(v => v.chain === chain).map(r => r.number);
       const {
         rangedSelection: ranged,
         small: smallChain,

@@ -1,12 +1,21 @@
-import colorFromString from '../color-from-string';
-import mergeIntervals from '../merge-intervals';
+import colorFromString from '../../../utils/color-from-string';
+import mergeIntervals from '../../../utils/merge-intervals';
 
-const processLocations = locations =>
+// Renumerate residue numbers to make them match the actual chain they come from
+const shiftLocations = (fragments, shift) => {
+  fragments.forEach(fragment => {
+    fragment.start += shift;
+    fragment.end += shift;
+  })
+  return fragments;
+}
+
+const processLocations = (locations, firstResidueNumber = 1) =>
   locations.map(location => ({
-    fragments: location['location-fragments'],
+    fragments: shiftLocations(location['location-fragments'], firstResidueNumber),
   }));
 
-const processIPScanResults = matches => {
+const processIPScanResults = (matches, firstResidueNumber) => {
   const processed = [];
   // for all the matches
   for (const match of matches || []) {
@@ -26,7 +35,7 @@ const processIPScanResults = matches => {
         };
         processed.push(existing);
       }
-      const locations = processLocations(match.locations);
+      const locations = processLocations(match.locations, firstResidueNumber);
       existing.locations = mergeIntervals(
         [...existing.locations, ...locations],
         (interval, value) =>
@@ -50,7 +59,7 @@ const processIPScanResults = matches => {
       processed.push({
         accession: match.signature.accession,
         db: match.signature.signatureLibraryRelease.library,
-        locations: processLocations(match.locations),
+        locations: processLocations(match.locations, firstResidueNumber),
         color: colorFromString(match['model-ac']),
       });
     }
@@ -59,10 +68,7 @@ const processIPScanResults = matches => {
   // sort them
   processed
     // secondary sort by start position
-    .sort(
-      (a, b) =>
-        a.locations[0].fragments[0].start - b.locations[0].fragments[0].start,
-    )
+    .sort((a, b) => a.locations[0].fragments[0].start - b.locations[0].fragments[0].start)
     // primary sort by number of signatures
     .sort((a, b) => (b.signatures || []).length - (a.signatures || []).length);
 

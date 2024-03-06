@@ -5,10 +5,10 @@ import Loading from '../loading';
 import useAPI from '../../hooks/use-api';
 
 import loadCustomElement from '../../utils/load-custom-element';
-import processIPScanResults from '../../utils/process-ipscan-results';
 
 import { BASE_PATH_PROJECTS } from '../../utils/constants';
 
+import processIPScanResults from './process-ipscan-results';
 import InterproTrack from './react-interpro-track';
 
 import style from './style.module.css';
@@ -48,76 +48,70 @@ const loadProtVista = () => {
 };
 
 // The result of this function is memoized since it is a heavy work
-const ChainAnalyses = memo(({ chain, accessionAndMdNumber }) => {
+const ChainAnalyses = memo(({ accessionAndMdNumber, chain, firstResidueNumber }) => {
+  // Request the API for the chain data
   const { loading, payload, error } = useAPI(
     `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/chains/${chain}`,
   );
 
+  // Load the protvista managers
   useEffect(() => {
     loadProtVista();
   }, []);
 
+  // Wait for the chain data to be retrieved
   if (loading) return <Loading />;
   if (error) return error.toString();
   if (!payload) return 'Chain analysis is not found';
 
-  const {
-    sequence,
-    interproscan: {
-      results: [{ matches }],
-    },
-  } = payload;
-  const { length } = sequence;
+  // Mine payload data
+  const sequence = payload.sequence;
+  const sequenceLength = sequence.length;
+  const matches = payload.interproscan.results[0].matches;
+  const processedMatches = processIPScanResults(matches, firstResidueNumber);
 
-  const processedMatches = processIPScanResults(matches);
+  // Set the end residue to be displayed
+  const displayEnd = firstResidueNumber + sequenceLength;
+  // Set an shifted sequence by adding null values at the begining
+  // This is the only way I figured out to offset the sequence
+  // Apparently protvista sequence components have no argument for this
+  const shiftedSequence = ' '.repeat(firstResidueNumber) + sequence;
 
   return (
     <protvista-manager
-      attributes="length displaystart displayend highlight"
-      data-chain-length={length}
+      attributes="length displaystart displayend"
+      length={sequenceLength}
       chain={chain}
     >
       <protvista-navigation
-        length={length}
-        displaystart={1}
-        displayend={length}
+        rulerstart={firstResidueNumber}
+        displaystart={firstResidueNumber}
+        displayend={displayEnd}
       />
       <div className={style.entries}>
         <protvista-sequence
-          sequence={sequence}
-          length={length}
-          displaystart={1}
-          displayend={length}
+          sequence={shiftedSequence}
           height="37"
         />
         <protvista-coloured-sequence
-          sequence={sequence}
-          length={length}
+          sequence={shiftedSequence}
           scale="hydrophobicity-scale"
           height="15"
         />
-        {processedMatches.length
+        { processedMatches.length
           ? processedMatches.map((match, index) => {
-            // DANI: Esto antes iba con el PropertySetter, un wrapper de Aurèlien
-            // DANI: Este módulo no es compatible con react 18 así que hubo que quitarlo
-            // DANI: No consigo que esto funcione sin el módulo y ya me he cansado
-            // DANI: Se va a quedar así y el día que alguien se queje ya me lo volveré a mirar
             return (
-              <div
-                key={index} // I know...
-              >
+              <div key={index} >
                 <span className={style.label}>{match.accession}</span>
                 <InterproTrack
                   match={match}
-                  length={length}
-                  displaystart={1}
-                  displayend={length}
                   shape="roundRectangle"
                   classAttr={match.signatures ? style['has-signatures'] : undefined}
                 />
               </div>
             )})
-          : 'No entry was found for this sequence'}
+          : 'No entry was found for this sequence'
+        }
       </div>
     </protvista-manager>
   );

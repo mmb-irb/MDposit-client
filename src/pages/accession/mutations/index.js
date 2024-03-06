@@ -45,17 +45,17 @@ const Mutations = () => {
     const residueEntropies = new Array(residuesCount).fill(null);
     // Iterate over all residues in the topology to find their corresponding entropy
     for (let i = 0; i < residuesCount; i++) {
-      const reference = topologyManager.absolute2reference(i);
-      if (!reference) continue;
-      const { id: referenceId, index: referenceIndex } = reference;
-      // We substract 1 from the residueIndex since it counts from 1 to n as references do
-      const residueIndex = referenceIndex - 1;
+      const residue = topologyManager.getResidueByIndex(i);
+      const referenceId = residue.referenceId;
+      if (!referenceId) continue;
+      // We substract 1 from the residue index since it counts from 1 to n as references do
+      const residueReferenceIndex = residue.referenceNumber - 1;
       const currentReferenceData = referenceData.find(
         data => data.uniprot === referenceId,
       );
       const entropies = currentReferenceData.entropies;
       if (!entropies) continue;
-      const entropy = entropies[residueIndex];
+      const entropy = entropies[residueReferenceIndex];
       if (entropy === undefined) continue;
       const logarithmicEntropy =
         Math.round(Math.log(entropy + 0.0001) * 1000) / 1000;

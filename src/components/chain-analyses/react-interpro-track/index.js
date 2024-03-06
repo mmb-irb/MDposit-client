@@ -6,7 +6,7 @@ import loadCustomElement from '../../../utils/load-custom-element';
 // https://github.com/aurel-l/react-property-setter/blob/master/src/index.ts
 
 // The result of this function is memoized since it is a heavy work
-const InterproTrack = memo(({ match, length, displaystart, displayend, shape, classAttr }) => {
+const InterproTrack = memo(({ match, length, shape, classAttr }) => {
 
     // Set a reference to the protvista element
     const protvistaRef = useRef();
@@ -30,8 +30,6 @@ const InterproTrack = memo(({ match, length, displaystart, displayend, shape, cl
         <protvista-interpro-track
             ref={protvistaRef}
             length={length}
-            displaystart={displaystart}
-            displayend={displayend}
             shape={shape}
             class={classAttr}
         />

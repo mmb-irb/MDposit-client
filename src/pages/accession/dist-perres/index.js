@@ -156,11 +156,8 @@ const DistPerres = () => {
     }
 
     // Convert the residues from topology numeration to standard numeration to use them as labels
-    const [xLabels, yLabels] = [residuesX, residuesY].map(residues =>
-      residues.map(residue => {
-        const { label } = topology.absolute2standard(residue);
-        return label;
-      }),
+    const [xLabels, yLabels] = [residuesX, residuesY].map(residueIndices =>
+      residueIndices.map(residueIndex => topology.getResidueByIndex(residueIndex).standardLabel),
     );
 
     // Get the titles from the interaction data
@@ -193,16 +190,15 @@ const DistPerres = () => {
   // Also retrieve the absolute residue number, since it is used to ask for the distance representation
   // http://nglviewer.org/ngl/api/class/src/representation/distance-representation.js~DistanceRepresentation.html
   const parseResidue = useCallback(
-    residue => {
-      // We must check the residue has an alpha carbon
-      // If not, there is no atom to use a distance reference, so return null
-      const hasCA = topology.residueHasCAlpha(residue);
+    residueIndex => {
       // Set the numeration
-      const source = topology.absolute2sourceResidue(residue);
+      const residue = topology.getResidueByIndex(residueIndex);
       return {
-        forResidue: residue,
-        forDistance: hasCA
-          ? source.residue.toString() + ':' + source.chain + '.CA'
+        forResidue: residueIndex,
+        // We must check the residue has an alpha carbon
+        // If not, there is no atom to use a distance reference, so return null
+        forDistance: residue.hasCAlpha
+          ? residue.number.toString() + ':' + residue.chain + '.CA'
           : null,
       };
     },

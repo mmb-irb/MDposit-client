@@ -70,16 +70,15 @@ const ResidueSelector = ({
     for (let residueIndex = 0; residueIndex < residuesCount; residueIndex++) {
       const value = residueValues[residueIndex];
       if (value === null) continue;
-      const source = topologyManager.absolute2sourceResidue(residueIndex);
-      const ref = topologyManager.absolute2reference(residueIndex);
+      const residue = topologyManager.getResidueByIndex(residueIndex);
       const formattedResidue = {
         index: residueIndex,
-        letter: source.letter,
-        number: (ref && ref.index) || source.residueNumber,
+        letter: residue.letter,
+        number: residue.referenceNumber || residue.number,
         value: value,
       };
       residueData[residueIndex] = formattedResidue;
-      const chain = source.chain;
+      const chain = residue.chain;
       const current = chains[chain];
       if (current) current.push(formattedResidue);
       else chains[chain] = [formattedResidue];

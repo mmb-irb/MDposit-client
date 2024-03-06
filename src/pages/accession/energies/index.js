@@ -105,8 +105,8 @@ const Energies = () => {
       ? interaction.residue_indices_1
       : interaction.residue_indices_2;
     hostResidues.forEach(residueIndex => {
-      const residue = topologyManager.absolute2standard(residueIndex);
-      data.xTags.push(residue.label);
+      const residue = topologyManager.getResidueByIndex(residueIndex);
+      data.xTags.push(residue.standardLabel);
     });
 
     // Set the NGL representations
@@ -129,7 +129,7 @@ const Energies = () => {
       topologyManager.getAtomResidueIndex(atom),
     );
     const strongBondResidues = strongBondResidueIndexes.map(
-      residue => topologyManager.absolute2standard(residue).label,
+      residueIndex => topologyManager.getResidueByIndex(residueIndex).standardLabel,
     );
     const strongBondMarks = [];
     strongBondResidues.forEach(residue => {

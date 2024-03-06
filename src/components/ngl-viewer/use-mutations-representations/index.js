@@ -54,11 +54,11 @@ const useMutationsRepresentations = () => {
         // WARNING: atom.residueIndex starts the count at 0 although it may seem that starts at 1
         // WARNING: It may happen that the first residue is a capping terminal and it is skipped
         // WARNING: The cartoon representation would skip the non-standard residue and start by 1
-        const residue = atom.residueIndex;
-        const ref = topologyManager.absolute2reference(residue);
+        const residueIndex = atom.residueIndex;
+        const residue = topologyManager.getResidueByIndex(residueIndex);
+        const referenceId = residue.referenceId;
         // If no reference residue was found then paint it white
-        if (!ref) return parseInt('ffffff', 16);
-        const { id: referenceId, index: residueIndex } = ref;
+        if (!referenceId) return parseInt('ffffff', 16);
         // get the corresponding entropy
         // -1 because the residue 'x' would be the index 'x-1' in the array
         const reference = referenceData.find(
@@ -66,7 +66,7 @@ const useMutationsRepresentations = () => {
         );
         const entropies = reference.logarithmicEntropies;
         if (!entropies || entropies.length === 0) return parseInt('ffffff', 16);
-        const entropy = entropies[residueIndex - 1];
+        const entropy = entropies[residue.referenceNumber - 1];
         // If there is no entropy at this point probably there is something wrong with the map
         if (!entropy) return parseInt('ffffff', 16);
         // Calculate the interpolated rgb for this value

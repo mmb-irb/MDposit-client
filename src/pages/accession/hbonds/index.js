@@ -189,7 +189,7 @@ const Hbonds = () => {
           atoms.map(atom => {
             const atomName = topologyManager.getAtomName(atom);
             const residueIndex = topologyManager.getAtomResidueIndex(atom);
-            const { label } = topologyManager.absolute2standard(residueIndex);
+            const label = topologyManager.getResidueByIndex(residueIndex).standardLabel;
             return `${label}.${atomName}`;
           }),
       );
