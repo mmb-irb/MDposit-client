@@ -269,7 +269,7 @@ class Residue {
   }
   // Insertion code
   get icode () {
-    return this.topology.residueIcodes && this.topology.residueIcodes[residueIndex];
+    return this.topology.residueIcodes && this.topology.residueIcodes[this.index];
   }
   // NGL selection of this specific residue
   get nglSelection () {
