@@ -269,7 +269,8 @@ class Residue {
   }
   // Insertion code
   get icode () {
-    return this.topology.residueIcodes && this.topology.residueIcodes[this.index];
+    if (!this.topology.residueIcodes) return null;
+    return this.topology.residueIcodes[this.index];
   }
   // NGL selection of this specific residue
   get nglSelection () {
@@ -296,6 +297,7 @@ class Residue {
   }
   // Reference protein residue number (reference numeration)
   get referenceNumber () {
+    if (!this.topology.residueReferenceNumbers) return null;
     return this.topology.residueReferenceNumbers[this.index];
   }
   // Standard label for display
