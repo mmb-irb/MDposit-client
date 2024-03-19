@@ -274,7 +274,9 @@ class Residue {
   }
   // NGL selection of this specific residue
   get nglSelection () {
-    return `:${this.chain} and ${this.number} ^${this.icode}`;
+    let selection = `:${this.chain} and ${this.number}`
+    if (this.icode) selection += ` ^${this.icode}`
+    return selection;
   }
   // Residue name
   get type () {
