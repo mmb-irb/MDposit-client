@@ -16,6 +16,8 @@ import {
 import Card from '../../../components/animated-card';
 import LazyImg from '../../../components/lazy-img';
 
+import { prettyEnumerate, rawEnumerate } from '../../../utils/pretty-enumerate';
+
 import { ProjectCtx } from '../../../contexts';
 import http from 'stream-http';
 
@@ -115,8 +117,8 @@ export default React.memo(() => {
               )}
               {metadata.METHOD}
               {metadata.DESCRIPTION && <div>{metadata.DESCRIPTION}</div>}
-              {metadata.AUTHORS && <div>Authors: {metadata.AUTHORS}</div>}
-              {metadata.GROUPS && <div>Groups: {metadata.GROUPS}</div>}
+              {metadata.AUTHORS && <div>Authors: {prettyEnumerate(metadata.AUTHORS)}</div>}
+              {metadata.GROUPS && <div>Groups: {rawEnumerate(metadata.GROUPS)}</div>}
               {metadata.CONTACT && <div>Contact: {metadata.CONTACT}</div>}
               {metadata.PROGRAM && <div>Program: {metadata.PROGRAM}</div>}
               {metadata.VERSION && <div>Version: {metadata.VERSION}</div>}

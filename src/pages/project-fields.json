@@ -34,7 +34,7 @@
     "name": "Authors",
     "path": "metadata.AUTHORS",
     "type": "string",
-    "example": "D. E. Shaw Research",
+    "example": "Modesto Orozco",
     "options": true,
     "checkbox" : false
   },
@@ -42,7 +42,7 @@
     "name": "Groups",
     "path": "metadata.GROUPS",
     "type": "string",
-    "example": "Amaro Lab",
+    "example": "IRB Barcelona, Orozco lab",
     "options": true,
     "checkbox" : false
   },
