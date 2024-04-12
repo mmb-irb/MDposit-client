@@ -9,6 +9,11 @@
   flex-direction: row;
 }
 
+.noresult {
+  justify-content: center;
+  align-items: center;
+}
+
 .menu {
   overflow-y: scroll;
   width: 20%;
@@ -52,6 +57,9 @@
   width: 300px;
   height: 300px;
   margin: 1em;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .legend {

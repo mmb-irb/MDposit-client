@@ -133,11 +133,15 @@ const useStatistics = () => {
     // Return the component
     return (
       <div className={style.horizontal}>
-        <PieChart
+        {methods && methods.length > 0
+        ? <PieChart
           data={pieChartData}
           //label={({ dataEntry }) => dataEntry.value}
           className={style.piechart}
         />
+        : <div className={style.piechart}>
+          <Typography variant="h6">No results</Typography>
+        </div>}
         {legendData && (
           <SimpleLegend entries={legendData} className={style.legend} />
         )}
