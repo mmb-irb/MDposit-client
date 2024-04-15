@@ -89,7 +89,7 @@ const api = [
 
 export default React.memo(() => {
   // Load project data
-  const { identifier, fileDescriptors } = useContext(ProjectCtx);
+  const { accessionAndMdNumber, fileDescriptors } = useContext(ProjectCtx);
 
   // Send a request to the API with the url of the rgyr analysis
   const { loading, payload, error } = fileDescriptors;
@@ -135,7 +135,7 @@ export default React.memo(() => {
               size="large"
               color="primary"
               component="a"
-              href={`${BASE_PATH_PROJECTS}/${identifier}/files/${MAIN_STRUCTURE_FILENAME}`}
+              href={`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/${MAIN_STRUCTURE_FILENAME}`}
               download={MAIN_STRUCTURE_FILENAME}
               target="_blank"
             >
@@ -169,7 +169,7 @@ export default React.memo(() => {
               size="large"
               color="primary"
               component="a"
-              href={`${BASE_PATH_PROJECTS}/${identifier}/files/${MAIN_TRAJECTORY_FILENAME}`}
+              href={`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/${MAIN_TRAJECTORY_FILENAME}`}
               download={MAIN_TRAJECTORY_FILENAME}
               target="_blank"
             >
@@ -197,7 +197,7 @@ export default React.memo(() => {
             }) => {
               const estimatedTime = length && getEstimate(length);
               const href =
-                url || `${BASE_PATH_PROJECTS}/${identifier}/files/${filename}`;
+                url || `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/${filename}`;
               return (
                 <Accordion key={filename}>
                   <AccordionSummary
