@@ -19,7 +19,7 @@ import LazyImg from '../../../components/lazy-img';
 import { prettyEnumerate, rawEnumerate } from '../../../utils/pretty-enumerate';
 
 import { ProjectCtx } from '../../../contexts';
-import http from 'stream-http';
+import https from 'https-browserify';
 
 import style from './style.module.css';
 
@@ -37,7 +37,7 @@ const typeSettings = {
 };
 
 export default React.memo(() => {
-  const { accession, accessionAndMdNumber, identifier, published, metadata, references, mds } = useContext(
+  const { accession, identifier, published, metadata, references, mds } = useContext(
     ProjectCtx,
   );
   // Download pdb information for every pdb id in metadata
@@ -48,7 +48,7 @@ export default React.memo(() => {
     // Store requests so we can abort them all in the useEffect cleanup function in case they were not completed on time
     const requests = [];
     pdbIds.forEach(pdbId => {
-      const url = `http://mdb-login.bsc.es/api/pdb/${pdbId}/entry`;
+      const url = `https://mdb-login.bsc.es/api/pdb/${pdbId}/entry`;
       let body = '';
       const request = http.get(url, response => {
         response.on('data', chunk => {
@@ -309,7 +309,7 @@ export default React.memo(() => {
                       <Button
                         component={'a'}
                         variant="contained"
-                        href={`http://3dbionotes-ws.cnb.csic.es/?queryId=${pdbId}`}
+                        href={`https://3dbionotes-ws.cnb.csic.es/?queryId=${pdbId}`}
                         size="small"
                         color="primary"
                         target="_blank"
