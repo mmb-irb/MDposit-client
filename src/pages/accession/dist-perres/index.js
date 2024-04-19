@@ -198,7 +198,7 @@ const DistPerres = () => {
         // We must check the residue has an alpha carbon
         // If not, there is no atom to use a distance reference, so return null
         forDistance: residue.hasCAlpha
-          ? residue.number.toString() + ':' + residue.chain + '.CA'
+          ? residue.number.toString() + ':' + residue.chainName + '.CA'
           : null,
       };
     },

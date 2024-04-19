@@ -113,7 +113,7 @@ const Sasa = () => {
     // Excluded residues (e.g. membrane residues) have null in all its values
     const data = { saspf: [], means: [], stdvs: [] };
     for (let r = 0; r < residueCount; r++) {
-      const atomCount = topologyManager.getResidueAtomsCount(r);
+      const atomCount = topologyManager.getResidueByIndex(r).atomCount;
       if (atomCount === 1) {
         data.saspf[r] = null;
         data.means[r] = null;
@@ -142,9 +142,7 @@ const Sasa = () => {
       this.atomColor = atom => {
         // Find the residue index and then the entropy for this residue
         const residueIndex = atom.residueIndex;
-        const residueAtomsCount = topologyManager.getResidueAtomsCount(
-          residueIndex,
-        );
+        const residueAtomsCount = topologyManager.getResidueByIndex(residueIndex).atomCount;
         // Single atom residues (i.e. ions) are discarded since they may raise the maximum SAS a lot
         if (residueAtomsCount === 1) return 16777215;
         const mean = means[residueIndex];

@@ -250,7 +250,7 @@ const elementColors = {
 
 // Set a residue handler
 class Residue {
-  // Constructor expects the resiude index (absolute numeration)
+  // Constructor expects the residue index (absolute numeration)
   constructor(topology, residueIndex) {
     this.topology = topology;
     this.index = residueIndex;
@@ -264,8 +264,12 @@ class Residue {
     return this.topology.residueChainIndices[this.index];
   }
   // Chain name
-  get chain () {
+  get chainName () {
     return this.topology.chainNames[this.chainIndex];
+  }
+  // Chain handler
+  get chain () {
+    return this.topology.getChainByIndex(this.chainIndex);
   }
   // Insertion code
   get icode () {
@@ -274,13 +278,16 @@ class Residue {
   }
   // NGL selection of this specific residue
   get nglSelection () {
-    let selection = `:${this.chain} and ${this.number}`
+    let selection = `:${this.chainName} and ${this.number}`
     if (this.icode) selection += ` ^${this.icode}`
     return selection;
   }
   // Residue name
   get type () {
     return this.topology.residueNames[this.index];
+  }
+  get name () {
+    return this.type;
   }
   // Residue standard letter (e.g. ARG -> R)
   get letter () {
@@ -306,7 +313,7 @@ class Residue {
   get standardLabel () {
     // Add the chain to the label only if there is more than ona chain
     let labelChain = '';
-    if (this.topology.chainNames.length > 1 ) labelChain = `${this.chain}:`;
+    if (this.topology.chainNames.length > 1 ) labelChain = `${this.chainName}:`;
     // Use the reference numeration if possible
     // Use the source numeration otherwise
     const referenceNumber = this.referenceNumber;
@@ -339,6 +346,44 @@ class Residue {
   }
 
 };
+
+// Set a chain handler
+class Chain {
+  // Constructor expects the chain index
+  constructor(topology, chainIndex) {
+    this.topology = topology;
+    this.index = chainIndex;
+  }
+  // Get the chain name
+  get name () {
+    return this.topology.chainNames[this.index];
+  }
+  get letter () {
+    return this.name;
+  }
+  // Get the metadata chain name
+  get metadataChainName () {
+    const metadataChainNames = this.topology.metadataChainNames;
+    if (!metadataChainNames) return '';
+    // OBSOLETE: Chains were stored as an array of names long time ago
+    if (Array.isArray(metadataChainNames)) return metadataChainNames[this.index] || '';
+    // Chains are stored as and object (e.g. { 'A': 'ACE2', 'B': 'RBD' })
+    else return metadataChainNames[this.name] || '';
+  }
+  // Get residue indcies
+  get residueIndices () {
+    return this.topology.chainResidueIndices[this.index];
+  }
+  // Get residue numbers
+  get residueNumbers () {
+    return this.topology.chainResidueNumbers[this.index];
+  }
+  // Get residue handlers
+  get residues () {
+    return this.residueIndices.map(residueIndex => new Residue(residueIndex));
+  }
+
+}
 
 export class Topology {
   constructor(topology, metadata) {
@@ -405,61 +450,67 @@ export class Topology {
     return this.atomResidueIndices[atomIndex];
   };
 
-  // Return all atom absolute numbers from resiude absolute number
-  getResidueName = residueIndex => {
-    return this.residueNames[residueIndex];
-  };
-
-  // Return all atom absolute numbers from resiude absolute number
-  getResidueAtoms = residueIndex => {
-    return this.residueAtomIndices[residueIndex];
-  };
-
-  // Get the total number of atoms from a resiude absolute number
-  getResidueAtomsCount = residueIndex => {
-    const atoms = this.getResidueAtoms(residueIndex);
-    return atoms.length;
-  };
-
   // Get the total number of residues in topology
   getResiduesCount = () => {
     return this.residueNumbers.length;
   };
 
-  // Given a chain name, get its index
-  getChainIndex = chainName => {
-    const chainIndex = this.chainNames.indexOf(chainName);
-    if (chainIndex === -1)
-      throw new Error('Chain ' + chainName + ' is not found in the topology');
-    return chainIndex;
+  // --------------------------------------------------------------------
+  // Residue getters
+  // --------------------------------------------------------------------
+
+  // Given a residue index, return its handler
+  getResidueByIndex = residueIndex => {
+    const count = this.residueNumbers.length;
+    if (residueIndex >= count) throw new Error(
+      `The residue index ${residueIndex} is out of range. There are ${count} residues in the topology`,
+    );
+    return new Residue(this, residueIndex);
   };
 
-  // Get a chain name from its index
-  getChainName = chainIndex => {
-    return this.chainNames[chainIndex];
-  };
-
-  // Given a residue, get its chain index
-  getResidueChainIndex = residueIndex => {
-    return this.residueChainIndices[residueIndex];
-  };
-
-  // Given an atom, return its chain index
-  getAtomChainIndex = atomIndex => {
-    const residueIndex = this.getAtomResidueIndex(atomIndex);
-    return this.getResidueChainIndex(residueIndex);
-  };
-
-  // Given a chain, return its atom indices
-  getChainAtomIndices = chainIndex => {
-    const residueIndices = this.chainResidueIndices[chainIndex];
-    return [].concat(
-      residueIndices.map(residueIndex => this.residueAtomIndices[residueIndex]),
+  // Given a residue parameters, find the residue and then return its handler
+  getResidueByParameters = (chainName, number, icode = null) => {
+    // Get the residue chain
+    const chain = this.getChainByName(chainName);
+    // Now iterate residues starting at this index
+    for (const residueIndex of chain.residueIndices) {
+      const residue = new Residue(this, residueIndex);
+      // Check if the residue number matches
+      if (residue.number !== number) continue;
+      // Check if the insertion code matches
+      if (residue.icode !== icode) continue;
+      // If everything matches then return this residue
+      return residue;
+    }
+    // There should always be a match
+    throw new Error(
+      `Residue with chain ${chainName}, number ${number} and icode ${icode} does not exist`,
     );
   };
 
   // --------------------------------------------------------------------
-  // RESIDUE PARSING
+  // Chain getters
+  // --------------------------------------------------------------------
+
+  // Given a chain index, return its handler
+  getChainByIndex = chainIndex => {
+    const count = this.chainNames.length;
+    if (chainIndex >= count) throw new Error(
+      `The chain index ${chainIndex} is out of range. There are ${count} chains in the topology`,
+    );
+    return new Chain(this, chainIndex);
+  }
+
+  // Given a chain name, find the chain and return its handler
+  getChainByName = chainName => {
+    const chainIndex = this.chainNames.indexOf(chainName);
+    if (chainIndex === -1)
+      throw new Error(`Chain ${chainName} is not found in the topology`);
+    return new Chain(this, chainIndex);
+  }
+
+  // --------------------------------------------------------------------
+  // OTHER
   // --------------------------------------------------------------------
 
   // This function converts a list of topology reference residue numbers to current topology residue numbers
@@ -480,88 +531,6 @@ export class Topology {
     return absoluteResidues;
   };
 
-  // This function converts absolute residue numbers to topology residue numbers
-  getResidueByIndex = residueIndex => {
-    const count = this.residueNumbers.length;
-    if (residueIndex >= count) throw new Error(
-      `The residue index ${residueIndex} is out of range. There are ${count} residues in the topology`,
-    );
-    return new Residue(this, residueIndex);
-  };
-
-  // This function converts topology residue numbers to absolute residue numbers
-  getResidueByParameters = (chain, number, icode = '') => {
-    // Get the first residue index of residues belonging to this chain
-    const chainIndex = this.getChainIndex(chain);
-    const firstResideeIndex = this.residueChainIndices.indexOf(chainIndex);
-    if (firstResideeIndex === -1) throw new Error(`Chain ${chain} does not exist`);
-    // Now iterate residues starting at this index
-    for (let residueIndex = firstResideeIndex; residueIndex < this.residueChainIndices.length; residueIndex++) {
-      const residue = new Residue(this, residueIndex);
-      // If this resiude does not belong to the requested chain already then we give up
-      if (residue.chainIndex !== chainIndex) break;
-      // Check if the residue number matches
-      if (residue.number !== number) continue;
-      // Check if the insertion code matches
-      if (residue.icode !== icode) continue;
-      // If everything matches then return this residue
-      return residue;
-    }
-    // There should always be a match
-    throw new Error(
-      `Residue with chain ${chain}, number ${number} and icode ${icode} does not exist`,
-    );
-  };
-
-  // --------------------------------------------------------------------
-  // OTHER
-  // --------------------------------------------------------------------
-
-  // This function finds all requested metadata from a residue absolute number
-  // Requests is an object with all the names of the fields to be requested as keys and all of them with true values
-  // Available fields:
-  // - type
-  // - letter
-  // - chain
-  // - number
-  // - icode
-  // - ngl
-  // - label
-  getAbsoluteResidueMetadata = (residue, requests) => {
-    const output = {};
-    if (requests.type || requests.letter) {
-      const type = this.residueNames[residue];
-      if (requests.type) output.type = type;
-      if (requests.letter) output.letter = getResidueTypeLetter(type);
-    }
-    let source = {};
-    if (requests.chain || requests.ngl || requests.label) {
-      const chainIndex = this.getResidueChainIndex(residue);
-      const chain = this.chainNames[chainIndex];
-      if (requests.chain) output.chain = chain;
-      if (requests.ngl || requests.label) source.chain = chain;
-    }
-    if (requests.number || requests.ngl || requests.label) {
-      const number = this.residueNumbers[residue];
-      if (requests.number) output.number = number;
-      if (requests.ngl || requests.label) source.number = number;
-    }
-    if (requests.icode || requests.label) {
-      const icode = this.residueIcodes && this.residueIcodes[residue];
-      if (requests.icode) output.icode = icode;
-      if (requests.label) source.icode = icode;
-    }
-    if (requests.ngl) {
-      const ngl = ':' + source.chain + ' and ' + source.number;
-      output.ngl = ngl;
-    }
-    if (requests.label) {
-      const label = source.chain + ':' + source.number + source.icode;
-      output.label = label;
-    }
-    return output;
-  };
-
   // Do the same that the previous function but from absolute residues
   // e.g. [0, 1, 2, 3, ...] => nglSelection = "(A: and 1, 3-5) or (B: and 1)"
   // In addition track if there is any small serie (i.e. 3 residues or less)
@@ -573,10 +542,10 @@ export class Topology {
     // Parse each residue in complex notation
     const parsedResidues = selection.map(residueIndex => this.getResidueByIndex(residueIndex));
     // Get unique chains
-    const chains = parsedResidues.map(r => r.chain).filter((v, i, a) => a.indexOf(v) === i);
+    const chains = parsedResidues.map(r => r.chainName).filter((v, i, a) => a.indexOf(v) === i);
     // For each chain, get all residues and "range" them
     chains.forEach(chain => {
-      const chainResidues = parsedResidues.filter(v => v.chain === chain).map(r => r.number);
+      const chainResidues = parsedResidues.filter(v => v.chainName === chain).map(r => r.number);
       const {
         rangedSelection: ranged,
         small: smallChain,
@@ -588,38 +557,15 @@ export class Topology {
     return { rangedSelection, small };
   };
 
-  // This function returns the chain name from a chain letter (e.g 'A')
-  getMetadataChainname = chain => {
-    if (!this.metadataChainNames) return '';
-    // OBSOLETE: Chains were stored as an array of names
-    if (Array.isArray(this.metadataChainNames)) {
-      for (let c = 0; c < this.metadataChainNames.length; c++) {
-        const topologyChainname = this.getChainName(c);
-        if (topologyChainname === chain) return this.metadataChainNames[c];
-      }
-    }
-    // Chains are stored as and object (e.g. { 'A': 'ACE2', 'B': 'RBD' })
-    else {
-      const chainname = this.metadataChainNames[chain];
-      if (chainname) return chainname;
-    }
-
-    // "charCodeAt" transforms a string character to int code
-    // The 'A' string returns 65, the 'B' returns 66 and so on
-    //const name = metadataChainnames[chain.charCodeAt(0) - 65];
-    return '';
-  };
-
   // Given a list of residues in absolute numeration, separate them by chain and return an object where keys are chain names
   // e.g. [ 1, 2, 3, 17 ] -> { 'A': [1,2,3], 'B': [17] }
-  byChains = residues => {
+  byChains = residuesIndices => {
     const chained = {};
-    residues.forEach(residue => {
-      const chainIndex = this.getResidueChainIndex(residue);
-      const chain = this.chainNames[chainIndex];
-      const current = chained[chain];
-      if (current) current.push(residue);
-      else chained[chain] = [residue];
+    residuesIndices.forEach(residueIndex => {
+      const chainName = this.getResidueByIndex(residueIndex).chainName;
+      const current = chained[chainName];
+      if (current) current.push(residueIndex);
+      else chained[chainName] = [residueIndex];
     });
     return chained;
   };

@@ -1042,7 +1042,7 @@ const NGLViewer = memo(
               const residueIndex = topologyManager.getAtomResidueIndex(
                 atomIndex,
               );
-              const atomIndices = topologyManager.getResidueAtoms(residueIndex);
+              const atomIndices = topologyManager.getResidueByIndex(residueIndex).atomIndices;
               const nglAtomSelection = '@' + atomIndices.join(',');
               return nglAtomSelection;
             }),
@@ -1581,9 +1581,9 @@ const NGLViewer = memo(
             const [start, end] = thisHiglight.split(':');
             const sourceStart = topologyManager.getResidueByParameters(chain, +start);
             const sourceEnd = topologyManager.getResidueByParameters(chain, +end);
-            if (sourceStart.chain !== sourceEnd.chain)
+            if (sourceStart.chainName !== sourceEnd.chainName)
               throw new Error(`Range from multiple chains is not supported`);
-            highlight += ` or :${sourceStart.chain} and ${sourceStart.number}-${sourceEnd.number}`;
+            highlight += ` or :${sourceStart.chainName} and ${sourceStart.number}-${sourceEnd.number}`;
           }
           highlight = highlight.substr(4); // remove initial ' or '
 
@@ -1651,7 +1651,7 @@ const NGLViewer = memo(
           // In some cases 1 residue can have multiple absolute residue indexes
           // (e.g. hydrogens at the end)
           const residue = topologyManager.getResidueByIndex(atom.residueIndex);
-          const chainName = topologyManager.getMetadataChainname(residue.chain);
+          const chainName = residue.chain.metadataChainName;
           // Find the reference id and the reference name to be represented
           const referenceId = residue.referenceId;
           const currentReferenceData = referenceId &&
@@ -1661,7 +1661,7 @@ const NGLViewer = memo(
           return (
             <>
               {`Atom ${atom.index} (${atom.atomname})
-                Chain ${residue.chain} ${chainName ? '(' + chainName + ')' : ''}
+                Chain ${residue.chainName} ${chainName ? '(' + chainName + ')' : ''}
                 Residue ${residue.number} (${atom.resname})`}
               {(() => {
                 // If there is not reference at all it means it is not even a protein
@@ -1685,11 +1685,6 @@ const NGLViewer = memo(
               })()}
             </>
           );
-          /*
-          return `Atom ${atom.index} (${atom.atomname})
-            Chain ${model.chain} ${model ? '(' + model.chainName + ')' : ''}
-            Residue ${model.chainResidue} (${atom.resname})`;
-          */
         };
 
         // Save a timeout before displaying the tooltip

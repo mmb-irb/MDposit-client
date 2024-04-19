@@ -78,7 +78,7 @@ const ResidueSelector = ({
         value: value,
       };
       residueData[residueIndex] = formattedResidue;
-      const chain = residue.chain;
+      const chain = residue.chainName;
       const current = chains[chain];
       if (current) current.push(formattedResidue);
       else chains[chain] = [formattedResidue];

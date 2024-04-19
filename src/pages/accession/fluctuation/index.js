@@ -75,7 +75,7 @@ const FluctuationAnalysis = () => {
       const atomName = topology.getAtomName(xIndex);
       if (!atomName) return tag;
       const residueIndex = topology.getAtomResidueIndex(xIndex);
-      const residueName = topology.getResidueName(residueIndex);
+      const residueName = topology.getResidueByIndex(residueIndex).name;
       if (!residueName) return tag + ` (${atomName})`;
       return tag + ` (${residueName} - ${atomName})`;
     };

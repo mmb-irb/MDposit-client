@@ -176,9 +176,7 @@ const Epitopes = () => {
         Object.entries(chainedResidues).forEach(([chain, residues]) => {
           const residuesData = residues.map(residueIndex => {
             const residueData = { saspf: data[residueIndex] };
-            residueData.atoms = topologyManager.getResidueAtomsCount(
-              residueIndex,
-            );
+            residueData.atoms = topologyManager.getResidueByIndex(residueIndex).atomCount;
             return residueData;
           });
           chainedResiduesData[chain] = residuesData;

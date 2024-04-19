@@ -462,26 +462,25 @@ const Analyses = memo(() => {
         </Typography>
         <ul className={style['chain-analysis-list']}>
           {/* Here, main data is displayed */}
-          {chains.map(chain => {
+          {chains.map(chainLetter => {
             // Get some data using the topology manager when it is available
             let name = '';
             let firstResidueNumber = 1;
             if (topologyManager) {
-              name = (topologyManager && topologyManager.getMetadataChainname(chain)) || '';
-              const chainIndex = topologyManager.getChainIndex(chain);
-              const chainResidueNumbers = topologyManager.chainResidueNumbers[chainIndex];
-              firstResidueNumber = chainResidueNumbers[0];
+              const chain = topologyManager.getChainByName(chainLetter);
+              name = chain.metadataChainName;
+              firstResidueNumber = chain.residueNumbers[0];
             }
             return (
-              <li key={chain}>
+              <li key={chainLetter}>
                 <Typography variant="h6">
                   <FontAwesomeIcon icon={faAngleRight} />
-                  {` Chain ${chain} ${name ? '(' + name + ')' : ''}`}
+                  {` Chain ${chainLetter} ${name ? '(' + name + ')' : ''}`}
                 </Typography>
                 {/* ChainAnalyses is the main visual asset */}
                 <ChainAnalyses
                   accessionAndMdNumber={accessionAndMdNumber}
-                  chain={chain}
+                  chain={chainLetter}
                   firstResidueNumber={firstResidueNumber}
                 />
               </li>
