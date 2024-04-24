@@ -3,7 +3,7 @@ import { useMemo, useContext } from 'react';
 
 import { ProjectCtx, PdbCtx } from '../../../contexts';
 
-import { nglSelection2absolute } from '../../../utils/topology-manager';
+import { nglSelection2residueIndices } from '../../../utils/topology-manager';
 
 // Use this hook to get the memoized NGL default representations
 const useDefaultRepresentations = () => {
@@ -58,11 +58,13 @@ const useDefaultRepresentations = () => {
         chainsAndNames.forEach(([chain, name]) => {
           // Check if the chain is in the protein chains
           const isProtein = chains.indexOf(chain) !== -1;
-          // Check if the name matches any ligand name
-          const isLigand =
-            ligands && ligands.find(ligand => ligand.name === name);
+          if (isProtein) return;
+          // Check if the chain is full ligand
+          // DANI: No se ha probado
+          const topologyChain = topology.getChainByName(chain);
+          const isLigand = topologyChain.residues.every(residue => residue.isLigand);
           // If there is any coincidence then skip this chainname
-          if (isProtein || isLigand) return;
+          if (isLigand) return;
           reps.push({
             name: name,
             selection: ':' + chain,
@@ -78,15 +80,34 @@ const useDefaultRepresentations = () => {
       reps.push({ name: 'Main structure' });
     }
 
-    // Show also all ligands with licorice representations in case the have a selection
+    // Display ligands
     if (ligands) {
       for (const ligand of ligands) {
-        if (!ligand.ngl) continue;
-        reps.push({
-          name: ligand.name,
-          selection: ligand.ngl,
-          type: 'licorice',
-        });
+        // New system: ligands are pubchem ids
+        if (typeof ligand === 'string') {
+          // Get ligand reisude indcies
+          const ligandResidueIndices = topology.getReferenceResidueIndices(ligand);
+          if (!ligandResidueIndices || ligandResidueIndices.length === 0) continue;
+          // Transform the residue indices to a NGL selection
+          const { rangedSelection: nglSelection } = topology.residueIndices2Ngl(ligandResidueIndices);
+          // Add the representation
+          reps.push({
+            name: ligand,
+            selection: nglSelection,
+            type: 'ball+stick',
+            color: 'element'
+          });
+        }
+        // Old system: ligands are objects which may have a ngl selection
+        else{
+          if (!ligand.ngl) continue;
+          reps.push({
+            name: ligand.name,
+            selection: ligand.ngl,
+            type: 'licorice',
+          });
+        }
+        
       }
     }
 
@@ -113,7 +134,7 @@ const useDefaultRepresentations = () => {
     const representedResidues = [];
     reps.forEach(rep => {
       const isCartoon = rep.type === undefined || rep.type === 'cartoon';
-      const residues = nglSelection2absolute(
+      const residues = nglSelection2residueIndices(
         rep.selection,
         isCartoon,
         structure,
@@ -128,7 +149,7 @@ const useDefaultRepresentations = () => {
     if (nonRepresentedResidues.length > 0) {
       const {
         rangedSelection: otherSelection,
-      } = topology.absoluteSelectionToNgl(nonRepresentedResidues);
+      } = topology.residueIndices2Ngl(nonRepresentedResidues);
       reps.push({
         name: 'Other',
         selection: otherSelection,

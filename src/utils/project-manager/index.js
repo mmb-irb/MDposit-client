@@ -1,3 +1,5 @@
+// Get the use memo hook
+import React, { useMemo } from 'react';
 // Function to request data through the API
 import useAPI from '../../hooks/use-api';
 // Constants
@@ -77,7 +79,7 @@ export class Project {
         return this._topologyManager;
     }
 
-    // File descriptors getter
+    // Interactions getter
     get interactions () {
         const response = this._apiQuery('interactions', this.hasInteractions);
         if (!response) return null;
@@ -87,13 +89,22 @@ export class Project {
         return response.payload;
     }
 
-    // File descriptors getter
+    // References getter
     get references () {
         const response = this._apiQuery('references');
         if (response.loading) return null;
         if (response.error) throw new Error('Error when downloading project references: ' + response.error.message);
         if (!response.payload) throw new Error('Something went wrong with project references');
         return response.payload;
+    }
+    // Specific references getters
+    get proteinReferences () {
+        const references = this.references;
+        return useMemo(() => references && references.filter(ref => ref.uniprot), [references]);
+    }
+    get ligandReferences () {
+        const references = this.references;
+        return useMemo(() => references && references.filter(ref => ref.pubchem), [references]);
     }
 
     // File descriptors getter

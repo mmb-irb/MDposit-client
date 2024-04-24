@@ -85,15 +85,15 @@ const Epitopes = () => {
     accession,
     accessionAndMdNumber,
     metadata,
-    references: referenceData,
+    proteinReferences,
     topology: topologyManager,
   } = useContext(ProjectCtx);
 
   // Get the references data
   const epitopes = useMemo(() => {
-    if (!referenceData) return [];
+    if (!proteinReferences) return [];
     const epitopes = [];
-    referenceData.forEach(reference => {
+    proteinReferences.forEach(reference => {
       const referenceEpitopes = reference.epitopes;
       if (!referenceEpitopes) return;
       const formattedEpitopes = Object.entries(referenceEpitopes).map(
@@ -107,7 +107,7 @@ const Epitopes = () => {
       epitopes.push(...formattedEpitopes);
     });
     return epitopes;
-  }, [referenceData]);
+  }, [proteinReferences]);
 
   // This blockRef is a workaround to avoid selecting a row when clicking on the checkbox
   const blockRef = useRef(null);
@@ -163,7 +163,7 @@ const Epitopes = () => {
     epitopes.forEach(
       ([referenceId, epitopeName, epitopeResidues, epitopeSurface]) => {
         // Parse the reference residues list to a mapped NGL selection string
-        const mappedResidues = topologyManager.reference2absolute(
+        const mappedResidues = topologyManager.getReferenceResidueIndices(
           referenceId,
           epitopeResidues,
         );
@@ -221,7 +221,7 @@ const Epitopes = () => {
         const {
           rangedSelection,
           small,
-        } = topologyManager.absoluteSelectionToNgl(mappedResidues);
+        } = topologyManager.residueIndices2Ngl(mappedResidues);
         epitopesData.push({
           name: epitopeName,
           data: chainedFramedData,
@@ -366,7 +366,7 @@ const Epitopes = () => {
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
 
-  if (!topologyManager || !referenceData) return <Loading />;
+  if (!topologyManager || !proteinReferences) return <Loading />;
 
   const firstEpitopeIndex = selectedPage * selectedRowsPerPage;
   const lastEpitopeIndex = (selectedPage + 1) * selectedRowsPerPage;

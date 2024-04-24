@@ -5,19 +5,19 @@ import { ProjectCtx } from '../../../contexts';
 // Use this hook to get the memoized NGL default representations
 const useEpitopesRepresentations = () => {
   // Get the current project data
-  const { references, topology } = useContext(
+  const { proteinReferences, topology } = useContext(
     ProjectCtx,
   );
   // Set the representations for the NGL viewer
   const epitopesRepresentations = useMemo(() => {
-    if (!references || !topology) return;
-    // Check that at least 1 of the references has epitopes
-    const anyReferenceEpitopes = references.some(
+    if (!proteinReferences || !topology) return;
+    // Check that at least 1 of the proteinReferences has epitopes
+    const anyReferenceEpitopes = proteinReferences.some(
       reference => !!reference.epitopes,
     );
     if (!anyReferenceEpitopes) return;
     // Get the residues on each reference epitopes in the current topology numeration
-    const mappedResiduesPerReference = references.map(reference => {
+    const mappedResiduesPerReference = proteinReferences.map(reference => {
       // Get the reference name and epitopes
       const referenceId = reference.uniprot;
       const referenceEpitopes = reference.epitopes;
@@ -28,7 +28,7 @@ const useEpitopesRepresentations = () => {
       );
       const allResidues = [].concat.apply([], epitopeResidues);
       const uniqueResidues = Array.from(new Set(allResidues));
-      const mappedResidues = topology.reference2absolute(
+      const mappedResidues = topology.getReferenceResidueIndices(
         referenceId,
         uniqueResidues,
       );
@@ -40,9 +40,8 @@ const useEpitopesRepresentations = () => {
       [],
       Object.values(mappedResiduesPerReference),
     );
-    // Transform mapped residues, which comes in absolute numeration, to the source format
-    // The source numeration is compatible with NGL once parsed
-    const { rangedSelection, small } = topology.absoluteSelectionToNgl(
+    // Transform mapped residues indices to an NGL selection
+    const { rangedSelection, small } = topology.residueIndices2Ngl(
       allMappedResidues,
     );
     const reps = [
@@ -54,7 +53,7 @@ const useEpitopesRepresentations = () => {
       },
     ];
     return reps;
-  }, [topology, references]);
+  }, [topology, proteinReferences]);
 
   return epitopesRepresentations;
 };

@@ -71,26 +71,18 @@
     "checkbox" : true
   },
   {
+    "name": "Ligand PubChem id",
+    "path": "references.ligands.pubchem",
+    "type": "string",
+    "example": "1986",
+    "options": true,
+    "checkbox" : false
+  },
+  {
     "name": "Ligand name",
-    "path": "metadata.LIGANDS.name",
+    "path": "references.ligands.name",
     "type": "string",
     "example": "aclidinium",
-    "options": true,
-    "checkbox" : false
-  },
-  {
-    "name": "Ligand DrugBank accession",
-    "path": "metadata.LIGANDS.drugbank",
-    "type": "string",
-    "example": "DB08897",
-    "options": true,
-    "checkbox" : false
-  },
-  {
-    "name": "Ligand ChEMBL accession",
-    "path": "metadata.LIGANDS.chembl",
-    "type": "string",
-    "example": "CHEMBL1194325",
     "options": true,
     "checkbox" : false
   },
@@ -230,28 +222,28 @@
   },
   {
     "name": "Uniprot organism",
-    "path": "references.organism",
+    "path": "references.proteins.organism",
     "type": "string",
     "example": "Homo sapiens",
     "options": true
   },
   {
     "name": "Uniprot gene",
-    "path": "references.gene",
+    "path": "references.proteins.gene",
     "type": "string",
     "example": "ACE2",
     "options": true
   },
   {
     "name": "Uniprot name",
-    "path": "references.name",
+    "path": "references.proteins.name",
     "type": "string",
     "example": "Angiotensin-converting enzyme 2",
     "options": true
   },
   {
     "name": "Uniprot protein function",
-    "path": "references.functions",
+    "path": "references.proteins.functions",
     "type": "string",
     "example": "RNA binding",
     "options": true

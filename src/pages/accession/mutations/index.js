@@ -34,7 +34,7 @@ const Mutations = () => {
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
 
   // Get the current project data
-  const { references: referenceData, topology: topologyManager } = useContext(
+  const { proteinReferences, topology: topologyManager } = useContext(
     ProjectCtx,
   );
 
@@ -50,10 +50,10 @@ const Mutations = () => {
       if (!referenceId) continue;
       // We substract 1 from the residue index since it counts from 1 to n as references do
       const residueReferenceIndex = residue.referenceNumber - 1;
-      const currentReferenceData = referenceData.find(
+      const currentproteinReferences = proteinReferences.find(
         data => data.uniprot === referenceId,
       );
-      const entropies = currentReferenceData.entropies;
+      const entropies = currentproteinReferences.entropies;
       if (!entropies) continue;
       const entropy = entropies[residueReferenceIndex];
       if (entropy === undefined) continue;
@@ -62,7 +62,7 @@ const Mutations = () => {
       residueEntropies[i] = logarithmicEntropy;
     }
     return residueEntropies;
-  }, [referenceData, topologyManager]);
+  }, [proteinReferences, topologyManager]);
 
   // Set when one point in the graph is selected
   const [selectedResidues, setSelectedResidues] = useState([]);

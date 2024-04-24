@@ -37,7 +37,7 @@ const typeSettings = {
 };
 
 export default React.memo(() => {
-  const { accession, identifier, published, metadata, references, mds } = useContext(
+  const { accession, identifier, published, metadata, proteinReferences, mds } = useContext(
     ProjectCtx,
   );
   // Download pdb information for every pdb id in metadata
@@ -50,7 +50,7 @@ export default React.memo(() => {
     pdbIds.forEach(pdbId => {
       const url = `https://mdb-login.bsc.es/api/pdb/${pdbId}/entry`;
       let body = '';
-      const request = http.get(url, response => {
+      const request = https.get(url, response => {
         response.on('data', chunk => {
           body += chunk;
         });
@@ -68,6 +68,58 @@ export default React.memo(() => {
       for (const request of requests) request.abort();
     };
   }, [pdbIds]);
+
+  // Download ligand information for every ligand pubchem id in metadata
+  const pubchemIds = metadata.LIGANDS;
+  const [pubchemInfo, setPubchemInfo] = useState({});
+  useEffect(() => {
+    if (!pubchemIds) return;
+    // Store requests so we can abort them all in the useEffect cleanup function in case they were not completed on time
+    const requests = [];
+    pubchemIds.forEach(pubchemId => {
+      if (typeof pubchemId !== 'string') return;
+      const pubchemAPIurl = `https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/${pubchemId}/JSON/`;
+      let body = '';
+      const request = https.get(pubchemAPIurl, response => {
+        response.on('data', chunk => {
+          body += chunk;
+        });
+        response.on('end', () => {
+          // Get the original API response data
+          const sourceData = JSON.parse(body);
+          // Mine all data we want to display
+          const data = {};
+          // First get the ligand name
+          const record =  sourceData.Record;
+          data.name = record.RecordTitle;
+          // Get chembl id and url
+          const reference = record.Reference;
+          const chemblReference = reference.find(ref => ref.SourceName === 'ChEMBL');
+          if (chemblReference) {
+            data.chemblURL = chemblReference.URL;
+            const chemblSplits = chemblReference.URL.split('/');
+            data.chemblID = chemblSplits[chemblSplits.length - 2];
+          }
+          // Get drugbank id and url
+          const drugbankReference = reference.find(ref => ref.SourceName === 'DrugBank');
+          if (drugbankReference) {
+            data.drugbankURL = drugbankReference.URL;
+            const drugbankSplits = drugbankReference.URL.split('/');
+            data.drugbankID = drugbankSplits[drugbankSplits.length - 1];
+          }
+          // Add current ligand data to the overall ligands data object
+          setPubchemInfo(previous => {
+            return { ...previous, [pubchemId]: data };
+          });
+        });
+      });
+      requests.push(request);
+    });
+    // DANI: No he comprovado que esto funcione debidamente
+    return () => {
+      for (const request of requests) request.abort();
+    };
+  }, [pubchemIds]);
 
   // Parse the citation text
   // i.e. add break lines, "elevated" text, etc.
@@ -165,10 +217,10 @@ export default React.memo(() => {
           </CardContent>
         </Card>
       )}
-      {references && references.length > 0 && (
+      {proteinReferences && proteinReferences.length > 0 && (
         <Card className={style.card}>
           <CardContent className={style['horizontal-marginned']}>
-            {references.map((reference, i) => (
+            {proteinReferences.map((reference, i) => (
               <div key={i}>
                 {i !== 0 && (
                   <hr style={{ color: 'lightGrey' }} />
@@ -215,12 +267,8 @@ export default React.memo(() => {
               ).filter(organism => organism); // Remove empty organism strings
               // Set the url to get the pdb image
               const lowerPdb = pdbId.toLowerCase();
-              const imgSrc =
-                pdbId &&
-                `https://cdn.rcsb.org/images/structures/${lowerPdb.substr(
-                  1,
-                  2,
-                )}/${lowerPdb}/${lowerPdb}_assembly-1.jpeg`;
+              const imgSrc = pdbId &&
+                `https://cdn.rcsb.org/images/structures/${lowerPdb.substr(1, 2)}/${lowerPdb}/${lowerPdb}_assembly-1.jpeg`;
 
               return (
                 <div key={i}>
@@ -250,9 +298,9 @@ export default React.memo(() => {
                         <div>
                           Organism
                           {organisms.length > 1 && 's'}:{' '}
-                          {organisms.length > 0 ? organisms.map(organism => (
+                          {organisms.length > 0 ? organisms.map((organism, o) => (
                             <Chip
-                              key={organism}
+                              key={o}
                               label={organism}
                               variant="outlined"
                               color="primary"
@@ -263,9 +311,9 @@ export default React.memo(() => {
                         <div>
                           Keyword
                           {keywords.length > 1 && 's'}:{' '}
-                          {keywords.map(keyword => (
+                          {keywords.map((keyword, k) => (
                             <Chip
-                              key={keyword}
+                              key={k}
                               label={keyword}
                               variant="outlined"
                               color="primary"
@@ -326,60 +374,57 @@ export default React.memo(() => {
           </CardContent>
         </Card>
       )}
-      {metadata && metadata.LIGANDS && metadata.LIGANDS.length > 0 && (
+      {Object.keys(pubchemInfo).length > 0 &&
         <Card className={style.card}>
           <CardContent className={style['card-content']}>
-            <Typography variant="h6">Ligands</Typography>
-            {metadata.LIGANDS.map(ligand => (
-              <div key={ligand.name} className={style['summary-list']}>
-                {(ligand.chembl || ligand.drugbank) && (
-                  <LazyImg
-                    src={
-                      ligand.chembl
-                        ? `https://www.ebi.ac.uk/chembl/api/data/image/${ligand.chembl}.svg`
-                        : ligand.drugbank
-                        ? `https://www.drugbank.ca/structures/${ligand.drugbank}/image.svg`
-                        : null
-                    }
-                    width="200"
-                    height="200"
-                    loading="lazy"
-                    alt={`3D view of the ${ligand.name} structure`}
-                  />
-                )}
-                <div>- {ligand.name || 'Not available'}</div>
-                {ligand.drugbank && (
-                  <div>
-                    <span>DrugBank: </span>
-                    <a
-                      href={'https://www.drugbank.ca/drugs/' + ligand.drugbank}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {ligand.drugbank}
-                    </a>
-                  </div>
-                )}
-                {ligand.chembl && (
-                  <div>
-                    <span>ChEMBL: </span>
-                    <a
-                      href={
-                        'https://www.ebi.ac.uk/chembl/compound_report_card/' +
-                        ligand.chembl
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {ligand.chembl}
-                    </a>
-                  </div>
-                )}
+            {Object.entries(pubchemInfo).map(([pubchemId, pubchemData], i) => (
+              <div key={i} className={style['summary-list']}>
+                {i !== 0 && (
+                  <hr style={{ color: 'lightGrey' }} />
+                ) /* An horizontal line to separate protein references */}
+                <LazyImg
+                  src={`https://pubchem.ncbi.nlm.nih.gov/image/imgsrv.fcgi?cid=${pubchemId}&t=l`}
+                  width="200" height="200" loading="lazy"
+                  alt={`3D view of the ${pubchemData.name} structure`}
+                  // cross origin and referrer policy should prevent pubchem cookies
+                  crossOrigin="anonymous" referrerPolicy="no-referrer"
+                  // default background color is like a "broken" white but this CSS trick fixes it
+                  // this was recommended by people from pubchem
+                  className={style['white-background']}
+                />
+                <Typography variant="h6">{pubchemData.name}</Typography>
+                <div>
+                  {`Pubchem ID: `}
+                  <a href={`https://pubchem.ncbi.nlm.nih.gov/compound/${pubchemId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {pubchemId}
+                  </a>
+                </div>
+                {pubchemData.chemblID && (<div>
+                  {`ChEMBL ID: `}
+                  <a href={pubchemData.chemblURL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {pubchemData.chemblID}
+                  </a>
+                </div>)}
+                {pubchemData.drugbankID && (<div>
+                  {`DrugBank ID: `}
+                  <a href={pubchemData.drugbankURL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {pubchemData.drugbankID}
+                  </a>
+                </div>)}
               </div>
             ))}
           </CardContent>
         </Card>
-      )}
+      }
       <Card className={style.card}>
         <CardContent className={style['card-content']}>
           <Typography variant="h6">License</Typography>

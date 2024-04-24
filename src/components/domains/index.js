@@ -27,7 +27,8 @@ const Domains = ({ setter }) => {
   // Get the current project data
   const {
     metadata,
-    references,
+    proteinReferences,
+    ligandReferences,
     topology,
     interactions
   } = useContext(ProjectCtx);
@@ -76,22 +77,12 @@ const Domains = ({ setter }) => {
     if (interactions) {
       interactions.forEach(interaction => {
         // Add a new domain for each new agent and skip repeated agents
-        const agent1 = {
-          name: interaction.agent_1,
-          residues: interaction.residue_indices_1,
-        };
-        const agent2 = {
-          name: interaction.agent_2,
-          residues: interaction.residue_indices_2,
-        };
+        const agent1 = { name: interaction.agent_1, residues: interaction.residue_indices_1 };
+        const agent2 = { name: interaction.agent_2, residues: interaction.residue_indices_2 };
         [agent1, agent2].forEach(agent => {
-          const current = interactionDomains.find(domain => {
-            return domain.name === agent.name;
-          });
+          const current = interactionDomains.find(domain => domain.name === agent.name);
           if (current) return;
-          const {
-            rangedSelection: nglSelection,
-          } = topology.absoluteSelectionToNgl(agent.residues);
+          const { rangedSelection: nglSelection } = topology.residueIndices2Ngl(agent.residues);
           interactionDomains.push({
             name: agent.name,
             representations: [
@@ -105,77 +96,96 @@ const Domains = ({ setter }) => {
         });
       });
     }
-    // Get domains from topology references
+    // Get domains from protein references
     // Skip those whose name matches with an interacting agent or custom domain
     const referenceDomains = [];
-    if (references) {
-      references.forEach(reference => {
-        const referenceId = reference.uniprot;
-        // Collect all domains in reference data
-        let referenceDataDomains = [];
-        // Domains in the 'domains' filed are automatically mined from uniprot
-        if (reference.domains) referenceDataDomains = referenceDataDomains.concat(reference.domains);
-        // Domains in the 'custom_domains' filed are added by hand in the database and they are not common
-        if (reference.custom_domains) referenceDataDomains = referenceDataDomains.concat(reference.custom_domains);
-        // If there are not domains at all then stop here
-        if (referenceDataDomains.length === 0) return;
-        // ----------------------------------------------------------------------------------------
-        // These domains are only specified for the reference sequence
-        // Residue selections must be mapped back to the current topology for each domain
-        // Custom reference domains may contain a 'representations' field instead of a 'selection' field
-        referenceDataDomains.forEach(domain => {
-          const domainName = domain.name;
-          // Discard the domain if its name matches an already existing domain
-          if (customDomains.find(domain => domain.name === domainName)) return;
-          if (interactionDomains.find(domain => domain.name === domainName))
-            return;
-          // Discard the domain if its name matches the reference name
-          // This is quite usual: some references have domains which are basically the whole thing
-          // There may be a difference in the pole residues, but it is redundant anyway
-          if (reference.name === domainName) return;
-          const mappedDomain = {
-            name: reference.name + ' - ' + domainName,
-            description: domain.description, // It may not have description
-            representations: [],
-          };
-          // Set a function to modify a representation by parsing its selections to NGL
-          const parseRepresentationSelection = representation => {
-            const selection = representation.selection;
-            const parsedSelection = rangedSelectionParser(selection);
-            // WARNING: A single reference residue may correspond to multiple topology residues
-            const mappedSelection = topology.reference2absolute(
-              referenceId,
-              parsedSelection,
-            );
-            // Representations with a selection not present in topology are discarded
-            if (!mappedSelection || mappedSelection.length === 0) return;
-            // Transform the mapped selection, which comes in absolute numeration, to the source format
-            // The source numeration is compatible with NGL once parsed
-            const {
-              rangedSelection: nglSelection,
-              small,
-            } = topology.absoluteSelectionToNgl(mappedSelection);
-            const newRepresentation = { ...representation };
-            newRepresentation.selection = nglSelection;
-            // parsedSelectionRanger returns 'small' = true when there are series of 3 residues or less
-            // These small residue selections will be not represented in cartoon due to an NGL bug
-            // https://github.com/nglviewer/ngl/issues/223
-            if (small) newRepresentation.type = 'licorice';
-            mappedDomain.representations.push(newRepresentation);
-          };
-          if (domain.selection) {
-            const domainRepresentation = { name: domainName, selection: domain.selection };
-            parseRepresentationSelection(domainRepresentation);
-          }
-          if (domain.representations) {
-            domain.representations.forEach(parseRepresentationSelection);
-          }
-          // Domains whose representatios have been all discarded are also discarded
-          if (mappedDomain.representations.length > 0)
-            referenceDomains.push(mappedDomain);
-        });
+    proteinReferences && proteinReferences.forEach(proteinReference => {
+      const referenceId = proteinReference.uniprot;
+      // Collect all domains in protein reference data
+      let referenceDataDomains = [];
+      // Domains in the 'domains' filed are automatically mined from uniprot
+      if (proteinReference.domains) referenceDataDomains = referenceDataDomains.concat(proteinReference.domains);
+      // Domains in the 'custom_domains' filed are added by hand in the database and they are not common
+      if (proteinReference.custom_domains) referenceDataDomains = referenceDataDomains.concat(proteinReference.custom_domains);
+      // If there are not domains at all then stop here
+      if (referenceDataDomains.length === 0) return;
+      // ----------------------------------------------------------------------------------------
+      // These domains are only specified for the protein reference sequence
+      // Residue selections must be mapped back to the current topology for each domain
+      // Custom reference domains may contain a 'representations' field instead of a 'selection' field
+      referenceDataDomains.forEach(domain => {
+        const domainName = domain.name;
+        // Discard the domain if its name matches an already existing domain
+        if (customDomains.find(domain => domain.name === domainName)) return;
+        if (interactionDomains.find(domain => domain.name === domainName))
+          return;
+        // Discard the domain if its name matches the reference name
+        // This is quite usual: some references have domains which are basically the whole thing
+        // There may be a difference in the pole residues, but it is redundant anyway
+        if (proteinReference.name === domainName) return;
+        const mappedDomain = {
+          name: proteinReference.name + ' - ' + domainName,
+          description: domain.description, // It may not have description
+          representations: [],
+        };
+        // Set a function to modify a representation by parsing its selections to NGL
+        const parseRepresentationSelection = representation => {
+          const selection = representation.selection;
+          const parsedSelection = rangedSelectionParser(selection);
+          // WARNING: A single protein reference residue may correspond to multiple topology residues
+          const mappedSelection = topology.getReferenceResidueIndices(referenceId, parsedSelection);
+          // Representations with a selection not present in topology are discarded
+          if (!mappedSelection || mappedSelection.length === 0) return;
+          // Transform the residue indices to a NGL selection
+          const { rangedSelection: nglSelection, small } = topology.residueIndices2Ngl(mappedSelection);
+          const newRepresentation = { ...representation };
+          newRepresentation.selection = nglSelection;
+          // parsedSelectionRanger returns 'small' = true when there are series of 3 residues or less
+          // These small residue selections will be not represented in cartoon due to an NGL bug
+          // https://github.com/nglviewer/ngl/issues/223
+          if (small) newRepresentation.type = 'licorice';
+          mappedDomain.representations.push(newRepresentation);
+        };
+        if (domain.selection) {
+          const domainRepresentation = { name: domainName, selection: domain.selection };
+          parseRepresentationSelection(domainRepresentation);
+        }
+        if (domain.representations) {
+          domain.representations.forEach(parseRepresentationSelection);
+        }
+        // Domains whose representatios have been all discarded are also discarded
+        if (mappedDomain.representations.length > 0)
+          referenceDomains.push(mappedDomain);
       });
-    }
+    });
+    // Create a new domains for every ligand reference
+    // Skip those whose name matches with an interacting agent or custom domain
+    ligandReferences && ligandReferences.forEach(ligandReference => {
+      // Set the ligand name as the domain name
+      const domainName = ligandReference.name;
+      // Discard the domain if its name matches an already existing domain
+      if (customDomains.find(domain => domain.name === domainName)) return;
+      if (interactionDomains.find(domain => domain.name === domainName))
+        return;
+      // Get the NGL selection for ligand residues
+      const residueIndices = topology.getReferenceResidueIndices(ligandReference.pubchem);
+      const { rangedSelection: nglSelection } = topology.residueIndices2Ngl(residueIndices);
+      // Set the ligand domain
+      const ligandDomain = {
+        name: domainName,
+        // description: 
+        representations: [
+          {
+            name: domainName,
+            selection: nglSelection,
+            type: 'ball+stick',
+            color: 'element'
+          }
+        ],
+      };
+      // Add it to the reference domains list
+      referenceDomains.push(ligandDomain);
+    });
     // Put all domains together
     const domains = [
       overallDomain,
@@ -211,7 +221,7 @@ const Domains = ({ setter }) => {
     mutationsRepresentation,
     epitopesRepresentation,
     topology,
-    references,
+    proteinReferences,
     interactions,
   ]);
 

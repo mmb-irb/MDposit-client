@@ -46,7 +46,7 @@ const categories = {
   ],
   "References": [
     "PDB id",
-    "Ligand name", "Ligand DrugBank accession", "Ligand ChEMBL accession",
+    "Ligand name", "Ligand PubChem id",
     "Uniprot id", "Uniprot organism", "Uniprot gene", "Uniprot name", "Uniprot protein function"
   ],
   "Molecular Dynamics protocol": [
@@ -214,7 +214,7 @@ const CustomSearch = () => {
         Go to{' '} <a href="/#/advanced-search">advanced search</a> for a most complex query.
         <hr style={{ color: 'lightGrey' }} />
         {Object.entries(categories).map(([category, fieldnames], c) => {
-          const fields = fieldnames.map(fieldname => availableFields.find(field => field.name === fieldname));
+          const fields = fieldnames.map(fieldname => availableFields.find(field => field.name === fieldname)).filter(v => v);
           return <div key={c}>
             <Typography variant='h5' className={style.margined}>{category}</Typography>
             {fields.map((field, f) => (

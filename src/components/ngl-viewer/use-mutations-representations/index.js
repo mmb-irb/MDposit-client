@@ -15,21 +15,21 @@ const useMutationsRepresentations = () => {
   // Get project data
   const {
     topology: topologyManager,
-    references: referenceData
+    proteinReferences
   } = useContext(ProjectCtx);
 
   // Set the representations for the NGL viewer
   const mutationRepresentations = useMemo(() => {
-    if (!topologyManager || !referenceData) return;
+    if (!topologyManager || !proteinReferences) return;
     // Check that at least 1 of the references has entropies
-    const anyReferenceMutations = referenceData.some(
+    const anyReferenceMutations = proteinReferences.some(
       reference => !!reference.entropies,
     );
     if (!anyReferenceMutations) return;
 
     // Get the entorpies of each reference
     // Save the logarithmic values on each reference
-    const entropiesPerReference = referenceData.map(reference => {
+    const entropiesPerReference = proteinReferences.map(reference => {
       if (!reference.entropies) return [];
       const logarithmicEntropies = reference.entropies.map(entropy =>
         Math.log(entropy + 0.0001),
@@ -61,7 +61,7 @@ const useMutationsRepresentations = () => {
         if (!referenceId) return parseInt('ffffff', 16);
         // get the corresponding entropy
         // -1 because the residue 'x' would be the index 'x-1' in the array
-        const reference = referenceData.find(
+        const reference = proteinReferences.find(
           reference => reference.uniprot === referenceId,
         );
         const entropies = reference.logarithmicEntropies;
@@ -83,7 +83,7 @@ const useMutationsRepresentations = () => {
       { name: 'Mutations', color: 'custom', customScheme: colorScheme },
     ];
     return reps;
-  }, [referenceData, topologyManager]);
+  }, [proteinReferences, topologyManager]);
 
   return mutationRepresentations;
 };

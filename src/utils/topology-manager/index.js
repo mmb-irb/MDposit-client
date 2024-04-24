@@ -7,13 +7,12 @@ const ngl = require('ngl');
 // However, it may be better to pass them the topology as an argument since the context may be null
 
 // There are 4 different residue numeration types in the client:
-// - Absolute/Index: From 0 to 'n'
+// - Residue indices: From 0 to 'n'
 //   Used in some internal managments
-// - Original/Source: The numbers in the original topology file
-//   Source numbers may be repeated, have gaps or do not start at 0 or 1. May include icodes.
-//   They are also the usual numeration in analyses from the database
-// - Reference: The number in a reference topology, which is a standard
-// - (DEPRECATED) Model: From 1 to 'n' for each chain
+// - Residue numbers: Source numbers in the original topology file
+//   Residue numbers may be repeated, have gaps or do not start at 0 or 1. May include icodes.
+// - Residue reference numbers (protein residues only): The number according to uniprot reference sequence
+//   Reference numbers are displayed in the viewer or analysis results when available
 
 // This function transforms a range selection string into a numeric array
 // It handles abbreviated selection syntax to literal selection syntax
@@ -213,29 +212,28 @@ export const isCartoonSupported = nglResidue => {
   return nglResidue.isProtein() || nglResidue.isRna() || nglResidue.isDna();
 };
 
-// Convert a ngl selection string into an array with the absolute residue indices
+// Convert a ngl selection string into an array of residue indices
 // If the 'onlyCartoonSupported' parameter is passed then it will return only cartoon supported residues
-export const nglSelection2absolute = (
+export const nglSelection2residueIndices = (
   nglSelection,
   onlyCartoonSupported = false,
   viewerTopology,
 ) => {
-  const residues = [];
+  const residueIndices = [];
   // Save the selection in ngl format (structureComponent)
   const selection = new ngl.Selection(nglSelection);
   // Save the data from structure which corresponds to the selection atoms
   const view = viewerTopology.getView(selection);
   if (onlyCartoonSupported) {
     view.eachResidue(residue => {
-      if (isCartoonSupported(residue)) residues.push(residue.index);
+      if (isCartoonSupported(residue)) residueIndices.push(residue.index);
     });
   } else {
     view.eachResidue(residue => {
-      residues.push(residue.index);
+      residueIndices.push(residue.index);
     });
   }
-
-  return residues;
+  return residueIndices;
 };
 
 // Set the element colors for displaying
@@ -250,7 +248,7 @@ const elementColors = {
 
 // Set a residue handler
 class Residue {
-  // Constructor expects the residue index (absolute numeration)
+  // Constructor expects the residue index
   constructor(topology, residueIndex) {
     this.topology = topology;
     this.index = residueIndex;
@@ -293,21 +291,35 @@ class Residue {
   get letter () {
     return getResidueTypeLetter(this.type);
   }
-  // Reference protein index in the topology
+  // Reference index in the topology
   get referenceIndex () {
     if (!this.topology.residueReferenceIndices) return null;
     return this.topology.residueReferenceIndices[this.index];
   }
-  // Reference protein id
+  // Reference id
   get referenceId () {
     const referenceIndex = this.referenceIndex;
     if (referenceIndex === null) return null;
     return this.topology.references[referenceIndex];
   }
-  // Reference protein residue number (reference numeration)
+  // Reference type
+  get referenceType () {
+    const referenceIndex = this.referenceIndex;
+    if (referenceIndex === null) return null;
+    return this.topology.referenceTypes[referenceIndex];
+  }
+  // Reference residue number (reference numeration)
   get referenceNumber () {
     if (!this.topology.residueReferenceNumbers) return null;
     return this.topology.residueReferenceNumbers[this.index];
+  }
+  // Check if this residue is a protein according to its reference type
+  get isProtein () {
+    return this.referenceType === 'protein';
+  }
+  // Check if this residue is a ligand according to its reference type
+  get isLigand () {
+    return this.referenceType === 'ligand';
   }
   // Standard label for display
   get standardLabel () {
@@ -412,6 +424,9 @@ export class Topology {
     this.residueChainIndices = topology.residue_chain_indices;
     this.chainNames = topology.chain_names;
     this.references = topology.references;
+    this.referenceTypes = topology.reference_types;
+    // DANI: Esta linea es para mantener las topologías viejas que solo tienen referencias de proteínas
+    if (!this.referenceTypes) this.referenceTypes = this.references.map(r => 'protein');
     this.residueReferenceIndices = topology.residue_reference_indices;
     this.residueReferenceNumbers = topology.residue_reference_numbers;
     // Data is stored in a down-top structure according to atom-residue-chain indices
@@ -513,51 +528,52 @@ export class Topology {
   // OTHER
   // --------------------------------------------------------------------
 
-  // This function converts a list of topology reference residue numbers to current topology residue numbers
-  // The reference must be specified with the topology reference name, since there may be more than 1 reference
-  // e.g. "SARS-CoV-2 spike"
-  // Note that one residue in the reference may be more than once or not be in the current topology
-  reference2absolute = (reference, residues) => {
+  // This function returns residue indices for every residue which belongs to a reference
+  // The reference must be specified with the topology reference id (i.e. uniprot id)
+  // Optionally, you may request only specific residue numbers according to reference numeration
+  // Note that one residue in the reference may be more than once or not be at all in the topology
+  getReferenceResidueIndices = (reference, residueNumbers = null) => {
     if (!this.references) return;
+    // Get the requested reference index
     const referenceIndex = this.references.indexOf(reference);
     if (referenceIndex === -1) return;
-    const absoluteResidues = [];
+    const residueIndices = [];
     this.residueReferenceIndices.forEach((refIndex, residueIndex) => {
       if (refIndex !== referenceIndex) return;
+      // If no residue number were specified then simply return all residue indcies
+      if (residueNumbers === null) return residueIndices.push(residueIndex);
+      // Otherwise we must check
       const residueNumber = this.residueReferenceNumbers[residueIndex];
-      if (residues.indexOf(residueNumber) !== -1)
-        absoluteResidues.push(residueIndex);
+      if (residueNumbers.includes(residueNumber)) residueIndices.push(residueIndex);
     });
-    return absoluteResidues;
+    return residueIndices;
   };
 
-  // Do the same that the previous function but from absolute residues
+  // Set an NGL selection from a list of residue indices
   // e.g. [0, 1, 2, 3, ...] => nglSelection = "(A: and 1, 3-5) or (B: and 1)"
   // In addition track if there is any small serie (i.e. 3 residues or less)
   // DANI: Esta función no sería necesaria si se pudiesen hacer selecciones en NGL con índices de residuos
   // DANI: De hecho no haría falta eliminar residuos duplicados si se pudiesen hacer selecciones en NGL con índices de residuos
-  absoluteSelectionToNgl = selection => {
+  residueIndices2Ngl = residueIndices => {
+    const rangedSelections = [];
     let small = false;
-    let rangedSelection = '';
     // Parse each residue in complex notation
-    const parsedResidues = selection.map(residueIndex => this.getResidueByIndex(residueIndex));
+    const parsedResidues = residueIndices.map(residueIndex => this.getResidueByIndex(residueIndex));
     // Get unique chains
     const chains = parsedResidues.map(r => r.chainName).filter((v, i, a) => a.indexOf(v) === i);
     // For each chain, get all residues and "range" them
     chains.forEach(chain => {
       const chainResidues = parsedResidues.filter(v => v.chainName === chain).map(r => r.number);
-      const {
-        rangedSelection: ranged,
-        small: smallChain,
-      } = parsedSelectionRanger(chainResidues);
-      rangedSelection += ' or (:' + chain + ' and (' + ranged + '))'; // Al parenthesis are mandatory
+      const { rangedSelection: ranged, small: smallChain } = parsedSelectionRanger(chainResidues);
+      rangedSelections.push(`(:${chain} and (${ranged}))`); // Al parenthesis are mandatory
       if (smallChain) small = true; // If any chain small is true then the overall small is true
     });
-    rangedSelection = rangedSelection.substring(4); // Remove the first ' or '
+    // Join all ranged selections
+    const rangedSelection = rangedSelections.join(' or ');
     return { rangedSelection, small };
   };
 
-  // Given a list of residues in absolute numeration, separate them by chain and return an object where keys are chain names
+  // Given a list of residues indices, separate them by chain and return an object where keys are chain names
   // e.g. [ 1, 2, 3, 17 ] -> { 'A': [1,2,3], 'B': [17] }
   byChains = residuesIndices => {
     const chained = {};
@@ -569,6 +585,8 @@ export class Topology {
     });
     return chained;
   };
+
+  // 
 
   // Get an atom color according to its element
   // If the element color is not defined return black color

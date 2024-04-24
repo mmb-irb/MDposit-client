@@ -187,7 +187,7 @@ const DistPerres = () => {
   ]);
 
   // Transform the raw reside tag to source numeration
-  // Also retrieve the absolute residue number, since it is used to ask for the distance representation
+  // Also retrieve the residue index, since it is used to ask for the distance representation
   // http://nglviewer.org/ngl/api/class/src/representation/distance-representation.js~DistanceRepresentation.html
   const parseResidue = useCallback(
     residueIndex => {

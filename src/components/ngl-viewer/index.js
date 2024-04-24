@@ -149,7 +149,8 @@ const NGLViewer = memo(
         fileDescriptors,
         curatedOrientation,
         topology: topologyManager,
-        references: referenceData,
+        proteinReferences,
+        ligandReferences
       } = useContext(ProjectCtx);
       const { file: pdbDataFile } = useContext(PdbCtx);
 
@@ -1201,7 +1202,7 @@ const NGLViewer = memo(
       // Highlight specific distances
       // When 'selectedDistances' is numeric it is taken as atoms
       // When 'selectedDistances' is string it is taken as residues
-      // In both cases it works with absolute numeration
+      // In both cases it works with residue indices
       useEffect(() => {
         if (!isFirstCompStaged || !selectedDistances) {
           return;
@@ -1633,7 +1634,7 @@ const NGLViewer = memo(
 
       // Customize the NGL tooltip
       useEffect(() => {
-        if (!topologyManager || !referenceData) return;
+        if (!topologyManager || !proteinReferences || !ligandReferences) return;
         // Set a new tooltip
         const tooltip = tooltipRef.current;
         // WARNING: The following line is dangerous since you are manipulating the DOM outside of React
@@ -1648,16 +1649,24 @@ const NGLViewer = memo(
         const formatOutput = atom => {
           // a.residueIndex starts at 0
           // WARNING: a.residueIndex is correct but we must convert it to source first
-          // In some cases 1 residue can have multiple absolute residue indexes
+          // In some cases 1 residue can have multiple residue indices
           // (e.g. hydrogens at the end)
           const residue = topologyManager.getResidueByIndex(atom.residueIndex);
           const chainName = residue.chain.metadataChainName;
-          // Find the reference id and the reference name to be represented
+          // Get the residue reference id
           const referenceId = residue.referenceId;
-          const currentReferenceData = referenceId &&
-            referenceData.find(r => r.uniprot === referenceId);
-          const referenceName = referenceId &&
-            currentReferenceData && currentReferenceData.name;
+          let referenceName;
+          if (referenceId) {
+            let referenceData;
+            // If the residue is a protein
+            if (residue.isProtein) referenceData = proteinReferences.find(r => r.uniprot === referenceId);
+            // If the reisude is a ligand
+            else if (residue.isLigand) referenceData = ligandReferences.find(r => r.pubchem === referenceId);
+            // This should never happen
+            else throw new Error(`Unknown reference type for residue ${residue.standardLabel} with reference id ${referenceId}`);
+            // Get the reference name
+            referenceName = referenceData.name;
+          }
           return (
             <>
               {`Atom ${atom.index} (${atom.atomname})
@@ -1755,7 +1764,7 @@ const NGLViewer = memo(
           tooltip.remove();
           containerRef.current.removeEventListener('mouseleave', hideTooltip);
         };
-      }, [topologyManager, referenceData, setTooltipContent]);
+      }, [topologyManager, proteinReferences, ligandReferences, setTooltipContent]);
 
       // Track when the first focus has been performed, since first focus is instantaneous
       const firstFocus = useRef(true);

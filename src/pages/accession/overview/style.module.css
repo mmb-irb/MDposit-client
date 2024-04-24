@@ -52,3 +52,7 @@
   letter-spacing: 0.0075em;
   margin-right: 0.5em;
 }
+
+.white-background {
+  filter: contrast(1.1);
+}

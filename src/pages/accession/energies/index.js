@@ -96,7 +96,7 @@ const Energies = () => {
       : interaction.interface_indices_1;
     const {
       rangedSelection: rangedInterfaceResiduesSelection,
-    } = topologyManager.absoluteSelectionToNgl(guestInterfaceResidues);
+    } = topologyManager.residueIndices2Ngl(guestInterfaceResidues);
     guestSelection = rangedInterfaceResiduesSelection;
 
     // Set the tags to be displayed on each graph x axis

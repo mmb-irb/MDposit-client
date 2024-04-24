@@ -185,7 +185,8 @@ const MolstarViewer = memo(
         fileDescriptors,
         curatedOrientation,
         topology: topologyManager,
-        references: referenceData,
+        proteinReferences,
+        ligandReferences
       } = useContext(ProjectCtx);
       const { file: pdbDataFile } = useContext(PdbCtx);
 
