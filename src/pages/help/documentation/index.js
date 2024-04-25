@@ -527,10 +527,11 @@ export const documentation = [
             table to switch between those analyses.
             <br />
             <br />
-            RMSD analyses have been run over different protein atom selections:
-            all protein atoms (protein), heavy atoms (protein-h), backbone and
-            protein alpha carbon (c-alpha). First table displays the mean and
-            standard deviation values of each atoms selection in Ångstroms (Å).
+            RMSD analyses are run over different atom selections.
+            By default, it is computed for protein atoms, nucleics acid atoms and
+            all atoms in every defined ligand. Some projects may contain additional
+            RMSD analyses for custom atom selections. First table displays the mean
+            and standard deviation values of each atoms selection in Ångstroms (Å).
             In addition, there is a checkbox next to each atom selection name
             which allows to hide or show data in the graph below.
             <br />
@@ -542,8 +543,8 @@ export const documentation = [
             <span style={{ color: 'lightGreen' }}>interactive</span>. Use the
             mouse wheel to zoom in a specific region. Click and hold at any
             point in the graph to drag it left or right. Hover any point in the
-            graph to show the corresponding RMSD/TM score and time values. Click
-            any point in the graph to open a{' '}
+            graph to show the corresponding RMSD/TM score and time/frame values.
+            Click any point in the graph to open a{' '}
             <a
               href="/help#/help#ngl-viewer"
               target="_blank"
