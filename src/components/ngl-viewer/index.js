@@ -1688,7 +1688,7 @@ const NGLViewer = memo(
                 return (
                   <div>
                     <div style={{ color: 'lightGreen' }}>{referenceName}</div>
-                    <div>{`- Residue ${residue.referenceNumber}`}</div>
+                    {residue.isProtein && <div>{`- Residue ${residue.referenceNumber}`}</div>}
                   </div>
                 )
               })()}
