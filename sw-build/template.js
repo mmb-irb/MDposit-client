@@ -23,7 +23,6 @@ workbox.routing.registerNavigationRoute(
       /^\/_/,
       /\/[^\/]+\.[^\/]+$/,
       /\/api\//, // avoid responding to /api, because it should be outside of the scope of that service worker
-      /\/global_api\//, // avoid responding to /api_globa, because it should be outside of the scope of that service worker
       /\/optimade\//, // avoid responding to /optimade, because it should be outside of the scope of that service worker
     ],
   },
