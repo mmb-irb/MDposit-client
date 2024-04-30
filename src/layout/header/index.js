@@ -8,8 +8,16 @@ import LazyImg from '../../components/lazy-img';
 
 import style from './style.module.css';
 
-import logo from '../../images/logo.png';
-import logoWebP from '../../images/logo.webp';
+import { HOST_CONFIG } from '../../utils/constants';
+
+//import logo from '../../images/logo-mdposit.png';
+//import logoWebP from '../../images/logo.webp';
+
+// const logo = `${window.location.origin}/src/images/${HOST_CONFIG.logo}.png`;
+// const logoWebP = `${window.location.origin}/src/images/${HOST_CONFIG.logo}.png`;
+
+const logo = require(`../../images/${HOST_CONFIG.logo}.png`);
+const logoWebP = require(`../../images/${HOST_CONFIG.logo}.webp`);
 
 // Renders the logo and all the menu buttons next to it
 const Header = () => (

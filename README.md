@@ -18,14 +18,9 @@ Have Node.js and npm installed and working
 2. Create and fill an `.env` file in the root of the project (see [reference below](#.env-file-fields) for the keys)
 3. Build the website bundle with `npm run build`
 
-### `.env` file fields
+### Host configuration file
 
-⚠️ No sensible default value is provided for any of these fields, they **need to be defined** ⚠️
-
-| key                 | value                         | description                       |
-| ------------------- | ----------------------------- | --------------------------------- |
-| NODE_ENV            | `development` or `production` | dev or prod flag                  |
-| REACT_APP_REST_ROOT | `<url>`                       | url of the API REST root endpoint |
-
-That is also where you can put Create React App advanced configuration, see
-[here](https://create-react-app.dev/docs/advanced-configuration).
+Target API and some basic visual setup is defined in the [host configuration file](https://mmb.irbbarcelona.org/gitlab/d.beltran.anadon/mdposit_client/-/blob/master/src/utils/constants/host-configs.js).<br/>
+Note that the client behaviour depends on the host URL.<br/>
+This allows a single cliente to service several hosts with a different behaviour for each.<br/>
+Comments inside the configuration file will guide you.

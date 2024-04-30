@@ -23,6 +23,9 @@ import style from './style.module.css';
 import euLogo from '../../images/eu.png';
 import euLogoWebP from '../../images/eu.webp';
 
+// Constants
+import { HOST_CONFIG } from '../../utils/constants';
+
 // Define the searchbar props
 const inputProps = {
   'aria-label': 'Search projects by text',
@@ -49,10 +52,7 @@ const Home = () => {
     <Card className={style.card}>
       <CardContent className={style['card-content']}>
         <Typography variant="h5">
-          <strong>MDposit</strong> is an open platform designed to provide web
-          access to atomistic molecular dynamics (MD) simulations. The aim of
-          this initiative is to ease and promote data sharing along the
-          wide-world scientific community in order to contribute in research.
+          {HOST_CONFIG.description}
         </Typography>
         <Typography variant="h5">
           Search simulations by their title, authors or group names:

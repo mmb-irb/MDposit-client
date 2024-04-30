@@ -15,6 +15,8 @@ import ErrorBoundary from '../components/error-boundary';
 import Base from '../base';
 // It is used to check if the user has the reduced motion setting active
 import reducedMotion from '../utils/reduced-motion';
+// Constants
+import { HOST_CONFIG } from '../utils/constants';
 
 const Embed = lazy(() =>
   import(/* webpackChunkName: 'embed' */ '../pages/embed'),
@@ -41,8 +43,8 @@ if (!reducedMotion()) {
 }
 
 // Set the header colors (standard model colors)
-const primary = { main: '#5c6bc0' }; // Light indigo
-const secondary = { main: '#fafafa' }; // Light grey
+const primary = { main: HOST_CONFIG.primary }; // Light indigo
+const secondary = { main: HOST_CONFIG.secondary }; // Light grey
 
 // Set custom styling theme
 const theme = createTheme({

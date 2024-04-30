@@ -9,6 +9,9 @@
 // To learn more about the benefits of this model, read https://goo.gl/KwvDNy.
 // This link also includes instructions on opting out of this behavior.
 
+// Constants
+import { HOST_CONFIG } from "./utils/constants";
+
 const isLocalhost = Boolean(
   window.location.hostname === 'localhost' ||
     // [::1] is the IPv6 localhost address.
@@ -22,7 +25,7 @@ const isLocalhost = Boolean(
 const QUICK_ENOUGH_TO_JUST_REFRESH = 750; // 750ms;
 
 export function register(config) {
-  if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
+  if (HOST_CONFIG.prod && 'serviceWorker' in navigator) {
     // The URL constructor is available in all browsers that support SW.
     const publicUrl = new URL(process.env.PUBLIC_URL, window.location);
     if (publicUrl.origin !== window.location.origin) {
