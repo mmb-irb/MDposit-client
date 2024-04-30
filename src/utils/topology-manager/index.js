@@ -426,7 +426,7 @@ export class Topology {
     this.references = topology.references;
     this.referenceTypes = topology.reference_types;
     // DANI: Esta linea es para mantener las topologías viejas que solo tienen referencias de proteínas
-    if (!this.referenceTypes) this.referenceTypes = this.references.map(r => 'protein');
+    if (!this.referenceTypes && this.references) this.referenceTypes = this.references.map(r => 'protein');
     this.residueReferenceIndices = topology.residue_reference_indices;
     this.residueReferenceNumbers = topology.residue_reference_numbers;
     // Data is stored in a down-top structure according to atom-residue-chain indices
