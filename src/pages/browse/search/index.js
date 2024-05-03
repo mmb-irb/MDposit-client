@@ -2,11 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { parse, stringify } from 'qs';
 import { debounce } from 'lodash-es';
 
-import { Icon, TextField } from '@mui/material';
+import { InputAdornment, TextField } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
 
-import { docs } from '../../../pages/help/documentation';
+import { docs } from '../../help/documentation';
 
 import style from './style.module.css';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -14,8 +14,22 @@ import { useLocation, useNavigate } from 'react-router-dom';
 // Half second delay (500 ms) to process changes in the search bar
 const DEBOUNCE_DELAY = 500;
 
-// define non-changing props
-const inputProps = { 'aria-label': 'Search projects by text' };
+// Define the non-changing props
+const inputProps = {
+  'aria-label': 'Search projects by text',
+  startAdornment: (
+    <InputAdornment position="start">
+      <FontAwesomeIcon
+        icon={faSearch}
+        size="2x"
+        className={style['searchbar-icon']}
+      />
+    </InputAdornment>
+  ),
+  classes: {
+    input: style['searchbar-letters'],
+  },
+};
 
 // This function is never called directly, but it is called indirectly by calling "debouncedUpdateLocation"
 export const updateLocation = (location, history, value) => {
@@ -67,20 +81,12 @@ const Search = () => {
 
   return (
     <span className={style.searchbar}>
-      {/* Render the lens icon */}
-      <Icon className={style.rightmargin}>
-        <FontAwesomeIcon
-          icon={faSearch}
-          className={value && style['search-active']}
-        />
-      </Icon>
-      {/* Render the search bar text field */}
       <TextField
         title={doc.text}
         value={value || ''}
         onChange={handleChange}
-        className={style.search}
-        inputProps={inputProps}
+        className={style.searchbar}
+        InputProps={inputProps}
         placeholder={'e.g. Orozco lab'}
       />
     </span>

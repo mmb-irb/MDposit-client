@@ -1,6 +1,6 @@
-import React, { lazy, Suspense } from 'react';
+import React from 'react';
 
-import { Link, Routes, Route } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import Button from '@mui/material/Button';
 
 import HomeIcon from '@mui/icons-material/Home';
@@ -14,8 +14,6 @@ import MailIcon from '@mui/icons-material/Mail';
 import { BASE_PATH } from '../../utils/constants';
 
 import style from './style.module.css';
-
-const Search = lazy(() => import(/* webpackChunkName: 'search' */ './search'));
 
 // Render all buttons in the superior header and manage the user redirection when they are clicked
 export default () => (
@@ -85,17 +83,6 @@ export default () => (
       >
         Contact
       </Button>
-      <Routes>
-        <Route
-          path="/browse"
-          element={
-            <Suspense fallback={null}>
-              {/* Render the search bar */}
-              <Search />
-            </Suspense>
-          }
-        />
-      </Routes>
     </div>
   </menu>
 );

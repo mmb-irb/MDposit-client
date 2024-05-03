@@ -1,5 +1,5 @@
 // React logic
-import React, { useEffect, useLayoutEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 // String managers
@@ -41,6 +41,9 @@ import style from './style.module.css';
 // It is used to check if the user has the reduced motion setting active
 import reducedMotion from '../../utils/reduced-motion';
 import { SCREENSHOT_FILENAME } from '../../utils/constants';
+
+// The search bar
+import Search from'./search';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -332,6 +335,7 @@ const Browse = () => {
   return (
     <Card>
       <CardContent className={style.minheight}>
+        <Search />
         {/* Render a 'no results' card when there are no results for the last search */}
         {!loading && !payload ? (
           <Card className={style['no-results-card']}>

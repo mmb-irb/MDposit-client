@@ -1,0 +1,13 @@
+.searchbar {
+  margin-top: 0.5em;
+  width: 100%;
+}
+
+.searchbar-icon {
+  margin-left: 0.2em;
+  margin-right: 0.4em;
+}
+
+.searchbar-letters {
+  font-size: large;
+}
