@@ -1,5 +1,12 @@
 // React logic
-import React, { useEffect, useLayoutEffect, useRef } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 // String managers
@@ -20,6 +27,10 @@ import {
   TableFooter,
   Typography,
   Chip,
+  Select,
+  MenuItem,
+  InputLabel,
+  FormControl
 } from '@mui/material';
 
 import LazyImg from '../../components/lazy-img';
@@ -33,7 +44,7 @@ import Loading from '../../components/loading'; // Displays an animated "loading
 import useAPI from '../../hooks/use-api';
 
 // Constants
-import { BASE_PATH_PROJECTS, NICE_NAMES } from '../../utils/constants';
+import { BASE_PATH_PROJECTS, HOST_CONFIG, NICE_NAMES } from '../../utils/constants';
 
 // CSS styles
 import style from './style.module.css';
@@ -48,6 +59,8 @@ import Search from'./search';
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
 const na = 'Not available';
+// Placeholder for when there is no option selected
+const all = 'All results';
 
 // Define non-changing props used by the table footer
 const rowsPerPageOptions = [5, 10, 25, 50];
@@ -284,6 +297,33 @@ const Browse = () => {
     decoder: c => c,
   });
 
+  // State of the selected option
+  const [ selectedOption, setSelectedOption ] = useState(search.option || all);
+
+  // Handle when user clicks on the option selector
+  const handleChange = useCallback(
+    ({ target: { value } }) => {
+      // Update the history (which does not rerender the page)
+      history({
+        ...location,
+        search: stringify({
+          search: search.search,
+          query: search.query,
+          // Do not keep the page
+          // Thus if option is changed then the page is reset
+          option: value && value !== all ? value : undefined,
+        }),
+      });
+      // Update the actual value thus rerendering the page
+      setSelectedOption(value);
+    }, [location, search, setSelectedOption]
+  );
+  
+  // Get the options field from the host configuration
+  const optionsField = HOST_CONFIG.optionsField;
+  // Set the selected option filter
+  const selectedOptionFilter = selectedOption && selectedOption !== all && `${optionsField}+*${selectedOption}`;
+
   // Convert the specified object back to a single encoded string
   const searchString = stringify({
     search: search.search,
@@ -291,6 +331,7 @@ const Browse = () => {
     ref: search.ref,
     page: search.page || DEFAULT_PAGE,
     limit: search.limit || DEFAULT_LIMIT,
+    filter: selectedOptionFilter
   });
 
   // Scroll up when the page is changed
@@ -298,20 +339,35 @@ const Browse = () => {
     window.scrollTo(0, 0);
   }, [search.page]);
 
-  // Save the previous payload. It is rendered in low opacity when the new payload is empty
+  // Save the previous query payload
+  // It is rendered in low opacity when the new query payload is empty
   const previousPayload = useRef(null);
 
+  // Options data from the API
+  const optionsUrl = optionsField ? `${BASE_PATH_PROJECTS}/options?projection=${optionsField}` : null;
+  const { payload: optionsPayload, error: optionsError } = useAPI(optionsUrl);
+
+  // Add the all flag at the begining as default value
+  // Remove null values since they are not queryable
+  const availableOptions = useMemo(() => {
+    let actualOptons = [];
+    if (optionsPayload)
+      actualOptons = Object.keys(optionsPayload[optionsField]).filter(key => key !== 'null');
+    return [ all, ...actualOptons ];
+  }, [optionsPayload]);
+
   // Projects data from the API
-  const ApiUrl = `${BASE_PATH_PROJECTS}?${searchString}`;
-  const { loading, payload, error } = useAPI(ApiUrl);
+  const queryUrl = `${BASE_PATH_PROJECTS}?${searchString}`;
+  const { loading: queryLoading, payload: queryPayload, error: queryError } = useAPI(queryUrl);
 
   // While loading
   // Code above is runned multiple times (around 5) each time the browser is loaded
-  if (loading && !previousPayload.current) return <Loading />;
+  if (queryLoading && !previousPayload.current) return <Loading />;
 
   // When error
   // This usually happens when the API does not work properly
-  if (error) return error.toString();
+  if (queryError) return queryError.toString();
+  if (optionsError) return optionsError.toString();
 
   // Download project screenshots
   // First set the URLs for the API
@@ -319,25 +375,46 @@ const Browse = () => {
   // Define the results for the final render since it won't support 'null's
   let results;
   let matchCount = 0;
-  if (payload) {
-    results = payload.projects;
-    matchCount = payload.filteredCount;
-    previousPayload.current = payload;
+  if (queryPayload) {
+    results = queryPayload.projects;
+    matchCount = queryPayload.filteredCount;
+    previousPayload.current = queryPayload;
   } else if (previousPayload.current) {
     results = previousPayload.current.projects;
     matchCount = previousPayload.current.filteredCount;
   } else results = [];
 
   // Set the screenshot URLs for the API
-  const screenshotsUrls = results.map(project => `${BASE_PATH_PROJECTS}/${project.identifier}/files/${SCREENSHOT_FILENAME}`);
+  const screenshotsUrls = results.map(
+    project => `${BASE_PATH_PROJECTS}/${project.identifier}/files/${SCREENSHOT_FILENAME}`
+  );
 
   // When success
   return (
     <Card>
       <CardContent className={style.minheight}>
-        <Search />
+        <div className={style.horizontal}>
+          <Search/>
+          {optionsField && <FormControl className={style.selector}>
+            <InputLabel>{HOST_CONFIG.optionsLabel}</InputLabel>
+            <Select
+              label={HOST_CONFIG.optionsLabel}
+              value={selectedOption !== all ? selectedOption : ''}
+              onChange={handleChange}
+              className={style.fillheight}
+            >
+              {availableOptions.map((value, i) => (
+                <MenuItem key={i} value={value}>
+                  {HOST_CONFIG.optionsNiceNames[value] || value}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+            
+          }          
+        </div>
         {/* Render a 'no results' card when there are no results for the last search */}
-        {!loading && !payload ? (
+        {!queryLoading && !queryPayload ? (
           <Card className={style['no-results-card']}>
             <Typography variant="h5" className={style['no-results-text']}>
               No results were found
@@ -345,7 +422,7 @@ const Browse = () => {
           </Card>
         ) : []}
         <Table>
-          {/*className={cn({ [style['invalid-results']]: !payload })} */}
+          {/*className={cn({ [style['invalid-results']]: !queryPayload })} */}
           {/* Table head with the names of each colum */}
           <TableHead className={style['table-head']}>
             <TableRow>
@@ -358,13 +435,12 @@ const Browse = () => {
           {/* Table body with the content, which is defined above in the Row constant */}
           {/* When the search has no results the table gets an opacity of 0.25 */}
           <TableBody
-            className={
-              payload
-                ? cn(style['table-body'])
-                : cn(style['table-body'], style['invalid-results'])
+            className={queryPayload
+              ? cn(style['table-body'])
+              : cn(style['table-body'], style['invalid-results'])
             }
           >
-            {/* Create a row for each project in the payload*/}
+            {/* Create a row for each project in the query payload*/}
             {results.map((project, index) => (
               <Row
                 // Load the propierties (inputs) that the class "Row" is expecting

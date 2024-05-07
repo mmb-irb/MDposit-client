@@ -10,6 +10,7 @@ import { docs } from '../../help/documentation';
 
 import style from './style.module.css';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { HOST_CONFIG } from '../../../utils/constants';
 
 // Half second delay (500 ms) to process changes in the search bar
 const DEBOUNCE_DELAY = 500;
@@ -80,16 +81,14 @@ const Search = () => {
   const doc = docs.find(doc => doc.id === 'browser');
 
   return (
-    <span className={style.searchbar}>
-      <TextField
-        title={doc.text}
-        value={value || ''}
-        onChange={handleChange}
-        className={style.searchbar}
-        InputProps={inputProps}
-        placeholder={'e.g. Orozco lab'}
-      />
-    </span>
+    <TextField
+      title={doc.text}
+      value={value || ''}
+      onChange={handleChange}
+      className={style.searchbar}
+      InputProps={inputProps}
+      placeholder={HOST_CONFIG.searchExample}
+    />
   );
 };
 

@@ -8,7 +8,7 @@ import { MenuList, MenuItem, Typography } from '@mui/material';
 // All text to be displayed is set previously here
 import { documentation } from './documentation';
 
-import { BASE_PATH_PROJECTS, COLLECTION_NAMES } from '../../utils/constants';
+import { BASE_PATH_PROJECTS, HOST_CONFIG } from '../../utils/constants';
 import useAPI from '../../hooks/use-api'; // API acces
 
 import style from './style.module.css';
@@ -54,35 +54,34 @@ const useStatistics = () => {
     )
   }, [summaryPayload]);
 
-  // Use the API to get the collections options
-  const collectionsUrl = `${BASE_PATH_PROJECTS}/options?projection=metadata.COLLECTIONS`;
-  const { payload: collectionsPayload, error: collectionsError } = useAPI(
-    collectionsUrl,
+  // Use the API to get the options
+  const optionsUrl = `${BASE_PATH_PROJECTS}/options?projection=${HOST_CONFIG.optionsField}`;
+  const { payload: optionsPayload, error: optionsError } = useAPI(
+    optionsUrl,
   );
 
-  // Build the collections component
-  // If collections data is not yet downloaded then show a blank pie chart
-  const CollectionsComponent = useMemo(() => {
+  // Build the options component
+  // If options data is not yet downloaded then show a blank pie chart
+  const OptionsComponent = useMemo(() => {
+    if (!HOST_CONFIG.optionsField) return;
     // Set the data to be represented on the pie chart
-    const collections =
-      collectionsPayload &&
-      Object.entries(collectionsPayload['metadata.COLLECTIONS']);
-    if (collections) collections.sort((a, b) => b[1] - a[1]);
-    const colors = collections && distinctColors({ count: collections.length });
-    const pieChartData = collections
-      ? collections.map(([key, value], i) => ({
-          title: COLLECTION_NAMES.get(key) || key,
+    const options = optionsPayload &&
+      Object.entries(optionsPayload[HOST_CONFIG.optionsField]);
+    if (options) options.sort((a, b) => b[1] - a[1]);
+    const colors = options && distinctColors({ count: options.length });
+    const pieChartData = options
+      ? options.map(([key, value], i) => ({
+          title: HOST_CONFIG.optionsNiceNames[key] || key,
           value: value,
           color: colors[i],
         }))
       : [{ title: 'Loading...', value: 1, color: 'lightgrey' }];
 
     // Set the legend
-    const summatory = collections && collections.reduce((current_value, [key, value]) => current_value + value, 0);
-    const legendData =
-      collections &&
-      collections.map(([key, value], i) => ({
-        label: (COLLECTION_NAMES.get(key) || key) + ' (' + (Math.round((value / summatory) * 10000 ) / 100) + ' %)',
+    const summatory = options && options.reduce((current_value, [key, value]) => current_value + value, 0);
+    const legendData = options &&
+      options.map(([key, value], i) => ({
+        label: (HOST_CONFIG.optionsNiceNames[key] || key) + ' (' + (Math.round((value / summatory) * 10000 ) / 100) + ' %)',
         color: colors[i],
       }));
     // Return the component
@@ -98,7 +97,7 @@ const useStatistics = () => {
         )}
       </div>
     )
-  }, [collectionsPayload]);
+  }, [optionsPayload]);
 
   // Use the API to get MD method options
   const methodsUrl = `${BASE_PATH_PROJECTS}/options?projection=metadata.METHOD`;
@@ -106,8 +105,8 @@ const useStatistics = () => {
     methodsUrl,
   );
 
-  // Build the collections component
-  // If collections data is not yet downloaded then show a blank pie chart
+  // Build the options component
+  // If options data is not yet downloaded then show a blank pie chart
   const MethodsComponent = useMemo(() => {
     // Remove the classical MD count since it would eclipse the rest of MD methods
     methodsPayload && delete methodsPayload['metadata.METHOD']['Classical MD'];
@@ -212,8 +211,10 @@ const useStatistics = () => {
           {SummaryComponent}
           <br />
           <br />
-          Projects per collection:
-          {CollectionsComponent}
+          {HOST_CONFIG.optionsField && <>
+            {`Projects per ${HOST_CONFIG.optionsLabel}`}
+            {OptionsComponent}
+          </>}
           Projects per non-equilibrium MD method:
           {MethodsComponent}
           <br />
@@ -236,11 +237,11 @@ const useStatistics = () => {
     // In case there is a summary already, from a previous render, delete it
     if (introduction.children[introduction.children.length - 1].id === 'summary') introduction.children.pop();
     introduction.children.push(StatisticsComponent);
-  }, [SummaryComponent, CollectionsComponent, MethodsComponent, SnapshotsComponent, AtomsComponent]);
+  }, [SummaryComponent, OptionsComponent, MethodsComponent, SnapshotsComponent, AtomsComponent]);
 
   // Handle possible errors by just showing a log error in the console
   // Thus we allow the rest of the page to keep loading
-  [summaryError, collectionsError, methodsError, snapshotsError, oldSnapshotsError, atomsError].forEach(error => {
+  [summaryError, optionsError, methodsError, snapshotsError, oldSnapshotsError, atomsError].forEach(error => {
     if (error) console.error(error.message);
   });
 };

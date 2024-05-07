@@ -25,7 +25,7 @@ const isLocalhost = Boolean(
 const QUICK_ENOUGH_TO_JUST_REFRESH = 750; // 750ms;
 
 export function register(config) {
-  if (HOST_CONFIG.prod && 'serviceWorker' in navigator) {
+  if (HOST_CONFIG.production && 'serviceWorker' in navigator) {
     // The URL constructor is available in all browsers that support SW.
     const publicUrl = new URL(process.env.PUBLIC_URL, window.location);
     if (publicUrl.origin !== window.location.origin) {

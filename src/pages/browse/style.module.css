@@ -73,3 +73,18 @@
   color: grey;
   font-size: small;
 }
+
+.horizontal {
+  display: flex;
+  flex-direction: row;
+  margin-bottom: 1em;
+}
+
+.selector {
+  width: 60%; /* this percent is competing with the 100% of the search bar */
+  margin-left: 1em;
+}
+
+.fillheight {
+  height: 100%;
+}

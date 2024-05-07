@@ -63,7 +63,7 @@ const Home = () => {
             variant="outlined"
             className={style.searchbar}
             InputProps={inputProps}
-            placeholder={'e.g. Orozco lab'}
+            placeholder={HOST_CONFIG.searchExample}
             onKeyPress={event => {
               if (event.key === 'Enter') {
                 //console.log(event.target.value);

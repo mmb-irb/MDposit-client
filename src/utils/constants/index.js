@@ -42,15 +42,3 @@ export const NICE_NAMES = new Map([
     ['populations', 'Populations'],
     ['markov', 'Markov Graph'],
 ]);
-
-// The name how this analysis is tagged in the webpage
-// If no name is provided, the webpage will tag it with the defalt name
-export const COLLECTION_NAMES = new Map([
-    ['cv19', 'BioExcel - COVID-19'],
-    ['mcns', 'MoDEL - Central Nervous System'],
-    ['model', 'MoDEL 2010'],
-    ['bigna', 'BIGNASim'],
-    ['abc', 'ABC'],
-    ['null', 'Independent'],
-    [null, 'Independent'],
-]);
