@@ -143,6 +143,17 @@ const HOST_CONFIGS = {
             This node contains simulations from the Oxford University node.
         </>
     },
+    // Cineca node
+    'cineca.mddbr.eu': {
+        api: 'https://cineca.mddbr.eu/api/rest/',
+        //production: true,
+        logo: 'logo-mdposit-cineca',
+        primaryColor: '#99FFFF', // Light blue
+        description: <>
+            {defaultDescription}<br/>
+            This node contains simulations from the Cineca node in Bologna.
+        </>
+    },
 };
 
 // Set the current host configuration
