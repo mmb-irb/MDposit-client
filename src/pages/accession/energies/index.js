@@ -81,13 +81,14 @@ const Energies = () => {
     const dataset = payload.data.find(dataset => {
       return dataset.name === interaction.name;
     });
+    let dataError;
     if (!dataset) {
-      const dataError = `Dataset for the interaction "${interaction.name}" not found`;
+      dataError = `Dataset for the interaction "${interaction.name}" not found`;
       return { data: null, dataError };
     }
     data = dataset[agent];
     if (!data) {
-      const dataError = `Data for the interaction "${interaction.name}" not found`;
+      dataError = `Data for the interaction "${interaction.name}" not found`;
       return { data: null, dataError };
     }
     // Set the guest NGL selection
