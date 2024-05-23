@@ -82,7 +82,7 @@ const HOST_CONFIGS = {
     'mmb-dev.mddbr.eu': {
         api: 'https://mmb-dev.mddbr.eu/api/rest/',
         logo: 'logo-mdposit-mmb',
-        primaryColor: '#8B008B', // Dark magenta
+        primaryColor: '#BB00BB', // Purple
         description: <>
             {defaultDescription}<br/>
             This node contains simulations stored at the MMB group at IRB Barcelona.
@@ -94,7 +94,7 @@ const HOST_CONFIGS = {
         api: 'https://mmb.mddbr.eu/api/rest/',
         production: true,
         logo: 'logo-mdposit-mmb',
-        primaryColor: '#8B008B', // Dark magenta
+        primaryColor: '#BB00BB', // Purple
         description: <>
             {defaultDescription}<br/>
             This node contains simulations stored at the MMB group at IRB Barcelona.
