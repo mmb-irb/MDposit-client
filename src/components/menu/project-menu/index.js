@@ -156,7 +156,7 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
                 cond: analyses && analyses.includes('dist-perres'),
               },
               {
-                name: 'Electrostatic potencial surface',
+                name: 'Electrostatic potential surface',
                 dir: 'electrostatic',
                 cond: metadata.INTERACTIONS && metadata.INTERACTIONS.length > 0,
               },

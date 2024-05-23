@@ -57,7 +57,7 @@ const HOST_CONFIGS = {
     // Testing
     'localhost': {
         api: 'https://mmb-dev.mddbr.eu/api/rest/',
-        primaryColor: '#5c6bc0', // Light indigo
+        primaryColor: '#707070', // Grey
     },
     // MDposit development
     'mdposit-dev.mddbr.eu': {

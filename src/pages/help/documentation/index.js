@@ -978,10 +978,10 @@ export const documentation = [
       },
       {
         id: 'electrostatic',
-        header: 'Electrostatic potencial surface',
+        header: 'Electrostatic potential surface',
         body: (
           <>
-            The Electrostatic potencial surface is not an analysis but a
+            The Electrostatic potential surface is not an analysis but a
             representation. Interface residues from both interacting agents are
             displayed. One of them is represented as a surface which is colored
             according to the atomic charges. In case atomic charges are missing
@@ -1000,7 +1000,7 @@ export const documentation = [
         ),
         page: (
           <>
-            This is the electrostatic potencial surface representation.
+            This is the electrostatic potential surface representation.
             <br />
             <br />
             Use the 'Interaction' selector to change the represented interaction
