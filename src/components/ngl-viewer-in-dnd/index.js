@@ -99,11 +99,13 @@ const NGLViewerInDND = props => {
       Math.min(innerWidth / 4, innerHeight / 4),
       MIN_NGL_DIMENSION,
     );
+    const reasonableSize = 1.5 * dimension;
     return {
-      width: 'auto', // Let the Rnd logic set the width automatically
-      height: 1.5 * dimension, // Reasonable height
+      // WARNING: If you set the width as 'auto' the window stays very wide when exiting fullscreen
+      width: reasonableSize, // Let the Rnd logic set the width automatically
+      height: reasonableSize, // Reasonable height
       x: 0, // Left border
-      y: innerHeight - offsetHeight - 1.5 * dimension - MARGIN + scrollY, // Bottom border
+      y: innerHeight - offsetHeight - reasonableSize - MARGIN + scrollY, // Bottom border
     };
   });
 
@@ -117,7 +119,9 @@ const NGLViewerInDND = props => {
       className={style.rnd}
       data-rnd
       // Limits where the window can be dragged/resized to
-      bounds="main"
+      // WARNING: This is problematic since the window may appear out of bounds
+      // WARNING: Then when it is moved for the first time it jumps inside the bonds, not elegant
+      // bounds="main"
       // Prevent the mouse to drag/resize the window when it is over specific elements
       cancel="canvas, [data-popover], #preventDragSize"
       // On drag/resize starts we do not change anything, but use the hook to re-render this component
