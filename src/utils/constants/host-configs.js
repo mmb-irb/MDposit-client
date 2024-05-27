@@ -122,10 +122,42 @@ const HOST_CONFIGS = {
             This node contains simulations from the Ascona B-DNA Consortium.
         </>
     },
+    // Oxford node development
+    'oxford-dev.mddbr.eu': {
+        api: 'https://oxford-dev.mddbr.eu/api/rest/',
+        logo: 'logo-mdposit-oxford',
+        primaryColor: '#66CC00', // Green as it is the Oxfrod landscape <3
+        description: <>
+            {defaultDescription}<br/>
+            This node contains simulations from the Oxford University node.
+        </>
+    },
+    // Oxford node production
+    'oxford.mddbr.eu': {
+        api: 'https://oxford.mddbr.eu/api/rest/',
+        production: true,
+        logo: 'logo-mdposit-oxford',
+        primaryColor: '#66CC00', // Green as it is the Oxfrod landscape <3
+        description: <>
+            {defaultDescription}<br/>
+            This node contains simulations from the Oxford University node.
+        </>
+    },
+    // Cineca node
+    'cineca.mddbr.eu': {
+        api: 'https://cineca.mddbr.eu/api/rest/',
+        //production: true,
+        logo: 'logo-mdposit-cineca',
+        primaryColor: '#99FFFF', // Light blue
+        description: <>
+            {defaultDescription}<br/>
+            This node contains simulations from the Cineca node in Bologna.
+        </>
+    },
 };
 
 // Set the current host configuration
-const HOST_CONFIG = HOST_CONFIGS[window.location.hostname];
+const HOST_CONFIG = HOST_CONFIGS[window.location.hostname] || HOST_CONFIGS['localhost'];
 
 // Fill the host configuration gaps with default values
 Object.entries(DEFAUL_HOST_CONFIG).forEach(([ field, defaultValue ]) => {
