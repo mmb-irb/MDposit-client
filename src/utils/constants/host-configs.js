@@ -47,6 +47,7 @@ const COLLECTION_OPTIONS = {
         'model': 'MoDEL 2010',
         'bigna': 'BIGNASim',
         'abc': 'ABC',
+        'modtox': 'ModTox',
         'null': 'Independent',
         [null]: 'Independent',
     }
