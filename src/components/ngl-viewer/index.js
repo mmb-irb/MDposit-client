@@ -125,20 +125,14 @@ const NGLViewer = memo(
         darkBackground,
         perspective,
         speed,
-        // Hooked values for changing representation parameters
-        drawingMethods,
-        coloringMethods,
-        opacities,
+        // Final components and representations prepared for the viewer
         components,
-        showRepresentations,
-        nglSelections,
+        representations,
         // Set the highlight representations types
         highlightTypes = defaultHighlightTypes,
       },
       ref,
     ) => {
-      // Save the components object into a local constant which can be modified
-      const comps = useMemo(() => components, [components]);
 
       // If no URL is provided then use the main trajectory // URL to find the trajectory data in the API
       // True when we just want to display a static structure // Requeste number of frames to display
@@ -200,9 +194,9 @@ const NGLViewer = memo(
       useMemo(() => {
         setRequestedTopologies(previousRequestedTopologies => {
           const newRequestedTopologies = [];
-          comps.forEach(comp => {
+          components.forEach(comp => {
             const url = comp.topologyURL || null;
-            const selection = comp.topologySelection || null;
+            const selection = comp.atomSelection || null;
             // Check if the url is new
             // Else, skip this url since it has been requested already
             const allRequestedTopologies = [
@@ -237,7 +231,7 @@ const NGLViewer = memo(
           });
           return [...previousRequestedTopologies, ...newRequestedTopologies];
         });
-      }, [comps, setRequestedTopologies]);
+      }, [components, setRequestedTopologies]);
 
       // Set a state to store the downloaded topologies
       const [topologies, setTopologies] = useState([]);
@@ -332,7 +326,7 @@ const NGLViewer = memo(
         });
       }, [requestedTopologies, pdbDataFile]);
 
-      const mainComponent = comps[0];
+      const mainComponent = components[0] || {};
       const mainTopology = topologies.find(topology => {
         return topology.url === mainComponent.topologyURL;
       });
@@ -378,7 +372,7 @@ const NGLViewer = memo(
           // Other paths such as "trajectory.bin" will be processed as "/:files"
           const baseUrl = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/trajectory`;
 
-          comps.forEach((comp, c) => {
+          components.forEach((comp, c) => {
             if (comp.onlyTopology) return;
 
             // Set the first component as the 'principal' component
@@ -490,7 +484,7 @@ const NGLViewer = memo(
           // Otherwise we return the previous array to do no trigger dependencies
           return currentTrajectories;
         });
-      }, [accession, comps, fileDescriptors, requestedFramesNumber]);
+      }, [accession, components, fileDescriptors, requestedFramesNumber]);
 
       // Set a state to store trajectories data
       const [trajectories, setTrajectories] = useState([]);
@@ -498,13 +492,11 @@ const NGLViewer = memo(
       // Set a function to update the current loading progress
       const updateLoadingProgress = useCallback(
         currentTrajectories => {
-          const mainComp = comps[0];
+          const mainComp = components[0];
           // Get all trajectories to be used as the current main trajecotry
           const mainTrajectories = [];
           mainComp.framedURLs.forEach(url => {
-            const trajectory = currentTrajectories.find(trajectory => {
-              return trajectory.url === url;
-            });
+            const trajectory = currentTrajectories.find(trajectory => trajectory.url === url);
             if (trajectory) mainTrajectories.push(trajectory);
           });
           if (mainTrajectories.length === 0) return;
@@ -517,8 +509,7 @@ const NGLViewer = memo(
               .map(trajectory => trajectory.progress * trajectory.frames)
               .reduce((a, b) => a + b, 0) / overallFrames;
           onLoad(overallProgress);
-        },
-        [comps, onLoad],
+        }, [components, onLoad],
       );
 
       // Download the requested trajectory data (frames)
@@ -783,7 +774,7 @@ const NGLViewer = memo(
         // DANI: Los components de stageRef.current.compList deben estar en orden
         if (anyLoadingTopology) return;
 
-        comps.forEach((comp, c) => {
+        components.forEach((comp, c) => {
           // Set the NGL component
           let stageComp = stageRef.current.compList[c];
           if (!stageComp) {
@@ -814,52 +805,48 @@ const NGLViewer = memo(
             setIsFirstCompStaged(true);
           }
 
+          // Get current component representations
+          const componentRepresentations = representations.filter(rep => rep.component === comp.name);
+
           // Set each representation
-          // Save all current representation names so we can delete previous representations which are not requested anymore
+          // Delete previous representations which are not requested anymore
           const registredNames = [];
-          comp.representations.forEach((rep, r) => {
+          componentRepresentations.forEach((rep, r) => {
             // The name here is used to indetify previous existing representations
             const name = r + '-' + rep.name;
             registredNames.push(name);
 
             // Adapt a few representation values to the context
-            const index = rep.index;
-
-            const show = !showRepresentations || showRepresentations[index];
-
-            const sele = nglSelections[index];
-
-            const type = drawingMethods[index];
+            const show = rep.show
+            const sele = rep.selection;
+            const type = rep.type;
+            const color = rep.color;
+            const opacity = show ? rep.opacity : 0;
 
             const customColorScheme = rep.customScheme;
 
-            const colorScheme =
-              rep.name === selectedRepresentation
-                ? // If the representation is selected then the color is yellow
-                  ColormakerRegistry.addSelectionScheme(
-                    [['yellow', 'all']],
-                    'custom label',
-                  )
-                : // If the colorScheme is in the passed custom schemes use it
-                customColorScheme && coloringMethods[index] === 'custom'
+            // If the representation is selected then the color is yellow
+            const colorScheme = rep.name === selectedRepresentation
+              ? ColormakerRegistry.addSelectionScheme(
+                  [['yellow', 'all']],
+                  'custom label',
+                )
+              // If the colorScheme is in the passed custom schemes use it
+              : customColorScheme && color === 'custom'
                 ? customColorScheme
-                : // If the colorScheme is a defined color, create a custom colorScheme for this color
-                isValidColor(coloringMethods[index])
-                ? ColormakerRegistry.addSelectionScheme(
-                    [[coloringMethods[index], 'all']],
-                    'custom label',
-                  )
-                : // Otherwise let the color scheme as it is
-                  coloringMethods[index];
+                // If the colorScheme is a defined color, create a custom colorScheme for this color
+                : isValidColor(color)
+                  ? ColormakerRegistry.addSelectionScheme(
+                      [[color, 'all']],
+                      'custom label',
+                    )
+                  // Otherwise let the color scheme as it is
+                  : color;
 
+            // Set some additional parameters which are to be modified depending on the type
             const colorDomain = type === 'surface' ? [-200, 200] : undefined;
-
             const surfaceType = type === 'surface' ? 'av' : undefined;
-
-            const opacity = show ? opacities[index] : 0;
-
             //const background = type === 'surface' && opacity < 1 ? true : false;
-
             const depthWrite = type === 'surface' && opacity < 1 ? false : true;
 
             // Join all parameters into a single input object
@@ -912,7 +899,7 @@ const NGLViewer = memo(
             // Add a floating label over the representation when it is specified
             const label = rep.label;
             if (label) {
-              const name = rep.label + '-' + index;
+              const name = rep.label + '-' + name;
               // Find the equivalent previous label
               const previous = stageComp.annotationList.find(
                 annotation => annotation.name === name,
@@ -933,8 +920,7 @@ const NGLViewer = memo(
                   elm.style.backgroundColor = '#607D8B';
                   elm.style.padding = '8px';
                   // get the geometrical center of the representation
-                  const center =
-                    stageComp.reprList[r].repr.structureView.center;
+                  const center = stageComp.reprList[r].repr.structureView.center;
                   const annotation = stageComp.addAnnotation(center, elm);
                   annotation.name = name;
                 }
@@ -980,15 +966,11 @@ const NGLViewer = memo(
         });
       }, [
         pdbFile,
-        comps,
-        drawingMethods,
-        coloringMethods,
-        opacities,
+        components,
+        representations,
         anyLoadingTopology,
         topologies,
         selectedRepresentation,
-        showRepresentations,
-        nglSelections,
       ]);
 
       // Highlight specific atoms
@@ -1261,23 +1243,16 @@ const NGLViewer = memo(
         // Check if trajectories are
         if (!topologies || !trajectories || trajectories.length === 0) return;
 
-        let frames = [];
-        // Save the trajectory player to setup the celanup function at the end of this useEffect
-        let trajectoryHandler;
-
-        comps.forEach((comp, c) => {
+        components.forEach((comp, c) => {
           // Find the topology which matches the component url
           // If a component has no url it will match a topology with no url: the default topology
           const url = comp.topologyURL || null;
-          const topology = topologies.find(topology => {
-            return topology.url === url;
-          });
+          const topology = topologies.find(topology => topology.url === url);
           const stageComp = stageRef.current.compList[c];
           // Wait if the topology has not been loaded yet
           if (!stageComp) return;
           // Abort if the component is marked as 'only topology'
           if (stageComp.onlyTopology) return;
-
           // Find the trajectory payload from the component urls and join them
           const trajectoryPayloads = [];
           // Save the combined urls of all trajectories and their lengths
@@ -1289,26 +1264,20 @@ const NGLViewer = memo(
           let trajectoryFinalExpectedFrames = 0;
           // Record also the frames for each trajectory and add them
           for (const url of comp.framedURLs) {
-            const trajectory = trajectories.find(trajectory => {
-              return trajectory.url === url;
-            });
+            const trajectory = trajectories.find(trajectory => trajectory.url === url);
             // If the trajectory is not downloaded yet then exit
             if (!trajectory) return;
-
             // Get atom counts from different trajectories and check they match
             if (!trajectoryAtoms) trajectoryAtoms = trajectory.atoms;
             if (trajectoryAtoms !== trajectory.atoms)
-              throw new Error(
-                `Atoms number in the different trajectories do not match`,
-              );
+              throw new Error( `Atoms number in the different trajectories do not match`);
             // Add the final expected frames for all frames in the component
             trajectoryFinalExpectedFrames += trajectory.frames;
             // Add the main data to the array of payloads
             // Substract data from not completed frames
             const payload = trajectory.payload;
             const bytesPerFrame = trajectoryAtoms * BYTES_PER_ATOM;
-            const fitLength =
-              Math.floor(payload.byteLength / bytesPerFrame) * bytesPerFrame;
+            const fitLength = Math.floor(payload.byteLength / bytesPerFrame) * bytesPerFrame;
             const fitPayload = payload.slice(0, fitLength);
             trajectoryPayloads.push(fitPayload);
             combinedURL += url;
@@ -1396,12 +1365,8 @@ const NGLViewer = memo(
               if (!noTrajectory && playing && !nglPlayer.isRunning) {
                 const currentFrame = nglTrajectory._currentFrame;
                 const endingFrame = lastFrameIndex;
-                if (currentFrame < endingFrame) {
-                  nglPlayer.play();
-                }
+                if (currentFrame < endingFrame) nglPlayer.play();
               }
-              // Save the trajectory handler
-              trajectoryHandler = nglTrajectory;
             }
           }
           // If there is not trajectory yet then create a new NGL trajectory
@@ -1439,19 +1404,16 @@ const NGLViewer = memo(
               });
               // Update the main NGL file
               setMainNglFile(nglFile);
-              // Set trajectory frame
-              nglTrajectory.setFrame(0);
-              frames.push(nglFile);
-              // Save the trajectory player
-              trajectoryHandler = nglTrajectory;
               setIsMainTrajectoryStaged(true);
             }
+            // Set trajectory frame
+            nglTrajectory.setFrame(0);
           }
         });
       }, [
         topologies,
         trajectories,
-        comps,
+        components,
         noTrajectory,
         setMainNglFile,
         // The requestedFramesNumber dependency may seem redundant but it is not

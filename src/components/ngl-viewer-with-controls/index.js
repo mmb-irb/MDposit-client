@@ -52,6 +52,9 @@ import RepresentationsManager from './representations-manager';
 
 import { get, setAsync } from '../../utils/storage';
 
+// To ask the API
+import { BASE_PATH_PROJECTS } from '../../utils/constants';
+
 // The main component of the viewer itself
 import MolstarViewer from '../molstar-viewer';
 import NGLViewer from '../ngl-viewer';
@@ -73,9 +76,9 @@ import { ProjectCtx } from '../../contexts';
 
 // Decide that the default should be to play the trajectory only on "big enough"
 // screens (as a proxy for performance and low-end device detection)
-const defaultStartsPlaying = !reducedMotion() && window.innerWidth > 750;
+const DEFAULT_STARTS_PLAYING = !reducedMotion() && window.innerWidth > 750;
 
-const defualtFrameNumber = (() => {
+const DEFAULT_FRAME_NUMBER = (() => {
   switch (connectionLevel()) {
     case HIGH:
       return 50;
@@ -88,28 +91,50 @@ const defualtFrameNumber = (() => {
 })();
 
 // Set the possible number of frames the user can request
-const defaultFrameNumbers = [
-  {
-    value: 1,
-    label: '1',
-  },
-  {
-    value: 10,
-    label: '10',
-  },
-  {
-    value: 25,
-    label: '25',
-  },
-  {
-    value: 50,
-    label: '50',
-  },
-  {
-    value: 100,
-    label: '100',
-  },
+const DEFAULT_FRAME_NUMBERS = [
+  { value: 1, label: '1' },
+  { value: 10, label: '10' },
+  { value: 25, label: '25' },
+  { value: 50, label: '50' },
+  { value: 100, label: '100' },
 ];
+
+// Set the default component parameters
+// These values are used to fill missing fields in input components
+const DEFAULT_COMPONENT_PARAMETERS = {
+  name: 'Unnamed component',
+  topologyURL: 'auto', // This is assigned further
+  trajectoryURLs: 'auto', // This is assigned further
+  atomSelection: null,
+  frame: null,
+  onlyTopology: false
+}
+
+// Set the default representation parameters
+// These values are used to fill missing fields in input representations
+const DEFAULT_REPRESENTATION_PARAMETERS = {
+  name: 'Unnamed representation',
+  selection: 'all',
+  show: true,
+  type: 'cartoon',
+  color: 'chainid',
+  opacity: 1
+}
+
+// DANI: falta representation.index y custom
+
+// Set a function to fill the missing values within an object using default values
+// Return true if there was any change
+const completeMissingFields = (targetObject, defaultValuesObject) => {
+  let anyChange = false;
+  for (const [fieldName, defaultValue] of Object.entries(defaultValuesObject)) {
+    if (targetObject[fieldName] === undefined) {
+      targetObject[fieldName] = defaultValue;
+      anyChange = true;
+    }
+  }
+  return anyChange;
+}
 
 // Set an NGL view window which is managed by some controls
 // There are different ways to call this script
@@ -123,39 +148,49 @@ const defaultFrameNumbers = [
 const NGLViewerWithControls = forwardRef(
   (
     {
+      // The viewer starting components
+      // Components are objects which may include the following values:
+      // All values are optional since missing values will be set by default
+      //  {
+      //    name: name of the component used to link representations with it
+      //    topologyURL: string, (used in pockets analysis)
+      //    trajectoryURLs: [ string ], (used in pca)
+      //    atomSelection: string, (used in pca)
+      //    frame: int, (used in rmsd pairwise analysis)
+      //    onlyTopology: bool, (used in pockets analysis)
+      //  }
+      startingComponents,
+      // The viewer starting representations
+      // It is an array of objects with the following structure:
+      // All values are optional since missing values will be set by default
+      // {
+      //   name: ('representation' by default) The string label of this representation,
+      //   show: ('true' by default) Boolean to set if this representation is shown or not,
+      //   selection: ('all' by default) The NGL selection string to define the atom selection,
+      //   type: ('cartoon' by default) The initial representation 'type',
+      //   color: ('chainid' by default) The initial representation 'colorScheme',
+      //   opacity: ('1' by default) The initial representation opacity
+      //   other: object with any other ngl options to be passed for the representation
+      //   component: name of the component this representation belongs to (main component when missing)
+      // }
+      startingRepresentations,
+      // Alternatively you may pass bot components and representations as states
+      // Thus the parent component may also control them
+      // Note that these states will be still controled by the child components anyway
+      componentsState,
+      representationsState,
+      // Style
       className,
-      startsPlaying = defaultStartsPlaying,
+      // Set if the viewer must play the simulation as soon as it appears
+      startsPlaying = DEFAULT_STARTS_PLAYING,
+      // Closing callback
       close,
+      // Nailing callback
       nail,
       // Set which frame must be loaded. It may be undefined, if the whole trajectory is desired.
       requestedFrame,
       // Set if the frame number selector is allowed for trajectories (false in PCA projections)
       framesSelect = true,
-      // Old method to call the NGL
-      // The NGL representations
-      // It is an array of objects with the following structure:
-      // {
-      //   selection: ('all' by default) The NGL selection string to define the atom selection,
-      //   name: ('representation' by default) The string label of this representation,
-      //   show: ('true' by default) Boolean to set if this representation is shown or not,
-      //   type: ('cartoon' by default) The initial representation 'type',
-      //   color: ('chainid' by default) The initial representation 'colorScheme',
-      //   opacity: ('1' by default) The initial representation opacity
-      //   other: object with any other ngl options to be passed for the representation
-      // }
-      representations,
-      // New method to call the NGL
-      // Components are objects which may include the following values
-      // All values are optional since missing values will be set by default
-      //  {
-      //    topologyURL: string, (used in pockets analysis)
-      //    topologySelection: string, (used in pca)
-      //    trajectoryURLs: [ string ], (used in pca)
-      //    frame: int, (used in rmsd pairwise analysis)
-      //    onlyTopology: bool, (used in pockets analysis)
-      //    representations: [...],
-      //  }
-      components,
       // Forced states for representation parameters. They must be passed in the state format (e.g. [state, setState])
       // They are passed when these parameters must be controlled from outside the NGL
       // Usually they are not passed since this script has builtin states
@@ -173,24 +208,26 @@ const NGLViewerWithControls = forwardRef(
     },
     ref,
   ) => {
-    // Set which viewer is used: NGL or MolStar
-    const [Viewer, setViewer] = useState(
-      //MolstarViewer
-      NGLViewer,
-    );
+    // Make sure we are not having incompatible inputs
+    if (startingComponents && componentsState)
+      throw new Error('startingComponents and componentsState are not compatilbe inputs. Choose one.');
+    if (startingRepresentations && representationsState)
+      throw new Error('startingRepresentations and representationsState are not compatilbe inputs. Choose one.');
+    // Set which viewer is used: NGL or MolStar (the default is NGL)
+    const [Viewer, setViewer] = useState(NGLViewer);
     // Get project metadata
-    const { metadata } = useContext(ProjectCtx);
-    // Use metadata to limit available frmaes number
+    const { metadata, accessionAndMdNumber } = useContext(ProjectCtx);
+    // Use metadata to limit available frames number
     const frameNumbers = useMemo(() => {
       const maximumSnapshots = metadata.mdFrames;
-      const frameNumbers = [...defaultFrameNumbers];
+      const frameNumbers = [...DEFAULT_FRAME_NUMBERS];
       // Remove values over the maximim number of frames
       for (let i = frameNumbers.length - 1; i >= 0; i--) {
         if (frameNumbers[i].value > maximumSnapshots) frameNumbers.pop();
         else break;
       }
       // In case no value was removed we are done
-      if (frameNumbers.length === defaultFrameNumbers.length)
+      if (frameNumbers.length === DEFAULT_FRAME_NUMBERS.length)
         return frameNumbers;
       // Otherwise, if the maximum number of frames is not one of the options already, then add it
       if (frameNumbers[frameNumbers.length - 1].value !== maximumSnapshots)
@@ -200,226 +237,54 @@ const NGLViewerWithControls = forwardRef(
         });
       return frameNumbers;
     }, [metadata.mdFrames]);
+    // Do not use the start object but make a copy to avoid a lot of silent errors
+    const fixedStartingComponents = useMemo(() => {
+      if (startingComponents)
+        return startingComponents.map(comp => JSON.parse(JSON.stringify(comp)));
+      return [{ name: 'Main' }];
+    }, [startingComponents]);
+    // Set the final components to be passed to the viewer
+    const [finalComponents, setFinalComponents] = componentsState || useState(fixedStartingComponents);
+
+    // Set the missing value completer for components including URLs
+    // Return true if there was any change
+    const completeComponentMissingFields = useCallback(targetObject => {
+      if (!accessionAndMdNumber) return false;
+      const defaults = {...DEFAULT_COMPONENT_PARAMETERS};
+      defaults.topologyURL = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/structure`;
+      defaults.trajectoryURLs = [ `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/trajectory` ];
+      return completeMissingFields(targetObject, defaults);
+    }, [accessionAndMdNumber]);
+
+    // Anytime components change, check if there are any missing values and fill them
+    useMemo(() => {
+      // Fill missing values among components with default values
+      const changes = finalComponents.map(comp => 
+        completeComponentMissingFields(comp, DEFAULT_COMPONENT_PARAMETERS));
+      // If there was any value filled then update the state to trigger a rerender
+      if (changes.some(v => v === true)) setFinalComponents([...finalComponents]);
+    }, [finalComponents, completeComponentMissingFields]);
+
     // Use this hook to get the memoized NGL default representations
     const defaultRepresentations = useDefaultRepresentations();
 
-    // Additional representations which may be added by the user
-    // It is an array of objects with the following structure:
-    // {
-    //   topologyURL: string,
-    //   trajectoryURLs: [ string ],
-    //   frame: int,
-    //   selection: ('all' by default) The NGL selection string to define the atom selection,
-    //   name: ('representation' by default) The string label of this representation,
-    //   show: ('true' by default) Boolean to set if this representation is shown or not,
-    //   type: ('cartoon' by default) The initial representation 'type',
-    //   color: ('chainid' by default) The initial representation 'colorScheme',
-    //   opacity: ('1' by default) The initial representation opacity
-    // }
-    const [additionalRepresentations, setAdditionalRepresentations] = useState(
-      [],
-    );
+    // Do not use the start object but make a copy to avoid a lot of silent errors
+    const fixedStartingRepresentations = useMemo(() => {
+      if (startingRepresentations)
+        return startingRepresentations.map(rep => JSON.parse(JSON.stringify(rep)));
+      return [...defaultRepresentations];
+    }, [startingRepresentations, defaultRepresentations]);
+    // Set the final representations to be passed to the viewer
+    const [finalRepresentations, setFinalRepresentations] = representationsState || useState(fixedStartingRepresentations);
 
-    // Set the components. If components are not provided use default values
-    // Set also all representations mined from each component
-    // These representations will have stated parameters which may be changed by the user
-    const [allComponents, allRepresentations] = useMemo(() => {
-      // WARNING: Do not modify the original value of 'components'
-      // WARNING: The object must be copied deeply. Otherwise representations list would be the same
-      // WARNING: This would results in a disaster when there is more than 1 component
-      // WARNING: (e.g. adding custom representations in rmsd pairwise)
-      let comps;
-      if (!components) comps = [];
-      else
-        comps = [...components.map(comp => JSON.parse(JSON.stringify(comp)))];
-      // WARNING!! Do not modify the original value of 'representations'
-      let reps;
-      if (!representations) reps = [];
-      else reps = [...representations];
-
-      // If there are no components we set a default value
-      // If 'representations' is also undefined a default value will be assigned further
-      if (comps.length === 0) {
-        comps = [{ representations: reps, frame: requestedFrame }];
-      }
-      // Save all representations mined from each component together with the additional ones
-      const allReps = [];
-      // Set all missing components 'representations' value with the default representations
-      for (const comp of comps) {
-        // DANI: Estoy modificando el componente de input añadiendole mas representations
-        // DANI: lo que copio es la lista original que lo contiene, pero no el componente!!
-        if (!comp.representations || comp.representations.length === 0)
-          // Spread syntax here prevents the 'defaultRepresentations' to be overwritten
-          comp.representations = [...defaultRepresentations];
-        //console.log(components)
-        //console.log(comps)
-        allReps.push(...comp.representations);
-      }
-      // Create a new component for each additional representation with different component parameters
-      // (i.e. topologyURL, topologySelection, trajectoryURLs or frame)
-      for (const rep of additionalRepresentations) {
-        // Set the component for this representation
-        let comp;
-        const search = comps.filter(
-          c =>
-            c.topologyURL === rep.topologyURL &&
-            c.topologySelection === rep.topologySelection &&
-            (c.trajectoryURLs && c.trajectoryURLs.join()) ===
-              (rep.trajectoryURLs && rep.trajectoryURLs.join()) &&
-            c.frame === rep.frame,
-        );
-        // Set the representation object without the component parameters
-        const representation = {
-          selection: rep.selection,
-          name: rep.name,
-          show: rep.show,
-          type: rep.type,
-          color: rep.color,
-          opacity: rep.opacity,
-          custom: true,
-        };
-        // If there is no result we create a new component
-        if (search.length === 0) {
-          // Set the component object
-          const component = {
-            topologyURL: rep.topologyURL,
-            topologySelection: rep.topologySelection,
-            trajectoryURLs: rep.trajectoryURLs,
-            frame: rep.frame,
-            representations: [representation],
-          };
-          comps.push(component);
-        }
-        // If there is one result we assign the representation to this component
-        else if (search.length === 1) {
-          comp = search[0];
-          comp.representations.push(representation);
-        }
-        // Never should be more than one component with these parameters identical
-        else {
-          throw new Error(`There is a duplicated NGL component`);
-        }
-        allReps.push(representation);
-      }
-
-      // Fill the missing 'representations' values with some default values
-      allReps.forEach((rep, r) => {
-        rep.index = r; // Numerate all representations to be matched by the NGL
-        if (!rep.name) rep.name = 'Representation';
-        if (!rep.selection) rep.selection = 'all';
-        if (!rep.show) rep.show = true;
-        if (!rep.type) rep.type = 'cartoon';
-        if (!rep.color) rep.color = 'chainid';
-        if (!rep.opacity) rep.opacity = 1;
-      });
-      return [comps, allReps];
-    }, [
-      components,
-      representations,
-      additionalRepresentations,
-      requestedFrame,
-      defaultRepresentations,
-    ]);
-
-    // Set the variable 'noTrajectory' as true when:
-    // The flag 'onlyTopology' is passed
-    // there is a selected unique frame to load from the main trajectory
-    // The main trajectory only has 1 frame (e.g. average.xtc)
-    const mainComponent = allComponents[0];
-    const noTrajectory =
-      preventTrajectory ||
-      mainComponent.onlyTopology ||
-      Number.isFinite(mainComponent.frame); // May be 0
-
-    // Builtin states
-    // They are always declared but only used when there is no forced state in the arguments
-    // (They are used almost always)
-    const [
-      showRepresentationsBuiltin,
-      setShowRepresentationsBuiltin,
-    ] = useState(allRepresentations.map(rep => rep.show));
-    const [nglSelectionsBuiltin, setNglSelectionsBuiltin] = useState(
-      allRepresentations.map(rep => rep.selection),
-    );
-    const [drawingMethodsBuiltin, setDrawingMethodsBuiltin] = useState(
-      allRepresentations.map(rep => rep.type),
-    );
-    const [coloringMethodsBuiltin, setColoringMethodsBuiltin] = useState(
-      allRepresentations.map(rep => rep.color),
-    );
-    const [opacitieBuiltins, setOpacitiesBuiltin] = useState(
-      allRepresentations.map(rep => rep.opacity),
-    );
-
-    // Set a reference to check when input arguments (components and representations) change
-    const inputs = useRef({
-      components: null,
-      representations: null,
-    });
-
-    // Reset builtin states when inputs change
-    // Set missing values in builtin states when additional representations are added by the user
+    // Anytime representations change, check if there are any missing values and fill them
     useMemo(() => {
-      if (
-        inputs.current.components === components &&
-        components !== undefined &&
-        inputs.current.representations === representations &&
-        representations !== undefined
-      ) {
-        // 'show' values are set this way because they are booleans
-        // We the other states syntax a 'false' boolean would be taken as a missing value
-        setShowRepresentationsBuiltin(previous =>
-          allRepresentations.map((rep, index) => {
-            if (previous[index] !== undefined) return previous[index];
-            return rep.show;
-          }),
-        );
-        setNglSelectionsBuiltin(previous =>
-          allRepresentations.map(
-            (rep, index) => previous[index] || rep.selection,
-          ),
-        );
-        setDrawingMethodsBuiltin(previous =>
-          allRepresentations.map((rep, index) => previous[index] || rep.type),
-        );
-        setColoringMethodsBuiltin(previous =>
-          allRepresentations.map((rep, index) => previous[index] || rep.color),
-        );
-        setOpacitiesBuiltin(previous =>
-          allRepresentations.map(
-            (rep, index) => previous[index] || rep.opacity,
-          ),
-        );
-      } else {
-        setShowRepresentationsBuiltin(allRepresentations.map(rep => rep.show));
-        setNglSelectionsBuiltin(allRepresentations.map(rep => rep.selection));
-        setDrawingMethodsBuiltin(allRepresentations.map(rep => rep.type));
-        setColoringMethodsBuiltin(allRepresentations.map(rep => rep.color));
-        setOpacitiesBuiltin(allRepresentations.map(rep => rep.opacity));
-      }
-      // Save a reference of components and representations to compare with future triggers
-      inputs.current = { components, representations };
-    }, [allRepresentations, components, representations]);
-
-    // Real states. They get the forced state value if exist. If not, they get the builtin state value
-    const [
-      showRepresentations,
-      setShowRepresentations,
-    ] = showRepresentationsForced
-      ? showRepresentationsForced
-      : [showRepresentationsBuiltin, setShowRepresentationsBuiltin];
-    const [nglSelections, setNglSelections] = nglSelectionsForced
-      ? nglSelectionsForced
-      : [nglSelectionsBuiltin, setNglSelectionsBuiltin];
-    const [drawingMethods, setDrawingMethods] = drawingMethodsForced
-      ? drawingMethodsForced
-      : [drawingMethodsBuiltin, setDrawingMethodsBuiltin];
-    const [coloringMethods, setColoringMethods] = coloringMethodsForced
-      ? coloringMethodsForced
-      : [coloringMethodsBuiltin, setColoringMethodsBuiltin];
-    const [opacities, setOpacities] = opacitiesForced
-      ? opacitiesForced
-      : [opacitieBuiltins, setOpacitiesBuiltin];
+      // Fill missing values among representations with default values
+      const changes = finalRepresentations.map(rep => 
+        completeMissingFields(rep, DEFAULT_REPRESENTATION_PARAMETERS));
+      // If there was any value filled then update the state to trigger a rerender
+      if (changes.some(v => v === true)) setFinalRepresentations([...finalRepresentations]);
+    }, [finalRepresentations]);
 
     // references
     const containerRef = useRef(null);
@@ -442,7 +307,7 @@ const NGLViewerWithControls = forwardRef(
     const [load, setLoad] = useState(0);
     const [isFullscreen, setIsFullscreen] = useState(screenfull.isFullscreen);
     const [requestedFramesNumber, setRequestedFramesNumber] = useState(
-      Math.min(defualtFrameNumber, metadata.mdFrames),
+      Math.min(DEFAULT_FRAME_NUMBER, metadata.mdFrames),
     );
     const [speed, setSpeed] = useState(useMemo(() => get('speed', 50), []));
     const [settings, openSettings] = useState(false);
@@ -454,16 +319,14 @@ const NGLViewerWithControls = forwardRef(
       prog => {
         if (onProgress) onProgress(prog);
         setProgress(prog);
-      },
-      [setProgress, onProgress],
+      }, [setProgress, onProgress],
     );
 
     // Handle the trajectory load
     const handleLoad = useCallback(
       load => {
         setLoad(load);
-      },
-      [setLoad],
+      }, [setLoad],
     );
 
     // handle click or click & drag progress bar
@@ -480,42 +343,47 @@ const NGLViewerWithControls = forwardRef(
         viewerRef.current.currentFrame = Math.floor(
           ((clientX - x) / width) * viewerRef.current.totalExpectedFrames,
         );
-      },
-      [togglePlaying],
+      }, [togglePlaying],
     );
 
+    // Frame change handler to interact with the child viewer
     const handleFrameChange = useCallback(
       value => {
         if (!viewerRef.current) return;
         togglePlaying(false);
         viewerRef.current.currentFrame += value;
-      },
-      [togglePlaying],
+      }, [togglePlaying],
     );
 
-    const handleFullscreenChange = useCallback(
-      () => setIsFullscreen(screenfull.isFullscreen),
-      [],
-    );
+    // When the user requests the previous frame
+    const handlePreviousFrame = useCallback(() => handleFrameChange(-1), [handleFrameChange]);
 
-    // effects
+    // When the user requests the next frame
+    const handleNextFrame = useCallback(() => handleFrameChange(1), [handleFrameChange]);
+
+    // Enter/exit fullscreen
+    const handleFullscreenChange = useCallback(() => setIsFullscreen(screenfull.isFullscreen), []);
     useEffect(() => {
       screenfull.on('change', handleFullscreenChange);
       return () => screenfull.off('change', handleFullscreenChange);
     }, [handleFullscreenChange]);
 
+    // When the user clicks on the fullscreen button
+    const handlerFullscreenButton = useCallback(
+      () => { if (containerRef.current) screenfull.toggle(containerRef.current) }, []);
+
+    // Exit the options menu by pressing the escape key
     useEffect(() => {
       const handleKeyPress = event => {
         if (event.key === 'Escape') openSettings(false);
         viewerRef.current.autoResize();
       };
       document.addEventListener('keydown', handleKeyPress, false);
-      return () =>
-        document.removeEventListener('keydown', handleKeyPress, false);
+      return () => document.removeEventListener('keydown', handleKeyPress, false);
     }, []);
 
-    useImperativeHandle(
-      ref,
+    // This allows parent components to interact with this component
+    useImperativeHandle(ref,
       () => ({
         autoResize: viewerRef.current.autoResize,
         centerFocus: viewerRef.current.centerFocus,
@@ -526,21 +394,23 @@ const NGLViewerWithControls = forwardRef(
           viewerRef.current.currentFrame = value;
         },
         togglePlaying: togglePlaying,
-        setShowRepresentations: setShowRepresentations,
-        setNglSelections: setNglSelections,
-        setDrawingMethods: setDrawingMethods,
-        setColoringMethods: setColoringMethods,
-        setOpacities: setOpacities,
+        setFinalComponents: setFinalComponents,
+        setFinalRepresentations: setFinalRepresentations
       }),
       [
         togglePlaying,
-        setShowRepresentations,
-        setNglSelections,
-        setDrawingMethods,
-        setColoringMethods,
-        setOpacities,
+        setFinalComponents,
+        setFinalRepresentations,
       ],
     );
+
+    // Set the variable 'noTrajectory' as true when:
+    // The flag 'onlyTopology' is passed
+    // there is a selected unique frame to load from the main trajectory
+    // The main trajectory only has 1 frame (e.g. average.xtc)
+    const mainComponent = finalComponents[0] || {};
+    const noTrajectory = preventTrajectory || mainComponent.onlyTopology ||
+      Number.isFinite(mainComponent.frame); // May be 0
 
     // DANI: Si no quieres buscarte problemas no cambies las "Card"s de aquí abajo por "div"s o similar
     return (
@@ -552,20 +422,18 @@ const NGLViewerWithControls = forwardRef(
       >
         <div className={cn(style.adapter, className)}>
           <Card
-            className={
-              settings
-                ? style['ngl-with-settings']
-                : style['ngl-without-settings']
+            className={settings
+              ? style['ngl-with-settings']
+              : style['ngl-without-settings']
             }
             style={{ border: 'none', boxShadow: 'none' }}
             // This id prevents the mouse to drag or resize the Rnd when it is over this element
             id={'preventDragSize'}
           >
             <Card
-              className={
-                settings
-                  ? cn(style['settings-left'], className)
-                  : cn(style['ngl-alone'], className)
+              className={settings
+                ? cn(style['settings-left'], className)
+                : cn(style['ngl-alone'], className)
               }
               style={{ border: 'none', boxShadow: 'none' }}
             >
@@ -581,12 +449,8 @@ const NGLViewerWithControls = forwardRef(
                 darkBackground={darkBackground}
                 perspective={perspective}
                 speed={speed}
-                showRepresentations={showRepresentations}
-                nglSelections={nglSelections}
-                drawingMethods={drawingMethods}
-                coloringMethods={coloringMethods}
-                opacities={opacities}
-                components={allComponents}
+                components={finalComponents}
+                representations={finalRepresentations}
                 {...props}
               />
               {settings && (
@@ -605,8 +469,7 @@ const NGLViewerWithControls = forwardRef(
                       onClick={event => {
                         if (!viewerRef.current) return;
                         // When the keys control, shift or command (ios) are hold while clicking
-                        const getFocus =
-                          event.shiftKey || event.ctrlKey || event.metaKey;
+                        const getFocus = event.shiftKey || event.ctrlKey || event.metaKey;
                         if (getFocus) viewerRef.current.displayFocus();
                         else viewerRef.current.centerFocus();
                       }}
@@ -737,20 +600,9 @@ const NGLViewerWithControls = forwardRef(
             {settings && (
               <div className={style['settings-right']}>
                 <RepresentationsManager
-                  components={allComponents}
-                  representations={allRepresentations}
-                  setAdditionalRepresentations={setAdditionalRepresentations}
-                  title="Change representation parameters"
-                  showRepresentations={showRepresentations}
-                  setShowRepresentations={setShowRepresentations}
-                  nglSelections={nglSelections}
-                  setNglSelections={setNglSelections}
-                  drawingMethods={drawingMethods}
-                  setDrawingMethods={setDrawingMethods}
-                  coloringMethods={coloringMethods}
-                  setColoringMethods={setColoringMethods}
-                  opacities={opacities}
-                  setOpacities={setOpacities}
+                  components={finalComponents}
+                  representations={finalRepresentations}
+                  setRepresentations={setFinalRepresentations}
                 />
               </div>
             )}
@@ -820,9 +672,7 @@ const NGLViewerWithControls = forwardRef(
                   <>
                     <IconButton
                       title="Previous frame"
-                      onClick={useCallback(() => handleFrameChange(-1), [
-                        handleFrameChange,
-                      ])}
+                      onClick={handlePreviousFrame}
                       size="large"
                     >
                       <FontAwesomeIcon icon={faStepBackward} />
@@ -851,9 +701,7 @@ const NGLViewerWithControls = forwardRef(
                     </IconButton>
                     <IconButton
                       title="Next frame"
-                      onClick={useCallback(() => handleFrameChange(1), [
-                        handleFrameChange,
-                      ])}
+                      onClick={handleNextFrame}
                       size="large"
                     >
                       <FontAwesomeIcon icon={faStepForward} />
@@ -864,10 +712,7 @@ const NGLViewerWithControls = forwardRef(
               <div>
                 <IconButton
                   title={`${isFullscreen ? 'Exit' : 'Go'} fullscreen`}
-                  onClick={useCallback(() => {
-                    if (containerRef.current)
-                      screenfull.toggle(containerRef.current);
-                  }, [])}
+                  onClick={handlerFullscreenButton}
                   className={cn(style['fullscreen-toggle'], {
                     [style.hidden]: !screenfull.isEnabled,
                     [style['is-fullscreen']]: isFullscreen,

@@ -236,6 +236,19 @@ export const nglSelection2residueIndices = (
   return residueIndices;
 };
 
+// Check if a NGL selection contains any atom
+export const nglSelectionExists = (
+  nglSelection,
+  viewerTopology,
+) => {
+  // Save the selection in ngl format (structureComponent)
+  const selection = new ngl.Selection(nglSelection);
+  // Save the data from structure which corresponds to the selection atoms
+  const view = viewerTopology.getView(selection);
+  if (view.atomCount === 0) return false;
+  return true;
+};
+
 // Set the element colors for displaying
 const elementColors = {
   H: 'white',

@@ -20,6 +20,7 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 import style from './style.module.css';
+import { set } from 'react-ga';
 
 const availableDrawingMethods = [
   {
@@ -128,17 +129,7 @@ const RepresentationsManager = memo(
   ({
     components, // Array with all components
     representations, // Array with all representations
-    setAdditionalRepresentations,
-    showRepresentations,
-    setShowRepresentations,
-    nglSelections,
-    setNglSelections,
-    drawingMethods,
-    setDrawingMethods,
-    coloringMethods,
-    setColoringMethods,
-    opacities,
-    setOpacities,
+    setRepresentations, // Representations setter
   }) => {
     return (
       <>
@@ -159,47 +150,43 @@ const RepresentationsManager = memo(
             </TableRow>
           </TableHead>
           <TableBody>
-            {representations.map((rep, index) => (
-              <TableRow key={rep.name + index + nglSelections[index]}>
+            {representations.map((representation, index) => (
+              <TableRow key={index}>
                 {/* Name */}
                 <TableCell component="th" scope="row">
-                  {rep.name}
+                  {representation.name}
                 </TableCell>
                 {/* Show */}
                 <TableCell align="right">
                   <IconButton
                     title="Show/Hide representation"
                     onClick={() =>
-                      setShowRepresentations(previous => {
-                        const newState = [...previous];
-                        newState[index] = !newState[index];
-                        return newState;
+                      setRepresentations(previousRepresentations => {
+                        previousRepresentations[index].show = !previousRepresentations[index].show;
+                        return [...previousRepresentations];
                       })
                     }
                     color={'primary'}
                   >
                     <FontAwesomeIcon
-                      icon={showRepresentations[index] ? faEye : faEyeSlash}
+                      icon={representation.show ? faEye : faEyeSlash}
                     />
                   </IconButton>
                 </TableCell>
                 {/* Selection */}
                 <TableCell align="right">
                   <TextField
-                    defaultValue={nglSelections[index]}
-                    title={nglSelections[index]}
+                    defaultValue={representation.selection}
                     variant="outlined"
                     onKeyPress={event => {
                       if (event.key !== 'Enter') return;
-                      setNglSelections(previous => {
-                        const newState = [...previous];
-                        if (!event.target || !event.target.value)
-                          return previous;
-                        newState[index] = event.target.value;
-                        return newState;
+                      setRepresentations(previousRepresentations => {
+                        if (!event.target || !event.target.value) return previousRepresentations;
+                        previousRepresentations[index].selection = event.target.value;
+                        return [...previousRepresentations];
                       });
                     }}
-                    disabled={!rep.custom}
+                    disabled={!representation.custom}
                     size="small"
                     margin="dense"
                   />
@@ -208,16 +195,17 @@ const RepresentationsManager = memo(
                 <TableCell align="right">
                   <Select
                     native
-                    value={drawingMethods[index]}
+                    value={representation.type}
                     onChange={({ target: { value } }) => {
-                      let changed = drawingMethods;
-                      changed[index] = value;
-                      setDrawingMethods([...changed]);
+                      setRepresentations(previousRepresentations => {
+                        previousRepresentations[index].type = value;
+                        return [...previousRepresentations];
+                      })
                     }}
                   >
-                    {!DrawingMethodExists(drawingMethods[index]) && (
-                      <option value={drawingMethods[index]}>
-                        {drawingMethods[index]}
+                    {!DrawingMethodExists(representation.type) && (
+                      <option value={representation.type}>
+                        {representation.type}
                       </option>
                     )}
                     {availableDrawingMethods.map((cm, i) => (
@@ -231,19 +219,20 @@ const RepresentationsManager = memo(
                 <TableCell align="right">
                   <Select
                     native
-                    value={coloringMethods[index]}
+                    value={representation.color}
                     onChange={({ target: { value } }) => {
-                      let changed = coloringMethods;
-                      changed[index] = value;
-                      setColoringMethods([...changed]);
+                      setRepresentations(previousRepresentations => {
+                        previousRepresentations[index].color = value;
+                        return [...previousRepresentations];
+                      })
                     }}
                   >
-                    {!coloringExists(coloringMethods[index]) && (
-                      <option value={coloringMethods[index]}>
-                        {coloringMethods[index]}
+                    {!coloringExists(representation.color) && (
+                      <option value={representation.color}>
+                        {representation.color}
                       </option>
                     )}
-                    {rep.customScheme && (
+                    {representation.customScheme && (
                       <option value={'custom'}>{'Custom'}</option>
                     )}
                     {availableColoringMethods.map((cm, i) => (
@@ -261,11 +250,12 @@ const RepresentationsManager = memo(
                 {/* Opacity */}
                 <TableCell align="right">
                   <Slider
-                    value={opacities[index] * 100}
+                    value={representation.opacity * 100}
                     onChange={(_, value) => {
-                      let changed = opacities;
-                      changed[index] = value / 100;
-                      setOpacities([...changed]);
+                      setRepresentations(previousRepresentations => {
+                        previousRepresentations[index].opacity = value / 100;
+                        return [...previousRepresentations];
+                      })
                     }}
                     className={style['popover-slider']}
                   />
@@ -281,20 +271,19 @@ const RepresentationsManager = memo(
                   label={'Add representation'}
                   variant="outlined"
                   onClick={() =>
-                    setAdditionalRepresentations(previous => {
-                      // Use the first components a reference and copy its parameters
-                      // This way, the new representation will use the principal component
-                      // Otherwise it would may create a new component with no trajectory
-                      const principalComponent = components[0];
+                    setRepresentations(previousRepresentations => {
+                      // Set the default values for the custom representation
                       const newRepresentation = {
-                        selection: 'None',
-                        name: 'Custom',
-                        topologyURL: principalComponent.topologyURL,
-                        trajectoryURLs: principalComponent.trajectoryURLs,
-                        frame: principalComponent.frame,
+                        name: 'Custom', show: true,
+                        selection: 'None', type: 'licorice',
+                        color: 'chainid', opacity: 1,
+                        // Link the representation to the first (main) component
+                        component: components[0] && components[0].name,
+                        // Add the custom flag so this representation is treated differently
+                        custom: true,
                       };
-                      const current = [newRepresentation, ...previous];
-                      return current;
+                      const newRepresentations = [...previousRepresentations, newRepresentation];
+                      return newRepresentations;
                     })
                   }
                 />

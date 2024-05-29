@@ -3,7 +3,7 @@ import { useMemo, useContext } from 'react';
 
 import { ProjectCtx, PdbCtx } from '../../../contexts';
 
-import { nglSelection2residueIndices } from '../../../utils/topology-manager';
+import { nglSelection2residueIndices, nglSelectionExists } from '../../../utils/topology-manager';
 
 // Use this hook to get the memoized NGL default representations
 const useDefaultRepresentations = () => {
@@ -30,15 +30,16 @@ const useDefaultRepresentations = () => {
           });
         }
       }
-      // If chainnames are not defined then set a general protein representation
+      // If chainnames are not defined then set a general representation
       else {
-        reps.push({
-          name: 'Protein',
-          selection: 'protein',
-        });
-        reps.push({
-          name: 'Nucleic acids',
-          selection: 'nucleic',
+        const generalRepresentations = [
+          { name: 'Protein', selection: 'protein' },
+          { name: 'Nucleic acids', selection: 'nucleic' }
+        ]
+        // Add the representation only if it contains any atom
+        generalRepresentations.forEach(rep => {
+          const exists = nglSelectionExists(rep.selection, structure);
+          if (exists) reps.push(rep);
         });
       }
 
