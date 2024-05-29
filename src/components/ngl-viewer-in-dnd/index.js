@@ -83,7 +83,9 @@ const NGLViewerSpawner = ({ newViewer, nailing = true, onNail, onClose }) => {
 // It is called when user clicks in a point in the projections component
 // Also it is called by the generic analysis page
 const NGLViewerInDND = props => {
-  const nglViewRef = useRef(null);
+  // Set a reference for the viewer
+  // If a reference is passed among the viewer arguments then use it instead
+  const viewerRef = props.viewerRef || useRef(null);
 
   // Set the default position and size
   const [place, setPlace] = useState(() => {
@@ -119,9 +121,9 @@ const NGLViewerInDND = props => {
       className={style.rnd}
       data-rnd
       // Limits where the window can be dragged/resized to
-      // WARNING: This is problematic since the window may appear out of bounds
+      // WARNING: bounds="main" is problematic since the window may appear out of bounds
       // WARNING: Then when it is moved for the first time it jumps inside the bonds, not elegant
-      // bounds="main"
+      bounds="window"
       // Prevent the mouse to drag/resize the window when it is over specific elements
       cancel="canvas, [data-popover], #preventDragSize"
       // On drag/resize starts we do not change anything, but use the hook to re-render this component
@@ -145,23 +147,23 @@ const NGLViewerInDND = props => {
           });
       }}
       // Re-adapt the viewer and update the position/size when the window is resized
-      onResize={() => nglViewRef.current && nglViewRef.current.autoResize()}
+      onResize={() => viewerRef.current && viewerRef.current.autoResize()}
       onResizeStop={(e, direction, ref, delta, position) => {
         setPlace({
           width: ref.style.width,
           height: ref.style.height,
           ...position,
         });
-        // if (!nglViewRef.current) return;
-        // nglViewRef.current.autoResize();
-        // nglViewRef.current.autoResize.flush();
+        // if (!viewerRef.current) return;
+        // viewerRef.current.autoResize();
+        // viewerRef.current.autoResize.flush();
       }}
     >
       <Card className={style['floating-card']} elevation={4}>
         <Suspense fallback={null}>
           <NGLViewerWithControls
             className={style['floating-card']}
-            ref={nglViewRef}
+            ref={viewerRef}
             startsPlaying={false}
             {...props}
           />
