@@ -101,13 +101,14 @@ const NGLViewerInDND = props => {
       Math.min(innerWidth / 4, innerHeight / 4),
       MIN_NGL_DIMENSION,
     );
-    const reasonableSize = 1.5 * dimension;
+    const reasonableHeight = 1.5 * dimension;
+    const reasonableWidth = 2 * dimension;
     return {
       // WARNING: If you set the width as 'auto' the window stays very wide when exiting fullscreen
-      width: reasonableSize, // Let the Rnd logic set the width automatically
-      height: reasonableSize, // Reasonable height
+      width: reasonableWidth, // Let the Rnd logic set the width automatically
+      height: reasonableHeight, // Reasonable height
       x: 0, // Left border
-      y: innerHeight - offsetHeight - reasonableSize - MARGIN + scrollY, // Bottom border
+      y: innerHeight - offsetHeight - reasonableHeight - MARGIN + scrollY, // Bottom border
     };
   });
 
