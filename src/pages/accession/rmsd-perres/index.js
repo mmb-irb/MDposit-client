@@ -13,7 +13,7 @@ import { Typography } from '@mui/material';
 import { color as d3color, scaleLinear } from 'd3';
 
 import Card from '../../../components/animated-card';
-import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
+import ViewerWithControls from '../../../components/ngl-viewer-with-controls';
 import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 import Loading from '../../../components/loading';
 
@@ -57,7 +57,6 @@ const RmsdPerres = () => {
 
   // Get the current project data
   const {
-    accession,
     accessionAndMdNumber,
     metadata,
     topology: topologyManager,
@@ -82,7 +81,8 @@ const RmsdPerres = () => {
 
   // Get the residues list in model notation
   const {
-    mainComponent,
+    components,
+    representations,
     analysisFrameCount,
     xAxisStep,
     xAxisLabel,
@@ -147,6 +147,21 @@ const RmsdPerres = () => {
       };
     });
 
+    // Set the viewer configuration: components and representations
+
+    // Get the number of frames in the trajectory
+    const trajectoryFrameCount = metadata.mdFrames;
+
+    // Get the frames step from the analysis itself
+    const frameStep = payload['step'];
+
+    // Load the required frames from the main trajectory
+    const trajectoryUrl = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/trajectory`;
+    const mainURL = `${trajectoryUrl}?frames=1:${trajectoryFrameCount}:${frameStep}`;
+
+    // Set the components by setting a custom component with an extended trajectory
+    const components = [ { trajectoryURLs: [mainURL] } ];
+
     // Set the representations by showing all default representations repainted
     const representations = [];
     defaultRepresentations.forEach(representation => {
@@ -160,11 +175,6 @@ const RmsdPerres = () => {
     const firstResidueData = rmsdpr[0];
     const analysisFrameCount = firstResidueData.length;
 
-    // Get the number of frames in the trajectory
-    const trajectoryFrameCount = metadata.mdFrames;
-
-    // Get the frames step from the analysis itself
-    const frameStep = payload['step'];
     // Get the total time length
     const timeLength = metadata.timeLength;
 
@@ -184,14 +194,7 @@ const RmsdPerres = () => {
       xAxisLabel = 'Time (ns)';
       xTooltip = xValue => +xValue.toFixed(2) + ' ns';
     }
-    // Load the required frames from the main trajectory
-    const mainURL = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/trajectory?frames=1:${trajectoryFrameCount}:${frameStep}`;
-    const mainComponent = [
-      {
-        trajectoryURLs: [mainURL],
-        representations: representations,
-      },
-    ];
+
     // Get the weigths for each data value corresponding frame
     let xWeights;
     if (populations && populations.payload) {
@@ -203,7 +206,8 @@ const RmsdPerres = () => {
 
     // Return values to be memoized
     return {
-      mainComponent,
+      components,
+      representations,
       analysisFrameCount,
       xAxisStep,
       xAxisLabel,
@@ -216,7 +220,7 @@ const RmsdPerres = () => {
     payload,
     topologyManager,
     metadata,
-    accession,
+    accessionAndMdNumber,
     defaultRepresentations,
     populations,
   ]);
@@ -343,9 +347,10 @@ const RmsdPerres = () => {
       <Card className={style.nglcard} ref={nglRef}>
         {/* Render the NGL viewer when it is on screen*/}
         {isNglVisible ? (
-          <NGLViewerWithControls
+          <ViewerWithControls
             className={style.container}
-            components={mainComponent}
+            startingComponents={components}
+            startingRepresentations={representations}
             selectedResidueIndices={selectedResidueIndices}
             onProgress={handleFrameProgress}
             ref={viewerRef}

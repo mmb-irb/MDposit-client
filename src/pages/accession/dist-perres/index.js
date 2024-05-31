@@ -6,7 +6,7 @@ import useAPI from '../../../hooks/use-api';
 
 import Card from '../../../components/animated-card';
 import Loading from '../../../components/loading';
-import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
+import ViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 
 import { ProjectCtx } from '../../../contexts';
 
@@ -293,12 +293,11 @@ const DistPerres = () => {
           />
         </CardContent>
       </Card>
-      <NGLViewerSpawner
+      <ViewerSpawner
         // Set the new viewer or null if there is not a proper "selected" value
         newViewer={
           selected
             ? {
-                accession: accessionAndMdNumber,
                 selectedResidueIndices: selected.residues,
                 // WARNING: Distance is not always available
                 // This only works when both residues have alpha carbon

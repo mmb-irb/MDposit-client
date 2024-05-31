@@ -13,7 +13,7 @@ import { Typography } from '@mui/material';
 import { color as d3color, scaleLinear } from 'd3';
 
 import Card from '../../../components/animated-card';
-import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
+import ViewerWithControls from '../../../components/ngl-viewer-with-controls';
 import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 import Loading from '../../../components/loading';
 
@@ -82,7 +82,8 @@ const Sasa = () => {
 
   // Get the residues list in model notation
   const {
-    mainComponent,
+    components,
+    representations,
     framesNumber,
     xAxisStep,
     xAxisLabel,
@@ -157,6 +158,16 @@ const Sasa = () => {
       };
     });
 
+    // Get the frames step from the analysis itself
+    const frameStep = payload['step'];
+
+    // Load the required frames from the main trajectory
+    const trajectoryUrl = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/trajectory`;
+    const mainURL = `${trajectoryUrl}?frames=1:${metadata.mdFrames}:${frameStep}`;
+
+    // Set the components by setting a custom component with an extended trajectory
+    const components = [ { trajectoryURLs: [mainURL] } ];
+
     // Set the representations by showing all default representations repainted
     const representations = [];
     defaultRepresentations.forEach(representation => {
@@ -171,8 +182,6 @@ const Sasa = () => {
     const firstResidueData = data.saspf[0];
     const framesNumber = firstResidueData.length;
 
-    // Get the frames step from the analysis itself
-    const frameStep = payload['step'];
     // Get the total time length
     const timeLength = metadata.timeLength;
     // If this is an ensemble or we are missing the time length then we use frames as the x axis
@@ -199,17 +208,10 @@ const Sasa = () => {
         xWeights.push(populations.payload[i]);
       }
     }
-    // Load the required frames from the main trajectory
-    const mainURL = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/trajectory?frames=1:${metadata.mdFrames}:${frameStep}`;
-    const mainComponent = [
-      {
-        trajectoryURLs: [mainURL],
-        representations: representations,
-      },
-    ];
 
     return {
-      mainComponent,
+      components,
+      representations,
       framesNumber,
       xAxisStep,
       xAxisLabel,
@@ -350,9 +352,10 @@ const Sasa = () => {
       <Card className={style.nglcard} ref={nglRef}>
         {/* Render the NGL viewer when it is on screen*/}
         {isNglVisible ? (
-          <NGLViewerWithControls
+          <ViewerWithControls
             className={style.container}
-            components={mainComponent}
+            startingComponents={components}
+            startingRepresentations={representations}
             selectedResidueIndices={selectedResidueIndices}
             onProgress={handleFrameProgress}
             ref={viewerRef}

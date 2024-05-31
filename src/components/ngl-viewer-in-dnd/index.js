@@ -7,7 +7,7 @@ import Card from '../animated-card';
 
 import style from './style.module.css';
 
-const NGLViewerWithControls = lazy(() =>
+const ViewerWithControls = lazy(() =>
   import(
     /* webpackChunkName: 'ngl-viewer-with-controls' */ '../ngl-viewer-with-controls'
   ),
@@ -26,7 +26,7 @@ const nextZ = () => {
 
 // This function spawns all the NGL viewers needed
 // i.e. one viewer with the requested 'props' and all previous viewers which have been nailed
-const NGLViewerSpawner = ({ newViewer, nailing = true, onNail, onClose }) => {
+const ViewerSpawner = ({ newViewer, nailing = true, onNail, onClose }) => {
   // Store here all nailed NGL viewers
   const [nailedViewers, setNailedViewers] = useState([]);
 
@@ -162,7 +162,7 @@ const NGLViewerInDND = props => {
     >
       <Card className={style['floating-card']} elevation={4}>
         <Suspense fallback={null}>
-          <NGLViewerWithControls
+          <ViewerWithControls
             className={style['floating-card']}
             ref={viewerRef}
             startsPlaying={false}
@@ -174,4 +174,4 @@ const NGLViewerInDND = props => {
   );
 };
 
-export default NGLViewerSpawner;
+export default ViewerSpawner;

@@ -149,9 +149,7 @@ const NGLViewer = memo(
       const { file: pdbDataFile } = useContext(PdbCtx);
 
       const [isFirstCompStaged, setIsFirstCompStaged] = useState(false);
-      const [isMainTrajectoryStaged, setIsMainTrajectoryStaged] = useState(
-        false,
-      );
+      const [isMainTrajectoryStaged, setIsMainTrajectoryStaged] = useState(false);
       // The last automatic camera focus
       const [focus, setFocus] = useState(initialFocus);
 
@@ -760,7 +758,7 @@ const NGLViewer = memo(
       // PDB file, base structure
       // Set the representations in each component
       useEffect(() => {
-        if (!pdbFile) return;
+        if (!pdbFile || !components || !representations) return;
         // Atom occupancy is a field which is not used anywhere but in the electrostatic representation
         // The electrostatic surface scheme color does not work if the occupancy is 0 (ngl code, not ours)
         // We set all occupancies to 1, since some topologies may have all occupancies as 0 by default

@@ -23,7 +23,7 @@ import { rangedSelectionParser } from '../../utils/topology-manager';
 
 // Show floatting bubles with domain names
 // When a bubble is selected the domain is represented
-const Domains = ({ setter }) => {
+const Domains = ({ setRepresentations, setInitialFocus }) => {
   // Get the current project data
   const {
     metadata,
@@ -259,15 +259,15 @@ const Domains = ({ setter }) => {
       });
 
     // Set the NGL selection for the focus
-    const focusSelection =
-      '(' +
+    const focusSelection = `(${
       currentSelectedDomain.representations
         .map(rep => rep.selection)
-        .join(') or (') +
-      ')';
+        .join(') or (')
+    })`;
     const initialFocus = { comp: 0, sele: focusSelection };
-    setter({ representations, initialFocus });
-  }, [domains, selectedDomain, overlapedDomain, setter]);
+    setRepresentations(representations);
+    setInitialFocus(initialFocus);
+  }, [domains, selectedDomain, overlapedDomain, setRepresentations, setInitialFocus]);
 
   // If project data is still loading then stop here
   if (!domains) return <Loading />;

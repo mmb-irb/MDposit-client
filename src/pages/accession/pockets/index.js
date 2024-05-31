@@ -21,7 +21,7 @@ import {
 } from '@mui/material';
 
 import Card from '../../../components/animated-card';
-import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
+import ViewerWithControls from '../../../components/ngl-viewer-with-controls';
 import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 
 import style from './style.module.css';
@@ -36,17 +36,16 @@ import useColors from '../../../hooks/use-colors';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
-const hoveredPocketColor = 'yellow';
-const pocketsColor = 'grey';
-const surfaceColor = 'grey';
-const defaultRepresentationsColor = 'black';
-
 const Graph = lazy(() =>
   import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
 );
 
 // Define permanent options for the "useInView"
 const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
+
+// Set references to find representations between different renders
+const POCKET_REFERENCE = 'pocket';
+const POCKET_SURFACE_REFERENCE = 'pocket surface';
 
 // Set a function to calculate the average value from a values array
 const roundedAvg = values => {
@@ -63,7 +62,7 @@ const Pockets = () => {
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
 
   // Get the current project metadata
-  const { accession, accessionAndMdNumber, metadata } = useContext(ProjectCtx);
+  const { accessionAndMdNumber, metadata } = useContext(ProjectCtx);
   // Get the current topology, including the residue names
   const pdbData = useContext(PdbCtx);
 
@@ -78,20 +77,11 @@ const Pockets = () => {
 
   // Track which pockets is beeing hovered in the list
   const [showAllPockets, setShowAllPockets] = useState(false);
-
   // Track which pockets is beeing hovered in the list
   const [hoveredPocket, setHoveredPocket] = useState(null);
+
   // Track which pocket is selected by the user
   const [selectedPockets, setSelectedPockets] = useState([]);
-
-  // Set which representations are shown
-  // Note that this state is syncroniced to the representations manager in NGL
-  const [showRepresentations, setShowRepresentations] = useState([]);
-
-  // Set the color of each representation
-  // Note that this state is syncroniced to the representations manager in NGL
-  const [colorRepresentations, setColorRepresentations] = useState([]);
-
   // Set when one point in the graph is selected
   const [selectedFrame, setSelectedFrame] = useState(0);
 
@@ -125,91 +115,65 @@ const Pockets = () => {
   const components = useMemo(() => {
     // Wait for payload to be downloaded
     if (!data) return;
-
     // Load the required frames from the main trajectory
-    const mainURL = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/trajectory?frames=1:${metadata.mdFrames}:${frameStep}`;
+    const trajectoryUrl = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/trajectory`;
+    const mainURL = `${trajectoryUrl}?frames=1:${metadata.mdFrames}:${frameStep}`;
+    // Set the main component, which includes everything but the pockets
+    const mainComponent = { trajectoryURLs: [mainURL] };
+    // Set every pocket component
+    const pocketComponents = data.map(pocket => ({
+      name: pocket.name,
+      topologyURL: `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/${pocket.name}.pdb`,
+      onlyTopology: true,
+      //chainLabels: [pocket.name],
+    }));
+    return [mainComponent, ...pocketComponents];
+  }, [data, accessionAndMdNumber, metadata, frameStep]);
 
-    // Set the surface representation of each pocket
-    const pocketSurfaceRepresentations = data.map(pocket => {
-      return {
+  // Define the representations to be displayed in the viewer
+  const [ representations, setRepresentations ] = useState(null);
+
+  // Set or update the representations state
+  useMemo(() => {
+    // Wait until we have both the components and the default representations available
+    if (!components || !defaultRepresentations) return;
+    setRepresentations(previousRepresentations => {
+      // This must be the first time we set the representations
+      // However this may be recalled during a code refresh while in development
+      if (previousRepresentations !== null) return previousRepresentations;
+      // Reduce the opacity of all default representations
+      defaultRepresentations.forEach(rep => {
+        rep.color = 'black';
+        rep.opacity = 0.3;
+      });
+      // Set the surface representation of each pocket, which are to be linked to the main component
+      const pocketSurfaceRepresentations = data.map(pocket => ({
         name: pocket.name + ' surface',
         selection: '@' + pocket.atoms.join(','),
         type: 'surface',
-        color: 'electrostatic',
-      };
+        color: 'grey',
+        show: false,
+        reference: POCKET_SURFACE_REFERENCE
+      }));
+      // Now set a representation for every pocket
+      const pocketRepresentations = components.slice(1).map(pocketComponent => ({
+        name: pocketComponent.name,
+        type: 'surface',
+        // Make the surface a transparent net
+        other: { contour: true },
+        label: pocketComponent.name,
+        component: pocketComponent.name,
+        show: false,
+        reference: POCKET_REFERENCE
+      }));
+      // Update the states
+      return [
+        ...defaultRepresentations,
+        ...pocketSurfaceRepresentations,
+        ...pocketRepresentations
+      ]
     });
-
-    // Reduce the opacity of all default representations
-    defaultRepresentations.forEach(
-      representation => (representation.opacity = 0.3),
-    );
-    // Set representations by adding default representations and pockets surface representations together
-    const representations = [
-      ...defaultRepresentations,
-      ...pocketSurfaceRepresentations,
-    ];
-
-    // The first component, which includes everything but the pockets
-    const mainComponent = {
-      trajectoryURLs: [mainURL],
-      representations: representations,
-    };
-
-    const pocketComponents = data.map(pocket => {
-      // NGL
-      const pocketName = pocket.name;
-      const pocketComponent = {
-        topologyURL: `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/${pocketName}.pdb`,
-        onlyTopology: true,
-        representations: [
-          {
-            name: pocketName,
-            type: 'surface',
-            // Make the surface a transparent net
-            other: { contour: true },
-            label: pocketName,
-          },
-        ],
-        //chainLabels: [pocketName],
-      };
-      return pocketComponent;
-    });
-
-    const components = [mainComponent, ...pocketComponents];
-
-    // Create an array of 'true' as long as the number of default representations
-    const showDefaultRepresentations = Array(
-      defaultRepresentations.length,
-    ).fill(true);
-    // Create an array of 'true' as long as the number of pockets
-    const pocketNumber = data.length;
-    // Set the default pockets to be shown (none)
-    const showPockets = Array(pocketNumber).fill(false);
-    // Add the show pockets twice: the first for the surfaces and the second for the pockets themselves
-    setShowRepresentations([
-      ...showDefaultRepresentations,
-      ...showPockets,
-      ...showPockets,
-    ]);
-    // Use the default show to count how many representations we have at the end
-    const defaultRepresentationColors = Array(
-      defaultRepresentations.length,
-    ).fill(defaultRepresentationsColor);
-    const surfaceRepresentationColors = Array(showPockets.length).fill(
-      surfaceColor,
-    );
-    const pocketRepresentationColors = Array(showPockets.length).fill(
-      pocketsColor,
-    );
-    // Set the default colors
-    setColorRepresentations([
-      ...defaultRepresentationColors,
-      ...surfaceRepresentationColors,
-      ...pocketRepresentationColors,
-    ]);
-
-    return components;
-  }, [accession, metadata, data, defaultRepresentations, frameStep]);
+  }, [components, defaultRepresentations]);
 
   // Set the graph parameters
   const { graphInputData, dataDisplay } = useMemo(() => {
@@ -253,54 +217,39 @@ const Pockets = () => {
     viewerRef.current.currentFrame = selectedFrame;
   }, [selectedFrame]);
 
-  // Update the showRepresentations state when the selected or hovered pockets change
+  // Update the the representations according to selected or hovered pockets
   useEffect(() => {
-    setShowRepresentations(previous => {
-      const pocketsNumber = selectedPockets.length;
-      const defaultRepresentationsNumber = previous.length - pocketsNumber * 2;
-      // First hide all pockets and surfaces
-      for (let i = 0; i < previous.length; i++) {
-        if (i < defaultRepresentationsNumber) continue;
-        previous[i] = false;
-      }
-      // Display the selected pockets and their surfaces
-      const defaultAndSurfaces = defaultRepresentationsNumber + pocketsNumber;
-      selectedPockets.forEach((selected, p) => {
-        previous[defaultRepresentationsNumber + p] = selected ? true : false; // The pocket surface
-        previous[defaultAndSurfaces + p] = selected ? true : false; // The pocket itself
-      });
-      // Display the hovered pocket
-      if (hoveredPocket !== null) {
-        previous[
-          defaultRepresentationsNumber + pocketsNumber + hoveredPocket
-        ] = true;
-      }
-      // Show all pockets in case the overall pockets checkbox is selected
-      if (showAllPockets)
-        for (let i = 0; i < previous.length; i++) {
-          if (i < defaultAndSurfaces) continue;
-          previous[i] = true;
+    setRepresentations(previousRepresentations => {
+      // If representations are not yet set then there is nothing to update
+      if (previousRepresentations === null) return null;
+      // Find previous pocket representations
+      const pocketRepresentations = previousRepresentations.filter(
+        rep => rep.reference === POCKET_REFERENCE);
+      // Update pocket representations
+      pocketRepresentations.forEach((previousRepresentation, i) => {
+        // If this is the hovered pocket then show it and paint it yellow
+        if (hoveredPocket === i) {
+          previousRepresentation.show = true;
+          previousRepresentation.color = 'yellow';
         }
-      return [...previous];
-    });
-    // Paint selected pockets according to their order of selection and paint the hovered pocket
-    setColorRepresentations(previous => {
-      const pocketsNumber = selectedPockets.length;
-      const defaultRepresentationsNumber = previous.length - pocketsNumber * 2;
-      selectedPockets.forEach((selected, p) => {
-        //previous[defaultRepresentationsNumber + p] = selected ? selected : surfaceColor; // The pocket surface
-        previous[defaultRepresentationsNumber + pocketsNumber + p] = selected
-          ? selected
-          : pocketsColor; // The pocket itself
+        // Otherwise continue with normal behaviour
+        else {
+          const selected = selectedPockets[i];
+          previousRepresentation.show = (selected ? true : false) || showAllPockets;
+          previousRepresentation.color = selected || 'grey';
+        }
       });
-      // Display the hovered pocket
-      if (hoveredPocket !== null) {
-        previous[
-          defaultRepresentationsNumber + pocketsNumber + hoveredPocket
-        ] = hoveredPocketColor;
-      }
-      return [...previous];
-    });
+      // Find previous pocket surface representations
+      const pocketSurfaceRepresentations = previousRepresentations.filter(
+        rep => rep.reference === POCKET_SURFACE_REFERENCE);
+      // Update pocket surface representations
+      pocketSurfaceRepresentations.forEach((previousRepresentation, i) => {
+        const selected = selectedPockets[i];
+        previousRepresentation.show = selected ? true : false;
+      });
+      // Update the state
+      return [...previousRepresentations];
+    })
   }, [selectedPockets, hoveredPocket, showAllPockets]);
 
   // Render loading or error messages according with the API response
@@ -395,18 +344,10 @@ const Pockets = () => {
       <Card className={style.nglcard} ref={nglRef}>
         {/* Render the NGL viewer when it is on screen*/}
         {isNglVisible ? (
-          <NGLViewerWithControls
+          <ViewerWithControls
             className={style.container}
-            components={components}
-            //selectedRepresentation={currentPocket.name}
-            showRepresentationsForced={[
-              showRepresentations,
-              setShowRepresentations,
-            ]}
-            coloringMethodsForced={[
-              colorRepresentations,
-              setColorRepresentations,
-            ]}
+            startingComponents={components}
+            representationsState={[representations, setRepresentations]}
             preventTrajectory
             ref={viewerRef}
           />

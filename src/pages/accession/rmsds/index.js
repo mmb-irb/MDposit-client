@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 
 import Card from '../../../components/animated-card';
-import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
+import ViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 import Loading from '../../../components/loading';
 
 import useAPI from '../../../hooks/use-api';
@@ -59,8 +59,9 @@ const Rmsds = () => {
     loading: tmscoresLoading,
     payload: tmscoresPayload,
     error: tmscoresError,
-  } = useAPI(
-    hasTMscore ? `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/tmscores/` : null,
+  } = useAPI(hasTMscore
+    ? `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/tmscores/`
+    : null,
   );
 
   // Set which tab is selected
@@ -83,7 +84,8 @@ const Rmsds = () => {
     const type = selectedTab.type;
     const reference = selectedTab.reference;
     if (type === 'rmsd') payload = rmsdsPayload;
-    if (type === 'tmscore') payload = tmscoresPayload;
+    else if (type === 'tmscore') payload = tmscoresPayload;
+    else throw new Error(`Not supported type ${type}`);
     if (!payload) return {};
     if (populations && populations.loading) return {};
     const rmsds = {};
@@ -271,7 +273,7 @@ const Rmsds = () => {
           />
         </CardContent>
       </Card>
-      <NGLViewerSpawner
+      <ViewerSpawner
         // Set the new viewer or null if there is not a proper "selected" value
         newViewer={
           typeof selected === 'number'

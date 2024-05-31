@@ -21,7 +21,7 @@ import { faAngleRight } from '@fortawesome/free-solid-svg-icons';
 import { ProjectCtx } from '../../../contexts';
 
 import Card from '../../../components/animated-card';
-import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
+import ViewerWithControls from '../../../components/ngl-viewer-with-controls';
 import ChainAnalyses from '../../../components/chain-analyses';
 
 import reducedMotion from '../../../utils/reduced-motion';
@@ -529,29 +529,22 @@ const Trajectory = () => {
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
   const [nightingaleRef, isNightingaleVisible] = useInView(useInViewOptions);
 
-  const [nglConfiguration, setNglConfiguration] = useState({
-    representations: null,
-    initialFocus: null,
-  });
+  // Set the representations to be displayed in the viewer
+  const [ representations, setRepresentations ] = useState(null);
 
-  // Use a callback to wrap the setState function as it is recommended
-  const handleChangeNglConfiguration = useCallback(
-    newConfiguration => {
-      setNglConfiguration(newConfiguration);
-    },
-    [setNglConfiguration],
-  );
+  // Set the viewer initial focus
+  const [ initialFocus, setInitialFocus ] = useState(null);
 
   return (
     <>
-      <Domains setter={handleChangeNglConfiguration} />
+      <Domains setRepresentations={setRepresentations} setInitialFocus={setInitialFocus} />
       <Card className={style['ngl-card']} ref={nglRef}>
         {/* Render the NGL viewer when it is on screen*/}
         {isNglVisible ? (
-          <NGLViewerWithControls
+          <ViewerWithControls
             className={style.container}
-            representations={nglConfiguration.representations}
-            initialFocus={nglConfiguration.initialFocus}
+            representationsState={[ representations, setRepresentations ]}
+            initialFocus={initialFocus}
           />
         ) : (
           <div style={{ height: '50vh' }} />

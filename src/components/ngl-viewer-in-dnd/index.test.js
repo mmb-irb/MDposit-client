@@ -1,13 +1,13 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import NGLViewerSpawner from '.';
+import ViewerSpawner from '.';
 // Esto ha cambiado mucho. hay que probarlo
-describe('<NGLViewerSpawner />', () => {
+describe('<ViewerSpawner />', () => {
   it('should render', () => {
     expect(
       shallow(
-        <NGLViewerSpawner
+        <ViewerSpawner
           accession="MCNS00001"
           analysis="fluctuation"
           requestedFrame="1"

@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 
 import Card from '../../../components/animated-card';
-import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
+import ViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 import Loading from '../../../components/loading';
 
 import { Button } from '@mui/material';
@@ -31,8 +31,8 @@ const Graph = lazy(() =>
 );
 
 const FluctuationAnalysis = () => {
-  // Get the accession
-  const { accession, accessionAndMdNumber, topology } = useContext(ProjectCtx);
+  // Get project data
+  const { accessionAndMdNumber, topology } = useContext(ProjectCtx);
 
   // Send a request to the API with the url of the specific analysis
   const { loading, payload, error } = useAPI(
@@ -159,17 +159,15 @@ const FluctuationAnalysis = () => {
           </div>
         </CardContent>
       </Card>
-      <NGLViewerSpawner
+      <ViewerSpawner
         // Set the new viewer or null if there is not a proper "selected" value
-        newViewer={
-          selectedAtoms && selectedAtoms.size
-            ? {
-                accession: accession,
-                selectedAtoms: hoveredAtom
-                  ? new Set([...selectedAtoms, hoveredAtom])
-                  : selectedAtoms,
-              }
-            : null
+        newViewer={selectedAtoms && selectedAtoms.size
+          ? {
+              selectedAtoms: hoveredAtom
+                ? new Set([...selectedAtoms, hoveredAtom])
+                : selectedAtoms,
+            }
+          : null
         }
         nailing={false}
         // If the closed viewer is the current viewer then reset the 'selected'

@@ -14,7 +14,7 @@ import {
   CardContent,
 } from '@mui/material';
 */
-import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
+import ViewerWithControls from '../../../components/ngl-viewer-with-controls';
 import useMutationsRepresentations from '../../../components/ngl-viewer/use-mutations-representations';
 
 import style from './style.module.css';
@@ -107,9 +107,9 @@ const Mutations = () => {
       <Card className={style.nglcard} ref={nglRef}>
         {/* Render the NGL viewer when it is on screen*/}
         {isNglVisible ? (
-          <NGLViewerWithControls
+          <ViewerWithControls
             className={style.container}
-            representations={representations}
+            startingRepresentations={representations}
             selectedResidueIndices={selectedResidueIndices}
           />
         ) : (

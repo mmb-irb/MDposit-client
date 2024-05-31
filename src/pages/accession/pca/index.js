@@ -4,7 +4,7 @@ import cn from 'classnames';
 import { CardContent, Typography } from '@mui/material';
 
 import Card from '../../../components/animated-card';
-import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
+import ViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 import EigenvalueGraph from '../../../components/eigenvalue-graph';
 import Loading from '../../../components/loading';
 
@@ -18,16 +18,12 @@ import plainTextExplanation from './plain-text-explanation';
 
 import style from './style.module.css';
 
-const NGLViewerWithControls = lazy(() =>
-  import(
-    /* webpackChunkName: 'ngl-viewer-with-controls' */ '../../../components/ngl-viewer-with-controls'
-  ),
-);
-const Projections = lazy(() =>
-  import(
-    /* webpackChunkName: 'projections' */ '../../../components/projections'
-  ),
-);
+const ViewerWithControls = lazy(() => import(
+  /* webpackChunkName: 'ngl-viewer-with-controls' */ '../../../components/ngl-viewer-with-controls'
+));
+const Projections = lazy(() => import(
+  /* webpackChunkName: 'projections' */ '../../../components/projections'
+));
 
 const projectionPlaceholder = (
   <div className={cn(style.placeholder, style.projection)} />
@@ -67,18 +63,7 @@ const PCA = () => {
   // Set the component to be passed to the NGL
   const [representations, components] = useMemo(() => {
     if (!data || !files) return [undefined, undefined];
-
-    // Set the chains to be represented in the NGL viewer
-    /*
-    const representations = chains
-      ? chains.map(chain => {
-          return {
-            name: 'Chain ' + chain + ' backbone',
-            selection: ':' + chain,
-          };
-        })
-      : [{ name: 'Backbone' }];
-    */
+    // Only backbon atoms will be shown so they are better represented in spacefill
     const representations = [
       {
         name: 'PC projection',
@@ -87,10 +72,11 @@ const PCA = () => {
     ];
 
     // Get the API URL to the requested projection trajectory
-    let projectionURL;
+    let trajectoryURLs;
     if (projections[0] !== undefined) {
       const projectionNumber = ('0' + (projections[0] + 1)).slice(-2);
-      projectionURL = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/pca_trajectory_${projectionNumber}.bin`;
+      const projectionURL = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/pca_trajectory_${projectionNumber}.bin`;
+      trajectoryURLs = [ projectionURL ];
     }
 
     // Get the topology URL
@@ -103,8 +89,7 @@ const PCA = () => {
         topologyURL: topologyURL,
         // WARNING: NGL does not support ranged syntax with atom indices (e.g. @0-2,13-15)
         atomSelection: '@' + data.atoms.join(','),
-        trajectoryURLs: [projectionURL],
-        representations: representations,
+        trajectoryURLs: trajectoryURLs,
       },
     ];
 
@@ -144,13 +129,13 @@ const PCA = () => {
           {projections.length === 1 && (
             <Suspense fallback={nglPlaceholder}>
               <CardContent className={style['ngl-card']}>
-                <NGLViewerWithControls
-                  accession={accession}
+                <ViewerWithControls
                   className={style['ngl-viewer-with-controls']}
                   projection={projections[0]}
                   framesSelect={false}
                   // Projections are backbone trajectories, same as the average.pdb topology
-                  components={components}
+                  startingRepresentations={representations}
+                  startingComponents={components}
                   bounce={true}
                 />
               </CardContent>
@@ -174,17 +159,11 @@ const PCA = () => {
           {/* When more than 2 frames are selected display nothing but the plain text explanation*/}
         </div>
       </Card>
-      <NGLViewerSpawner
+      <ViewerSpawner
         // Set the new viewer or null if there is not a proper "selected" value
-        newViewer={
-          Number.isFinite(requestedFrame)
-            ? {
-                accession: accession,
-                requestedFrame: requestedFrame,
-                representations: representations,
-                //components: components
-              }
-            : null
+        newViewer={Number.isFinite(requestedFrame)
+          ? { requestedFrame: requestedFrame }
+          : null
         }
         // If the nailed/closed viewer is the current viewer then reset the 'selected'
         onNail={viewer =>

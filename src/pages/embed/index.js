@@ -8,7 +8,7 @@ import ErrorBoundary from '../../components/error-boundary';
 import { ProjectCtx, PdbCtx } from '../../contexts';
 
 import Card from '../../components/animated-card';
-import NGLViewerWithControls from '../../components/ngl-viewer-with-controls';
+import ViewerWithControls from '../../components/ngl-viewer-with-controls';
 import Loading from '../../components/loading';
 
 import style from './style.module.css';
@@ -17,8 +17,6 @@ import { BASE_PATH_PROJECTS, MAIN_STRUCTURE_FILENAME } from '../../utils/constan
 
 // Load the project class
 import { Project } from '../../utils/project-manager';
-// Load the topology class
-import { Topology } from '../../utils/topology-manager';
 import { useParams } from 'react-router-dom';
 
 const Embed = () => {
@@ -34,9 +32,6 @@ const Embed = () => {
     // This attribute was included before: defaultRepresentation: false
     { defaultRepresentation: false, ext: 'pdb' },
   );
-
-  // Request topology data to the API
-  const topology = useAPI(`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/topology`);
 
   // While loading
   if (projectRequest.loading) return <Loading />;
@@ -66,7 +61,7 @@ const Embed = () => {
       <ProjectCtx.Provider value={project}>
         <PdbCtx.Provider value={pdbData}>
           <Card className={style['ngl-card']}>
-            <NGLViewerWithControls className={style.container} />
+            <ViewerWithControls className={style.container} />
           </Card>
         </PdbCtx.Provider>
       </ProjectCtx.Provider>

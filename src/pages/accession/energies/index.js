@@ -3,7 +3,7 @@ import React, { lazy, Suspense, useState, useContext, useMemo } from 'react';
 import { CardContent, Typography, TextField } from '@mui/material';
 
 import Card from '../../../components/animated-card';
-import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
+import ViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 import Loading from '../../../components/loading';
 
@@ -23,6 +23,9 @@ const Graph = lazy(() =>
   import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
 );
 
+// Set references to find representations between different renders
+const GUEST_REFERENCE = 'guest';
+
 // Return the rounded summatory
 const getSum = values => {
   const sum = values.reduce((a, b) => a + b, 0);
@@ -32,7 +35,7 @@ const getSum = values => {
 
 const Energies = () => {
   // Get the current project data
-  const { accession, accessionAndMdNumber, topology: topologyManager, interactions } = useContext(
+  const { accessionAndMdNumber, topology: topologyManager, interactions } = useContext(
     ProjectCtx,
   );
 
@@ -56,10 +59,12 @@ const Energies = () => {
   // Set which data is displayed: all, start, end or any combination of them
   const [display, setDisplay] = useState({ all: true, start: true, end: true });
 
+  // Define the representations to be displayed in the viewer
+  const [ representations, setRepresentations ] = useState(null);
+
   const {
     data,
     dataError,
-    representations,
     strongBondMarks,
     esData,
     vdwData,
@@ -110,17 +115,25 @@ const Energies = () => {
       data.xTags.push(residue.standardLabel);
     });
 
-    // Set the NGL representations
-    const representations = [
-      ...defaultRepresentations,
-      {
-        selection: guestSelection,
-        name: 'Guest elements',
-        type: 'ball+stick',
-        color: 'element',
-        opacity: 0.3,
-      },
-    ];
+    // Set the viewer representations
+    setRepresentations(previousRepresentations => {
+      // If this is the first render then set the default values
+      if (previousRepresentations === null) return [
+        ...defaultRepresentations,
+        {
+          selection: guestSelection,
+          name: 'Guest elements',
+          type: 'ball+stick',
+          color: 'element',
+          opacity: 0.3,
+          reference: GUEST_REFERENCE
+        }
+      ];
+      // Otherwise just update the guest representation
+      const previousGuest = previousRepresentations.find(rep => rep.reference === GUEST_REFERENCE);
+      previousGuest.selection = guestSelection;
+      return [...previousRepresentations];
+    });
 
     // In case of strong bonds, find the implicated residues and their position in the x axis
     // They will be marked in the graph
@@ -172,7 +185,6 @@ const Energies = () => {
     return {
       data,
       dataError,
-      representations,
       strongBondMarks,
       esData,
       vdwData,
@@ -395,34 +407,26 @@ const Energies = () => {
           </CardContent>
         )}
       </Card>
-      <NGLViewerSpawner
+      <ViewerSpawner
         // Set the new viewer or null if there is not a proper "selectedResidueIndices" value
-        newViewer={
-          selectedResidueIndices
-            ? {
-                accession: accession,
-                selectedResidueIndices: selectedResidueIndices,
-                representations: representations,
-              }
-            : null
+        newViewer={selectedResidueIndices
+          ? {
+              selectedResidueIndices: selectedResidueIndices,
+              representationsState: [ representations, setRepresentations ]
+            }
+          : null
         }
         // If the nailed/closed viewer is the current viewer then reset the 'selected'
         onNail={viewer =>
           setSelected(previous => {
-            if (viewer.selectedResidueIndices === selectedResidueIndices) {
-              return null;
-            } else {
-              return previous;
-            }
+            if (viewer.selectedResidueIndices === selectedResidueIndices) return null;
+            else return previous;
           })
         }
         onClose={viewer =>
           setSelected(previous => {
-            if (viewer.selectedResidueIndices === selectedResidueIndices) {
-              return null;
-            } else {
-              return previous;
-            }
+            if (viewer.selectedResidueIndices === selectedResidueIndices) return null;
+            else return previous;
           })
         }
       />

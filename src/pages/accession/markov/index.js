@@ -1,7 +1,7 @@
 import React, { lazy, useContext, useState, useMemo, useCallback } from 'react';
 
 import Card from '../../../components/animated-card';
-import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
+import ViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 
 import style from './style.module.css';
 
@@ -38,7 +38,7 @@ const minLinkWidth = 1;
 const Markov = () => {
 
   // Get the current project metadata
-  const { accession, accessionAndMdNumber, files } = useContext(ProjectCtx);
+  const { accessionAndMdNumber, files } = useContext(ProjectCtx);
 
   // Set when one point in the graph is selected
   const [selectedFrame, setSelectedFrame] = useState(null);
@@ -247,13 +247,10 @@ const Markov = () => {
           </div>
         </CardContent>
       </Card>
-      <NGLViewerSpawner
+      <ViewerSpawner
         // Set the new viewer or null if there is not a proper "selected" value
         newViewer={selectedFrame
-          ? {
-              accession: accession,
-              requestedFrame: selectedFrame,
-            }
+          ? { requestedFrame: selectedFrame }
           : null
         }
         // If the nailed/closed viewer is the current viewer then reset the 'selected'

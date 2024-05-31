@@ -23,7 +23,7 @@ import {
 } from '@mui/material';
 
 import Card from '../../../components/animated-card';
-import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
+import ViewerWithControls from '../../../components/ngl-viewer-with-controls';
 import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 
 import style from './style.module.css';
@@ -82,7 +82,6 @@ const Epitopes = () => {
 
   // Get the current project metadata
   const {
-    accession,
     accessionAndMdNumber,
     metadata,
     proteinReferences,
@@ -247,69 +246,108 @@ const Epitopes = () => {
   // Use this hook to get the memoized NGL epitopes representations
   const allEpitopesRepresentations = useEpitopesRepresentations();
 
-  // Set the main component to be passed to NGL
+  // Set the component to be passed to the viewer
   const components = useMemo(() => {
-    if (!epitopesData) return;
+    if (!accessionAndMdNumber) return;
     // Load the required frames from the main trajectory
-    const trajectoryURL = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/trajectory?frames=1:${metadata.mdFrames}:${frameStep}`;
+    const trajectoryUrl = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/trajectory`;
+    const mainURL = `${trajectoryUrl}?frames=1:${metadata.mdFrames}:${frameStep}`;
+    // Set the components by setting a custom component with an extended trajectory
+    return [ { trajectoryURLs: [mainURL] } ];
+  }, [accessionAndMdNumber, metadata, frameStep]);
+
+  // Define the representations to be displayed in the viewer
+  const [ representations, setRepresentations ] = useState(null);
+
+  // Set or update the viewer representations
+  useMemo(() => {
+    // Wait until we have both the default and the all epitopes representations
+    if (!defaultRepresentations || defaultRepresentations.length === 0) return;
+    if (!allEpitopesRepresentations || allEpitopesRepresentations.length === 0) return;
+    // Wait until we have epitopes data
+    if (!epitopesData) return;
     // Set the representations
-    const representations = [];
-    // Reduce the opacity of all default representations and set their color as black
-    defaultRepresentations.forEach(representation => {
-      representation.opacity = 0.3;
-      representation.color = defaultRepresentationsColor;
-      representations.push(representation);
+    setRepresentations(previousRepresentations => {
+      // If this is the first time we set the representations then set some default values
+      if (previousRepresentations === null) {
+        const newRepresentations = [];
+        // Reduce the opacity of all default representations and set their color as black
+        defaultRepresentations.forEach(representation => {
+          representation.opacity = 0.3;
+          representation.color = defaultRepresentationsColor;
+          newRepresentations.push(representation);
+        });
+        // In case there are selected epitopes add an extra representation for each one
+        selectedEpitopes.forEach((color, i) => {
+          if (color === null) return;
+          const epitopeData = epitopesData[i];
+          const newRepresentation = {
+            name: epitopeData.name,
+            selection: epitopeData.selection,
+            type: epitopeData.small ? 'licorice' : 'cartoon',
+            color: color,
+          };
+          newRepresentations.push(newRepresentation);
+        });
+        // In case the showAllEpitopes is marked show the all epitopes representation
+        if (showAllEpitopes) newRepresentations.push(...allEpitopesRepresentations);
+        return newRepresentations;
+      }
+      // If we already have previous representations then update them
+      const newRepresentations = [];
+      // Add default representations as they are
+      // Note that we used originals so they will remain the same, even if they the user modified them
+      newRepresentations.push(...defaultRepresentations);
+      // Set epitope representations using previous representations when possible
+      // In case there are selected epitopes add an extra representation for each one
+      // Note that epitopes which are no longer selected will have no representation
+      selectedEpitopes.forEach((color, i) => {
+        if (color === null) return;
+        const epitopeData = epitopesData[i];
+        // If there is a previous representation for this epitope then use it
+        const previous = previousRepresentations.find(
+          previousRepresentation => previousRepresentation.name ===  epitopeData.name);
+        if (previous) return newRepresentations.push(previous);
+        // Otherwise set a new representation with default values
+        const newRepresentation = {
+          name: epitopeData.name,
+          selection: epitopeData.selection,
+          type: epitopeData.small ? 'licorice' : 'cartoon',
+          color: color,
+        };
+        newRepresentations.push(newRepresentation);
+      });
+      // In case the showAllEpitopes is marked then add the all epitopes representations as they are
+      // Note that we used originals so they will remain the same, even if they the user modified them
+      if (showAllEpitopes) newRepresentations.push(...allEpitopesRepresentations);
+      // Keep custom representations (added by the user)
+      const customRepresentations = previousRepresentations.filter(rep => rep.custom);
+      newRepresentations.push(...customRepresentations);
+      // Update the state
+      return newRepresentations;
     });
-    // In case there are selected epitopes add an extra representation for each one
-    selectedEpitopes.forEach((color, i) => {
-      if (color === null) return;
-      const epitopeData = epitopesData[i];
-      const newRepresentation = {
-        name: epitopeData.name,
-        selection: epitopeData.selection,
-        type: epitopeData.small ? 'licorice' : 'cartoon',
-        color: color,
-      };
-      representations.push(newRepresentation);
-    });
-    // In case the showAllEpitopes is marked show the all epitopes representation
-    if (showAllEpitopes) representations.push(...allEpitopesRepresentations);
-
-    // The main component, which will include everything
-    const mainComponent = {
-      trajectoryURLs: [trajectoryURL],
-      representations: representations,
-    };
-
-    return [mainComponent];
+    
   }, [
-    accession,
-    metadata,
     epitopesData,
-    frameStep,
     defaultRepresentations,
+    allEpitopesRepresentations,
     selectedEpitopes,
     showAllEpitopes,
-    allEpitopesRepresentations,
   ]);
 
-  // Set the main component to be passed to NGL
+  // Set a fast representation for the hoverd epitope
   const snapRepresentations = useMemo(() => {
     if (!epitopesData) return;
-    const representations = [];
-    // In case the showAllEpitopes is marked show the all epitopes representation
-    if (hoveredEpitope !== null) {
-      const epitopeData = epitopesData[hoveredEpitope];
-      const newRepresentation = {
-        name: epitopeData.name,
-        selection: epitopeData.selection,
-        type: 'spacefill',
-        color: hoveredEpitopeColor,
-        opacity: 0.15,
-      };
-      representations.push(newRepresentation);
-    }
-    return representations;
+    if (hoveredEpitope === null) return;
+    const epitopeData = epitopesData[hoveredEpitope];
+    const newRepresentation = {
+      name: epitopeData.name,
+      selection: epitopeData.selection,
+      type: 'spacefill',
+      color: hoveredEpitopeColor,
+      opacity: 0.15,
+    };
+    return [ newRepresentation ];
   }, [epitopesData, hoveredEpitope]);
 
   // Set the graph parameters
@@ -484,9 +522,10 @@ const Epitopes = () => {
       <Card className={style.nglcard} ref={nglRef}>
         {/* Render the NGL viewer when it is on screen*/}
         {isNglVisible ? (
-          <NGLViewerWithControls
+          <ViewerWithControls
             className={style.container}
-            components={components}
+            startingComponents={components}
+            representationsState={[representations, setRepresentations]}
             snapRepresentations={snapRepresentations}
             onProgress={handleFrameProgress}
             ref={viewerRef}

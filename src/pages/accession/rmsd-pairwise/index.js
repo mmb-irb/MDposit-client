@@ -6,7 +6,7 @@ import useAPI from '../../../hooks/use-api';
 
 import Card from '../../../components/animated-card';
 import Loading from '../../../components/loading';
-import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
+import ViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 
 import { ProjectCtx } from '../../../contexts';
@@ -320,12 +320,10 @@ const RmsdPairwise = () => {
           />
         </CardContent>
       </Card>
-      <NGLViewerSpawner
+      <ViewerSpawner
         // Set a viewer if there is selected frames
         newViewer={components
           ? {
-              //startingComponents: components,
-              //startingRepresentations: representations,
               componentsState: [components, setComponents],
               representationsState: [representations, setRepresentations],
               selRef: selectedFramePair,

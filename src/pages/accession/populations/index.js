@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 
 import Card from '../../../components/animated-card';
-import NGLViewerWithControls from '../../../components/ngl-viewer-with-controls';
+import ViewerWithControls from '../../../components/ngl-viewer-with-controls';
 
 import style from './style.module.css';
 
@@ -115,10 +115,9 @@ const Populations = () => {
       <Card className={style.nglcard} ref={nglRef}>
         {/* Render the NGL viewer when it is on screen*/}
         {isNglVisible ? (
-          <NGLViewerWithControls
+          <ViewerWithControls
             className={style.container}
             requestedFrame={selectedFrame}
-            preventTrajectory
             ref={viewerRef}
           />
         ) : (

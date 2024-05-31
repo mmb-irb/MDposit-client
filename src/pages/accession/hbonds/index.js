@@ -22,7 +22,7 @@ import {
 import Card from '../../../components/animated-card';
 import Loading from '../../../components/loading';
 import BondStatus from './bond-status';
-import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
+import ViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 
 import useAPI from '../../../hooks/use-api';
 
@@ -41,7 +41,6 @@ const rowsPerPageOptions = [10, 25, 50, 100];
 const Hbonds = () => {
   // Get the current project data
   const {
-    accession,
     accessionAndMdNumber,
     metadata,
     topology: topologyManager,
@@ -410,12 +409,11 @@ const Hbonds = () => {
           </CardContent>
         </Card>
       )}
-      <NGLViewerSpawner
+      <ViewerSpawner
         // Set the new viewer or null if there is not a proper "selected" value
         newViewer={
           selectedHB
             ? {
-                accession: accession,
                 selectedAtoms: selectedHB.selectedAtoms,
                 selectedDistances: selectedHB.selectedDistances,
                 selectedAngles: selectedHB.selectedAngles,

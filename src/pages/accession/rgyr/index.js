@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 
 import Card from '../../../components/animated-card';
-import NGLViewerSpawner from '../../../components/ngl-viewer-in-dnd';
+import ViewerSpawner from '../../../components/ngl-viewer-in-dnd';
 import Loading from '../../../components/loading';
 
 import useAPI from '../../../hooks/use-api';
@@ -30,7 +30,7 @@ const cents = num => Math.round(num * 100) / 100;
 
 const Rgyr = () => {
   // Get the current project metadata
-  const { accession, accessionAndMdNumber, metadata, populations } = useContext(ProjectCtx);
+  const { accessionAndMdNumber, metadata, populations } = useContext(ProjectCtx);
 
   // Send a request to the API with the url of the rgyr analysis
   const { loading, payload, error } = useAPI(
@@ -182,14 +182,11 @@ const Rgyr = () => {
           />
         </CardContent>
       </Card>
-      <NGLViewerSpawner
+      <ViewerSpawner
         // Set the new viewer or null if there is not a proper "selected" value
         newViewer={
           typeof selected === 'number'
-            ? {
-                accession: accession,
-                requestedFrame: selected,
-              }
+            ? { requestedFrame: selected }
             : null
         }
         // If the nailed/closed viewer is the current viewer then reset the 'selected'

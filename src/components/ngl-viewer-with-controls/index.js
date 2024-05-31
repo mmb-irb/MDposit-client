@@ -118,7 +118,8 @@ const DEFAULT_REPRESENTATION_PARAMETERS = {
   show: true,
   type: 'cartoon',
   color: 'chainid',
-  opacity: 1
+  opacity: 1,
+  component: 'auto' // This is assigned further
 }
 
 // DANI: falta representation.index y custom
@@ -145,7 +146,7 @@ const completeMissingFields = (targetObject, defaultValuesObject) => {
 // WARNING: There are many important hooks which have components/representations as a dependency
 // Avoid passing an object which is created every render. Use a somehow memoized array.
 // WARNING: The style of this component and its parent is very important. Use a reference to call it
-const NGLViewerWithControls = forwardRef(
+const ViewerWithControls = forwardRef(
   (
     {
       // The viewer starting components
@@ -191,15 +192,10 @@ const NGLViewerWithControls = forwardRef(
       requestedFrame,
       // Set if the frame number selector is allowed for trajectories (false in PCA projections)
       framesSelect = true,
-      // Forced states for representation parameters. They must be passed in the state format (e.g. [state, setState])
-      // They are passed when these parameters must be controlled from outside the NGL
-      // Usually they are not passed since this script has builtin states
-      showRepresentationsForced,
-      nglSelectionsForced,
-      drawingMethodsForced,
-      coloringMethodsForced,
-      opacitiesForced,
       // Set a special option to force the 'noTrajectory' condition
+      // This is used to avoid the trajectory playing in pockets since there are surfaced representations
+      // This is only to be passed when having a trajectory loaded in the main component
+      // If a single frame is forced then this is redundant
       preventTrajectory = false,
       // Set a state setter to handle the frame progress
       onProgress,
@@ -239,12 +235,15 @@ const NGLViewerWithControls = forwardRef(
     }, [metadata.mdFrames]);
     // Do not use the start object but make a copy to avoid a lot of silent errors
     const fixedStartingComponents = useMemo(() => {
-      if (startingComponents)
-        return startingComponents.map(comp => JSON.parse(JSON.stringify(comp)));
-      return [{ name: 'Main' }];
+      // If there are no starting components then just leave it as null
+      // The defualt completer logic will take over
+      if (!startingComponents) return null;
+      return startingComponents.map(comp => JSON.parse(JSON.stringify(comp)));
     }, [startingComponents]);
+
     // Set the final components to be passed to the viewer
-    const [finalComponents, setFinalComponents] = componentsState || useState(fixedStartingComponents);
+    const [finalComponents, setFinalComponents] =
+      componentsState || useState(fixedStartingComponents);
 
     // Set the missing value completer for components including URLs
     // Return true if there was any change
@@ -256,8 +255,21 @@ const NGLViewerWithControls = forwardRef(
       return completeMissingFields(targetObject, defaults);
     }, [accessionAndMdNumber]);
 
-    // Anytime components change, check if there are any missing values and fill them
+    // Anytime components change, check if there are any missing values and fill them with default values
     useMemo(() => {
+      // Wait for the default completer to be ready
+      if (!completeComponentMissingFields) return;
+      // If there are no components then set a default configuration
+      if (!finalComponents) {
+        const defComponents = [{ name: 'Main' }];
+        defComponents.forEach(comp => { completeComponentMissingFields(comp) });
+        return setFinalComponents(defComponents);
+      }
+      // Make sure we have no components with the same name
+      const componentNames = finalComponents.map(comp => comp.name);
+      const uniqueComponentNames = new Set(componentNames);
+      if (componentNames.length !== uniqueComponentNames.size)
+        throw new Error(`We have multiple components with the same name: ${componentNames.join(', ')}`);
       // Fill missing values among components with default values
       const changes = finalComponents.map(comp => 
         completeComponentMissingFields(comp, DEFAULT_COMPONENT_PARAMETERS));
@@ -265,26 +277,56 @@ const NGLViewerWithControls = forwardRef(
       if (changes.some(v => v === true)) setFinalComponents([...finalComponents]);
     }, [finalComponents, completeComponentMissingFields]);
 
-    // Use this hook to get the memoized NGL default representations
-    const defaultRepresentations = useDefaultRepresentations();
+    // Anytime the requested frame changes update the main component
+    useMemo(() => {
+      if (!finalComponents) return;
+      if (requestedFrame === undefined) return;
+      if (finalComponents[0].frame === requestedFrame) return;
+      finalComponents[0].frame = requestedFrame;
+      setFinalComponents([...finalComponents]);
+    }, [finalComponents, requestedFrame]);
 
     // Do not use the start object but make a copy to avoid a lot of silent errors
     const fixedStartingRepresentations = useMemo(() => {
-      if (startingRepresentations)
-        return startingRepresentations.map(rep => JSON.parse(JSON.stringify(rep)));
-      return [...defaultRepresentations];
-    }, [startingRepresentations, defaultRepresentations]);
+      // If there are no starting representations then just leave it as null
+      // The defualt completer logic will take over
+      if (!startingRepresentations) return null;
+      return startingRepresentations.map(rep => JSON.parse(JSON.stringify(rep)));
+    }, [startingRepresentations]);
+
     // Set the final representations to be passed to the viewer
-    const [finalRepresentations, setFinalRepresentations] = representationsState || useState(fixedStartingRepresentations);
+    const [finalRepresentations, setFinalRepresentations] =
+      representationsState || useState(fixedStartingRepresentations);
+
+    // Use this hook to get the memoized NGL default representations
+    const defaultRepresentations = useDefaultRepresentations();
+
+    // Set the missing value completer for representations including the main component name
+    // Return true if there was any change
+    const completeRepresentationMissingFields = useCallback(targetObject => {
+      if (!finalComponents) return false;
+      const defaults = {...DEFAULT_REPRESENTATION_PARAMETERS};
+      defaults.component = finalComponents[0].name;
+      return completeMissingFields(targetObject, defaults);
+    }, [finalComponents]);
 
     // Anytime representations change, check if there are any missing values and fill them
     useMemo(() => {
+      // If we still have no default refereferences then stop here
+      if (!defaultRepresentations || defaultRepresentations.length === 0) return;
+      // If there are no representations then set a default configuration
+      if (!finalRepresentations) {
+        const defRepresentations = [...defaultRepresentations];
+        defRepresentations.forEach(rep => 
+          completeRepresentationMissingFields(rep, DEFAULT_REPRESENTATION_PARAMETERS));
+        return setFinalRepresentations(defRepresentations);
+      }
       // Fill missing values among representations with default values
       const changes = finalRepresentations.map(rep => 
-        completeMissingFields(rep, DEFAULT_REPRESENTATION_PARAMETERS));
+        completeRepresentationMissingFields(rep, DEFAULT_REPRESENTATION_PARAMETERS));
       // If there was any value filled then update the state to trigger a rerender
       if (changes.some(v => v === true)) setFinalRepresentations([...finalRepresentations]);
-    }, [finalRepresentations]);
+    }, [finalRepresentations, defaultRepresentations, completeRepresentationMissingFields]);
 
     // references
     const containerRef = useRef(null);
@@ -408,9 +450,9 @@ const NGLViewerWithControls = forwardRef(
     // The flag 'onlyTopology' is passed
     // there is a selected unique frame to load from the main trajectory
     // The main trajectory only has 1 frame (e.g. average.xtc)
-    const mainComponent = finalComponents[0] || {};
-    const noTrajectory = preventTrajectory || mainComponent.onlyTopology ||
-      Number.isFinite(mainComponent.frame); // May be 0
+    const mainComponent = finalComponents && finalComponents[0];
+    const noTrajectory = preventTrajectory || (mainComponent && (mainComponent.onlyTopology ||
+      Number.isFinite(mainComponent.frame))); // May be 0
 
     // DANI: Si no quieres buscarte problemas no cambies las "Card"s de aquí abajo por "div"s o similar
     return (
@@ -608,25 +650,24 @@ const NGLViewerWithControls = forwardRef(
             )}
           </Card>
           <CardContent style={{ padding: 0 }}>
-            {noTrajectory ? (
-              // Redner an empty div to avoid a Warning message since CardContent expect a ReactNode and an undefuned is not
-              <div />
-            ) : (
+            {noTrajectory
+              // Render an empty div to avoid a Warning message since CardContent expect a ReactNode and an undefuned is not
+              ? (<div />)
               // Render the loading/progress bar in case there is a trajectory to be loaded
-              <div
-                className={cn(style.progress, { [style.dark]: darkBackground })}
-                onClick={handleManualProgress}
-                onMouseMove={handleManualProgress}
-              >
-                <LinearProgress
-                  variant="buffer"
-                  color="primary"
-                  value={progress * 100}
-                  valueBuffer={load * 100}
-                  style={{ height: '1ch' }}
-                />
-              </div>
-            )}
+              : (<div
+                  className={cn(style.progress, { [style.dark]: darkBackground })}
+                  onClick={handleManualProgress}
+                  onMouseMove={handleManualProgress}
+                >
+                  <LinearProgress
+                    variant="buffer"
+                    color="primary"
+                    value={progress * 100}
+                    valueBuffer={load * 100}
+                    style={{ height: '1ch' }}
+                  />
+                </div>)
+            }
             <div className={style.controls}>
               <div>
                 <IconButton
@@ -744,4 +785,4 @@ const NGLViewerWithControls = forwardRef(
   },
 );
 
-export default NGLViewerWithControls;
+export default ViewerWithControls;
