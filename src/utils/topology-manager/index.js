@@ -334,6 +334,10 @@ class Residue {
   get isLigand () {
     return this.referenceType === 'ligand';
   }
+  // Check if the resiude is in periodic boundary conditions
+  get isPbc () {
+    return this.topology.pbcResidues.has(this.index);
+  }
   // Standard label for display
   get standardLabel () {
     // Add the chain to the label only if there is more than ona chain
@@ -442,6 +446,8 @@ export class Topology {
     if (!this.referenceTypes && this.references) this.referenceTypes = this.references.map(r => 'protein');
     this.residueReferenceIndices = topology.residue_reference_indices;
     this.residueReferenceNumbers = topology.residue_reference_numbers;
+    // Save the PBC (Priodic Boundary Conditions) residues
+    this.pbcResidues = topology.pbc_residues && new Set(topology.pbc_residues);
     // Data is stored in a down-top structure according to atom-residue-chain indices
     // i.e. atoms know which residue they belong to and residues know which chain they belong to
     // Now set the top-down structure values

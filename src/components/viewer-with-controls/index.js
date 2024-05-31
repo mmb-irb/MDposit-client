@@ -212,7 +212,7 @@ const ViewerWithControls = forwardRef(
     // Set which viewer is used: NGL or MolStar (the default is NGL)
     const [Viewer, setViewer] = useState(NGLViewer);
     // Get project metadata
-    const { metadata, accessionAndMdNumber } = useContext(ProjectCtx);
+    const { metadata, accessionAndMdNumber, topology } = useContext(ProjectCtx);
     // Use metadata to limit available frames number
     const frameNumbers = useMemo(() => {
       const maximumSnapshots = metadata.mdFrames;
@@ -336,7 +336,7 @@ const ViewerWithControls = forwardRef(
     const [nailed, toggleNailed] = useToggleState(false);
     const [playing, togglePlaying] = useToggleState(startsPlaying);
     const [spinning, toggleSpinning] = useToggleState(false);
-    const [smooth, toggleSmooth] = useToggleState(true);
+    const [smooth, setSmooth] = useState(true);
     const [darkBackground, toggleDarkBackground] = useToggleState(
       useMemo(() => get('dark-background', false), []),
     );
@@ -423,6 +423,15 @@ const ViewerWithControls = forwardRef(
       document.addEventListener('keydown', handleKeyPress, false);
       return () => document.removeEventListener('keydown', handleKeyPress, false);
     }, []);
+
+    // Find out if there are residues under PBC (Periodic Boundary Conditions) in the topology
+    // If there are PBC residues then stop the smooth to prevent misleading artifacts
+    const hasPbcResidues = useMemo(() => {
+      if (!topology || !topology.pbcResidues) return;
+      const _hasPbcResidues = topology.pbcResidues.size > 0;
+      if (_hasPbcResidues) setSmooth(false);
+      return _hasPbcResidues;
+    }, [topology]);
 
     // This allows parent components to interact with this component
     useImperativeHandle(ref,
@@ -521,17 +530,21 @@ const ViewerWithControls = forwardRef(
                     </IconButton>
 
                     {noTrajectory || (
-                      <IconButton
-                        title={`Toggle smooth interpolation ${
-                          smooth
-                            ? 'off'
-                            : 'on (may display artifacts for simulation box border atoms)'
-                        }`}
-                        onClick={toggleSmooth}
-                        size="large"
-                      >
-                        <FontAwesomeIcon icon={smooth ? faImages : faVideo} />
-                      </IconButton>
+                      <div className={style['stacked-icons']} title={hasPbcResidues &&
+                        'Smooth interpolation is not allowed since there are residues under Periodic Boundary Conditions. ' +
+                        'The smoothing may result in misleading artifacts for those atoms jumping across boundaries.'}>
+                        <IconButton
+                          title={`Toggle smooth interpolation ${smooth ? 'off' : 'on'}`}
+                          onClick={() => setSmooth(previous => !previous)}
+                          // If there are PBC residues then forbid the smooth to prevent misleads
+                          // Note that the smoothing may result in artifacts for those atoms jumping across boundaries
+                          // This is very clear for solvent/counter ions (breathing effect) and also visible in membrane residues
+                          disabled={hasPbcResidues}
+                          size="large"
+                        >
+                          <FontAwesomeIcon icon={smooth ? faImages : faVideo} />
+                        </IconButton>
+                      </div>
                     )}
 
                     <IconButton
