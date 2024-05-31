@@ -471,6 +471,7 @@ const Browse = () => {
                     search: stringify({
                       search: search.search,
                       query: search.query,
+                      option: search.option,
                       page: page + 1 === DEFAULT_PAGE ? undefined : page + 1,
                       limit:
                         !search.limit || +search.limit === DEFAULT_LIMIT
@@ -487,6 +488,7 @@ const Browse = () => {
                     search: stringify({
                       search: search.search,
                       query: search.query,
+                      option: search.option,
                       limit: +value === DEFAULT_LIMIT ? undefined : value,
                     }),
                   });
