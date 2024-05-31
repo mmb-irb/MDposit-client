@@ -22,7 +22,7 @@ import {
 import Card from '../../../components/animated-card';
 import Loading from '../../../components/loading';
 import BondStatus from './bond-status';
-import ViewerSpawner from '../../../components/ngl-viewer-in-dnd';
+import ViewerSpawner from '../../../components/viewer-spawner';
 
 import useAPI from '../../../hooks/use-api';
 

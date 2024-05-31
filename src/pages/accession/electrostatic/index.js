@@ -5,7 +5,7 @@ import { useInView } from 'react-intersection-observer';
 import Card from '../../../components/animated-card';
 import { CardContent, Typography } from '@mui/material';
 
-import ViewerWithControls from '../../../components/ngl-viewer-with-controls';
+import ViewerWithControls from '../../../components/viewer-with-controls';
 
 import style from './style.module.css';
 

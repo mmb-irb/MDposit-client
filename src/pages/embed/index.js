@@ -8,7 +8,7 @@ import ErrorBoundary from '../../components/error-boundary';
 import { ProjectCtx, PdbCtx } from '../../contexts';
 
 import Card from '../../components/animated-card';
-import ViewerWithControls from '../../components/ngl-viewer-with-controls';
+import ViewerWithControls from '../../components/viewer-with-controls';
 import Loading from '../../components/loading';
 
 import style from './style.module.css';

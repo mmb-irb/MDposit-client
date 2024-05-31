@@ -21,7 +21,7 @@ import { faAngleRight } from '@fortawesome/free-solid-svg-icons';
 import { ProjectCtx } from '../../../contexts';
 
 import Card from '../../../components/animated-card';
-import ViewerWithControls from '../../../components/ngl-viewer-with-controls';
+import ViewerWithControls from '../../../components/viewer-with-controls';
 import ChainAnalyses from '../../../components/chain-analyses';
 
 import reducedMotion from '../../../utils/reduced-motion';

@@ -3,7 +3,7 @@ import React, { lazy, Suspense, useState, useContext, useMemo } from 'react';
 import { CardContent, Typography, TextField } from '@mui/material';
 
 import Card from '../../../components/animated-card';
-import ViewerSpawner from '../../../components/ngl-viewer-in-dnd';
+import ViewerSpawner from '../../../components/viewer-spawner';
 import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 import Loading from '../../../components/loading';
 

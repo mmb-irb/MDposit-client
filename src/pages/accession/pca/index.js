@@ -4,7 +4,7 @@ import cn from 'classnames';
 import { CardContent, Typography } from '@mui/material';
 
 import Card from '../../../components/animated-card';
-import ViewerSpawner from '../../../components/ngl-viewer-in-dnd';
+import ViewerSpawner from '../../../components/viewer-spawner';
 import EigenvalueGraph from '../../../components/eigenvalue-graph';
 import Loading from '../../../components/loading';
 
@@ -19,7 +19,7 @@ import plainTextExplanation from './plain-text-explanation';
 import style from './style.module.css';
 
 const ViewerWithControls = lazy(() => import(
-  /* webpackChunkName: 'ngl-viewer-with-controls' */ '../../../components/ngl-viewer-with-controls'
+  /* webpackChunkName: 'viewer-with-controls' */ '../../../components/viewer-with-controls'
 ));
 const Projections = lazy(() => import(
   /* webpackChunkName: 'projections' */ '../../../components/projections'
@@ -29,7 +29,7 @@ const projectionPlaceholder = (
   <div className={cn(style.placeholder, style.projection)} />
 );
 const nglPlaceholder = (
-  <div className={cn(style.placeholder, style['ngl-viewer-with-controls'])} />
+  <div className={cn(style.placeholder, style['viewer-with-controls'])} />
 );
 
 const PCA = () => {
@@ -130,7 +130,7 @@ const PCA = () => {
             <Suspense fallback={nglPlaceholder}>
               <CardContent className={style['ngl-card']}>
                 <ViewerWithControls
-                  className={style['ngl-viewer-with-controls']}
+                  className={style['viewer-with-controls']}
                   projection={projections[0]}
                   framesSelect={false}
                   // Projections are backbone trajectories, same as the average.pdb topology

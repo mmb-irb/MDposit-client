@@ -524,7 +524,7 @@ const NGLViewer = memo(
 
           // DANI: Todavía no me ha hecho falta hacer una selección larga de atomos/frames
           // DANI: Todo está listo a nivel de API
-          // DANI: Solo hará falta reformar un poco el ngl-viewer-with-controls y este script
+          // DANI: Solo hará falta reformar un poco el viewer-with-controls y este script
           const postData = JSON.stringify({});
 
           // Request the API

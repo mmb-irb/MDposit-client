@@ -6,7 +6,7 @@ import useAPI from '../../../hooks/use-api';
 
 import Card from '../../../components/animated-card';
 import Loading from '../../../components/loading';
-import ViewerSpawner from '../../../components/ngl-viewer-in-dnd';
+import ViewerSpawner from '../../../components/viewer-spawner';
 
 import { ProjectCtx } from '../../../contexts';
 

@@ -14,7 +14,7 @@ import {
   CardContent,
 } from '@mui/material';
 */
-import ViewerWithControls from '../../../components/ngl-viewer-with-controls';
+import ViewerWithControls from '../../../components/viewer-with-controls';
 import useMutationsRepresentations from '../../../components/ngl-viewer/use-mutations-representations';
 
 import style from './style.module.css';

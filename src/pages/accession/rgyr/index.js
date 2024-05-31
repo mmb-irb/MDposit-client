@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 
 import Card from '../../../components/animated-card';
-import ViewerSpawner from '../../../components/ngl-viewer-in-dnd';
+import ViewerSpawner from '../../../components/viewer-spawner';
 import Loading from '../../../components/loading';
 
 import useAPI from '../../../hooks/use-api';

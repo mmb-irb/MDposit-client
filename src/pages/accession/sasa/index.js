@@ -13,7 +13,7 @@ import { Typography } from '@mui/material';
 import { color as d3color, scaleLinear } from 'd3';
 
 import Card from '../../../components/animated-card';
-import ViewerWithControls from '../../../components/ngl-viewer-with-controls';
+import ViewerWithControls from '../../../components/viewer-with-controls';
 import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 import Loading from '../../../components/loading';
 

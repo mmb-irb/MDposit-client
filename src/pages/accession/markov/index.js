@@ -1,7 +1,7 @@
 import React, { lazy, useContext, useState, useMemo, useCallback } from 'react';
 
 import Card from '../../../components/animated-card';
-import ViewerSpawner from '../../../components/ngl-viewer-in-dnd';
+import ViewerSpawner from '../../../components/viewer-spawner';
 
 import style from './style.module.css';
 

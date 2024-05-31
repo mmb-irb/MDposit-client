@@ -9,7 +9,7 @@ import style from './style.module.css';
 
 const ViewerWithControls = lazy(() =>
   import(
-    /* webpackChunkName: 'ngl-viewer-with-controls' */ '../ngl-viewer-with-controls'
+    /* webpackChunkName: 'viewer-with-controls' */ '../viewer-with-controls'
   ),
 );
 

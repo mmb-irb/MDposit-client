@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 
 import Card from '../../../components/animated-card';
-import ViewerWithControls from '../../../components/ngl-viewer-with-controls';
+import ViewerWithControls from '../../../components/viewer-with-controls';
 
 import style from './style.module.css';
 
