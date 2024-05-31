@@ -69,8 +69,8 @@ export const documentation = [
         body: (
           <>
             {webpageName} is part of the{' '}
-            <TextLink name={'BioExcel'} url={'https://bioexcel.eu/'} /> center. The
-            platform is being developed from the{' '}
+            <TextLink name={'MDDB'} url={'https://mddbr.eu/'} /> project.
+            The platform is being developed from the{' '}
             <TextLink
               name={'Molecular Modeling and Bioinformatics'}
               url={'http://mmb.irbbarcelona.org/www/'}
@@ -85,7 +85,9 @@ export const documentation = [
               name={'Barcelona Supercomputing Center'}
               url={'https://www.bsc.es/'}
             />
-            . This project started as a branch of the MoDEL-CNS project, which
+            . This project has been also developed under the scope of{' '}
+            <TextLink name={'BioExcel'} url={'https://bioexcel.eu/'} /> center.
+            The original project started as a branch of the MoDEL-CNS project, which
             was supported by the{' '}
             <TextLink
               name={'Human Brain Project'}
