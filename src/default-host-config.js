@@ -1,8 +1,11 @@
 // Set the behaviour of the web client depending of the URL which makes the request
+// Note that this script must be placed after the src directory for react to use it and JSX to be parsed
+
+// Here are the parameters assigned here for every host
 // Default values are assigned for every missing value
 // api - API URL to query
 // production - Set if this is production or not (i.e. development)
-// description - Text to be displayed in the home page
+// description - Text or JSX to be displayed in the home page
 // logo - Logo filename (without the format extension) to be dipslayed on the top-left corner, in the header
 // primaryColor - Color of the header and additional regions along the whole web page
 // secondaryColor - Color of non-primary regions along the whole web page
@@ -14,7 +17,7 @@
 //                    Non-matching values will remain as they are
 
 // Set the default description
-const defaultDescription = <>
+const DEFAULT_DESCRIPTION = <>
     <strong>MDposit</strong> is an open platform designed to provide web
     access to atomistic molecular dynamics (MD) simulations. The aim of
     this initiative is to ease and promote data sharing along the
@@ -23,10 +26,10 @@ const defaultDescription = <>
 
 // Set default values for every host config fields
 // These values are used to fill missing values
-const DEFAUL_HOST_CONFIG = {
+const DEFAUL_HOST_CONFIGURATION = {
     api: 'https://mmb-dev.mddbr.eu/api/rest/',
     production: false,
-    description: defaultDescription,
+    description: DEFAULT_DESCRIPTION,
     logo: 'logo-mdposit',
     primaryColor: '#808080', // Grey
     secondaryColor: '#fafafa', // Light grey
@@ -54,7 +57,7 @@ const COLLECTION_OPTIONS = {
 }
 
 // Set every host configuration
-const HOST_CONFIGS = {
+const HOST_CONFIGURATIONS = {
     // Testing
     'localhost': {
         api: 'https://mmb-dev.mddbr.eu/api/rest/',
@@ -85,7 +88,7 @@ const HOST_CONFIGS = {
         logo: 'logo-mdposit-mmb',
         primaryColor: '#BB00BB', // Purple
         description: <>
-            {defaultDescription}<br/>
+            {DEFAULT_DESCRIPTION}<br/>
             This node contains simulations stored at the MMB group at IRB Barcelona.
         </>,
         ...COLLECTION_OPTIONS
@@ -97,7 +100,7 @@ const HOST_CONFIGS = {
         logo: 'logo-mdposit-mmb',
         primaryColor: '#BB00BB', // Purple
         description: <>
-            {defaultDescription}<br/>
+            {DEFAULT_DESCRIPTION}<br/>
             This node contains simulations stored at the MMB group at IRB Barcelona.
         </>,
         ...COLLECTION_OPTIONS
@@ -108,7 +111,7 @@ const HOST_CONFIGS = {
         logo: 'logo-mdposit-abc',
         primaryColor: '#DC143C', // Crimson red
         description: <>
-            {defaultDescription}<br/>
+            {DEFAULT_DESCRIPTION}<br/>
             This node contains simulations from the Ascona B-DNA Consortium.
         </>
     },
@@ -119,7 +122,7 @@ const HOST_CONFIGS = {
         logo: 'logo-mdposit-abc',
         primaryColor: '#DC143C', // Crimson red
         description: <>
-            {defaultDescription}<br/>
+            {DEFAULT_DESCRIPTION}<br/>
             This node contains simulations from the Ascona B-DNA Consortium.
         </>
     },
@@ -129,7 +132,7 @@ const HOST_CONFIGS = {
         logo: 'logo-mdposit-oxford',
         primaryColor: '#66CC00', // Green as it is the Oxfrod landscape <3
         description: <>
-            {defaultDescription}<br/>
+            {DEFAULT_DESCRIPTION}<br/>
             This node contains simulations from the Oxford University node.
         </>
     },
@@ -140,7 +143,7 @@ const HOST_CONFIGS = {
         logo: 'logo-mdposit-oxford',
         primaryColor: '#66CC00', // Green as it is the Oxfrod landscape <3
         description: <>
-            {defaultDescription}<br/>
+            {DEFAULT_DESCRIPTION}<br/>
             This node contains simulations from the Oxford University node.
         </>
     },
@@ -151,17 +154,17 @@ const HOST_CONFIGS = {
         logo: 'logo-mdposit-cineca',
         primaryColor: '#99FFFF', // Light blue
         description: <>
-            {defaultDescription}<br/>
+            {DEFAULT_DESCRIPTION}<br/>
             This node contains simulations from the Cineca node in Bologna.
         </>
     },
 };
 
 // Set the current host configuration
-const HOST_CONFIG = HOST_CONFIGS[window.location.hostname] || HOST_CONFIGS['localhost'];
+const HOST_CONFIG = HOST_CONFIGURATIONS[window.location.hostname] || HOST_CONFIGURATIONS['localhost'];
 
 // Fill the host configuration gaps with default values
-Object.entries(DEFAUL_HOST_CONFIG).forEach(([ field, defaultValue ]) => {
+Object.entries(DEFAUL_HOST_CONFIGURATION).forEach(([ field, defaultValue ]) => {
     if (!HOST_CONFIG[field]) HOST_CONFIG[field] = defaultValue;
 });
 

@@ -1,5 +1,5 @@
 // Import host configuration
-import hostConfig from "./host-configs";
+import hostConfig from "./host-config";
 
 export const HOST_CONFIG = hostConfig;
 

@@ -20,7 +20,9 @@ Have Node.js and npm installed and working
 
 ### Host configuration file
 
-Target API and some basic visual setup is defined in the [host configuration file](https://mmb.irbbarcelona.org/gitlab/d.beltran.anadon/mdposit_client/-/blob/master/src/utils/constants/host-configs.js).<br/>
+Target API and some basic visual setup is defined in the [host configuration file](https://mmb.irbbarcelona.org/gitlab/d.beltran.anadon/mdposit_client/-/blob/master/src/default-host-config.js).<br/>
+You can define your own custom configuration by creating a new file at src/host-config.js.<br/>
+Use the default values as template.<br/>
 Note that the client behaviour depends on the host URL.<br/>
 This allows a single cliente to service several hosts with a different behaviour for each.<br/>
 Comments inside the configuration file will guide you.
