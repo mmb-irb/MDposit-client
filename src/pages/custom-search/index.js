@@ -34,46 +34,16 @@ import { BASE_PATH_PROJECTS } from '../../utils/constants';
 import useAPI from '../../hooks/use-api'; // API acces
 import Loading from '../../components/loading'; // Displays an animated "loading" circle
 
-// Get the avilable search fields
-import availableFields from '../project-fields.json';
+// Get the host congifuration
+import { HOST_CONFIG } from "../../utils/constants";
 
-// Set categories of available fields
-// This was requested by a reviewer
-const categories = {
-  "General annotations": [
-    "Collections", "Name", "Description",
-    "Authors", "Groups", "Citation",
-  ],
-  "References": [
-    "PDB id",
-    "Ligand name", "Ligand PubChem id",
-    "Uniprot id", "Uniprot organism", "Uniprot gene", "Uniprot name", "Uniprot protein function"
-  ],
-  "Molecular Dynamics protocol": [
-    "Program", "Type", "Ensemble", "MD method",
-    "Timestep (fs)", "Force field", "Water type", "Temperature (K)",
-    "Boxtype"
-  ],
-  "Size of the simulations": [
-    "Number of frames", "Framestep (ns)",
-    "System atom count", "Protein atom count", "Protein residue count"
-  ],
-  "Protein related features": [
-    "Sequence", "Domains",
-    "Post translational modifications",
-    "Multimeric form", 
-  ],
-  //"Covid-specific annotations": [],
-  "Other": [
-    "Type of partner interactions"
-  ]
-};
+// Get the avilable search fields
+const queryFields = HOST_CONFIG.queryFields;
+const availableFields = Object.values(queryFields).reduce((acc, curr) => acc.concat(curr), []);
 
 // These keyframes are used for an animate()
 // An image opacity is iterated between 0 (invisible) and 1 (visible)
-const keyframes = {
-  opacity: [0, 1],
-};
+const keyframes = { opacity: [0, 1] };
 
 // Same image vertical position is iterated between 0 and 50 pixels (It may have no effect)
 // This is only set when user has not activated the reduced motion option from the navigator
@@ -213,8 +183,7 @@ const CustomSearch = () => {
         Use the <b>search</b> menu to create a specific query.
         Go to{' '} <a href="/#/advanced-search">advanced search</a> for a most complex query.
         <hr style={{ color: 'lightGrey' }} />
-        {Object.entries(categories).map(([category, fieldnames], c) => {
-          const fields = fieldnames.map(fieldname => availableFields.find(field => field.name === fieldname)).filter(v => v);
+        {Object.entries(queryFields).map(([category, fields], c) => {
           return <div key={c}>
             <Typography variant='h5' className={style.margined}>{category}</Typography>
             {fields.map((field, f) => (

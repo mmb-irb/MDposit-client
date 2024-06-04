@@ -17,6 +17,7 @@ import {
   FormHelperText,
   FormControlLabel,
   Checkbox,
+  ListSubheader,
 } from '@mui/material';
 import {
   faPlusCircle,
@@ -32,8 +33,12 @@ import style from './style.module.css';
 // It is used to check if the user has the reduced motion setting active
 import reducedMotion from '../../utils/reduced-motion';
 
-// Get the avilable search fields
-import availableFields from '../project-fields.json';
+// Get the host congifuration
+import { HOST_CONFIG } from "../../utils/constants";
+
+// Get the available search fields
+const queryFields = HOST_CONFIG.queryFields;
+const availableFields = Object.values(queryFields).reduce((acc, curr) => acc.concat(curr), []);
 
 // These keyframes are used for an animate()
 // An image opacity is iterated between 0 (invisible) and 1 (visible)
@@ -148,7 +153,7 @@ const AdvancedSearch = () => {
   // Track if there is any input error
   let inputError = false;
 
-  const Selector = ({
+  const ComparatorSelector = ({
     object,
     label,
     options,
@@ -178,6 +183,39 @@ const AdvancedSearch = () => {
     </FormControl>
   );
 
+  const LogicsAndFieldsSelector = ({
+    object,
+    label,
+    options,
+    handleChange,
+  }) => (
+    <FormControl className={style.spaced}>
+      <Select
+        id="select"
+        title={'Select the desired ' + label}
+        value={object[label]}
+        onChange={handleChange}
+        displayEmpty
+      >
+        <MenuItem disabled value={''} key={'placeholder'}>
+          <em className={style.grey}>{label}</em>
+        </MenuItem>
+        {options.map(category => {
+          // Note that each object has a single entry
+          const [ categoryName, categoryOptions ] = Object.entries(category)[0];
+          return [
+            <ListSubheader color={'primary'}>{categoryName}</ListSubheader>,
+            ...categoryOptions.map(categoryOption => (
+              <MenuItem value={categoryOption} key={categoryOption}>
+                {categoryOption}
+              </MenuItem>
+            ))
+          ];
+        })}
+      </Select>
+    </FormControl>
+  );
+
   // The inputMode is useful for mobiles
   const inputParameteres = {
     string: { inputMode: 'text' },
@@ -200,9 +238,16 @@ const AdvancedSearch = () => {
     // Find the field options
     // Field options include logicals
     // DANI: descartamos fields de references, que no funcionarían por defecto
-    const fieldOptions = availableFields.map(field => field.name);
     const logicOptions = availableLogics.map(operand => operand.name);
-    const fieldsAndLogics = [...logicOptions, ...fieldOptions];
+    const fieldOptions = Object.entries(queryFields).map(([category, fields]) => {
+      return { [category]: fields.map(field => field.name) };
+    });
+    // We set this as a list objects with a single value each instead of a single object
+    // This is because the order is to be respected
+    const logicsAndFields = [
+      { 'Logic operators': logicOptions },
+      ...fieldOptions
+    ];
     // In case it is a field set the layout
     if (object.field !== undefined) {
       // Get the parameters for the current field
@@ -210,8 +255,7 @@ const AdvancedSearch = () => {
         field => field.name === object.field,
       );
       // Get the available comparator options for the current field type
-      const comparatorOptions =
-        currentField &&
+      const comparatorOptions = currentField &&
         availableComparators[currentField.type].map(c => c.name);
       // Seth whenever the value text input must be rendered
       const isBoolean = currentField && currentField.type === 'boolean';
@@ -220,12 +264,9 @@ const AdvancedSearch = () => {
       const helpTextComparator =
         missingComparator && 'please select a comparator';
       const missingValue = currentField && !isBoolean && !object.value;
-      const parameters =
-        currentField && !isBoolean && inputParameteres[currentField.type];
-      const match =
-        currentField &&
-        !isBoolean &&
-        parameters.pattern &&
+      const parameters = currentField && !isBoolean &&
+        inputParameteres[currentField.type];
+      const match = currentField && !isBoolean && parameters.pattern &&
         object.value.match(parameters.pattern);
       const wrongValue = match && match[0] !== object.value;
       const helpTextValue =
@@ -240,13 +281,13 @@ const AdvancedSearch = () => {
       };
       return (
         <div className={style.margined}>
-          <Selector
+          <LogicsAndFieldsSelector
             object={object}
             label={'field'}
-            options={fieldsAndLogics}
+            options={logicsAndFields}
             handleChange={event => {
               const newValue = event.target.value;
-              const isLogic = logicOptions.indexOf(newValue) !== -1;
+              const isLogic = logicOptions.includes(newValue);
               // If the new value is a logic
               if (isLogic) {
                 delete object.field;
@@ -298,7 +339,7 @@ const AdvancedSearch = () => {
             />
           )}
           {currentField && (
-            <Selector
+            <ComparatorSelector
               object={object}
               label={'comparator'}
               options={comparatorOptions}
@@ -345,10 +386,10 @@ const AdvancedSearch = () => {
     if (object.fields !== undefined) {
       return (
         <div className={style.margined}>
-          <Selector
+          <LogicsAndFieldsSelector
             object={object}
             label={'logic'}
-            options={fieldsAndLogics}
+            options={logicsAndFields}
             handleChange={event => {
               const newValue = event.target.value;
               const isField = logicOptions.indexOf(newValue) === -1;

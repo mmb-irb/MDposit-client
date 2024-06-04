@@ -14,7 +14,7 @@ export const MAIN_TRAJECTORY_FILENAME = 'trajectory.xtc';
 export const SCREENSHOT_FILENAME = 'screenshot.jpg';
 
 // The name how this analysis is tagged in the webpage
-// If no name is provided, the webpage will tag it with the defalt name
+// If no name is provided, the webpage will tag it with the default name
 export const NICE_NAMES = new Map([
     ['overview', 'Overview'],
     ['trajectory', 'Trajectory'],

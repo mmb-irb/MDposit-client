@@ -1,3 +1,9 @@
+// Import auxiliar functions
+import { copyObject } from "src/utils/auxiliar-functions";
+
+// Import default query fields
+import defaultQueryFields from "src/utils/constants/query-fields";
+
 // Set the behaviour of the web client depending of the URL which makes the request
 // Note that this script must be placed after the src directory for react to use it and JSX to be parsed
 
@@ -15,6 +21,8 @@
 // optionsLabel - Name of the options in the browse selector and the data summary
 // optionsNiceNames - Nice names for every possible value in the options field
 //                    Non-matching values will remain as they are
+// queryFields - Fields to be queried in the search and advanced search pages and their configurations
+
 
 // Set the default description
 const DEFAULT_DESCRIPTION = <>
@@ -37,9 +45,10 @@ const DEFAUL_HOST_CONFIGURATION = {
     optionsField: undefined, // No browser selector and no data summary pie chart by default
     optionsLabel: 'Options',
     optionsNiceNames: {},
+    queryFields: defaultQueryFields,
 };
 
-// Set default values for specific hosts
+// Set default values for specific collections
 // DANI: Para no repetirlo cada vez
 const COLLECTION_OPTIONS = {
     optionsField: 'metadata.COLLECTIONS',
@@ -54,7 +63,94 @@ const COLLECTION_OPTIONS = {
         'null': 'Independent',
         [null]: 'Independent',
     }
-}
+};
+
+// Set default values for covid19 specific units
+// DANI: Para no repetirlo cada vez
+const UNIT_OPTIONS = {
+    optionsField: 'metadata.CV19_UNIT',
+    optionsLabel: 'Unit',
+    optionsNiceNames: {} // There is no need to use nice names, they arleady are
+};
+
+// Set additional query fields
+// DANI: Para no repetirlo cada vez
+
+// Include the collections field, which makes no sense in some collection-specific nodes (e.g. covid, abc)
+const queryFieldsWithCollections = copyObject(defaultQueryFields);
+queryFieldsWithCollections["General annotations"].unshift(
+    {
+        name: "Collections",
+        path: "metadata.COLLECTIONS",
+        type: "string",
+        example: "cv19",
+        options: true,
+        checkbox : true,
+        defaultOpen : true
+    }
+);
+
+// BioExcel Covid19 specific fields
+const queryFieldsWithCovid = copyObject(defaultQueryFields);
+// Add the unit field at the beginning of the gener annotations
+queryFieldsWithCovid["General annotations"].unshift(
+    {
+        "name": "Unit",
+        "path": "metadata.CV19_UNIT",
+        "type": "string",
+        "example": "ACE2",
+        "options": true,
+        "checkbox" : true,
+        "defaultOpen" : true
+    }
+);
+// Create a new category for covid specific fields and add some
+queryFieldsWithCovid["Covid-specific annotations"] = [
+    {
+        "name": "Variants",
+        "path": "metadata.CV19_VARIANT",
+        "type": "string",
+        "example": "Delta",
+        "options": true
+    },
+    {
+        "name": "Presence of antibodies",
+        "path": "metadata.CV19_ABS",
+        "type": "boolean",
+        "options": true,
+        "checkbox" : true
+    },
+    {
+        "name": "Presence of nanobodies",
+        "path": "metadata.CV19_NANOBS",
+        "type": "boolean",
+        "options": true,
+        "checkbox" : true
+    },
+    {
+        "name": "Spike starting conformation",
+        "path": "metadata.CV19_STARTCONF",
+        "type": "string",
+        "options": true,
+        "checkbox" : true
+    },
+];
+
+// Set a custom description for the covid host
+const covidDescription = <>
+    <strong>BioExcel-CV19</strong> is a platform designed to provide
+    web-access to <strong>atomistic-MD trajectories</strong> for
+    macromolecules involved in the COVID-19 disease.<br/>
+    <br/>
+    The project is part of the open access initiatives promoted by the
+    world-wide scientific community to share information about COVID-19
+    research.<br/>
+    <br/>
+    <strong>BioExcel-CV19 web server interface</strong> presents the
+    resulting trajectories, with a set of quality control analyses and
+    system information. All data produced by the project is available to
+    download from an associated programmatic access API.
+</>;
 
 // Set every host configuration
 const HOST_CONFIGURATIONS = {
@@ -68,6 +164,7 @@ const HOST_CONFIGURATIONS = {
         api: 'https://mdposit-dev.mddbr.eu/api/rest/',
         primaryColor: '#5c6bc0', // Light indigo
         ...COLLECTION_OPTIONS,
+
     },
     // MDposit production
     'mdposit.mddbr.eu': {
@@ -75,12 +172,14 @@ const HOST_CONFIGURATIONS = {
         production: true,
         primaryColor: '#5c6bc0', // Light indigo
         ...COLLECTION_OPTIONS,
+        queryFields: queryFieldsWithCollections,
     },
     // MDposit development (obsolete url)
     'mdposit-dev.bsc.es': {
         api: 'https://mdposit-dev.mddbr.eu/api/rest/',
         primaryColor: '#5c6bc0', // Light indigo
         ...COLLECTION_OPTIONS,
+        queryFields: queryFieldsWithCollections,
     },
     // MMB node development
     'mmb-dev.mddbr.eu': {
@@ -91,7 +190,8 @@ const HOST_CONFIGURATIONS = {
             {DEFAULT_DESCRIPTION}<br/>
             This node contains simulations stored at the MMB group at IRB Barcelona.
         </>,
-        ...COLLECTION_OPTIONS
+        ...COLLECTION_OPTIONS,
+        queryFields: queryFieldsWithCollections,
     },
     // MMB node production
     'mmb.mddbr.eu': {
@@ -103,7 +203,8 @@ const HOST_CONFIGURATIONS = {
             {DEFAULT_DESCRIPTION}<br/>
             This node contains simulations stored at the MMB group at IRB Barcelona.
         </>,
-        ...COLLECTION_OPTIONS
+        ...COLLECTION_OPTIONS,
+        queryFields: queryFieldsWithCollections,
     },
     // ABC node development
     'abc-dev.mddbr.eu': {
@@ -157,6 +258,27 @@ const HOST_CONFIGURATIONS = {
             {DEFAULT_DESCRIPTION}<br/>
             This node contains simulations from the Cineca node in Bologna.
         </>
+    },
+    // BioExcel covid19 development
+    'https://bioexcel-cv19-dev.bsc.es': {
+        api: 'https://bioexcel-cv19-dev.bsc.es/api/rest/',
+        description: covidDescription,
+        logo: 'logo-bioexcel-cv19',
+        primaryColor: '#607D8B', // Light grey
+        secondaryColor: '#76FF03', // Light green
+        ...UNIT_OPTIONS,
+        queryFields: queryFieldsWithCovid,
+    },
+    // BioExcel covid19 production
+    'https://bioexcel-cv19.bsc.es': {
+        api: 'https://bioexcel-cv19.bsc.es/api/rest/',
+        production: true,
+        description: covidDescription,
+        logo: 'logo-bioexcel-cv19',
+        primaryColor: '#607D8B', // Light grey
+        secondaryColor: '#76FF03', // Light green
+        ...UNIT_OPTIONS,
+        queryFields: queryFieldsWithCovid,
     },
 };
 
