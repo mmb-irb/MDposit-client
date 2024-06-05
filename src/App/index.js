@@ -137,6 +137,7 @@ const CustomRouter = ({ history, ...props }) => {
 
 // Go to the Root script, where there is a switch/route section with all pages
 const App = () => {
+  // Setup google analytics
   useEffect(() => {
     ReactGA.initialize(googleAnalyticsId, {
       debug: false,
@@ -146,6 +147,21 @@ const App = () => {
       },
     });
     ReactGA.pageview(history.location.pathname);
+  }, []);
+  // Update the favicon and sheet header name according to host configuration
+  useEffect(() => {
+    // Update the ducment title, which is the sheet header name
+    document.title = HOST_CONFIG.name;
+    // Get the icon link element
+    let link = document.querySelector("link[rel~='icon']");
+    // Create it if it does not exist yet
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.getElementsByTagName('head')[0].appendChild(link);
+    }
+    // Edit the href to mak it point to the corresponding host favicon
+    link.href = `/${HOST_CONFIG.favicon}.ico`;
   }, []);
   return (
     <ErrorBoundary>

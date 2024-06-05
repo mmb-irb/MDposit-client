@@ -11,8 +11,12 @@ import defaultQueryFields from "src/utils/constants/query-fields";
 // Default values are assigned for every missing value
 // api - API URL to query
 // production - Set if this is production or not (i.e. development)
+// name - Name to be displayed in the sheet header
+// favicon - Icon filename (without the format extension) to be displayed in the sheet header
+//           Icons are located at public/.
 // description - Text or JSX to be displayed in the home page
 // logo - Logo filename (without the format extension) to be dipslayed on the top-left corner, in the header
+//        Images are located at src/images/.
 // primaryColor - Color of the header and additional regions along the whole web page
 // secondaryColor - Color of non-primary regions along the whole web page
 // searchExample - Search example: This is shown in search bars as placeholder when they are empty
@@ -37,6 +41,8 @@ const DEFAULT_DESCRIPTION = <>
 const DEFAUL_HOST_CONFIGURATION = {
     api: 'https://mmb-dev.mddbr.eu/api/rest/',
     production: false,
+    name: 'MDposit',
+    favicon: 'mdposit_favicon',
     description: DEFAULT_DESCRIPTION,
     logo: 'logo-mdposit',
     primaryColor: '#808080', // Grey
@@ -263,6 +269,8 @@ const HOST_CONFIGURATIONS = {
     'bioexcel-cv19-dev.bsc.es': {
         api: 'https://bioexcel-cv19-dev.bsc.es/api/rest/',
         description: covidDescription,
+        name: 'BioExcel - Covid19',
+        favicon: 'bioexcel_favicon',
         logo: 'logo-bioexcel-cv19',
         primaryColor: '#607D8B', // Light grey
         secondaryColor: '#76FF03', // Light green
@@ -273,6 +281,8 @@ const HOST_CONFIGURATIONS = {
     'bioexcel-cv19.bsc.es': {
         api: 'https://bioexcel-cv19.bsc.es/api/rest/',
         production: true,
+        name: 'BioExcel - Covid19',
+        favicon: 'bioexcel_favicon',
         description: covidDescription,
         logo: 'logo-bioexcel-cv19',
         primaryColor: '#607D8B', // Light grey
