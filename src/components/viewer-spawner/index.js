@@ -128,7 +128,7 @@ const NGLViewerInDND = props => {
       // Prevent the mouse to drag/resize the window when it is over specific elements
       cancel="canvas, [data-popover], #preventDragSize"
       // On drag/resize starts we do not change anything, but use the hook to re-render this component
-      // This way, the zIndex is updated and the selected window becomes the first in the z axis
+      // The Z Index is updated and the selected window becomes the first in the z axis automatically
       // WARNING: Drag functions are also called when you just click (e.g. clicking buttons)
       onDragStart={() => {
         setPlace({ ...place });

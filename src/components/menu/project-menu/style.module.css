@@ -30,3 +30,7 @@ https://stackoverflow.com/questions/23408539/how-can-i-make-a-displayflex-contai
 .disabled {
   color: #999999;
 }
+
+.popper {
+  z-index: 100;
+}

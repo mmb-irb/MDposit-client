@@ -283,6 +283,7 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
               anchorEl={element}
               transition
               placement={'bottom'}
+              className={style.popper}
             >
               {({ TransitionProps }) => (
                 <Grow
