@@ -260,7 +260,7 @@ const HOST_CONFIGURATIONS = {
         </>
     },
     // BioExcel covid19 development
-    'https://bioexcel-cv19-dev.bsc.es': {
+    'bioexcel-cv19-dev.bsc.es': {
         api: 'https://bioexcel-cv19-dev.bsc.es/api/rest/',
         description: covidDescription,
         logo: 'logo-bioexcel-cv19',
@@ -270,7 +270,7 @@ const HOST_CONFIGURATIONS = {
         queryFields: queryFieldsWithCovid,
     },
     // BioExcel covid19 production
-    'https://bioexcel-cv19.bsc.es': {
+    'bioexcel-cv19.bsc.es': {
         api: 'https://bioexcel-cv19.bsc.es/api/rest/',
         production: true,
         description: covidDescription,
