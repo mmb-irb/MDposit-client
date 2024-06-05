@@ -193,10 +193,11 @@ const SummarySwitch = ({ subPage, dataUrl }) => {
         <Routes>
           <Route
             path={`/`}
-            element={
+            element={Component ?
               <Suspense fallback={<Loading />}>
                 <Component />
               </Suspense>
+              : <>{`Subpage "${subPage}" not known`}</>
             }
           />
           <Route
