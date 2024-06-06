@@ -57,7 +57,7 @@ export default {
         },
         {
             "name": "Ligand PubChem id",
-            "path": "references.ligands.pubchem",
+            "path": "metadata.LIGANDS",
             "type": "string",
             "example": "1986",
             "options": true,
