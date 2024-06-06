@@ -1,5 +1,4 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import {
   CardContent,
   CardActions,
@@ -195,25 +194,6 @@ export default React.memo(() => {
                   </div>
                 ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
-      {mds && mds.length > 1 && (
-        <Card className={style.card}>
-          <CardContent className={style['card-content']}>
-            <Typography variant="h6">Available MDs</Typography>
-            {mds.map((mdName, mdIndex) => (
-              <Chip
-                key={mdIndex}
-                title={mdName}
-                className={style.chip}
-                variant="outlined"
-                label={mdName}
-                clickable
-                component={Link}
-                to={{ pathname: `/id/${accession || identifier}.${mdIndex + 1}` }}
-              />
-            ))}
           </CardContent>
         </Card>
       )}

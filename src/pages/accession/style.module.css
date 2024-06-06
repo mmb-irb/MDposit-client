@@ -19,3 +19,8 @@
   margin: 0 0.2em;
   cursor: help;
 }
+
+.selector {
+  margin-left: 0.5em;
+  font-size: large;
+}

@@ -1,9 +1,9 @@
 // React logic
 import React, { lazy, Suspense, useContext, useMemo, useState } from 'react';
-import { Link, Routes, Route, useLocation, useParams } from 'react-router-dom';
+import { Link, Routes, Route, useLocation, useParams, useNavigate } from 'react-router-dom';
 
 // Visual assets
-import { Typography, Button } from '@mui/material';
+import { Typography, Button, Select, MenuItem } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLink, faBook } from '@fortawesome/free-solid-svg-icons';
 
@@ -249,8 +249,9 @@ const checkProjectDataUpdated = (projectData, requestedAccession, requestedMdNum
 };
 
 export default () => {
-  // Get the location and the parameters
+  // Get the location and the history
   const location = useLocation();
+  const history = useNavigate();
   // Get the project accession according to the URL
   // Get the actual page where the user is going according to the URL
   const { accession: accessionAndMdNumber, page } = useParams();
@@ -336,8 +337,26 @@ export default () => {
       <span className={style.container}>
         {/* Render the accession */}
         <Typography variant="h6" className={style.title}>
-          {accessionAndMdNumber} - {NICE_NAMES.get(page) || page}
-          {isJson ? ' (raw data)' : ''}
+          {accession}
+          {/* MD selector */}
+          {project.mds.length > 1 &&
+            <Select
+              variant="standard"
+              value={project.mdIndex}
+              onChange={event => {
+                const newMdNumber = event.target.value + 1;
+                history(`/id/${accession}.${newMdNumber}/${page}`);
+              }}
+              className={style.selector}
+            >
+              {project.mds.map((md, i) => (
+                <MenuItem key={i} value={i}>
+                  {md}
+                </MenuItem>
+              ))}
+            </Select>
+          }
+          {` / ${NICE_NAMES.get(page) || page} ${isJson ? ' (raw data)' : ''}`}
           {!isJson && doc && doc.page && (
             <Info tooltip={tooltip} className={style.info} />
           )}
