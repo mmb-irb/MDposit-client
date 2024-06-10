@@ -39,6 +39,7 @@
     "react-minimal-pie-chart": "^8.2.0",
     "react-rnd": "10.1.7",
     "react-router-dom": "6.9.0",
+    "react-simple-maps": "^3.0.0",
     "screenfull": "5.0.0",
     "stream-http": "^3.2.0",
     "timing-functions": "1.0.0",

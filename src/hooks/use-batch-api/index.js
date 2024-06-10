@@ -44,15 +44,27 @@ const useBatchAPI = urls => {
     // Iterate over each url
     urls.forEach((url, i) => {
       // Make a request in a Promise/await way
-      axios(url, { cancelToken: source.token, responseType: 'arraybuffer' })
+      axios(url, {
+        // This token allows us to further cancel the request if necessary
+        cancelToken: source.token,
+        // Send the start time so we can calculate the response time when we get the response
+        startTime: new Date(),
+        responseType: 'arraybuffer'
+      })
         // (.then is async) If the request has succeed
         .then(response => {
           if (didCancel) return;
+          // Calculate the response time
+          const endTime = new Date();
+          const startTime = response.config.startTime;
+          const responseTime = endTime - startTime; // In ms
+          // Return response data
           const responseData = {
             url: url,
             loading: false,
             payload: response.data,
             error: null,
+            time: responseTime
           };
           setData(previousData => {
             const newData = [ ...previousData ]

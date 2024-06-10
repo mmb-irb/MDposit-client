@@ -8,8 +8,14 @@ import { MenuList, MenuItem, Typography } from '@mui/material';
 // All text to be displayed is set previously here
 import { documentation } from './documentation';
 
-import { BASE_PATH_PROJECTS, HOST_CONFIG } from '../../utils/constants';
-import useAPI from '../../hooks/use-api'; // API acces
+// Import the map chart to display where nodes are (global client only)
+import NodeMap from './nodemap';
+
+// Constants
+import { BASE_PATH, BASE_PATH_PROJECTS, HOST_CONFIG } from '../../utils/constants';
+// API acces
+import useAPI from '../../hooks/use-api';
+import useBatchAPI from 'src/hooks/use-batch-api';
 
 import style from './style.module.css';
 
@@ -56,9 +62,7 @@ const useStatistics = () => {
 
   // Use the API to get the options
   const optionsUrl = `${BASE_PATH_PROJECTS}/options?projection=${HOST_CONFIG.optionsField}`;
-  const { payload: optionsPayload, error: optionsError } = useAPI(
-    optionsUrl,
-  );
+  const { payload: optionsPayload, error: optionsError } = useAPI(optionsUrl);
 
   // Build the options component
   // If options data is not yet downloaded then show a blank pie chart
@@ -198,6 +202,24 @@ const useStatistics = () => {
     )
   }, [atomsPayload]);
 
+  // Check if this is the global cliente
+  const isGlobal = HOST_CONFIG.global;
+
+  // Get nodes info
+  // Use the API to get the nodes info
+  const nodesUrl = isGlobal ? `${BASE_PATH}/current/nodes` : null;
+  const { payload: nodesPayload, error: nodesError } = useAPI(nodesUrl);
+
+  // If this is the global client then ping all nodes to check the response time
+  if (isGlobal) {
+    const PingUrls = useMemo(() => {
+      if (!nodesPayload) return [];
+      return nodesPayload.map(node => node.api_url);
+    }, [nodesPayload]);
+    const pingResponses = useBatchAPI(PingUrls);
+    //console.log(pingResponses);
+  }  
+
   // Finally build the statistics component from all subcomponents and inject it in the docs
   useMemo(() => {
     const StatisticsComponent = {
@@ -215,6 +237,10 @@ const useStatistics = () => {
             {`Projects per ${HOST_CONFIG.optionsLabel}`}
             {OptionsComponent}
           </>}
+          {isGlobal && [
+            'Node locations',
+            <NodeMap key={1} nodeData={nodesPayload} className={style.nodemap}/>,
+          ]}
           Projects per non-equilibrium MD method:
           {MethodsComponent}
           <br />
@@ -241,7 +267,7 @@ const useStatistics = () => {
 
   // Handle possible errors by just showing a log error in the console
   // Thus we allow the rest of the page to keep loading
-  [summaryError, optionsError, methodsError, snapshotsError, oldSnapshotsError, atomsError].forEach(error => {
+  [summaryError, optionsError, methodsError, snapshotsError, oldSnapshotsError, atomsError, nodesError].forEach(error => {
     if (error) console.error(error.message);
   });
 };

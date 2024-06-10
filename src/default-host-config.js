@@ -10,7 +10,8 @@ import defaultQueryFields from "src/utils/constants/query-fields";
 // Here are the parameters assigned here for every host
 // Default values are assigned for every missing value
 // api - API URL to query
-// production - Set if this is production or not (i.e. development)
+// production - Set if this is production (true) or development (false)
+// global - Set if the API is the global (true) or federated (false)
 // name - Name to be displayed in the sheet header
 // favicon - Icon filename (without the format extension) to be displayed in the sheet header
 //           Icons are located at public/.
@@ -54,7 +55,7 @@ const DEFAUL_HOST_CONFIGURATION = {
     queryFields: defaultQueryFields,
 };
 
-// Set default values for specific collections
+// Set the configuration for the collections option
 // DANI: Para no repetirlo cada vez
 const COLLECTION_OPTIONS = {
     optionsField: 'metadata.COLLECTIONS',
@@ -71,7 +72,7 @@ const COLLECTION_OPTIONS = {
     }
 };
 
-// Set default values for covid19 specific units
+// Set the configuration for covid19 specific units option
 // DANI: Para no repetirlo cada vez
 const UNIT_OPTIONS = {
     optionsField: 'metadata.CV19_UNIT',
@@ -79,22 +80,48 @@ const UNIT_OPTIONS = {
     optionsNiceNames: {} // There is no need to use nice names, they arleady are
 };
 
+// Set the configuration for MDposit node option
+// DANI: Para no repetirlo cada vez
+const NODE_OPTIONS = {
+    optionsField: 'node',
+    optionsLabel: 'Node',
+    optionsNiceNames: {
+        'mmb': 'IRB Barcelona, MMB',
+        'abc': 'IRB Barcelona, ABC',
+        'pklr': 'BSC - Piruvat Kinase',
+        'oxf': 'Oxford University',
+        'cin': 'Cineca',
+    }
+};
+
 // Set additional query fields
 // DANI: Para no repetirlo cada vez
 
 // Include the collections field, which makes no sense in some collection-specific nodes (e.g. covid, abc)
 const queryFieldsWithCollections = copyObject(defaultQueryFields);
-queryFieldsWithCollections["General annotations"].unshift(
-    {
-        name: "Collections",
-        path: "metadata.COLLECTIONS",
-        type: "string",
-        example: "cv19",
-        options: true,
-        checkbox : true,
-        defaultOpen : true
-    }
-);
+const collectionsField = {
+    name: "Collections",
+    path: "metadata.COLLECTIONS",
+    type: "string",
+    example: "cv19",
+    options: true,
+    checkbox : true,
+    defaultOpen : true
+};
+queryFieldsWithCollections["General annotations"].unshift(collectionsField);
+
+// Include the collections field, which makes no sense in some collection-specific nodes (e.g. covid, abc)
+const queryFieldsWithNodesAndCollections = copyObject(defaultQueryFields);
+queryFieldsWithNodesAndCollections["General annotations"].unshift(collectionsField);
+queryFieldsWithNodesAndCollections["General annotations"].unshift({
+    name: "Node",
+    path: "node",
+    type: "string",
+    example: "mmb",
+    options: true,
+    checkbox : true,
+    defaultOpen : true
+});
 
 // BioExcel Covid19 specific fields
 const queryFieldsWithCovid = copyObject(defaultQueryFields);
@@ -168,24 +195,27 @@ const HOST_CONFIGURATIONS = {
     // MDposit development
     'mdposit-dev.mddbr.eu': {
         api: 'https://mdposit-dev.mddbr.eu/api/rest/',
+        global: true,
         primaryColor: '#5c6bc0', // Light indigo
-        ...COLLECTION_OPTIONS,
-
+        ...NODE_OPTIONS,
+        queryFields: queryFieldsWithNodesAndCollections,
     },
     // MDposit production
     'mdposit.mddbr.eu': {
         api: 'https://mdposit.mddbr.eu/api/rest/',
         production: true,
+        global: true,
         primaryColor: '#5c6bc0', // Light indigo
-        ...COLLECTION_OPTIONS,
-        queryFields: queryFieldsWithCollections,
+        ...NODE_OPTIONS,
+        queryFields: queryFieldsWithNodesAndCollections,
     },
     // MDposit development (obsolete url)
     'mdposit-dev.bsc.es': {
         api: 'https://mdposit-dev.mddbr.eu/api/rest/',
+        global: true,
         primaryColor: '#5c6bc0', // Light indigo
-        ...COLLECTION_OPTIONS,
-        queryFields: queryFieldsWithCollections,
+        ...NODE_OPTIONS,
+        queryFields: queryFieldsWithNodesAndCollections,
     },
     // MMB node development
     'mmb-dev.mddbr.eu': {
@@ -293,7 +323,7 @@ const HOST_CONFIGURATIONS = {
 };
 
 // Set the current host configuration
-const HOST_CONFIG = HOST_CONFIGURATIONS[window.location.hostname] || HOST_CONFIGURATIONS['localhost'];
+const HOST_CONFIG = HOST_CONFIGURATIONS['mdposit-dev.mddbr.eu'] || HOST_CONFIGURATIONS['localhost'];
 
 // Fill the host configuration gaps with default values
 Object.entries(DEFAUL_HOST_CONFIGURATION).forEach(([ field, defaultValue ]) => {
