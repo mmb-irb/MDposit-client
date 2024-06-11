@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 
 // Visual assets
 import { MenuList, MenuItem, Typography } from '@mui/material';
+import { DataGrid } from '@mui/x-data-grid';
 
 // All text to be displayed is set previously here
 import { documentation } from './documentation';
@@ -210,15 +211,37 @@ const useStatistics = () => {
   const nodesUrl = isGlobal ? `${BASE_PATH}/current/nodes` : null;
   const { payload: nodesPayload, error: nodesError } = useAPI(nodesUrl);
 
+  // Set the node map
+  const NodeMapComponent = useMemo(() =>
+    <NodeMap key={1} nodeData={nodesPayload} className={style.nodemap}/>,
+  [nodesPayload]);
+
   // If this is the global client then ping all nodes to check the response time
-  if (isGlobal) {
-    const PingUrls = useMemo(() => {
-      if (!nodesPayload) return [];
-      return nodesPayload.map(node => node.api_url);
-    }, [nodesPayload]);
-    const pingResponses = useBatchAPI(PingUrls);
-    //console.log(pingResponses);
-  }  
+  const pingUrls = useMemo(() => {
+    if (!isGlobal || !nodesPayload) return [];
+    return nodesPayload.map(node => node.api_url);
+  }, [nodesPayload]);
+  const pingResponses = useBatchAPI(pingUrls);
+
+  // Set the table to be displayed including ping response times
+  const NodeTableComponent = useMemo(() => {
+    if (!pingResponses || pingResponses.length === 0) return;
+    // Set table columns
+    const columns = [
+      { field: 'node', headerName: 'Node name', flex: 0.6, align: 'center', headerAlign: 'center' },
+      { field: 'ping', headerName: 'Response time', flex: 0.4, align: 'center', headerAlign: 'center' }
+    ];
+    // Set a table row for every node
+    const rows = nodesPayload.map(node => {
+      const ping = pingResponses.find(response => response.url === node.api_url);
+      const responseTime = ping && ping.time ? `${ping.time}ms` : '...';
+      // The 'id' field is not used but it is required by the data table
+      return { id: node.alias, key: node.alias, node: node.name, ping: responseTime };
+    });
+    // Return the data table
+    return <DataGrid columns={columns} rows={rows} disableRowSelectionOnClick hideFooter key={'node table'}/>;
+  }, [nodesPayload, pingResponses]);
+  
 
   // Finally build the statistics component from all subcomponents and inject it in the docs
   useMemo(() => {
@@ -239,7 +262,9 @@ const useStatistics = () => {
           </>}
           {isGlobal && [
             'Node locations',
-            <NodeMap key={1} nodeData={nodesPayload} className={style.nodemap}/>,
+            NodeMapComponent,
+            NodeTableComponent,
+            <br key={'br'}/>
           ]}
           Projects per non-equilibrium MD method:
           {MethodsComponent}
@@ -263,7 +288,15 @@ const useStatistics = () => {
     // In case there is a summary already, from a previous render, delete it
     if (introduction.children[introduction.children.length - 1].id === 'summary') introduction.children.pop();
     introduction.children.push(StatisticsComponent);
-  }, [SummaryComponent, OptionsComponent, MethodsComponent, SnapshotsComponent, AtomsComponent]);
+  }, [
+    SummaryComponent,
+    OptionsComponent,
+    MethodsComponent,
+    SnapshotsComponent,
+    AtomsComponent,
+    NodeMapComponent,
+    NodeTableComponent
+  ]);
 
   // Handle possible errors by just showing a log error in the console
   // Thus we allow the rest of the page to keep loading
