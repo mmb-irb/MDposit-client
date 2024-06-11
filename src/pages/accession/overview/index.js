@@ -22,6 +22,8 @@ import https from 'https-browserify';
 
 import style from './style.module.css';
 
+import { HOST_CONFIG } from '../../../utils/constants';
+
 const COMMA_SEPARATOR = /\s*,\s*/;
 
 const typeSettings = {
@@ -36,7 +38,7 @@ const typeSettings = {
 };
 
 export default React.memo(() => {
-  const { accession, identifier, published, metadata, proteinReferences, mds } = useContext(
+  const { accession, identifier, published, metadata, proteinReferences, mds, node } = useContext(
     ProjectCtx,
   );
   // Download pdb information for every pdb id in metadata
@@ -170,6 +172,8 @@ export default React.memo(() => {
               {metadata.DESCRIPTION && <div>{metadata.DESCRIPTION}</div>}
               {metadata.AUTHORS && <div>Authors: {prettyEnumerate(metadata.AUTHORS)}</div>}
               {metadata.GROUPS && <div>Groups: {rawEnumerate(metadata.GROUPS)}</div>}
+              {/* Node will exist only in the global API, and the global client has nodes as options */}
+              {HOST_CONFIG.global && node && <div>Node: {HOST_CONFIG.optionsNiceNames[node] || node}</div>}
               {metadata.CONTACT && <div>Contact: {metadata.CONTACT}</div>}
               {metadata.PROGRAM && <div>Program: {metadata.PROGRAM}</div>}
               {metadata.VERSION && <div>Version: {metadata.VERSION}</div>}
