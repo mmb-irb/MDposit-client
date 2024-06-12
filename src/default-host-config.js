@@ -323,8 +323,8 @@ const HOST_CONFIGURATIONS = {
 };
 
 // Set the current host configuration
-//const HOST_CONFIG = HOST_CONFIGURATIONS[window.location.hostname] || HOST_CONFIGURATIONS['localhost'];
-const HOST_CONFIG = HOST_CONFIGURATIONS['mdposit-dev.mddbr.eu'];
+const HOST_CONFIG = HOST_CONFIGURATIONS[window.location.hostname] || HOST_CONFIGURATIONS['localhost'];
+//const HOST_CONFIG = HOST_CONFIGURATIONS['mdposit-dev.mddbr.eu'];
 
 // Fill the host configuration gaps with default values
 Object.entries(DEFAUL_HOST_CONFIGURATION).forEach(([ field, defaultValue ]) => {
