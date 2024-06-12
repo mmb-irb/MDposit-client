@@ -5,6 +5,8 @@ import { Link, useLocation } from 'react-router-dom';
 // Visual assets
 import { MenuList, MenuItem, Typography } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ErrorIcon from '@mui/icons-material/Error';
 
 // All text to be displayed is set previously here
 import { documentation } from './documentation';
@@ -24,6 +26,13 @@ import { PieChart } from 'react-minimal-pie-chart';
 import distinctColors from 'distinct-colors';
 import SimpleLegend from '../../components/simple-legend';
 import Histogram from '../../components/histogram';
+
+// Set a function to return one symbol or another depending on a node status
+const renderStatusSymbol = status => {
+  if (status === 'active') return <CheckCircleIcon style={{ color: 'green', marginTop: '0.5em' }}/>;
+  if (status === 'fallen') return <ErrorIcon style={{ color: 'red', marginTop: '0.5em' }}/>;
+  throw new Error(`Not supported status ${status}`);
+}
 
 // Build and inject the statistics component to the documentation
 // Note that this component is injected when data is not yet downloaded as a placeholder
@@ -228,15 +237,18 @@ const useStatistics = () => {
     if (!pingResponses || pingResponses.length === 0) return;
     // Set table columns
     const columns = [
-      { field: 'node', headerName: 'Node name', flex: 0.6, align: 'center', headerAlign: 'center' },
-      { field: 'ping', headerName: 'Response time', flex: 0.4, align: 'center', headerAlign: 'center' }
+      { field: 'node', headerName: 'Node name', flex: 0.5, align: 'center', headerAlign: 'center' },
+      { field: 'status', headerName: 'Status', flex: 0.2, align: 'center', headerAlign: 'center',
+        renderCell: params => renderStatusSymbol(params.value) },
+      { field: 'ping', headerName: 'Response time', flex: 0.3, align: 'center', headerAlign: 'center' }
     ];
     // Set a table row for every node
     const rows = nodesPayload.map(node => {
       const ping = pingResponses.find(response => response.url === node.api_url);
+      const status = ping && ping.time ? 'active' : 'fallen';
       const responseTime = ping && ping.time ? `${ping.time}ms` : '...';
       // The 'id' field is not used but it is required by the data table
-      return { id: node.alias, key: node.alias, node: node.name, ping: responseTime };
+      return { id: node.alias, key: node.alias, node: node.name, status: status, ping: responseTime };
     });
     // Return the data table
     return <DataGrid columns={columns} rows={rows} disableRowSelectionOnClick hideFooter key={'node table'}/>;
