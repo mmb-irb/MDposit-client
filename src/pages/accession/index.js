@@ -6,6 +6,7 @@ import { Link, Routes, Route, useLocation, useParams, useNavigate } from 'react-
 import { Typography, Button, Select, MenuItem } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLink, faBook } from '@fortawesome/free-solid-svg-icons';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 // Hooks
 import useAPI from '../../hooks/use-api'; // API acces
@@ -329,6 +330,8 @@ export default () => {
   const isJson = fullpath.substr(fullpath.length - 5) === '/json';
   // Set the API URL to obtain the corresponding web page data
   const dataUrl = getDataURL(accessionAndMdNumber, page);
+  // Check if there are multiple MDs
+  const multipleMDs = project.mds.length > 1;
   // Return the accession routes
   return (
     // Set the project context, which is used by different scripts including this
@@ -337,9 +340,10 @@ export default () => {
       <span className={style.container}>
         {/* Render the accession */}
         <Typography variant="h6" className={style.title}>
-          {accession}
+          {`Project ${accession}`}
+          <ChevronRightIcon color="primary" fontSize='large'/>
           {/* MD selector */}
-          {project.mds.length > 1 &&
+          {multipleMDs &&
             <Select
               variant="standard"
               value={project.mdIndex}
@@ -356,7 +360,8 @@ export default () => {
               ))}
             </Select>
           }
-          {` / ${NICE_NAMES.get(page) || page} ${isJson ? ' (raw data)' : ''}`}
+          {multipleMDs && <ChevronRightIcon color="primary" fontSize='large'/>}
+          {`${NICE_NAMES.get(page) || page} page ${isJson ? ' (raw data)' : ''}`}
           {!isJson && doc && doc.page && (
             <Info tooltip={tooltip} className={style.info} />
           )}
