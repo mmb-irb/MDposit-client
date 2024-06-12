@@ -169,6 +169,7 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
         return;
       // Get the NGL selection for ligand residues
       const residueIndices = topology.getReferenceResidueIndices(ligandReference.pubchem);
+      if (!residueIndices) throw new Error(`Ligand reference "${ligandReference.pubchem}" not found in topology`);
       const { rangedSelection: nglSelection } = topology.residueIndices2Ngl(residueIndices);
       // Set the ligand domain
       const ligandDomain = {
