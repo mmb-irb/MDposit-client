@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useState, useEffect, useLayoutEffect } from 'react';
-import ReactGA from 'react-ga';
+import ReactGA from 'react-ga4';
 import { Routes, Route, Router } from 'react-router-dom';
 import { createHashHistory } from 'history';
 import { sleep } from 'timing-functions';
@@ -146,7 +146,8 @@ const App = () => {
         storeGac: false,
       },
     });
-    ReactGA.pageview(history.location.pathname);
+    // Send pageview with a custom path
+    ReactGA.send({ hitType: "pageview", page: history.location.pathname, title: "Some page" });
   }, []);
   // Update the favicon and sheet header name according to host configuration
   useEffect(() => {

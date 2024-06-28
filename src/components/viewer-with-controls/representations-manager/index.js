@@ -20,7 +20,6 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 import style from './style.module.css';
-import { set } from 'react-ga';
 
 const availableDrawingMethods = [
   {
