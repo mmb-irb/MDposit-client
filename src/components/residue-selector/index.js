@@ -62,7 +62,7 @@ const ResidueSelector = ({
   // Get the residues list in model notation
   const { sequences, residueData, maxValue, minValue } = useMemo(() => {
     if (!topologyManager) return {};
-    const residuesCount = topologyManager.getResiduesCount();
+    const residuesCount = topologyManager.residueCount;
     // Get all topology residues and separate them by chains
     const chains = {};
     // Get also all residues together and fill missing residues with nulls

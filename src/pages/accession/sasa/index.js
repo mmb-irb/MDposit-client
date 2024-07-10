@@ -102,7 +102,7 @@ const Sasa = () => {
 
     // Check data to be coherent
     // Note that sasa analysis must always have the same number of residues that the topology
-    const residueCount = topologyManager.getResiduesCount();
+    const residueCount = topologyManager.residueCount;
     if (residueCount !== payload.saspf.length)
       throw new Error(
         'Number of residues in the analysis does not match number of residues in the topology',

@@ -142,7 +142,7 @@ const useDefaultRepresentations = () => {
       );
       representedResidues.push(...residues);
     });
-    const residuesCount = topology.getResiduesCount();
+    const residuesCount = topology.residueCount;
     const nonRepresentedResidues = [];
     for (let i = 0; i < residuesCount; i++) {
       if (representedResidues.indexOf(i) === -1) nonRepresentedResidues.push(i);

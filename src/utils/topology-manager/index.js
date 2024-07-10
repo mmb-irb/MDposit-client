@@ -474,6 +474,10 @@ export class Topology {
   // BASICS
   // --------------------------------------------------------------------
 
+  get residueCount () {
+    return this.residueNumbers.length;
+  }
+
   // Get atom data from atom index
   getAtomName = atomIndex => {
     return this.atomNames[atomIndex];
@@ -482,11 +486,6 @@ export class Topology {
   // Given an atom, return its residue index
   getAtomResidueIndex = atomIndex => {
     return this.atomResidueIndices[atomIndex];
-  };
-
-  // Get the total number of residues in topology
-  getResiduesCount = () => {
-    return this.residueNumbers.length;
   };
 
   // --------------------------------------------------------------------

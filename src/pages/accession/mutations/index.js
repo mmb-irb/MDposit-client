@@ -41,7 +41,7 @@ const Mutations = () => {
   const residueEntropies = useMemo(() => {
     if (!topologyManager) return;
     // Iterate over all residues in the topology to find their corresponding entropy
-    const residuesCount = topologyManager.getResiduesCount();
+    const residuesCount = topologyManager.residueCount;
     const residueEntropies = new Array(residuesCount).fill(null);
     // Iterate over all residues in the topology to find their corresponding entropy
     for (let i = 0; i < residuesCount; i++) {
