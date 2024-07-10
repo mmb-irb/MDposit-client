@@ -25,23 +25,24 @@ const ColorLegend = ({
   // Create a fake 'data' object for the heatmap
   const { legendData, legendLabels } = useMemo(() => {
     // Set the legend, which is another heatmap
+    // Make labels for different value regions
     const values = [];
-    for (let i = minValue; i <= maxValue; i += (maxValue - minValue) / splits)
+    // If the minimum and maximum are the same then there is only one label to show
+    if (minValue === maxValue) values.push(minValue);
+    // Otherwise make the different regions
+    // WARNING: If we have same minimum and maximum values then the logic below will enter in an infinite loop
+    else for (let i = minValue; i <= maxValue; i += (maxValue - minValue) / splits)
       values.push(i);
 
-    let legendLabels;
     // Round all values
-    legendLabels = values.map(val => Math.round(val));
-    // If are there repeated labels we round to decimals
-    for (
-      let decimal = 1;
-      new Set(legendLabels).size < legendLabels.length;
-      decimal++
-    ) {
-      legendLabels = values.map(
-        val => Math.round(val * 10 ** decimal) / 10 ** decimal,
-      );
-    }
+    let legendLabels = values.map(val => Math.round(val));
+    // If there is more than 1 label then the make sure all of them are unique
+    // WARNING: If we have a single label  the logic below will enter in an infinite loop
+    if (legendLabels.length > 1)
+      // If there are repeated labels then we round to the next 10 fold lower scale until there are no more duplicates
+      for (let decimal = 1; new Set(legendLabels).size < legendLabels.length; decimal++) {
+        legendLabels = values.map(val => Math.round(val * 10 ** decimal) / 10 ** decimal);
+      }
 
     // Data must be an array inside an array
     const legendData = vertical ? values.map(v => [v]) : [values];
