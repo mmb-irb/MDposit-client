@@ -61,6 +61,8 @@ const Sasa = () => {
     accessionAndMdNumber,
     metadata,
     topology: topologyManager,
+    // Use populations to calculate mean SAS values
+    // Frames which represent a higher populated state have a stronger weight in the calculation
     populations,
   } = useContext(ProjectCtx);
 
@@ -92,12 +94,8 @@ const Sasa = () => {
     xWeights,
     data,
   } = useMemo(() => {
-    if (
-      !topologyManager ||
-      !metadata ||
-      !payload ||
-      (populations && populations.loading)
-    )
+    // If we are sting waiting for data to load then stop here
+    if (!topologyManager || !metadata || !payload || (populations && populations.loading))
       return {};
 
     // Check data to be coherent
@@ -125,6 +123,23 @@ const Sasa = () => {
         data.stdvs[r] = payload.stdvs[r];
       }
     }
+
+    // Find out if there is an unique residue with data and, if so, find its residue index
+    let uniqueResidue;
+    for (let r = 0; r < residueCount; r++) {
+      if (data.saspf[r]) {
+        if (uniqueResidue === undefined) uniqueResidue = r;
+        else {
+          uniqueResidue = null;
+          break;
+        }
+      }
+    }
+
+    // If there is one residue only with sas data then select it already
+    // This is useful for when we have a ligand alone, for instance
+    if (uniqueResidue !== null)
+      setSelectedResidues([{ color: 'black', index: uniqueResidue }]);
 
     // Calculate the mean and standard deviation of each residue saspf
     // Also get the maximum and minimum means
@@ -227,6 +242,7 @@ const Sasa = () => {
     accession,
     defaultRepresentations,
     populations,
+    setSelectedResidues
   ]);
 
   // Get the residues list in model notation
@@ -319,7 +335,7 @@ const Sasa = () => {
   // Render
   return (
     <Suspense fallback={<Loading />}>
-      <Card>
+      {topologyManager.residueCount > 1 && <Card>
         <ResidueSelector
           residueValues={data.means}
           legendTitle={'Average Relative SAS (Å²)'}
@@ -328,7 +344,7 @@ const Sasa = () => {
           onClean={handleClean}
           onTooltip={handleTooltip}
         />
-      </Card>
+      </Card>}
       <Card className={style.graphcard}>
         {selectedResidues.length > 0 ? (
           <Graph
