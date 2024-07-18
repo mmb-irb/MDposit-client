@@ -36,6 +36,9 @@ import style from './style.module.css';
 
 import Loading from '../../../components/loading';
 
+// Set a regular expression to match the main topology
+const MAIN_TOPOLOGY_REGEXP = new RegExp(`^topology.(tpr|prmtop|psf|top)$`);
+
 // Classify files per groups according to their file format
 /*
 const groupPerTypeReducer = (group, file) => {
@@ -75,17 +78,77 @@ const newGroup = () => ({
 });
 */
 
+// This is the last element, for 'other' files
 const api = [
   'Programmatic API',
   [
     {
-      filename:
-        'Especially for bigger files, consider using the programmatic API as documented',
+      filename: 'Especially for bigger files, consider using the programmatic API as documented',
       url: BASE_PATH + 'docs/#/files',
       icon: <FontAwesomeIcon icon={faServer} />,
     },
   ],
 ];
+
+// Set a standard button to download a suggested file
+const SuggestedFile = ({ title, filenotes, accessionAndMdNumber }) => 
+  <Card className={style.title}>
+    <CardContent className={style.horizontal}>
+      <div className={style.horizontal}>
+        {title && <Typography variant="h6">{title}</Typography>}
+        <Icon className={style['main-icon']}>
+          <FontAwesomeIcon icon={faFile} />
+        </Icon>
+        <div>
+          <Typography variant="subtitle2">
+            {filenotes.filename}
+          </Typography>
+          {filenotes.length && (
+            <Typography color="textSecondary" variant="caption">
+              {prettyBytes(filenotes.length)}
+            </Typography>
+          )}
+        </div>
+      </div>
+      <Button
+        size="large"
+        color="primary"
+        component="a"
+        href={`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/${filenotes.filename}`}
+        download={filenotes.filename}
+        target="_blank"
+      >
+        Download
+      </Button>
+    </CardContent>
+  </Card>
+
+// Set a list of redundant files which are not to be suggested to the user
+const REDUNDANT_FILES = [
+  // Already suggested by default files
+  new RegExp(MAIN_STRUCTURE_FILENAME), // The structure
+  new RegExp(MAIN_TRAJECTORY_FILENAME), // The trajectory
+  MAIN_TOPOLOGY_REGEXP, // The topology
+  // Typical files
+  new RegExp(`.bin$`), // All files with our custom binary format
+  new RegExp(`.itp$`), // All itp files
+  new RegExp(`^pocket_[0-9]{2}.pdb$`), // Pockets
+  new RegExp(`^screenshot.jpg$`), // The screenshot
+  new RegExp(`^clusters_[0-9]{2}_screenshot_[0-9]{2}.jpg$`), // Cluster screenshots
+  new RegExp(`^markov_screenshot_[0-9]{2}.jpg$`), // Markov screenshots
+  // Old files
+  new RegExp(`^average.pdb$`),
+  new RegExp(`^charges.txt$`),
+  new RegExp(`^firstFrame.pdb$`),
+  new RegExp(`^noelem.pdb$`),
+];
+// Set a function to check if a filename is among the redundant filenames
+const isRedundant = filename => {
+  for (const pattern of REDUNDANT_FILES) {
+    if (pattern.test(filename)) return true;
+  }
+  return false;
+}
 
 export default React.memo(() => {
   // Load project data
@@ -107,77 +170,44 @@ export default React.memo(() => {
   const main_trajectory = payload.find(
     file => file.filename === MAIN_TRAJECTORY_FILENAME,
   );
+  // Find the main topology file among file descriptors
+  const main_topology = payload.find(
+    file => MAIN_TOPOLOGY_REGEXP.test(file.filename)
+  );
+  // Check if we have unusual files and, if so, suggest them
+  const interestingFiles = payload.filter(file => !isRedundant(file.filename));
 
   return (
     <>
       {/* Main structure */}
-      {main_structure && (
-        <Card className={style.title}>
-          <CardContent className={style.horizontal}>
-            <div className={style.horizontal}>
-              <Typography variant="h6">Main Structure</Typography>
-              <Icon className={style['main-icon']}>
-                <FontAwesomeIcon icon={faFile} />
-              </Icon>
-              <div>
-                <Typography variant="subtitle2">
-                  {main_structure.filename}
-                </Typography>
-                {main_structure.length && (
-                  <Typography color="textSecondary" variant="caption">
-                    {prettyBytes(main_structure.length)}
-                  </Typography>
-                )}
-              </div>
-            </div>
-
-            <Button
-              size="large"
-              color="primary"
-              component="a"
-              href={`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/${MAIN_STRUCTURE_FILENAME}`}
-              download={MAIN_STRUCTURE_FILENAME}
-              target="_blank"
-            >
-              Download
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+      {main_structure &&
+        <SuggestedFile
+          title={'Main Structure'}
+          filenotes={main_structure}
+          accessionAndMdNumber={accessionAndMdNumber}
+        />}
       {/* Main trajectory */}
-      {main_trajectory && (
-        <Card className={style.title}>
-          <CardContent className={style.horizontal}>
-            <div className={style.horizontal}>
-              <Typography variant="h6">Main Trajectory</Typography>
-              <Icon className={style['main-icon']}>
-                <FontAwesomeIcon icon={faFile} />
-              </Icon>
-              <div>
-                <Typography variant="subtitle2">
-                  {main_trajectory.filename}
-                </Typography>
-                {main_trajectory.length && (
-                  <Typography color="textSecondary" variant="caption">
-                    {prettyBytes(main_trajectory.length)}
-                  </Typography>
-                )}
-              </div>
-            </div>
+      {main_trajectory &&
+        <SuggestedFile
+          title={'Main Trajectory'}
+          filenotes={main_trajectory}
+          accessionAndMdNumber={accessionAndMdNumber}
+        />}
+      {/* Main topology */}
+      {main_topology &&
+        <SuggestedFile
+          title={'Main Topology'}
+          filenotes={main_topology}
+          accessionAndMdNumber={accessionAndMdNumber}
+        />}
+      <Typography variant="h6" className={style.title}>Other interesting files</Typography>
+      {interestingFiles.map((filenotes, i) =>
+        <SuggestedFile
+          key={i}
+          filenotes={filenotes}
+          accessionAndMdNumber={accessionAndMdNumber}
+        />)}
 
-            <Button
-              size="large"
-              color="primary"
-              component="a"
-              href={`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/${MAIN_TRAJECTORY_FILENAME}`}
-              download={MAIN_TRAJECTORY_FILENAME}
-              target="_blank"
-            >
-              Download
-            </Button>
-          </CardContent>
-        </Card>
-      )}
       {/* This was [...groupedFiles, api] before */}
       {[api].map(([key, set], i) => (
         <Card overrideComponent key={typeof key === 'string' ? key : i}>
