@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useState, useEffect, useLayoutEffect } from 'react';
-import ReactGA from 'react-ga4';
+//import ReactGA from 'react-ga4';
 import { Routes, Route, Router } from 'react-router-dom';
 import { createHashHistory } from 'history';
 import { sleep } from 'timing-functions';
@@ -138,20 +138,22 @@ const CustomRouter = ({ history, ...props }) => {
 // Go to the Root script, where there is a switch/route section with all pages
 const App = () => {
   // Setup google analytics
-  useEffect(() => {
-    ReactGA.initialize(googleAnalyticsId, {
-      debug: false,
-      gaOptions: {
-        storage: 'none',
-        storeGac: false,
-      },
-    });
-    // Send pageview with a custom path
-    ReactGA.send({ hitType: "pageview", page: history.location.pathname, title: "Some page" });
-  }, []);
+  // DANI: Thishas been disabled for now
+  // DANI: The new version of GA4 is using cookies and this is no longer optional
+  // useEffect(() => {
+  //   ReactGA.initialize(googleAnalyticsId, {
+  //     debug: false,
+  //     gaOptions: {
+  //       storage: 'none',
+  //       storeGac: false,
+  //     },
+  //   });
+  //   // Send pageview with a custom path
+  //   //ReactGA.send({ hitType: "pageview", page: history.location.pathname, title: "Some page" });
+  // }, []);
   // Update the favicon and sheet header name according to host configuration
   useEffect(() => {
-    // Update the ducment title, which is the sheet header name
+    // Update the document title, which is the sheet header name
     document.title = HOST_CONFIG.name;
     // Get the icon link element
     let link = document.querySelector("link[rel~='icon']");
