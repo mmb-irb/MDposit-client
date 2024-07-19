@@ -13,23 +13,20 @@ const greyColorPlan = ['grey', 'yellow', 'red'];
 // Use this hook to get the memoized NGL default representations
 const useMutationsRepresentations = () => {
   // Get project data
-  const {
-    topology: topologyManager,
-    proteinReferences
-  } = useContext(ProjectCtx);
+  const { topology: topologyManager } = useContext(ProjectCtx);
 
   // Set the representations for the NGL viewer
   const mutationRepresentations = useMemo(() => {
-    if (!topologyManager || !proteinReferences) return;
+    if (!topologyManager) return;
     // Check that at least 1 of the references has entropies
-    const anyReferenceMutations = proteinReferences.some(
+    const anyReferenceMutations = topologyManager.proteinReferences.some(
       reference => !!reference.entropies,
     );
     if (!anyReferenceMutations) return;
 
     // Get the entorpies of each reference
     // Save the logarithmic values on each reference
-    const entropiesPerReference = proteinReferences.map(reference => {
+    const entropiesPerReference = topologyManager.proteinReferences.map(reference => {
       if (!reference.entropies) return [];
       const logarithmicEntropies = reference.entropies.map(entropy =>
         Math.log(entropy + 0.0001),
@@ -61,9 +58,7 @@ const useMutationsRepresentations = () => {
         if (!referenceId) return parseInt('ffffff', 16);
         // get the corresponding entropy
         // -1 because the residue 'x' would be the index 'x-1' in the array
-        const reference = proteinReferences.find(
-          reference => reference.uniprot === referenceId,
-        );
+        const reference = residue.referenceData;
         const entropies = reference.logarithmicEntropies;
         if (!entropies || entropies.length === 0) return parseInt('ffffff', 16);
         const entropy = entropies[residue.referenceNumber - 1];
@@ -83,7 +78,7 @@ const useMutationsRepresentations = () => {
       { name: 'Mutations', color: 'custom', customScheme: colorScheme },
     ];
     return reps;
-  }, [proteinReferences, topologyManager]);
+  }, [topologyManager]);
 
   return mutationRepresentations;
 };

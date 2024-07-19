@@ -334,6 +334,34 @@ class Residue {
   get isLigand () {
     return this.referenceType === 'ligand';
   }
+  // Reference data
+  get referenceData () {
+    // If this residue has reference id then it belongs to no reference at all
+    if (this.referenceId === null) return null;
+    // Otherwise get the corresponding reference data
+    if (this.isProtein) {
+      const reference = this.topology.proteinReferences.find(ref => ref.uniprot === this.referenceId);
+      if (!reference) throw new Error(`Reference id ${this.referenceId} is not found among protein references`);
+      return reference;
+    }
+    if (this.isLigand) {
+      const reference = this.topology.ligandReferences.find(ref => ref.pubchem === this.referenceId);
+      if (!reference) throw new Error(`Reference id ${this.referenceId} is not found among ligand references`);
+      return reference;
+    }
+    throw new Error(`Not supported reference type ${this.referenceType}`);
+  }
+  // Reference name
+  get referenceName () {
+    // If this is a ligand we may have a forced name in metadata
+    const forcedLigandName = this.topology.metadataLigandNames && this.topology.metadataLigandNames[this.referenceId];
+    if (forcedLigandName) return forcedLigandName;
+    // Get reference data
+    const referenceData = this.referenceData;
+    if (!referenceData) return null;
+    // Now return its name
+    return referenceData.name;
+  }
   // Check if the resiude is in periodic boundary conditions
   get isPbc () {
     return this.topology.pbcResidues.has(this.index);
@@ -415,7 +443,7 @@ class Chain {
 }
 
 export class Topology {
-  constructor(topology, metadata) {
+  constructor(topology, metadata, references) {
     // Save the topology data as it comes
     this.atomNames = topology.atom_names;
     this.atomElements = topology.atom_elements;
@@ -465,9 +493,14 @@ export class Topology {
     this.chainResidueNumbers = this.chainResidueIndices.map(
       residueIndices => residueIndices.map(residueIndex => this.residueNumbers[residueIndex])
     );
-    // Save also the metadata chain names
+    // Save metadata chain names
     // They are not letters ('A', 'B', etc.) but actual names ('Spike', 'Glycans', etc.)
     this.metadataChainNames = metadata.CHAINNAMES;
+    // Save metadata forced ligand names
+    this.metadataLigandNames = metadata.LIGANDNAMES;
+    // Save the references so we can further return reference data from here
+    this.proteinReferences = references && references.filter(ref => ref.uniprot);
+    this.ligandReferences = references && references.filter(ref => ref.pubchem);
   }
 
   // --------------------------------------------------------------------

@@ -93,6 +93,9 @@ export default React.memo(() => {
           // First get the ligand name
           const record =  sourceData.Record;
           data.name = record.RecordTitle;
+          // If there is a forced name then use add it to the name
+          const forcedLigandName = metadata.LIGANDNAMES && metadata.LIGANDNAMES[pubchemId];
+          if (forcedLigandName && forcedLigandName !== data.name) data.name += ` (${forcedLigandName})`;
           // Get chembl id and url
           const reference = record.Reference;
           const chemblReference = reference.find(ref => ref.SourceName === 'ChEMBL');

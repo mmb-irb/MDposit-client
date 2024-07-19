@@ -5,19 +5,17 @@ import { ProjectCtx } from '../../../contexts';
 // Use this hook to get the memoized NGL default representations
 const useEpitopesRepresentations = () => {
   // Get the current project data
-  const { proteinReferences, topology } = useContext(
-    ProjectCtx,
-  );
+  const { topology } = useContext(ProjectCtx);
   // Set the representations for the NGL viewer
   const epitopesRepresentations = useMemo(() => {
-    if (!proteinReferences || !topology) return;
-    // Check that at least 1 of the proteinReferences has epitopes
-    const anyReferenceEpitopes = proteinReferences.some(
+    if (!topology) return;
+    // Check that at least one of the protein references has epitopes
+    const anyReferenceEpitopes = topology.proteinReferences.some(
       reference => !!reference.epitopes,
     );
     if (!anyReferenceEpitopes) return;
     // Get the residues on each reference epitopes in the current topology numeration
-    const mappedResiduesPerReference = proteinReferences.map(reference => {
+    const mappedResiduesPerReference = topology.proteinReferences.map(reference => {
       // Get the reference name and epitopes
       const referenceId = reference.uniprot;
       const referenceEpitopes = reference.epitopes;
@@ -53,7 +51,7 @@ const useEpitopesRepresentations = () => {
       },
     ];
     return reps;
-  }, [topology, proteinReferences]);
+  }, [topology]);
 
   return epitopesRepresentations;
 };

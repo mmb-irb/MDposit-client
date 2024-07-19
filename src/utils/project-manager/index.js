@@ -68,17 +68,6 @@ export class Project {
         return this._apiResponses[fieldname];
     };
 
-    // Topology getter
-    get topology () {
-        const response = this._apiQuery('topology');
-        if (response.loading) return null;
-        if (response.error) throw new Error('Error when downloading project topology: ' + response.error.message);
-        if (!response.payload) throw new Error('Something went wrong with project topology');
-        if (this._topologyManager) return this._topologyManager;
-        this._topologyManager = new Topology(response.payload, this.metadata);
-        return this._topologyManager;
-    }
-
     // Interactions getter
     get interactions () {
         const response = this._apiQuery('interactions', this.hasInteractions);
@@ -105,6 +94,21 @@ export class Project {
     get ligandReferences () {
         const references = this.references;
         return useMemo(() => references && references.filter(ref => ref.pubchem), [references]);
+    }
+
+    // Topology getter
+    get topology () {
+        // Get references to further load them to the topology manager
+        // Note that this must be done here to respect hooks
+        const references = this.references;
+        // Request topology data
+        const response = this._apiQuery('topology');
+        if (response.loading) return null;
+        if (response.error) throw new Error('Error when downloading project topology: ' + response.error.message);
+        if (!response.payload) throw new Error('Something went wrong with project topology');
+        if (this._topologyManager) return this._topologyManager;
+        this._topologyManager = new Topology(response.payload, this.metadata, references);
+        return this._topologyManager;
     }
 
     // File descriptors getter

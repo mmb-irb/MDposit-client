@@ -143,8 +143,6 @@ const NGLViewer = memo(
         fileDescriptors,
         curatedOrientation,
         topology: topologyManager,
-        proteinReferences,
-        ligandReferences
       } = useContext(ProjectCtx);
       const { file: pdbDataFile } = useContext(PdbCtx);
 
@@ -1594,7 +1592,7 @@ const NGLViewer = memo(
 
       // Customize the NGL tooltip
       useEffect(() => {
-        if (!topologyManager || !proteinReferences || !ligandReferences) return;
+        if (!topologyManager) return;
         // Set a new tooltip
         const tooltip = tooltipRef.current;
         // WARNING: The following line is dangerous since you are manipulating the DOM outside of React
@@ -1615,18 +1613,6 @@ const NGLViewer = memo(
           const chainName = residue.chain.metadataChainName;
           // Get the residue reference id
           const referenceId = residue.referenceId;
-          let referenceName;
-          if (referenceId) {
-            let referenceData;
-            // If the residue is a protein
-            if (residue.isProtein) referenceData = proteinReferences.find(r => r.uniprot === referenceId);
-            // If the reisude is a ligand
-            else if (residue.isLigand) referenceData = ligandReferences.find(r => r.pubchem === referenceId);
-            // This should never happen
-            else throw new Error(`Unknown reference type for residue ${residue.standardLabel} with reference id ${referenceId}`);
-            // Get the reference name
-            referenceName = referenceData.name;
-          }
           return (
             <>
               {`Atom ${atom.index} (${atom.atomname})
@@ -1647,7 +1633,7 @@ const NGLViewer = memo(
                 // Show the reference and its residue references number
                 return (
                   <div>
-                    <div style={{ color: 'lightGreen' }}>{referenceName}</div>
+                    <div style={{ color: 'lightGreen' }}>{residue.referenceName}</div>
                     {residue.isProtein && <div>{`- Residue ${residue.referenceNumber}`}</div>}
                   </div>
                 )
@@ -1724,7 +1710,7 @@ const NGLViewer = memo(
           tooltip.remove();
           containerRef.current.removeEventListener('mouseleave', hideTooltip);
         };
-      }, [topologyManager, proteinReferences, ligandReferences, setTooltipContent]);
+      }, [topologyManager, setTooltipContent]);
 
       // Track when the first focus has been performed, since first focus is instantaneous
       const firstFocus = useRef(true);

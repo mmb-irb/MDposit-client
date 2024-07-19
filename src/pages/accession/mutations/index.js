@@ -34,9 +34,7 @@ const Mutations = () => {
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
 
   // Get the current project data
-  const { proteinReferences, topology: topologyManager } = useContext(
-    ProjectCtx,
-  );
+  const { topology: topologyManager } = useContext(ProjectCtx);
 
   const residueEntropies = useMemo(() => {
     if (!topologyManager) return;
@@ -50,10 +48,8 @@ const Mutations = () => {
       if (!referenceId) continue;
       // We substract 1 from the residue index since it counts from 1 to n as references do
       const residueReferenceIndex = residue.referenceNumber - 1;
-      const currentproteinReferences = proteinReferences.find(
-        data => data.uniprot === referenceId,
-      );
-      const entropies = currentproteinReferences.entropies;
+      const currentproteinReference = residue.referenceData;
+      const entropies = currentproteinReference.entropies;
       if (!entropies) continue;
       const entropy = entropies[residueReferenceIndex];
       if (entropy === undefined) continue;
@@ -62,7 +58,7 @@ const Mutations = () => {
       residueEntropies[i] = logarithmicEntropy;
     }
     return residueEntropies;
-  }, [proteinReferences, topologyManager]);
+  }, [topologyManager]);
 
   // Set when one point in the graph is selected
   const [selectedResidues, setSelectedResidues] = useState([]);
@@ -101,6 +97,8 @@ const Mutations = () => {
     const value = Math.round(residue.value * 100) / 100;
     return `Logarithmic entropy: ${value}`;
   }, []);
+
+  if (!representations || !residueEntropies) return <Loading />;
 
   return (
     <Suspense fallback={<Loading />}>
