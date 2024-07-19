@@ -88,7 +88,7 @@ const NODE_OPTIONS = {
     optionsNiceNames: {
         'mmb': 'IRB Barcelona, MMB',
         'abc': 'IRB Barcelona, ABC',
-        'pklr': 'BSC - Piruvat Kinase',
+        'pklr': 'BSC - Pyruvate Kinase',
         'oxf': 'Oxford University',
         'cin': 'Cineca',
     }
