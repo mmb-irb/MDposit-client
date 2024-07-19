@@ -67,7 +67,10 @@ const ChainAnalyses = memo(({ accessionAndMdNumber, chain, firstResidueNumber })
   // Mine payload data
   const sequence = payload.sequence;
   const sequenceLength = sequence.length;
-  const matches = payload.interproscan.results[0].matches;
+  const interproscanData = payload.interproscan;
+  // It may happen that interproscan data is missing when we have a small sequence
+  if (!interproscanData) return 'No InterProScan data';
+  const matches = interproscanData.results[0].matches;
   const processedMatches = processIPScanResults(matches, firstResidueNumber);
 
   // Set the end residue to be displayed
