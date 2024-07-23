@@ -200,7 +200,10 @@ export default React.memo(() => {
           filenotes={main_topology}
           accessionAndMdNumber={accessionAndMdNumber}
         />}
-      <Typography variant="h6" className={style.title}>Other interesting files</Typography>
+      {interestingFiles.length > 0 &&
+        <Typography variant="h6" className={style.title}>
+          Other interesting files
+        </Typography>}
       {interestingFiles.map((filenotes, i) =>
         <SuggestedFile
           key={i}
