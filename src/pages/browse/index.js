@@ -121,7 +121,7 @@ const Row = ({ project, highlight, index, previewUrl }) => {
     metadata,
     analyses,
     files,
-    mds
+    mdCount
   } = project;
   // Declare a hook from a type called "useRef"
   const ref = useRef(null);
@@ -217,7 +217,7 @@ const Row = ({ project, highlight, index, previewUrl }) => {
             {!published && <div>(not published)</div>}
           </Highlight>
         </Link>
-        {mds && mds.length > 1 && <div className={style.small}>{`${mds.length} MDs`}</div>}
+        {mdCount > 1 && <div className={style.small}>{`${mdCount} MDs`}</div>}
       </TableCell>
       {/* name */}
       <TableCell className={style.center}>

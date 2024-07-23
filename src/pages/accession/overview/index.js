@@ -38,7 +38,7 @@ const typeSettings = {
 };
 
 export default React.memo(() => {
-  const { accession, identifier, published, metadata, proteinReferences, mds, node } = useContext(
+  const { accession, identifier, published, metadata, proteinReferences, mdCount, node } = useContext(
     ProjectCtx,
   );
   // Download pdb information for every pdb id in metadata
@@ -157,7 +157,7 @@ export default React.memo(() => {
         <Card className={style.card}>
           <CardContent className={style['card-content']}>
             <a className={style.title}>{metadata.NAME || 'Unnamed'}</a>
-            {mds && mds.length > 1 && metadata.mdName && <a className={style.grey}>({metadata.mdName})</a>}
+            {mdCount > 1 && metadata.mdName && <a className={style.grey}>({metadata.mdName})</a>}
             <div className={style['summary-list']}>
               {metadata.TYPE && (
                 <Chip

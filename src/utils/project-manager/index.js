@@ -19,6 +19,8 @@ export class Project {
         if (!this.metadata.mdFrames) this.metadata.mdFrames = this.metadata.SNAPSHOTS;
         this.metadata.timeLength = (this.metadata.FRAMESTEP && this.metadata.mdFrames &&
             this.metadata.FRAMESTEP * this.metadata.mdFrames) || null;
+        // Set the count of MDs by excluding those MDs flagged as 'removed'
+        this.mdCount = this.mds ? this.mds.filter(md => md.slice(-9) !== '(removed)').length : 0;
         // Calculate a few internal things
         // Get the accession and the MD number in a single string which is useful to make API requests
         // If project is in the old format then do not add the point and the MD number

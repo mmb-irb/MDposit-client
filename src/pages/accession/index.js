@@ -301,6 +301,8 @@ export default () => {
     else if (projectQuery.error) return projectQuery.error.toString();
     else if (!projectQuery.payload)
       return 'Something bad happened with the project data';
+    // If the requested MD was rmeoved then return an error message
+    if (projectQuery.payload.removed) return 'The requested MD has been removed';
     // Save the current project data as the state project data
     const newProject = new Project(projectQuery.payload);
     setProject(newProject);
@@ -331,7 +333,7 @@ export default () => {
   // Set the API URL to obtain the corresponding web page data
   const dataUrl = getDataURL(accessionAndMdNumber, page);
   // Check if there are multiple MDs
-  const multipleMDs = project.mds.length > 1;
+  const multipleMDs = project.mdCount > 1;
   // Return the accession routes
   return (
     // Set the project context, which is used by different scripts including this
