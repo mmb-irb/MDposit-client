@@ -27,6 +27,9 @@ import distinctColors from 'distinct-colors';
 import SimpleLegend from '../../components/simple-legend';
 import Histogram from '../../components/histogram';
 
+// Set a function to return text within a hyperlink
+const renderHref = (nodeName, nodeUrl) => <a href={nodeUrl} target="_blank" rel="noreferrer noopener">{nodeName}</a>;
+
 // Set a function to return one symbol or another depending on a node status
 const renderStatusSymbol = status => {
   if (status === 'active') return <CheckCircleIcon style={{ color: 'green', marginTop: '0.5em' }}/>;
@@ -237,7 +240,8 @@ const useStatistics = () => {
     if (!pingResponses || pingResponses.length === 0) return;
     // Set table columns
     const columns = [
-      { field: 'node', headerName: 'Node name', flex: 0.5, align: 'center', headerAlign: 'center' },
+      { field: 'node', headerName: 'Node name', flex: 0.5, align: 'center', headerAlign: 'center',
+        renderCell: params => renderHref(params.row.node, params.row.url) },
       { field: 'status', headerName: 'Status', flex: 0.2, align: 'center', headerAlign: 'center',
         renderCell: params => renderStatusSymbol(params.value) },
       { field: 'ping', headerName: 'Response time', flex: 0.3, align: 'center', headerAlign: 'center' }
@@ -248,7 +252,7 @@ const useStatistics = () => {
       const status = ping && ping.time ? 'active' : 'fallen';
       const responseTime = ping && ping.time ? `${ping.time}ms` : '...';
       // The 'id' field is not used but it is required by the data table
-      return { id: node.alias, key: node.alias, node: node.name, status: status, ping: responseTime };
+      return { id: node.alias, key: node.alias, node: node.name, url: node.api_url, status: status, ping: responseTime };
     });
     // Return the data table
     return <DataGrid columns={columns} rows={rows} disableRowSelectionOnClick hideFooter key={'node table'}/>;
