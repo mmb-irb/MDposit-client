@@ -121,8 +121,11 @@ const Row = ({ project, highlight, index, previewUrl }) => {
     metadata,
     analyses,
     files,
-    mdCount
+    mds,
   } = project;
+  // Calculate the mdCount for this project data which is not processed
+  // Set the count of MDs by excluding those MDs flagged as 'removed'
+  const mdCount = mds ? mds.filter(md => md.slice(-9) !== '(removed)').length : 0;
   // Declare a hook from a type called "useRef"
   const ref = useRef(null);
   // This type of hook is like an "useEfect" but it is runned after the layout is calculated and before it is painted
