@@ -109,9 +109,7 @@ const Projections = ({
       // This function is a setter from a useState hook in the parent script (pca/index.js)
       setRequestedFrame(requestedFrame => {
         if (!totalFrames) {
-          console.error(
-            'No number of frames in metadata. Are we missing the main trajectory?',
-          );
+          console.error('No number of frames in metadata. Are we missing the main trajectory?');
           return null;
         }
         const target = Math.floor(datumIndex * (totalFrames / datumRange));

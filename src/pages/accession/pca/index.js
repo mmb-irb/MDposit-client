@@ -150,7 +150,7 @@ const PCA = () => {
                   projectionsData={data.projections}
                   projections={projections}
                   datumRange={data.eigenvalues.length}
-                  totalFrames={metadata.frameCount}
+                  totalFrames={metadata.mdFrames}
                   setRequestedFrame={setRequestedFrame}
                 />
               </CardContent>
