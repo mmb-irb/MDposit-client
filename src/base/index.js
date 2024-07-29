@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate, useParams, generatePath } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams, generatePath, useLocation } from 'react-router-dom';
 import { schedule } from 'timing-functions';
 
 // Layout
@@ -55,6 +55,20 @@ const SmartNavigate = props => {
   // Can not overwrite props.to since it is read-only
   const newTo = generatePath(props.to, params);
   return <Navigate {...props} to={newTo} />;
+};
+
+// Set a custom Navigate which parses percent encoded URLs
+// This fixes some percent encoding problems such as /help%23summary -> /help#summary
+// If there is nothing to decode then we assume the path is worng
+const FixedNavigate = () => {
+  // Get current location
+  const location = useLocation();
+  // Set the decoded URL
+  const decodedPathname = decodeURIComponent(location.pathname);
+  // If the decoded pathname equals the current pathname then it means there was nothing to decode
+  if (location.pathname === decodedPathname) return 'This route is not defined in the client root';
+  // Otheriwse, move to the new decoded pathname
+  return <Navigate to={decodedPathname} />;
 };
 
 const Base = () => {
@@ -136,7 +150,7 @@ const Base = () => {
             </Route>
             <Route
               path="*"
-              element={'This route is not defined in the client root'}
+              element={<FixedNavigate />}
             />
             {/* These redirections are to keep old URLs compatible */}
             <Route
