@@ -19,6 +19,7 @@ import { prettyEnumerate, rawEnumerate } from '../../../utils/pretty-enumerate';
 
 import { ProjectCtx } from '../../../contexts';
 import https from 'https-browserify';
+import { parse as urlParse } from 'url';
 
 import style from './style.module.css';
 
@@ -41,7 +42,7 @@ export default React.memo(() => {
   const { accession, identifier, published, metadata, proteinReferences, mdCount, node } = useContext(
     ProjectCtx,
   );
-  // Download pdb information for every pdb id in metadata
+  // Download pdb information for every pdb id in metadata from our custom API
   const pdbIds = metadata.PDBIDS;
   const [pdbInfo, setPdbInfo] = useState({});
   useEffect(() => {
@@ -62,6 +63,64 @@ export default React.memo(() => {
           });
         });
       });
+      requests.push(request);
+    });
+    // DANI: No he comprovado que esto funcione debidamente
+    return () => {
+      for (const request of requests) request.abort();
+    };
+  }, [pdbIds]);
+
+  // Download pdb information for every pdb id in metadata from the RCSB API
+  const [pdbInfo2, setPdbInfo2] = useState({});
+  useEffect(() => {
+    if (!pdbIds) return;
+    // Store requests so we can abort them all in the useEffect cleanup function in case they were not completed on time
+    const requests = [];
+    pdbIds.forEach(pdbId => {
+      // Set the target URL
+      const url = `https://data.rcsb.org/graphql`;
+      const requestOptions = urlParse(url);
+      // Set the POST body
+      const postData = JSON.stringify({
+        operationName: "structure",
+        query: "query structure($id: String!) {\n  entry(entry_id: $id) {\n    rcsb_binding_affinity {\n      provenance_code\n      link\n    }\n  }\n}",
+        variables: { id: pdbId }
+      });
+      // This must be a POST request
+      requestOptions.method = 'POST';
+      // Set the request headers
+      requestOptions.headers = {
+        "Accept": "application/json",
+        "Content-Length": "202",
+        "Content-Type": "application/json",
+      }
+      // Set the response body where we will store data chunks
+      let body = '';
+      const request = https.request(requestOptions, response => {
+        response.on('data', chunk => {
+          body += chunk;
+        });
+        response.on('end', () => {
+          // Parse the response to JSON
+          let data = JSON.parse(body);
+          // Mine the data we are interested in
+          if (data) data = data.data;
+          if (data) data = data.entry;
+          if (data) data = data.rcsb_binding_affinity;
+          if (data) data = data.find(a => a.provenance_code == "PDBBind");
+          if (data) data = data.link;
+          setPdbInfo2(previous => {
+            return { ...previous, [pdbId]: data };
+          });
+        });
+      });
+      // Add POST body to the request
+      request.write(postData);
+      // Close the request for it to actually start
+      // Note that this is required for the https.request altought it was not by https.get
+      request.end();
+      // Add the request to the list
       requests.push(request);
     });
     // DANI: No he comprovado que esto funcione debidamente
@@ -256,7 +315,8 @@ export default React.memo(() => {
               const lowerPdb = pdbId.toLowerCase();
               const imgSrc = pdbId &&
                 `https://cdn.rcsb.org/images/structures/${lowerPdb.substr(1, 2)}/${lowerPdb}/${lowerPdb}_assembly-1.jpeg`;
-
+              // Get the PDBBind URL from the RCSB data
+              const PDBBindURL = pdbInfo2[pdbId];
               return (
                 <div key={i}>
                   {i !== 0 && <hr style={{ color: 'lightGrey' }} />}
@@ -353,6 +413,18 @@ export default React.memo(() => {
                         <FontAwesomeIcon icon={faLink} />
                         &nbsp;3DBIONOTES
                       </Button>
+                      {PDBBindURL && <Button
+                        component={'a'}
+                        variant="contained"
+                        href={PDBBindURL}
+                        size="small"
+                        color="primary"
+                        target="_blank"
+                        rel="noreferrer noopener"
+                      >
+                        <FontAwesomeIcon icon={faLink} />
+                        &nbsp;PDBBind
+                      </Button>}
                     </CardActions>
                   </CardContent>
                 </div>
