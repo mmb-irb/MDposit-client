@@ -54,27 +54,26 @@ const useDefaultRepresentations = () => {
               });
           */
       // Represent all chains which are not in the 'chains' and 'ligands' list in licorice
-      if (chainnames && !Array.isArray(chainnames)) {
-        const chainsAndNames = Object.entries(chainnames);
-        chainsAndNames.forEach(([chain, name]) => {
-          // Check if the chain is in the protein chains
-          const isProtein = chains.indexOf(chain) !== -1;
-          if (isProtein) return;
-          // Check if the chain is full ligand
-          // DANI: No se ha probado
-          const topologyChain = topology.getChainByName(chain);
-          const isLigand = topologyChain.residues.every(residue => residue.isLigand);
-          // If there is any coincidence then skip this chainname
-          if (isLigand) return;
-          reps.push({
-            name: name,
-            selection: ':' + chain,
-            type: 'licorice',
-            color: 'purple',
-            opacity: 0.5,
-          });
+      topology.chainNames.forEach(chain => {
+        // Check if the chain is in the protein chains
+        const isProtein = chains.indexOf(chain) !== -1;
+        if (isProtein) return;
+        // Check if the chain is full ligand
+        // DANI: No se ha probado
+        const topologyChain = topology.getChainByName(chain);
+        const isLigand = topologyChain.residues.every(residue => residue.isLigand);
+        // If there is any coincidence then skip this chainname
+        if (isLigand) return;
+        // Get the chain name according to metadata, if available
+        const name = (chainnames && chainnames[chain]) || chain;
+        reps.push({
+          name: name,
+          selection: ':' + chain,
+          type: 'licorice',
+          color: 'purple',
+          opacity: 0.5,
         });
-      }
+      });
     }
     // If there is no metadata/chains then set up a defualt generic representation
     else {
