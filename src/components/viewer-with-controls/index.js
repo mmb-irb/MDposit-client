@@ -171,7 +171,7 @@ const ViewerWithControls = forwardRef(
       //   type: ('cartoon' by default) The initial representation 'type',
       //   color: ('chainid' by default) The initial representation 'colorScheme',
       //   opacity: ('1' by default) The initial representation opacity
-      //   other: object with any other ngl options to be passed for the representation
+      //   other: object with any other ngl options to be passed for the representation (e.g. radius)
       //   component: name of the component this representation belongs to (main component when missing)
       // }
       startingRepresentations,

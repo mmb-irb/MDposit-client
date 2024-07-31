@@ -123,9 +123,10 @@ const Energies = () => {
         {
           selection: guestSelection,
           name: 'Guest elements',
-          type: 'ball+stick',
+          type: 'spacefill',
           color: 'element',
           opacity: 0.3,
+          other: { radius: 0.6 },
           reference: GUEST_REFERENCE
         }
       ];
