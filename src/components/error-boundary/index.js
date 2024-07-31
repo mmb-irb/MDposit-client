@@ -6,6 +6,10 @@ class ErrorBoundary extends Component {
   state = { hasError: false };
 
   componentDidCatch(error, errorInfo) {
+    // If we are having a then we reload the page
+    // This is usally caused by when we update the client code and make a new build
+    if (error.name === 'ChunkLoadError') window.location.reload();
+    // Otherwise do this
     this.setState({ hasError: true });
     // Prints error data in console
     console.error(error);
