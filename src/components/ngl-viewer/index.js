@@ -895,10 +895,10 @@ const NGLViewer = memo(
             // Add a floating label over the representation when it is specified
             const label = rep.label;
             if (label) {
-              const name = rep.label + '-' + name;
+              const labelName = rep.label + '-' + name;
               // Find the equivalent previous label
               const previous = stageComp.annotationList.find(
-                annotation => annotation.name === name,
+                annotation => annotation.name === labelName,
               );
               //console.log(previous);
               // If the representation is shown
@@ -918,7 +918,7 @@ const NGLViewer = memo(
                   // get the geometrical center of the representation
                   const center = stageComp.reprList[r].repr.structureView.center;
                   const annotation = stageComp.addAnnotation(center, elm);
-                  annotation.name = name;
+                  annotation.name = labelName;
                 }
               }
               // If the representation is hidden
