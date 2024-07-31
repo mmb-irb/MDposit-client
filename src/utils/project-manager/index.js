@@ -27,7 +27,7 @@ export class Project {
         const accessionOrId = this.accession || this.identifier;
         this.accessionAndMdNumber = this.mds ? `${accessionOrId}.${this.mdNumber}` : accessionOrId;
         // Check if there are interactions
-        this.hasInteractions = Boolean(this.metadata.INTERACTIONS && this.metadata.INTERACTIONS.length > 0);
+        this.hasInteractions = this.analyses.includes('interactions');
         // Check if the populations file is found in the files index
         this.isPopulated = Boolean(
             this.files && this.files.find(filename => filename === 'populations.json'),

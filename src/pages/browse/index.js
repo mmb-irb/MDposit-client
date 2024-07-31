@@ -159,21 +159,13 @@ const Row = ({ project, highlight, index, previewUrl }) => {
   );
 
   // Push the electrostatic surface analysis if we have interactions in metadata
-  if (
-    metadata &&
-    metadata.INTERACTIONS &&
-    metadata.INTERACTIONS.length > 0 &&
-    analyses &&
-    !analyses.includes('electrostatic')
-  )
+  if (analyses && analyses.includes('interactions') && !analyses.includes('electrostatic'))
     analyses.push('electrostatic');
 
   // Push the populations analysis if we have the populations.json file
   if (
-    files &&
-    files.find(file => file === 'populations.json') &&
-    analyses &&
-    !analyses.includes('populations')
+    files && files.find(file => file === 'populations.json') &&
+    analyses && !analyses.includes('populations')
   )
     analyses.push('populations');
 

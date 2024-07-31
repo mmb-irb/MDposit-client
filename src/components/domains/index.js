@@ -76,6 +76,7 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
     const interactionDomains = [];
     if (interactions) {
       interactions.forEach(interaction => {
+        if (interaction.failed) return;
         // Add a new domain for each new agent and skip repeated agents
         const agent1 = { name: interaction.agent_1, residues: interaction.residue_indices_1 };
         const agent2 = { name: interaction.agent_2, residues: interaction.residue_indices_2 };

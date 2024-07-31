@@ -158,7 +158,7 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
               {
                 name: 'Electrostatic potential surface',
                 dir: 'electrostatic',
-                cond: metadata.INTERACTIONS && metadata.INTERACTIONS.length > 0,
+                cond: analyses && analyses.includes('interactions'),
               },
               {
                 name: 'Hydrogen bonds',
