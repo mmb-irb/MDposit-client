@@ -182,7 +182,7 @@ export const TrajectoryMetadata = memo(() => {
             className={style['text-field']}
             label="Length"
             title="Simulation length"
-            value={metadata.timeLength === null ? na : metadata.timeLength}
+            value={metadata.timeLength === null ? na : round2decimals(metadata.timeLength)}
             disabled={metadata.timeLength === null}
             InputProps={{
               endAdornment: (
