@@ -42,10 +42,10 @@ const Mutations = () => {
     if (!topologyManager) return;
     // Determine if this project has entropies
     // Otherwise stop here
-    const valid_references = topologyManager.proteinReferences.filter(
-      ref => REFERENCES_WITH_ENTROPIES.includes('ref')
+    const validReferences = topologyManager.proteinReferences.filter(
+      ref => REFERENCES_WITH_ENTROPIES.includes(ref.uniprot) && ref.entropies
     );
-    if (valid_references.length === 0) return;
+    if (validReferences.length === 0) return;
     // Iterate over all residues in the topology to find their corresponding entropy
     const residuesCount = topologyManager.residueCount;
     const residueEntropies = new Array(residuesCount).fill(null);
