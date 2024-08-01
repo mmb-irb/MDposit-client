@@ -100,15 +100,15 @@ const RmsdPairwise = () => {
     setComponents(previousComponents => {
       // If there are no previous components then set them from scratch
       if (previousComponents === null) {
-        return selectedFramePair.map(frame => ({
-          name: `Frame ${frame}`,
+        return selectedFramePair.map((frame, index) => ({
+          name: `${index}. Frame ${frame}`,
           frame: frame
         }));
       }
       // If components already exists then just update them
       selectedFramePair.forEach((frame, index) => {
         const previousComponent = previousComponents[index];
-        previousComponent.name = `Frame ${frame}`;
+        previousComponent.name = `${index}. Frame ${frame}`;
         previousComponent.frame = frame;
       });
       return [...previousComponents];
