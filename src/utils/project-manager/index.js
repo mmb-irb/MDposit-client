@@ -71,7 +71,6 @@ export class Project {
             this.directions['populations'] = this.files && this.files.find(file => file === 'populations.json');
             this.directions['markov'] = this.analyses.includes('markov');
         }
-        console.log(this.directions);
         // Set an internal object to save data requested through the API
         this._apiResponses = {
             topology: null,
