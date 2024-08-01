@@ -42,3 +42,9 @@ export const NICE_NAMES = new Map([
     ['populations', 'Populations'],
     ['markov', 'Markov Graph'],
 ]);
+
+// Set manually which references have entropies or epitopes
+// This needs to be updated by hand when there is a new reference with entropies or epitopes
+// This workaround prevents having to pass the references context to the root, which makes no sense
+export const REFERENCES_WITH_ENTROPIES = ['P0DTC2'];
+export const REFERENCES_WITH_EPITOPES = ['P0DTC2'];

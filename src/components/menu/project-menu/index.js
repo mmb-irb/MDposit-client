@@ -19,19 +19,20 @@ import { Link } from 'react-router-dom';
 // Load the project contexts
 import { ProjectCtx } from '../../../contexts';
 
-import { NICE_NAMES } from '../../../utils/constants';
+import {
+  NICE_NAMES,
+  REFERENCES_WITH_ENTROPIES,
+  REFERENCES_WITH_EPITOPES
+} from '../../../utils/constants';
 import style from './style.module.css';
 
-// Set manually which references have entropies or epitopes
-// This needs to be updated by hand when there is a new reference with entropies or epitopes
-// This workaround prevents having to pass the references context to the root, which makes no sense
-const referencesWithEntropies = ['P0DTC2'];
+// Set if this project has entropies
 const hasEntropies = referenceId => {
-  return referencesWithEntropies.indexOf(referenceId) > -1;
+  return REFERENCES_WITH_ENTROPIES.indexOf(referenceId) > -1;
 };
-const referencesWithEpitopes = ['P0DTC2'];
+// Set if this project has epitopes
 const hasEpitopes = referenceId => {
-  return referencesWithEpitopes.indexOf(referenceId) > -1;
+  return REFERENCES_WITH_EPITOPES.indexOf(referenceId) > -1;
 };
 
 // Render the menu of the project (i.e. the inferior header)

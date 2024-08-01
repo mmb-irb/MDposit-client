@@ -44,7 +44,13 @@ import Loading from '../../components/loading'; // Displays an animated "loading
 import useAPI from '../../hooks/use-api';
 
 // Constants
-import { BASE_PATH_PROJECTS, HOST_CONFIG, NICE_NAMES } from '../../utils/constants';
+import {
+  BASE_PATH_PROJECTS,
+  HOST_CONFIG,
+  NICE_NAMES,
+  REFERENCES_WITH_ENTROPIES,
+  REFERENCES_WITH_EPITOPES
+} from '../../utils/constants';
 
 // CSS styles
 import style from './style.module.css';
@@ -79,16 +85,13 @@ if (!reducedMotion()) {
   keyframes.transform = ['translateX(2.5%)', 'translateX(0)'];
 }
 
-// Set manually which references have entropies
-// This needs to be updated by hand when there is a new reference with entropies
-// This workaround prevents downloading all references data to ckeck it, which would be unefficient
-const referencesWithEntropies = ['P0DTC2'];
+// Set a function to determine if a project has entropies
 const hasEntropies = reference => {
-  return referencesWithEntropies.indexOf(reference) > -1;
+  return REFERENCES_WITH_ENTROPIES.indexOf(reference) > -1;
 };
-const referencesWithEpitopes = ['P0DTC2'];
+// Set a function to determine if a project has epitopes
 const hasEpitopes = reference => {
-  return referencesWithEpitopes.indexOf(reference) > -1;
+  return REFERENCES_WITH_EPITOPES.indexOf(reference) > -1;
 };
 
 // Set the allowed chips

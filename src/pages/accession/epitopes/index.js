@@ -406,6 +406,10 @@ const Epitopes = () => {
 
   if (!topologyManager || !proteinReferences) return <Loading />;
 
+  // This data was added manually to the spike reference
+  // If this is missing you may be not in the covid database or the reference has been overwritten
+  if (epitopes.length === 0) return 'Missing epitopes data';
+
   const firstEpitopeIndex = selectedPage * selectedRowsPerPage;
   const lastEpitopeIndex = (selectedPage + 1) * selectedRowsPerPage;
 

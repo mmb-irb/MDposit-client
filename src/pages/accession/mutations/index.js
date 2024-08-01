@@ -21,6 +21,8 @@ import style from './style.module.css';
 
 import Loading from '../../../components/loading';
 
+import { REFERENCES_WITH_ENTROPIES } from '../../../utils/constants';
+
 import { ProjectCtx } from '../../../contexts';
 
 import ResidueSelector from '../../../components/residue-selector';
@@ -38,6 +40,12 @@ const Mutations = () => {
 
   const residueEntropies = useMemo(() => {
     if (!topologyManager) return;
+    // Determine if this project has entropies
+    // Otherwise stop here
+    const valid_references = topologyManager.proteinReferences.filter(
+      ref => REFERENCES_WITH_ENTROPIES.includes('ref')
+    );
+    if (valid_references.length === 0) return;
     // Iterate over all residues in the topology to find their corresponding entropy
     const residuesCount = topologyManager.residueCount;
     const residueEntropies = new Array(residuesCount).fill(null);
@@ -98,7 +106,10 @@ const Mutations = () => {
     return `Logarithmic entropy: ${value}`;
   }, []);
 
-  if (!representations || !residueEntropies) return <Loading />;
+  // This data was added manually to the spike reference
+  // If this is missing you may be not in the covid database or the reference has been overwritten
+  if (topologyManager && !residueEntropies) return 'Missing entropies data';
+  if (!representations) return <Loading />;
 
   return (
     <Suspense fallback={<Loading />}>
