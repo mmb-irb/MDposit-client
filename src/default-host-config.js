@@ -28,23 +28,22 @@ import defaultQueryFields from "src/utils/constants/query-fields";
 //                    Non-matching values will remain as they are
 // queryFields - Fields to be queried in the search and advanced search pages and their configurations
 
-
-// Set the default description
-const DEFAULT_DESCRIPTION = <>
-    <strong>MDposit</strong> is an open platform designed to provide web
-    access to atomistic molecular dynamics (MD) simulations. The aim of
-    this initiative is to ease and promote data sharing along the
-    wide-world scientific community in order to contribute in research.
-</>;
+// Get the requesting URL domain
+const HOST = window.location.hostname;
 
 // Set default values for every host config fields
 // These values are used to fill missing values
 const DEFAUL_HOST_CONFIGURATION = {
-    api: 'https://mmb-dev.mddbr.eu/api/rest/',
+    api: `https://${HOST}/api/rest/`,
     production: false,
     name: 'MDposit',
     favicon: 'mdposit_favicon',
-    description: DEFAULT_DESCRIPTION,
+    description: <>
+        <strong>MDposit</strong> is an open platform designed to provide web
+        access to atomistic molecular dynamics (MD) simulations. The aim of
+        this initiative is to ease and promote data sharing along the
+        wide-world scientific community in order to contribute in research.
+    </>,
     logo: 'logo-mdposit',
     primaryColor: '#808080', // Grey
     secondaryColor: '#fafafa', // Light grey
@@ -194,7 +193,6 @@ const HOST_CONFIGURATIONS = {
     },
     // MDposit development
     'mdposit-dev.mddbr.eu': {
-        api: 'https://mdposit-dev.mddbr.eu/api/rest/',
         global: true,
         primaryColor: '#5c6bc0', // Light indigo
         ...NODE_OPTIONS,
@@ -202,7 +200,6 @@ const HOST_CONFIGURATIONS = {
     },
     // MDposit production
     'mdposit.mddbr.eu': {
-        api: 'https://mdposit.mddbr.eu/api/rest/',
         production: true,
         global: true,
         primaryColor: '#5c6bc0', // Light indigo
@@ -219,11 +216,10 @@ const HOST_CONFIGURATIONS = {
     },
     // MMB node development
     'mmb-dev.mddbr.eu': {
-        api: 'https://mmb-dev.mddbr.eu/api/rest/',
         logo: 'logo-mdposit-mmb',
         primaryColor: '#BB00BB', // Purple
         description: <>
-            {DEFAULT_DESCRIPTION}<br/>
+            {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations stored at the MMB group at IRB Barcelona.
         </>,
         ...COLLECTION_OPTIONS,
@@ -231,12 +227,11 @@ const HOST_CONFIGURATIONS = {
     },
     // MMB node production
     'mmb.mddbr.eu': {
-        api: 'https://mmb.mddbr.eu/api/rest/',
         production: true,
         logo: 'logo-mdposit-mmb',
         primaryColor: '#BB00BB', // Purple
         description: <>
-            {DEFAULT_DESCRIPTION}<br/>
+            {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations stored at the MMB group at IRB Barcelona.
         </>,
         ...COLLECTION_OPTIONS,
@@ -244,60 +239,54 @@ const HOST_CONFIGURATIONS = {
     },
     // ABC node development
     'abc-dev.mddbr.eu': {
-        api: 'https://abc-dev.mddbr.eu/api/rest/',
         logo: 'logo-mdposit-abc',
         primaryColor: '#DC143C', // Crimson red
         description: <>
-            {DEFAULT_DESCRIPTION}<br/>
+            {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations from the Ascona B-DNA Consortium.
         </>
     },
     // ABC node production
     'abc.mddbr.eu': {
-        api: 'https://abc.mddbr.eu/api/rest/',
         production: true,
         logo: 'logo-mdposit-abc',
         primaryColor: '#DC143C', // Crimson red
         description: <>
-            {DEFAULT_DESCRIPTION}<br/>
+            {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations from the Ascona B-DNA Consortium.
         </>
     },
     // Oxford node development
     'oxford-dev.mddbr.eu': {
-        api: 'https://oxford-dev.mddbr.eu/api/rest/',
         logo: 'logo-mdposit-oxford',
         primaryColor: '#66CC00', // Green as it is the Oxfrod landscape <3
         description: <>
-            {DEFAULT_DESCRIPTION}<br/>
+            {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations from the Oxford University node.
         </>
     },
     // Oxford node production
     'oxford.mddbr.eu': {
-        api: 'https://oxford.mddbr.eu/api/rest/',
         production: true,
         logo: 'logo-mdposit-oxford',
         primaryColor: '#66CC00', // Green as it is the Oxfrod landscape <3
         description: <>
-            {DEFAULT_DESCRIPTION}<br/>
+            {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations from the Oxford University node.
         </>
     },
     // Cineca node
     'cineca.mddbr.eu': {
-        api: 'https://cineca.mddbr.eu/api/rest/',
         //production: true,
         logo: 'logo-mdposit-cineca',
         primaryColor: '#99FFFF', // Light blue
         description: <>
-            {DEFAULT_DESCRIPTION}<br/>
+            {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations from the Cineca node in Bologna.
         </>
     },
     // BioExcel covid19 development
     'bioexcel-cv19-dev.bsc.es': {
-        api: 'https://bioexcel-cv19-dev.bsc.es/api/rest/',
         description: covidDescription,
         name: 'BioExcel - Covid19',
         favicon: 'bioexcel_favicon',
@@ -309,7 +298,6 @@ const HOST_CONFIGURATIONS = {
     },
     // BioExcel covid19 production
     'bioexcel-cv19.bsc.es': {
-        api: 'https://bioexcel-cv19.bsc.es/api/rest/',
         production: true,
         name: 'BioExcel - Covid19',
         favicon: 'bioexcel_favicon',
@@ -323,7 +311,7 @@ const HOST_CONFIGURATIONS = {
 };
 
 // Set the current host configuration
-const HOST_CONFIG = HOST_CONFIGURATIONS[window.location.hostname] || HOST_CONFIGURATIONS['localhost'];
+const HOST_CONFIG = HOST_CONFIGURATIONS[HOST] || HOST_CONFIGURATIONS['localhost'];
 //const HOST_CONFIG = HOST_CONFIGURATIONS['mdposit-dev.mddbr.eu'];
 
 // Fill the host configuration gaps with default values
