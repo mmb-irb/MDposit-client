@@ -3,7 +3,12 @@ import React, { useMemo } from 'react';
 // Function to request data through the API
 import useAPI from '../../hooks/use-api';
 // Constants
-import { BASE_PATH_PROJECTS } from '../constants';
+import {
+    BASE_PATH_PROJECTS,
+    HOST_CONFIG,
+    REFERENCES_WITH_ENTROPIES,
+    REFERENCES_WITH_EPITOPES
+} from '../constants';
 // Load the topology manager class
 import { Topology } from '../../utils/topology-manager';
 
@@ -32,6 +37,41 @@ export class Project {
         this.isPopulated = Boolean(
             this.files && this.files.find(filename => filename === 'populations.json'),
         );
+        // Set the available directions in the client according to project data and host configuration
+        // Start with the directions which are to be always available
+        this.directions = {
+            overview: true,
+            trajectory: true,
+            files: true
+        }
+        // Set available analyses
+        // Start with the generic analyses
+        // These analyses are always visible but not clickable when data is missing
+        const genericAnalyses = [ 'rmsds', 'rgyr', 'fluctuation', 'pca', 'rmsd-perres',
+            'rmsd-pairwise', 'dist-perres', 'hbonds', 'energies', 'pockets', 'sasa' ];
+        for (const analysis of genericAnalyses) {
+            this.directions[analysis] = this.analyses.includes(analysis);
+        }
+        // Add the electrostatic direction whenever there are interactions
+        this.directions['electrostatic'] = this.analyses.includes('interactions');
+        // Now set some specialized analyses
+        // These analyses are hidden when the project is out of context
+        // Their availability may be also more complicated than the generic ones
+        // Set covid-19 specific analyses
+        if (HOST_CONFIG.options.includes('covid')) {
+            const anyReferenceWithEntropies = this.metadata && this.metadata.REFERENCES &&
+                this.metadata.REFERENCES.find(ref => REFERENCES_WITH_ENTROPIES.includes(ref));
+            this.directions['mutations'] = Boolean(anyReferenceWithEntropies);
+            const anyReferenceWithEpitopes = this.metadata && this.metadata.REFERENCES &&
+                this.metadata.REFERENCES.find(ref => REFERENCES_WITH_EPITOPES.includes(ref));
+            this.directions['epitopes'] = Boolean(anyReferenceWithEpitopes);
+        }
+        // Set MSM specific analyses
+        if (this.metadata && this.metadata.METHOD === 'Markov state model (MSM)') {
+            this.directions['populations'] = this.files && this.files.find(file => file === 'populations.json');
+            this.directions['markov'] = this.analyses.includes('markov');
+        }
+        console.log(this.directions);
         // Set an internal object to save data requested through the API
         this._apiResponses = {
             topology: null,
@@ -43,7 +83,7 @@ export class Project {
         // Save the topology manager apart so we do not have to re-instantiate the class every time
         this._topologyManager = null;
         // Set the project base URL to request the API
-        this._apiBaseUrl = `${BASE_PATH_PROJECTS}/${this.accessionAndMdNumber}`
+        this._apiBaseUrl = `${BASE_PATH_PROJECTS}/${this.accessionAndMdNumber}`;
     }
     // Declare the different field endpoints to request the API
     _apiEndpoints = {

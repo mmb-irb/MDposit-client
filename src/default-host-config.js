@@ -27,6 +27,7 @@ import defaultQueryFields from "src/utils/constants/query-fields";
 // optionsNiceNames - Nice names for every possible value in the options field
 //                    Non-matching values will remain as they are
 // queryFields - Fields to be queried in the search and advanced search pages and their configurations
+// options - Additional flags which may be used by the cliente
 
 // Get the requesting URL domain
 const HOST = window.location.hostname;
@@ -295,6 +296,7 @@ const HOST_CONFIGURATIONS = {
         secondaryColor: '#76FF03', // Light green
         ...UNIT_OPTIONS,
         queryFields: queryFieldsWithCovid,
+        options: ['covid'] // Enable covid specific analyses
     },
     // BioExcel covid19 production
     'bioexcel-cv19.bsc.es': {
@@ -307,6 +309,7 @@ const HOST_CONFIGURATIONS = {
         secondaryColor: '#76FF03', // Light green
         ...UNIT_OPTIONS,
         queryFields: queryFieldsWithCovid,
+        options: ['covid'] // Enable covid specific analyses
     },
 };
 

@@ -48,8 +48,6 @@ import {
   BASE_PATH_PROJECTS,
   HOST_CONFIG,
   NICE_NAMES,
-  REFERENCES_WITH_ENTROPIES,
-  REFERENCES_WITH_EPITOPES
 } from '../../utils/constants';
 
 // CSS styles
@@ -58,6 +56,8 @@ import style from './style.module.css';
 // It is used to check if the user has the reduced motion setting active
 import reducedMotion from '../../utils/reduced-motion';
 import { SCREENSHOT_FILENAME } from '../../utils/constants';
+// Project manager
+import { Project } from '../../utils/project-manager';
 
 // The search bar
 import Search from'./search';
@@ -85,36 +85,9 @@ if (!reducedMotion()) {
   keyframes.transform = ['translateX(2.5%)', 'translateX(0)'];
 }
 
-// Set a function to determine if a project has entropies
-const hasEntropies = reference => {
-  return REFERENCES_WITH_ENTROPIES.indexOf(reference) > -1;
-};
-// Set a function to determine if a project has epitopes
-const hasEpitopes = reference => {
-  return REFERENCES_WITH_EPITOPES.indexOf(reference) > -1;
-};
-
-// Set the allowed chips
-const allowedAnalysisChips = [
-  'rmsds',
-  'rgyr',
-  'fluctuation',
-  'pca',
-  'rmsd-perres',
-  'rmsd-pairwise',
-  'dist-perres',
-  'hbonds',
-  'electrostatic',
-  'energies',
-  'pockets',
-  'mutations',
-  'epitopes',
-  'sasa',
-  'populations',
-  'markov'
-];
-
-const Row = ({ project, highlight, index, previewUrl }) => {
+const Row = ({ projectData, highlight, index, previewUrl }) => {
+  // Parse the project data using the project manager
+  const project = new Project(projectData);
   // Harvest data from the project object
   const {
     identifier,
@@ -122,13 +95,9 @@ const Row = ({ project, highlight, index, previewUrl }) => {
     published,
     pdbInfo,
     metadata,
-    analyses,
-    files,
-    mds,
+    mdCount,
+    directions
   } = project;
-  // Calculate the mdCount for this project data which is not processed
-  // Set the count of MDs by excluding those MDs flagged as 'removed'
-  const mdCount = mds ? mds.filter(md => md.slice(-9) !== '(removed)').length : 0;
   // Declare a hook from a type called "useRef"
   const ref = useRef(null);
   // This type of hook is like an "useEfect" but it is runned after the layout is calculated and before it is painted
@@ -160,39 +129,6 @@ const Row = ({ project, highlight, index, previewUrl }) => {
       <TableCell className={style.center}> - </TableCell>
     </TableRow>
   );
-
-  // Push the electrostatic surface analysis if we have interactions in metadata
-  if (analyses && analyses.includes('interactions') && !analyses.includes('electrostatic'))
-    analyses.push('electrostatic');
-
-  // Push the populations analysis if we have the populations.json file
-  if (
-    files && files.find(file => file === 'populations.json') &&
-    analyses && !analyses.includes('populations')
-  )
-    analyses.push('populations');
-
-  // Check if any metadata reference has entropies
-  const metadataReferences = metadata && metadata.REFERENCES;
-  const anySuitableReferenceWithEntropies =
-    metadataReferences && metadataReferences.some(reference => hasEntropies(reference));
-  // Push the mutations analysis if so
-  if (
-    anySuitableReferenceWithEntropies &&
-    analyses &&
-    !analyses.includes('mutations')
-  )
-    analyses.push('mutations');
-  // Check if any metadata reference has a map and its reference data has entropies
-  const anySuitableReferenceWithEpitopes =
-    metadataReferences && metadataReferences.some(reference => hasEpitopes(reference));
-  // Push the entropies analysis if so
-  if (
-    anySuitableReferenceWithEpitopes &&
-    analyses &&
-    !analyses.includes('epitopes')
-  )
-    analyses.push('epitopes');
 
   // Returns a table with multiple rows
   // The 3 first rows: accession, PDB accession and name are searchable. Search text is highlighted when found
@@ -239,42 +175,25 @@ const Row = ({ project, highlight, index, previewUrl }) => {
       </TableCell>
       {/* analyses */}
       <TableCell className={style.center}>
-        <Chip
-          key={'trajectory'}
-          clickable
-          className={style.analysis}
-          component={Link}
-          to={{
-            pathname: `/id/${accession || identifier}/trajectory`,
-            // We pass the selected project data so there is no need to query it again
-            state: { projectData: project },
-          }}
-          label={'Trajectory'}
-          variant="outlined"
-        />
-        {analyses && analyses.length
-          ? analyses
-              // Available analyses are sorted alphabetically
-              .sort()
-              // Display only allowed chips
-              .filter(element => allowedAnalysisChips.includes(element))
-              // For each analysis create a clickable button which links to the analysis route
-              .map(analysis => (
-                <Chip
-                  key={analysis}
-                  clickable
-                  className={style.analysis}
-                  component={Link}
-                  to={{
-                    pathname: `/id/${accession || identifier}/${analysis}`,
-                    // We pass the selected project data so there is no need to query it again
-                    state: { projectData: project },
-                  }}
-                  label={NICE_NAMES.get(analysis) || analysis}
-                  variant="outlined"
-                />
-              ))
-          : na}
+        {Object.entries(directions)
+          // Display only available directions
+          .filter(([direction, available]) => available)
+          // For each direction create a clickable button which links to the direction route
+          .map(([direction, available]) => (
+            <Chip
+              key={direction}
+              clickable
+              className={style.analysis}
+              component={Link}
+              to={{
+                pathname: `/id/${accession || identifier}/${direction}`,
+                // We pass the selected project data so there is no need to query it again
+                state: { projectData: project },
+              }}
+              label={NICE_NAMES.get(direction) || direction}
+              variant="outlined"
+            />
+          ))}
       </TableCell>
     </TableRow>
   );
@@ -442,7 +361,7 @@ const Browse = () => {
             {results.map((project, index) => (
               <Row
                 // Load the propierties (inputs) that the class "Row" is expecting
-                project={project} // Load identifier, accession, published, pdbInfo and analyses
+                projectData={project} // Load identifier, accession, published, pdbInfo and analyses
                 highlight={search.search} // Load the highlight
                 index={index} // Load the index
                 previewUrl={screenshotsUrls[index]}

@@ -1,4 +1,4 @@
-import React, { useState, useContext, useCallback, useMemo } from 'react';
+import React, { useState, useContext, useCallback } from 'react';
 
 import {
   CardContent,
@@ -19,32 +19,66 @@ import { Link } from 'react-router-dom';
 // Load the project contexts
 import { ProjectCtx } from '../../../contexts';
 
-import {
-  NICE_NAMES,
-  REFERENCES_WITH_ENTROPIES,
-  REFERENCES_WITH_EPITOPES
-} from '../../../utils/constants';
+import { NICE_NAMES } from '../../../utils/constants';
 import style from './style.module.css';
 
-// Set if this project has entropies
-const hasEntropies = referenceId => {
-  return REFERENCES_WITH_ENTROPIES.indexOf(referenceId) > -1;
-};
-// Set if this project has epitopes
-const hasEpitopes = referenceId => {
-  return REFERENCES_WITH_EPITOPES.indexOf(referenceId) > -1;
-};
+// Set the configuration of the tabs to be displayed in the menu
+// Each tab must have 'dir' or 'drops'. Never both, never none.
+// Tabs with 'dir' link the user directly on click
+// Tabs with 'drops' display a menu with multiple links on click
+const tabs = [
+  { dir: 'overview' },
+  { dir: 'trajectory' },
+  {
+    name: 'Analyses',
+    drops: [
+      {
+        name: 'Quality control',
+        analyses: [
+          'rmsds',
+          'rmsd-perres',
+          'rmsd-pairwise',
+          'rgyr',
+          'fluctuation',
+          'pca',
+          'sasa',
+        ],
+      },
+      {
+        name: 'Interactions',
+        analyses: [
+          'dist-perres',
+          'electrostatic',
+          'hbonds',
+          'energies',
+        ],
+      },
+      {
+        name: 'Bibliography',
+        analyses: [
+          'epitopes',
+          'mutations',
+        ],
+      },
+      {
+        name: 'Other',
+        analyses: [
+          'pockets',
+          'populations',
+          'markov'
+        ],
+      },
+    ],
+  },
+  { dir: 'files' },
+];
 
 // Render the menu of the project (i.e. the inferior header)
 // It only appears when the user is inside a project
 const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
   // Get the current project metadata
   // WARNING: context may be missing in the first renders
-  const { metadata, analyses, files } = useContext(ProjectCtx) || {
-    metadata: {},
-    analyses: [],
-    files: [],
-  };
+  const { directions } = useContext(ProjectCtx) || { directions: {} };
 
   // Set which menu is opened
   const [openMenu, setOpenMenu] = useState(-1);
@@ -81,159 +115,22 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
     }
   }
 
-  const tabs = useMemo(() => {
-    // Check if any metadata reference has a map and its reference data has entropies
-    const metadataReferences = metadata && metadata.REFERENCES;
-    const anySuitableReferenceWithEntropies =
-      metadataReferences && metadataReferences.some(reference => hasEntropies(reference));
-    // Check if any metadata reference has a map and its reference data has entropies
-    const anySuitableReferenceWithEpitopes =
-      metadataReferences && metadataReferences.some(reference => hasEpitopes(reference));
-
-    // Set the tabs to be displayed
-    // Each tab must have 'dir' or 'drops'. Never both, never none.
-    // Tabs with 'dir' link the user directly on click
-    // Tabs with 'drops' display a menu with multiple links on click
-    // 'dir' is the subpage name
-    // 'cond' is the condition to this subpage to be avilable
-    const tabs = [
-      {
-        name: 'Overview',
-        dir: 'overview',
-      },
-      {
-        name: 'Trajectory',
-        dir: 'trajectory',
-      },
-      {
-        name: 'Analyses',
-        drops: [
-          {
-            name: 'Quality control',
-            analyses: [
-              {
-                name: 'RMSDs',
-                dir: 'rmsds',
-                cond: analyses && analyses.includes('rmsds'),
-              },
-              {
-                name: 'RMSD per residue',
-                dir: 'rmsd-perres',
-                cond: analyses && analyses.includes('rmsd-perres'),
-              },
-              {
-                name: 'RMSD pairwise',
-                dir: 'rmsd-pairwise',
-                cond: analyses && analyses.includes('rmsd-pairwise'),
-              },
-              {
-                name: 'Radius of gyration',
-                dir: 'rgyr',
-                cond: analyses && analyses.includes('rgyr'),
-              },
-              {
-                name: 'Fluctuation',
-                dir: 'fluctuation',
-                cond: analyses && analyses.includes('fluctuation'),
-              },
-              {
-                name: 'PCA',
-                dir: 'pca',
-                cond: analyses && analyses.includes('pca'),
-              },
-              {
-                name: 'Solvent accessible surface',
-                dir: 'sasa',
-                cond: analyses && analyses.includes('sasa'),
-              },
-            ],
-          },
-          {
-            name: 'Interactions',
-            analyses: [
-              {
-                name: 'Distance per residue',
-                dir: 'dist-perres',
-                cond: analyses && analyses.includes('dist-perres'),
-              },
-              {
-                name: 'Electrostatic potential surface',
-                dir: 'electrostatic',
-                cond: analyses && analyses.includes('interactions'),
-              },
-              {
-                name: 'Hydrogen bonds',
-                dir: 'hbonds',
-                cond: analyses && analyses.includes('hbonds'),
-              },
-              {
-                name: 'Energies',
-                dir: 'energies',
-                cond: analyses && analyses.includes('energies'),
-              },
-            ],
-          },
-          {
-            name: 'Bibliography',
-            analyses: [
-              {
-                name: 'Epitopes',
-                dir: 'epitopes',
-                cond: anySuitableReferenceWithEpitopes,
-              },
-              {
-                name: 'Mutations',
-                dir: 'mutations',
-                cond: anySuitableReferenceWithEntropies,
-              },
-            ],
-          },
-          {
-            name: 'Other',
-            analyses: [
-              {
-                name: 'Pockets',
-                dir: 'pockets',
-                cond: analyses && analyses.includes('pockets'),
-              },
-            ],
-          },
-        ],
-      },
-      {
-        name: 'Downloads',
-        dir: 'files',
-      },
-    ];
-
-    // In case the simulation comes from a Markov state model, add the populations analysis to the tabs
-    if (metadata && metadata.METHOD === 'Markov state model (MSM)'){
-      tabs[2].drops[3].analyses.push({
-        name: NICE_NAMES.get('populations'),
-        dir: 'populations',
-        cond: files && files.find(file => file === 'populations.json'),
-      });
-      tabs[2].drops[3].analyses.push({
-        name: NICE_NAMES.get('markov'),
-        dir: 'markov',
-        cond: analyses && analyses.includes('markov'),
-      });
-    }
-      
-
-    return tabs;
-  }, [metadata, analyses, files]);
-
   // Get the provided theme
   const theme = useTheme();
   const primaryColor = theme.palette.primary.main;
   const secondaryColor = theme.palette.secondary.main;
 
+  // Set the style of the current selected tab
+  const currentTabStyle = {
+    color: secondaryColor,
+    backgroundColor: primaryColor,
+  };
+
   // Check if a string is found in the specified (by the 'index') dropTab links
   // If it is, return the same string. If it is not, return undefined
   const inDrop = (value, index) => {
     for (const drop of tabs[index].drops)
-      if (drop.analyses.find(analysis => analysis.dir === value)) return value;
+      if (drop.analyses.includes(value)) return value;
     return undefined;
   };
 
@@ -255,7 +152,7 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
               key={index}
               component={Link}
               to={`/id/${accessionAndMdNumber}/${tab.dir}`}
-              label={tab.name}
+              label={NICE_NAMES.get(tab.dir)}
               value={tab.dir}
               className={style['tab-link']}
               onClick={() => handleClose()}
@@ -294,42 +191,45 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
                   <Paper className={style['tab-drop']}>
                     <ClickAwayListener onClickAway={() => handleClose(index)}>
                       <CardContent className={style.analyses}>
-                        {tab.drops.map((drop, d) => (
-                          <div key={d}>
+                        {tab.drops.map((drop, d) => {
+                          // Discard analyses whose direction is not even declared since they are not to be shown
+                          const displayableAnalyses = drop.analyses.filter(analysis => directions[analysis] !== undefined);
+                          if (displayableAnalyses.length === 0) return;
+                          return <div key={d}>
                             <Typography variant="h6">{drop.name}</Typography>
                             <MenuList
                               autoFocusItem={openMenu === index}
                               onKeyDown={handleListKeyDown}
                             >
-                              {drop.analyses.map((analysis, a) =>
-                                analysis.cond ? (
-                                  <MenuItem
-                                    key={a}
+                              {displayableAnalyses.map(analysis => {
+                                // Check if this direction is available
+                                const available = directions[analysis];
+                                // Otherwise set a new button for the direction
+                                // Set the name of the button
+                                const name = NICE_NAMES.get(analysis);
+                                // Set a disabled button if the direction is not available
+                                if (available === false) return (
+                                  <MenuItem key={analysis} className={style.disabled}>
+                                    {name}
+                                  </MenuItem> );
+                                // Set the button direction
+                                const buttonDirection = `/id/${accessionAndMdNumber}/${analysis}`;
+                                return (<MenuItem
+                                    key={analysis}
                                     onClick={() => handleClose(index)}
                                     component={Link}
-                                    to={`/id/${accessionAndMdNumber}/${analysis.dir}`}
-                                    style={
-                                      isCurrent(
-                                        `/id/${accessionAndMdNumber}/${analysis.dir}`,
-                                      )
-                                        ? {
-                                            color: secondaryColor,
-                                            backgroundColor: primaryColor,
-                                          }
-                                        : undefined
-                                    }
+                                    to={buttonDirection}
+                                    // If this is the current tab the use a different style
+                                    style={(isCurrent(buttonDirection) && currentTabStyle) || undefined}
                                   >
-                                    {analysis.name}
+                                    {name}
                                   </MenuItem>
-                                ) : (
-                                  <MenuItem key={a} className={style.disabled}>
-                                    {analysis.name}
-                                  </MenuItem>
-                                ),
+                                )}
                               )}
                             </MenuList>
                           </div>
-                        ))}
+                          }
+                        )}
                       </CardContent>
                     </ClickAwayListener>
                   </Paper>
