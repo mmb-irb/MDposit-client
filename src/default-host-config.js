@@ -53,6 +53,7 @@ const DEFAUL_HOST_CONFIGURATION = {
     optionsLabel: 'Options',
     optionsNiceNames: {},
     queryFields: defaultQueryFields,
+    options: []
 };
 
 // Set the configuration for the collections option
