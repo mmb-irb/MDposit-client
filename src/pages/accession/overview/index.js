@@ -71,55 +71,37 @@ export default React.memo(() => {
     };
   }, [pdbIds]);
 
-  // Download pdb information for every pdb id in metadata from the RCSB API
-  const [pdbInfo2, setPdbInfo2] = useState({});
+  // Ask the PDBBind for every PDB code to see if they have an entry for it
+  const [pdbBindInfo, setPdbBindInfo] = useState({});
   useEffect(() => {
     if (!pdbIds) return;
     // Store requests so we can abort them all in the useEffect cleanup function in case they were not completed on time
     const requests = [];
     pdbIds.forEach(pdbId => {
       // Set the target URL
-      const url = `https://data.rcsb.org/graphql`;
-      const requestOptions = urlParse(url);
-      // Set the POST body
-      const postData = JSON.stringify({
-        operationName: "structure",
-        query: "query structure($id: String!) {\n  entry(entry_id: $id) {\n    rcsb_binding_affinity {\n      provenance_code\n      link\n    }\n  }\n}",
-        variables: { id: pdbId }
-      });
-      // This must be a POST request
-      requestOptions.method = 'POST';
-      // Set the request headers
-      requestOptions.headers = {
-        "Accept": "application/json",
-        "Content-Length": "202",
-        "Content-Type": "application/json",
-      }
-      // Set the response body where we will store data chunks
-      let body = '';
-      const request = https.request(requestOptions, response => {
+      // LORE:
+      // We want to check if the PDB code exists or not in PDBBind
+      // Note that the PDBBind API is not fast so just asking for the PDB code takes a while when the PDB code exists
+      // Note that the PDBBind API is not user friendly and not documented so I don't know if there is a better endpoint
+      // I wrote a message to the PDBBing technical support and they answered they did not have an API so...
+      // I found the content endpoint which is a bit faster responding
+      // If the pdb is not found the response is an instant object (still 200)
+      // However if the pdb is found the response is a whole mmCif but the first chunk is fast
+      const url = `https://www.pdbbind-plus.org.cn:11033/api/browser/content?pdbcode=${pdbId}`;
+      const request = https.get(url, response => {
         response.on('data', chunk => {
-          body += chunk;
-        });
-        response.on('end', () => {
-          // Parse the response to JSON
-          let data = JSON.parse(body);
-          // Mine the data we are interested in
-          if (data) data = data.data;
-          if (data) data = data.entry;
-          if (data) data = data.rcsb_binding_affinity;
-          if (data) data = data.find(a => a.provenance_code == "PDBBind");
-          if (data) data = data.link;
-          setPdbInfo2(previous => {
-            return { ...previous, [pdbId]: data };
+          // Get the first chunk (since there will be no more) and convert it to string
+          const firstChunk = '' + chunk;
+          // If the first characters is '{' then it means this is a JSON, thus the pdb code does not exist
+          // Otherwise the pdb code exists
+          const exists = firstChunk[0] !== '{';
+          setPdbBindInfo(previous => {
+            return { ...previous, [pdbId]: exists };
           });
+          // Now finish the response since we do not need the rest
+          response.destroy();
         });
       });
-      // Add POST body to the request
-      request.write(postData);
-      // Close the request for it to actually start
-      // Note that this is required for the https.request altought it was not by https.get
-      request.end();
       // Add the request to the list
       requests.push(request);
     });
@@ -316,7 +298,7 @@ export default React.memo(() => {
               const imgSrc = pdbId &&
                 `https://cdn.rcsb.org/images/structures/${lowerPdb.substr(1, 2)}/${lowerPdb}/${lowerPdb}_assembly-1.jpeg`;
               // Get the PDBBind URL from the RCSB data
-              const PDBBindURL = pdbInfo2[pdbId];
+              const PDBBindExists  = pdbBindInfo[pdbId];
               return (
                 <div key={i}>
                   {i !== 0 && <hr style={{ color: 'lightGrey' }} />}
@@ -413,10 +395,10 @@ export default React.memo(() => {
                         <FontAwesomeIcon icon={faLink} />
                         &nbsp;3DBIONOTES
                       </Button>
-                      {PDBBindURL && <Button
+                      {PDBBindExists && <Button
                         component={'a'}
                         variant="contained"
-                        href={PDBBindURL}
+                        href={`https://www.pdbbind-plus.org.cn/browse/${pdbId}`}
                         size="small"
                         color="primary"
                         target="_blank"
