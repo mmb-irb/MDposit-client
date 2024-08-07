@@ -274,9 +274,9 @@ const Energies = () => {
             setSelectedInteraction={setSelectedInteraction}
             selectedOrder={selectedOrder}
             handleToggleOrder={handleToggleOrder}
-            firstOrderLabel={'Host'}
+            firstOrderLabel={'Guest'}
             firstOrderTooltip={'Interactor whose energies are to be shown'}
-            secondOrderLabel={'Guest'}
+            secondOrderLabel={'Host'}
             secondOrderTooltip={'Interactor with the opposite energies'}
             toggleOrderTooltip={'Toggle interactors'}
           />
