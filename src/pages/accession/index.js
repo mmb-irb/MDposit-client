@@ -36,95 +36,10 @@ import {
 // CSS styles
 import style from './style.module.css';
 
-const ProjectMenu = lazy(() =>
-  import(
-    /* webpackChunkName: 'project-menu' */ '../../components/menu/project-menu'
-  ),
-);
-
-const Overview = lazy(() =>
-  import(/* webpackChunkName: 'overview' */ './overview'),
-);
-const Files = lazy(() => import(/* webpackChunkName: 'files' */ './files'));
-const Trajectory = lazy(() =>
-  import(/* webpackChunkName: 'trajectory' */ './trajectory'),
-);
-const Rmsds = lazy(() => import(/* webpackChunkName: 'rmsds' */ './rmsds'));
-const Rgyr = lazy(() => import(/* webpackChunkName: 'rgyr' */ './rgyr'));
-const Fluctuation = lazy(() =>
-  import(/* webpackChunkName: 'fluctuation' */ './fluctuation'),
-);
-const PCA = lazy(() => import(/* webpackChunkName: 'pca' */ './pca'));
-const RmsdPerres = lazy(() =>
-  import(/* webpackChunkName: 'rmsd-perres' */ './rmsd-perres'),
-);
-
-const Electrostatic = lazy(() =>
-  import(/* webpackChunkName: 'electrostatic' */ './electrostatic'),
-);
-
-const DistPerres = lazy(() =>
-  import(/* webpackChunkName: 'dist-perres' */ './dist-perres'),
-);
-
-const RmsdPairwise = lazy(() =>
-  import(/* webpackChunkName: 'rmsd-pairwise' */ './rmsd-pairwise'),
-);
-
-const Hbonds = lazy(() => import(/* webpackChunkName: 'hbonds' */ './hbonds'));
-
-const Energies = lazy(() =>
-  import(/* webpackChunkName: 'energies' */ './energies'),
-);
-
-const Pockets = lazy(() =>
-  import(/* webpackChunkName: 'pockets' */ './pockets'),
-);
-
-const Mutations = lazy(() =>
-  import(/* webpackChunkName: 'mutations' */ './mutations'),
-);
-
-const Epitopes = lazy(() =>
-  import(/* webpackChunkName: 'epitopes' */ './epitopes'),
-);
-
-const Sasa = lazy(() => import(/* webpackChunkName: 'sasa' */ './sasa'));
-
-const JsonViewer = lazy(() =>
-  import(/* webpackChunkName: 'json' */ './json-viewer'),
-);
-
-const Populations = lazy(() =>
-  import(/* webpackChunkName: 'mutations' */ './populations'),
-);
-
-const MarkovGraph = lazy(() =>
-  import(/* webpackChunkName: 'markov' */ './markov'),
-);
-
-// Put subpage name and page component together
-const pageComponents = {
-  overview: Overview,
-  trajectory: Trajectory,
-  electrostatic: Electrostatic,
-  rgyr: Rgyr,
-  rmsds: Rmsds,
-  'rmsd-perres': RmsdPerres,
-  'rmsd-pairwise': RmsdPairwise,
-  pca: PCA,
-  fluctuation: Fluctuation,
-  sasa: Sasa,
-  'dist-perres': DistPerres,
-  hbonds: Hbonds,
-  energies: Energies,
-  pockets: Pockets,
-  mutations: Mutations,
-  epitopes: Epitopes,
-  populations: Populations,
-  markov: MarkovGraph,
-  files: Files,
-};
+// The menu used to change the subpage inside the project
+import ProjectMenu from '../../components/menu/project-menu';
+// Component used to visualize API data related to the current subpage
+import JsonViewer from './json-viewer';
 
 const getDataURL = (accessionAndMdNumber, subPage) => {
   // First, few modifications muts be done over the client URL path to be compatible with the API
@@ -183,8 +98,12 @@ const SummarySwitch = ({ subPage, dataUrl }) => {
   else if (pdbData.error) return pdbData.error.toString() + ' (in pdbData)';
   else if (!pdbData.file) return 'Something bad happened with the pdb data';
 
+  // Make sure the requested subpage exists among the available directions
+  if (project.directions[subPage] === undefined) return `Subpage "${subPage}" is not recognized`;
+
   // Get the component to be rendered according to the subpage name
-  const Component = pageComponents[subPage];
+  //const Component = pageComponents[subPage];
+  const PageComponent = lazy(() => import(`./${subPage}`));
 
   // Render the accession
   return (
@@ -194,9 +113,9 @@ const SummarySwitch = ({ subPage, dataUrl }) => {
         <Routes>
           <Route
             path={`/`}
-            element={Component ?
+            element={PageComponent ?
               <Suspense fallback={<Loading />}>
-                <Component />
+                <PageComponent />
               </Suspense>
               : <>{`Subpage "${subPage}" not known`}</>
             }

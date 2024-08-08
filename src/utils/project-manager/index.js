@@ -38,6 +38,7 @@ export class Project {
             this.files && this.files.find(filename => filename === 'populations.json'),
         );
         // Set the available directions in the client according to project data and host configuration
+        // IMPORTANT: Note that for every direction there must be a directory with equal name under src/pages/accession/
         // Start with the directions which are to be always available
         this.directions = {
             overview: true,
