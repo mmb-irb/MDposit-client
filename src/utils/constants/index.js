@@ -22,6 +22,7 @@ export const NICE_NAMES = new Map([
     ['dist', 'DIST'],
     ['rmsd', 'RMSd'],
     ['rmsds', 'RMSds'],
+    ['tmscores', 'TM scores'],
     ['rgyr', 'Radius of gyration'],
     ['rgyrx', 'RgyrX'],
     ['rgyry', 'RgyrY'],

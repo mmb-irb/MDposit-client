@@ -16,7 +16,7 @@ const loading = {
 // Get data from the API for multiple URLs
 const useBatchAPI = urls => {
   // Set the 'data' state object, which is returned at the end of this function
-  const [data, setData] = useState(urls.map(url => blank));
+  const [data, setData] = useState(urls.map(url => ({ url: url, ...blank })));
 
   // This react hook is responisble for sending the request to the API
   // This react hook has 'url' dependencies, so it is only runned once per request

@@ -5,7 +5,7 @@ import { Link, Routes, Route, useLocation, useParams, useNavigate } from 'react-
 // Visual assets
 import { Typography, Button, Select, MenuItem } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLink, faBook } from '@fortawesome/free-solid-svg-icons';
+import { faBook } from '@fortawesome/free-solid-svg-icons';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 // Hooks
@@ -27,7 +27,6 @@ import { Project } from '../../utils/project-manager';
 
 // Constants
 import {
-  BASE_PATH,
   BASE_PATH_PROJECTS,
   MAIN_STRUCTURE_FILENAME,
   NICE_NAMES,
@@ -39,51 +38,10 @@ import style from './style.module.css';
 // The menu used to change the subpage inside the project
 import ProjectMenu from '../../components/menu/project-menu';
 // Component used to visualize API data related to the current subpage
-import JsonViewer from './json-viewer';
-
-const getDataURL = (accessionAndMdNumber, subPage) => {
-  // First, few modifications muts be done over the client URL path to be compatible with the API
-  let end;
-  switch (subPage) {
-    case 'overview':
-    case 'trajectory':
-      end = '';
-      break;
-    case 'electrostatic':
-      end = 'analyses/interactions';
-      break;
-    case 'rgyr':
-    case 'rmsds':
-    case 'rmsd-perres':
-    case 'rmsd-pairwise':
-    case 'pca':
-    case 'fluctuation':
-    case 'sasa':
-    case 'dist-perres':
-    case 'hbonds':
-    case 'energies':
-    case 'pockets':
-    case 'markov':
-      end = `analyses/${subPage}`;
-      break;
-    case 'files':
-      end = subPage;
-      break;
-    case 'mutations':
-    case 'epitopes':
-      end = 'references';
-      break;
-    case 'populations':
-      end = `files/populations.json`;
-      break;
-    default:
-      return null; // No button is rendered
-  }
-  return `${BASE_PATH}current/projects/${accessionAndMdNumber}/${end}`;
-};
+import DataViewer from './data-viewer';
 
 // Render the accession summary
-const SummarySwitch = ({ subPage, dataUrl }) => {
+const SummarySwitch = ({ subPage }) => {
   // Load the project context
   const project = useContext(ProjectCtx);
   // Find the first valid structure filename found in the project
@@ -121,10 +79,10 @@ const SummarySwitch = ({ subPage, dataUrl }) => {
             }
           />
           <Route
-            path={`/json`}
+            path={`/data`}
             element={
               <Suspense fallback={<Loading />}>
-                <JsonViewer url={dataUrl} />
+                <DataViewer accessionAndMdNumber={project.accessionAndMdNumber} subPage={subPage} />
               </Suspense>
             }
           />
@@ -135,23 +93,6 @@ const SummarySwitch = ({ subPage, dataUrl }) => {
         </Routes>
       </PdbCtx.Provider>
     </ErrorBoundary>
-  );
-};
-
-// Render a button which links to the API
-const LinkSwitch = ({ accessionAndMdNumber, subPage }) => {
-  const jsonURL = getDataURL(accessionAndMdNumber, subPage);
-  if (!jsonURL) return null;
-  return (
-    <Button
-      component={Link}
-      target="_blank"
-      to={`/id/${accessionAndMdNumber}/${subPage}/json`}
-      className={style['link-to-api']}
-    >
-      <FontAwesomeIcon icon={faBook} />
-      &nbsp;&nbsp;data in this page
-    </Button>
   );
 };
 
@@ -248,9 +189,7 @@ export default () => {
   );
   // Find out if the user is requesting the raw data, and not the interface
   const fullpath = location.pathname;
-  const isJson = fullpath.substr(fullpath.length - 5) === '/json';
-  // Set the API URL to obtain the corresponding web page data
-  const dataUrl = getDataURL(accessionAndMdNumber, page);
+  const isData = fullpath.substr(fullpath.length - 5) === '/data';
   // Check if there are multiple MDs
   const multipleMDs = project.mdCount > 1;
   // Return the accession routes
@@ -282,27 +221,24 @@ export default () => {
             </Select>
           }
           {multipleMDs && <ChevronRightIcon color="primary" fontSize='large'/>}
-          {`${NICE_NAMES.get(page) || page} page ${isJson ? ' (raw data)' : ''}`}
-          {!isJson && doc && doc.page && (
+          {`${NICE_NAMES.get(page) || page} page ${isData ? ' (data)' : ''}`}
+          {!isData && doc && doc.page && (
             <Info tooltip={tooltip} className={style.info} />
           )}
         </Typography>
         {/* Render a button which links to the API */}
-        {isJson ? (
-          <Button
-            target="_blank"
-            href={dataUrl}
-            className={style['link-to-api']}
-          >
-            <FontAwesomeIcon icon={faLink} />
-            &nbsp;REST API
-          </Button>
-        ) : (
-          <LinkSwitch accessionAndMdNumber={accessionAndMdNumber} subPage={page} />
-        )}
+        {!isData && <Button
+          component={Link}
+          target="_blank"
+          to={`/id/${accessionAndMdNumber}/${page}/data`}
+          className={style['link-to-api']}
+        >
+          <FontAwesomeIcon icon={faBook} />
+          &nbsp;&nbsp;data in this page
+        </Button>}
       </span>
       {/* Load the main data summary */}
-      <SummarySwitch subPage={page} dataUrl={dataUrl} />
+      <SummarySwitch subPage={page} />
     </ProjectCtx.Provider>
   );
 };
