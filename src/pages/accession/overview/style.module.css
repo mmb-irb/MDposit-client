@@ -56,3 +56,7 @@
 .white-background {
   filter: contrast(1.1);
 }
+
+.highlight {
+  font-size: 1.3em; /* Aplica un tamaño de fuente mayor a los caracteres específicos */
+}

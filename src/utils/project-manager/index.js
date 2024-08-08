@@ -55,6 +55,8 @@ export class Project {
         }
         // Add the electrostatic direction whenever there are interactions
         this.directions['electrostatic'] = this.analyses.includes('interactions');
+        // Add reference specific directions
+        this.directions['ligand-descriptors'] = Boolean(this.metadata && this.metadata.LIGANDS && this.metadata.LIGANDS.length > 0);
         // Now set some specialized analyses
         // These analyses are hidden when the project is out of context
         // Their availability may be also more complicated than the generic ones

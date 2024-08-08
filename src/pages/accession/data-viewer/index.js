@@ -55,7 +55,8 @@ const ENDPOINTS = {
   electrostatic: ['analyses/interactions'],
   mutations: ['references'],
   epitopes: ['references'],
-  populations: [`files/populations.json`]
+  populations: [`files/populations.json`],
+  'ligand-descriptors': ['references']
 }
 
 // This subpage displays the different API endpoints used in a specific subpage

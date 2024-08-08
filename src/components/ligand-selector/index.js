@@ -13,7 +13,7 @@ import style from './style.module.css';
 // Ligands have the following structure:
 // { name: string, label: string, ... }
 // The 'label' field will replace the 'name' in the selector labels if exists
-const LigandSelector = ({ ligands, selectedLigand, setSelectedLigand }) => {
+const LigandSelector = ({ ligandReferences, selectedLigand, setSelectedLigand }) => {
   const changeLigand = event => {
     setSelectedLigand(event.target.value);
   };
@@ -26,9 +26,9 @@ const LigandSelector = ({ ligands, selectedLigand, setSelectedLigand }) => {
         onChange={changeLigand}
         className={style['horizontal-margined']}
       >
-        {ligands.map((ligand, i) => (
+        {ligandReferences.map((ligand, i) => (
           <MenuItem key={i} value={i}>
-            {ligand.label || ligand.name}
+            {ligand.name}
           </MenuItem>
         ))}
       </Select>

@@ -38,10 +38,12 @@ const typeSettings = {
   },
 };
 
+
 export default React.memo(() => {
-  const { accession, identifier, published, metadata, proteinReferences, mdCount, node } = useContext(
+  const { accession, identifier, published, metadata, ligandReferences, proteinReferences, mdCount, node } = useContext(
     ProjectCtx,
   );
+
   // Download pdb information for every pdb id in metadata from our custom API
   const pdbIds = metadata.PDBIDS;
   const [pdbInfo, setPdbInfo] = useState({});
@@ -110,6 +112,11 @@ export default React.memo(() => {
       for (const request of requests) request.abort();
     };
   }, [pdbIds]);
+
+  ligandReferences && ligandReferences.forEach(ligandReference => {
+    // Set the ligand name as the domain name
+    const ligandFormula = ligandReference.formula;
+  });
 
   // Download ligand information for every ligand pubchem id in metadata
   const pubchemIds = metadata.LIGANDS;
@@ -443,6 +450,44 @@ export default React.memo(() => {
                     {pubchemId}
                   </a>
                 </div>
+                <div>
+                  {ligandReferences && <>
+                    {`Molecular Formula: `}
+                    {ligandReferences[i].formula.toString().split('').map((char, index) => {
+                      if (char.match(/[A-Z]/)) {
+                        return <span key={index} style={{ fontSize: '1.3m' }}>{char}</span>;
+                      } else if (char.match(/[0-9]/)) {
+                        return <sub key={index} style={{ fontSize: '0.9em' }}>{char}</sub>;
+                      } else {
+                        return char;
+                      }
+                    })}
+                    </>
+                    }
+                </div>
+                <div >
+                  {ligandReferences && <>
+                    {`SMILES Formula: `}
+                    {ligandReferences[i].smiles.length > 60 ? (
+                      <>
+                        {ligandReferences[i].smiles.match(/.{1,75}/g).map((line, index) => (
+                          <div key={index}>
+                            {line.split('').map((char, charIndex) => (
+                              <span key={charIndex} className="highlight">{char}</span>
+                            ))}
+                          </div>
+                        ))}
+                      </>
+                    ) : (
+                      <>
+                        {ligandReferences[i].smiles.split('').map((char, index) => (
+                          <span key={index} className="highlight">{char}</span>
+                        ))}
+                      </>
+                    )}
+                    </>
+                    }
+                </div>
                 {pubchemData.chemblID && (<div>
                   {`ChEMBL ID: `}
                   <a href={pubchemData.chemblURL}
@@ -460,6 +505,34 @@ export default React.memo(() => {
                   >
                     {pubchemData.drugbankID}
                   </a>
+                </div>)}
+                {ligandReferences && ligandReferences[i].pdbid && (<div>
+                  <CardActions>
+                    <Button
+                          component={'a'}
+                          variant="contained"
+                          href={`https://www.ebi.ac.uk/pdbe-srv/pdbechem/chemicalCompound/show/${ligandReferences[i].pdbid}`}
+                          size="small"
+                          color="primary"
+                          target="_blank"
+                          rel="noreferrer noopener"
+                        >
+                          <FontAwesomeIcon icon={faLink} />
+                          &nbsp;PDBe website
+                        </Button>
+                        <Button
+                          component={'a'}
+                          variant="contained"
+                          href={`https://www.rcsb.org/ligand/${ligandReferences[i].pdbid}`}
+                          size="small"
+                          color="primary"
+                          target="_blank"
+                          rel="noreferrer noopener"
+                        >
+                          <FontAwesomeIcon icon={faLink} />
+                          &nbsp;RCSB website
+                        </Button>
+                    </CardActions>
                 </div>)}
               </div>
             ))}
