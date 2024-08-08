@@ -65,7 +65,8 @@ const tabs = [
         analyses: [
           'pockets',
           'populations',
-          'markov'
+          'markov', 
+          'ligand-descriptors'
         ],
       },
     ],

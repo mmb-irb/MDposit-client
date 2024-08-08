@@ -103,6 +103,8 @@ const MarkovGraph = lazy(() =>
   import(/* webpackChunkName: 'markov' */ './markov'),
 );
 
+const LigandDescriptors = lazy(() => import(/* webpackChunkName: 'ligands' */ './ligand-descriptors'));
+
 // Put subpage name and page component together
 const pageComponents = {
   overview: Overview,
@@ -123,6 +125,7 @@ const pageComponents = {
   epitopes: Epitopes,
   populations: Populations,
   markov: MarkovGraph,
+  'ligand-descriptors': LigandDescriptors,
   files: Files,
 };
 
@@ -148,6 +151,7 @@ const getDataURL = (accessionAndMdNumber, subPage) => {
     case 'hbonds':
     case 'energies':
     case 'pockets':
+    case 'ligand-descriptors':
     case 'markov':
       end = `analyses/${subPage}`;
       break;
