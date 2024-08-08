@@ -41,6 +41,7 @@ export const NICE_NAMES = new Map([
     ['sasa', 'Solvent accessible surface'],
     ['populations', 'Populations'],
     ['markov', 'Markov Graph'],
+    ['ligand-descriptors', 'Ligand descriptors'],
 ]);
 
 // Set manually which references have entropies or epitopes

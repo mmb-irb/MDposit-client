@@ -65,7 +65,8 @@ const tabs = [
         analyses: [
           'pockets',
           'populations',
-          'markov'
+          'markov', 
+          'ligand-descriptors'
         ],
       },
     ],
@@ -152,7 +153,7 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
               key={index}
               component={Link}
               to={`/id/${accessionAndMdNumber}/${tab.dir}`}
-              label={NICE_NAMES.get(tab.dir)}
+              label={NICE_NAMES.get(tab.dir) || tab.dir}
               value={tab.dir}
               className={style['tab-link']}
               onClick={() => handleClose()}
@@ -206,7 +207,7 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
                                 const available = directions[analysis];
                                 // Otherwise set a new button for the direction
                                 // Set the name of the button
-                                const name = NICE_NAMES.get(analysis);
+                                const name = NICE_NAMES.get(analysis) || analysis;
                                 // Set a disabled button if the direction is not available
                                 if (available === false) return (
                                   <MenuItem key={analysis} className={style.disabled}>
