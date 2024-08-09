@@ -52,6 +52,7 @@ const ENDPOINTS = {
   energies: ['analyses/energies'],
   pockets: ['analyses/pockets'],
   markov: ['analyses/markov'],
+  clusters: ['analyses/clusters'],
   electrostatic: ['analyses/interactions'],
   mutations: ['references'],
   epitopes: ['references'],

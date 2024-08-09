@@ -1,68 +1,38 @@
-import React, { Suspense, useState } from 'react';
+import React from 'react';
 
-import {
-  FormControlLabel,
-  Radio,
-  RadioGroup,
-  TextField,
-  Typography,
-} from '@mui/material';
-
-import Loading from '../loading';
+import { Card, CardContent, MenuItem, Select, Typography } from '@mui/material';
 
 import style from './style.module.css';
 
-const Selector = ({ label, selection, setter, options, custom = false }) => {
-  // The internal selection
-  const [internal, setInternal] = useState(selection);
-
-  // When an option button is pressed
-  const handleChange = event => {
-    const value = event.target.value;
-    setInternal(value);
-    if (value !== 'custom') setter(value);
-  };
-
-  // Render
+const Selector = ({ label, options, selection, setter }) => {
+  // Make sure we have the mandatory parameters
+  if (!options) return 'Missing options argument';
+  if (!selection) return 'Missing selection argument';
+  if (!setter) return 'Missing setter argument';
+  // Handle when interactions change
+  const changeSelection = event => { setter(event.target.value) };
+  // Render the component
   return (
-    <Suspense fallback={<Loading />}>
-      {label && (
-        <Typography variant="h5" className={style.margined}>
-          {label}
-        </Typography>
-      )}
-      {options && (
-        <RadioGroup value={internal} onChange={handleChange}>
-          {options.map((opt, i) => (
-            <FormControlLabel
-              key={i}
-              value={opt.value}
-              control={<Radio />}
-              label={opt.label}
-            />
-          ))}
-          {custom && (
-            //<FormControlLabel value={'custom'} control={<Radio />} label={'Custom selection'} />
-            <FormControlLabel
-              value={'custom'}
-              disabled
-              control={<Radio />}
-              label={'Custom selection (Not available)'}
-            />
-          )}
-        </RadioGroup>
-      )}
-      {custom && (
-        <TextField
-          id="outlined-basic"
+    <Card className={style.card}>
+      <CardContent className={style.content}>
+        {label && (
+          <Typography variant="h5">
+            {label}
+          </Typography>
+        )}
+        <Select
           value={selection}
-          variant="outlined"
-          onChange={event => setter(event.target.value)}
-          className={style.widest}
-          disabled={internal !== 'custom'}
-        />
-      )}
-    </Suspense>
+          onChange={changeSelection}
+          className={style['horizontal-margined']}
+        >
+          {options.map((option, i) => (
+            <MenuItem key={i} value={option}>
+              {option}
+            </MenuItem>
+          ))}
+        </Select>
+      </CardContent>
+    </Card>
   );
 };
 

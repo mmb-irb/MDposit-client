@@ -42,6 +42,7 @@ const tabs = [
           'fluctuation',
           'pca',
           'sasa',
+          'clusters'
         ],
       },
       {

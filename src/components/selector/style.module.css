@@ -1,8 +1,14 @@
-.widest {
-  margin-top: 1em;
-  width: 100%;
+.card {
+  margin: 0.5em 0;
 }
 
-.margined {
-  margin-bottom: 0.5em;
+.content {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.horizontal-margined {
+  margin: 0 1em;
 }

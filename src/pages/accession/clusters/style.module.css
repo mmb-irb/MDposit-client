@@ -1,0 +1,31 @@
+.graph {
+  height: 75vh;
+}
+
+.horizontal {
+  display: flex;
+  flex-direction: row;
+}
+
+.wide25 {
+  width: 25%;
+  padding-top: 0.3em;
+}
+
+.wide75 {
+  width: 75%;
+  margin-right: 0.5em;
+}
+
+.enabled {
+  opacity: 1;
+  transition-property: opacity;
+  transition-duration: 1s;
+}
+
+.disabled {
+  pointer-events: none;
+  opacity: 0.3;
+  transition-property: opacity;
+  transition-duration: 1s;
+}
