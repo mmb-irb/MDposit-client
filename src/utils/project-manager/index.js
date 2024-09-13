@@ -20,6 +20,8 @@ export class Project {
         Object.entries(projectPayload).forEach(([key, value]) => {
             this[key] = value;
         });
+        // If the project is si wrong we do not even have metadata then stop here
+        if (!this.metadata) return;
         // Calculate any additional metadata
         if (!this.metadata.mdFrames) this.metadata.mdFrames = this.metadata.SNAPSHOTS;
         this.metadata.timeLength = (this.metadata.FRAMESTEP && this.metadata.mdFrames &&
