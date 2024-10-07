@@ -58,12 +58,14 @@ const Markov = () => {
   // First set the URLs for the API
   const markov_screenshots_urls = useMemo(() => {
     // Find markov screenshot filenames
-    const markov_screenshot_filenames = files.filter(filename => filename.includes('markov_screenshot'));
+    // WARNING: The sort may seem redundant, but if there was any reupload then images may be disordered
+    const markov_screenshot_filenames = files.filter(filename => filename.includes('markov_screenshot')).sort();
     // Sort them according to their numeration so they match
     return markov_screenshot_filenames.map(
       markov_screenshot_filename => `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/${markov_screenshot_filename}`
     );
   }, [files]);
+  
   // Now perform the API calls
   const markov_screenshots_responses = useBatchAPI(markov_screenshots_urls);
   const markov_screenshot_loading = markov_screenshots_responses.some(response => response.loading);

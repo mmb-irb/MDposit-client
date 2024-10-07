@@ -102,7 +102,8 @@ const Clusters = () => {
     // Find screenshot filenamese
     const selectedAnalysisFilename = selectedAnalysisName.replace('-', '_');
     const screenshotHeaderNames = `${selectedAnalysisFilename}_screenshot_`;
-    const screenshotFilenames = files.filter(filename => filename.includes(screenshotHeaderNames));
+    // WARNING: The sort may seem redundant, but if there was any reupload then images may be disordered
+    const screenshotFilenames = files.filter(filename => filename.includes(screenshotHeaderNames)).sort();
     // Sort them according to their numeration so they match
     return screenshotFilenames.map(
       filename => `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/${filename}`
