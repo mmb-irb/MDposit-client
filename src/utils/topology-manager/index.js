@@ -259,9 +259,40 @@ const elementColors = {
   P: 'orange',
 };
 
+// Set an atom handler
+class Atom {
+  // Constructor expects the topology this atom belongs to and the atom index
+  constructor (topology, atomIndex) {
+    this.topology = topology;
+    this.index = atomIndex;
+  }
+  // Atom name
+  get name () {
+    return this.topology.atomNames[this.index];
+  }
+  // Index of the residue this atom belongs to
+  get residueIndex () {
+    return this.topology.atomResidueIndices[this.index];
+  }
+  // Residue this atom belongs to
+  get residue () {
+    return this.topology.getResidueByIndex(this.residueIndex);
+  }
+  // Atom element
+  get element () {
+    return this.topology.atomElements[this.index];
+  }
+  // Viewer color representations for this atom according to tis element
+  get elementColor () {
+    const color = elementColors[this.element];
+    if (!color) return 'black';
+    return color;
+  }
+}
+
 // Set a residue handler
 class Residue {
-  // Constructor expects the residue index
+  // Constructor expects the topology this residue belongs to and the residue index
   constructor(topology, residueIndex) {
     this.topology = topology;
     this.index = residueIndex;
@@ -326,25 +357,17 @@ class Residue {
     if (!this.topology.residueReferenceNumbers) return null;
     return this.topology.residueReferenceNumbers[this.index];
   }
-  // Check if this residue is a protein according to its reference type
-  get isProtein () {
-    return this.referenceType === 'protein';
-  }
-  // Check if this residue is a ligand according to its reference type
-  get isLigand () {
-    return this.referenceType === 'ligand';
-  }
   // Reference data
   get referenceData () {
     // If this residue has reference id then it belongs to no reference at all
     if (this.referenceId === null) return null;
     // Otherwise get the corresponding reference data
-    if (this.isProtein) {
+    if (this.referenceType === 'protein') {
       const reference = this.topology.proteinReferences.find(ref => ref.uniprot === this.referenceId);
       if (!reference) throw new Error(`Reference id ${this.referenceId} is not found among protein references`);
       return reference;
     }
-    if (this.isLigand) {
+    if (this.referenceType === 'ligand') {
       const reference = this.topology.ligandReferences.find(ref => ref.pubchem === this.referenceId);
       if (!reference) throw new Error(`Reference id ${this.referenceId} is not found among ligand references`);
       return reference;
@@ -395,11 +418,14 @@ class Residue {
   }
   // Check if the residue has an alpha carbon
   get hasCAlpha () {
-    for (const atomIndex of this.atomIndices) {
-      const atomName = this.topology.getAtomName(atomIndex);
-      if (atomName === 'CA') return true;
-    }
+    for (const atom of this.iteratoms())
+      if (atom.name === 'CA') return true;
     return false;
+  }
+  // Iterate residue atoms
+  * iteratoms () {
+    for (const atomIndex of this.atomIndices) 
+      yield this.topology.getAtomByIndex(atomIndex);
   }
 
 };
@@ -507,18 +533,24 @@ export class Topology {
   // BASICS
   // --------------------------------------------------------------------
 
+  get atomCount () {
+    return this.atomNames.length;
+  }
+
   get residueCount () {
     return this.residueNumbers.length;
   }
 
-  // Get atom data from atom index
-  getAtomName = atomIndex => {
-    return this.atomNames[atomIndex];
-  };
+  // --------------------------------------------------------------------
+  // Atom getters
+  // --------------------------------------------------------------------
 
-  // Given an atom, return its residue index
-  getAtomResidueIndex = atomIndex => {
-    return this.atomResidueIndices[atomIndex];
+  getAtomByIndex = atomIndex => {
+    const count = this.atomCount;
+    if (atomIndex >= count) throw new Error(
+      `The atom index ${atomIndex} is out of range. There are ${count} atoms in the topology`,
+    );
+    return new Atom(this, atomIndex);
   };
 
   // --------------------------------------------------------------------
@@ -527,7 +559,7 @@ export class Topology {
 
   // Given a residue index, return its handler
   getResidueByIndex = residueIndex => {
-    const count = this.residueNumbers.length;
+    const count = this.residueCount;
     if (residueIndex >= count) throw new Error(
       `The residue index ${residueIndex} is out of range. There are ${count} residues in the topology`,
     );
@@ -635,17 +667,6 @@ export class Topology {
       else chained[chainName] = [residueIndex];
     });
     return chained;
-  };
-
-  // 
-
-  // Get an atom color according to its element
-  // If the element color is not defined return black color
-  getAtomElementColor = atomIndex => {
-    const element = this.atomElements[atomIndex];
-    const color = elementColors[element];
-    if (!color) return 'black';
-    return color;
   };
 
   // Get all atom colors according to their elements

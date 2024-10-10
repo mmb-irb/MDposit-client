@@ -177,23 +177,23 @@ const Hbonds = () => {
     // Then set the labels to be displayed in the corresponding agent 1 and 2 sections in the table
     processedData.forEach(group => {
       // Find out which agent does the acceptors belong to
-      const acceptorSample = group.acceptors[0];
-      const residueIndex = topologyManager.getAtomResidueIndex(acceptorSample);
+      const acceptorIndex = group.acceptors[0];
+      const acceptorAtom = topologyManager.getAtomByIndex(acceptorIndex);
+      const acceptorResidueIndex = acceptorAtom.residueIndex;
       const isAcceptorFromAgent1 =
-        interaction['interface_indices_1'].indexOf(residueIndex) !== -1;
+        interaction['interface_indices_1'].indexOf(acceptorResidueIndex) !== -1;
       group.isAcceptorFromAgent1 = isAcceptorFromAgent1;
       // Set the acceptor, donor and hydrogen labels to be displayed in the table
       const [acceptorLabels, donorLabels] = [group.acceptors, group.donors].map(
         atoms =>
-          atoms.map(atom => {
-            const atomName = topologyManager.getAtomName(atom);
-            const residueIndex = topologyManager.getAtomResidueIndex(atom);
-            const label = topologyManager.getResidueByIndex(residueIndex).standardLabel;
-            return `${label}.${atomName}`;
+          atoms.map(atomIndex => {
+            const atom = topologyManager.getAtomByIndex(atomIndex);
+            return `${atom.residue.standardLabel}.${atom.name}`;
           }),
       );
-      const hydrogenLabels = group.hydrogens.map(atom => {
-        let atomName = topologyManager.getAtomName(atom);
+      const hydrogenLabels = group.hydrogens.map(atomIndex => {
+        const atom = topologyManager.getAtomByIndex(atomIndex);
+        let atomName = atom.name;
         if (isAcceptorFromAgent1) atomName = atomName + ' —';
         else atomName = '— ' + atomName;
         return atomName;

@@ -140,11 +140,8 @@ const Energies = () => {
     // They will be marked in the graph
     const strongBonds = interaction['strong_bonds'];
     const strongBondAtoms = [].concat.apply([], strongBonds);
-    const strongBondResidueIndexes = strongBondAtoms.map(atom =>
-      topologyManager.getAtomResidueIndex(atom),
-    );
-    const strongBondResidues = strongBondResidueIndexes.map(
-      residueIndex => topologyManager.getResidueByIndex(residueIndex).standardLabel,
+    const strongBondResidues = strongBondAtoms.map(atomIndex =>
+      topologyManager.getAtomByIndex(atomIndex).residue.standardLabel,
     );
     const strongBondMarks = [];
     strongBondResidues.forEach(residue => {

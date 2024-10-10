@@ -1018,10 +1018,8 @@ const NGLViewer = memo(
           new Set(
             // 'atoms' are in abolsute numeration
             atoms.map(atomIndex => {
-              const residueIndex = topologyManager.getAtomResidueIndex(
-                atomIndex,
-              );
-              const atomIndices = topologyManager.getResidueByIndex(residueIndex).atomIndices;
+              const atom = topologyManager.getAtomByIndex(atomIndex);
+              const atomIndices = atom.residue.atomIndices;
               const nglAtomSelection = '@' + atomIndices.join(',');
               return nglAtomSelection;
             }),
@@ -1634,7 +1632,7 @@ const NGLViewer = memo(
                 return (
                   <div>
                     <div style={{ color: 'lightGreen' }}>{residue.referenceName}</div>
-                    {residue.isProtein && <div>{`- Residue ${residue.referenceNumber}`}</div>}
+                    {residue.referenceType === 'protein' && <div>{`- Residue ${residue.referenceNumber}`}</div>}
                   </div>
                 )
               })()}

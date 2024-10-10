@@ -61,7 +61,7 @@ const useDefaultRepresentations = () => {
         // Check if the chain is full ligand
         // DANI: No se ha probado
         const topologyChain = topology.getChainByName(chain);
-        const isLigand = topologyChain.residues.every(residue => residue.isLigand);
+        const isLigand = topologyChain.residues.every(residue => residue.referenceType === 'ligand');
         // If there is any coincidence then skip this chainname
         if (isLigand) return;
         // Get the chain name according to metadata, if available
