@@ -1,4 +1,4 @@
-import React, { lazy, useContext, useState, useMemo, useCallback, useRef } from 'react';
+import React, { lazy, useContext, useState, useMemo, useCallback, useRef, useEffect } from 'react';
 // CSS style
 import style from './style.module.css';
 // Hooks to request the API
@@ -72,7 +72,10 @@ const Clusters = () => {
   }, [selectedAnalysis, clustersSummary.payload]);
 
   // Request the selected analysis data to the API
-  const clustersAnalysis = useAPI(`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/${selectedAnalysisName}`);
+  const selectedAnalysisURL = selectedAnalysisName
+  ? `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/${selectedAnalysisName}`
+  : null;
+  const clustersAnalysis = useAPI(selectedAnalysisURL);
 
   // Conserve a backed up cluster data
   // If the current analysis is changed keep the old results as we wait for the new payload
@@ -82,22 +85,25 @@ const Clusters = () => {
   // IMPORTANT: If this is not done there is a brief render which displays nothing
   // IMPORTANT: Then the data update looks almost like a refresh
   const clustersDataRef = useRef(clustersAnalysis.payload);
-  const clustersData = clustersDataRef.current;
   // Save cluster data only when the payload available
   useMemo(() => {
     // If the payload is ready then set it as the reference
     if (!clustersAnalysis.payload) return;
     clustersDataRef.current = clustersAnalysis.payload;
   }, [clustersAnalysis.payload]);
+  // Get the current reference value
+  const clustersData = clustersDataRef.current;
 
   // Download all cluster screenshots
   // First set the URLs for the API
   const screenshotsUrls = useMemo(() => {
     // Wait until we know the selected analysis name
     if (!selectedAnalysisName) return [];
-    // Find screenshot filenames
-    const screenshotHeaderNames = `${selectedAnalysisName}_screenshot_`;
-    const screenshotFilenames = files.filter(filename => filename.includes(screenshotHeaderNames));
+    // Find screenshot filenamese
+    const selectedAnalysisFilename = selectedAnalysisName.replace('-', '_');
+    const screenshotHeaderNames = `${selectedAnalysisFilename}_screenshot_`;
+    // WARNING: The sort may seem redundant, but if there was any reupload then images may be disordered
+    const screenshotFilenames = files.filter(filename => filename.includes(screenshotHeaderNames)).sort();
     // Sort them according to their numeration so they match
     return screenshotFilenames.map(
       filename => `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/${filename}`
@@ -111,7 +117,6 @@ const Clusters = () => {
   // Conserve backed up screenshots
   // Same reason as explained above in clustersDataRef
   const screenshotsRef = useRef(null);
-  const screenshots = screenshotsRef.current;
   // Parse and save the screenshot images
   useMemo(() => {
     if (screenshotLoading) return;
@@ -121,6 +126,8 @@ const Clusters = () => {
       return 'data:image/png;base64,' + Buffer.from(response.payload, 'binary').toString('base64');
     });
   }, [screenshotsResponses, screenshotLoading]);
+  // Get the current reference screenshots
+  const screenshots = screenshotsRef.current;
 
   // Set the nodes and links to be represented in the Markov graph
   // For every node, set its area according to its population value and then calculate its radius

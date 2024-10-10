@@ -72,10 +72,11 @@ const FluctuationAnalysis = () => {
     const xTooltip = (_, xIndex) => {
       const atomNumber = xIndex + 1;
       const tag = 'atom ' + atomNumber;
-      const atomName = topology.getAtomName(xIndex);
+      const atom = topology.getAtomByIndex(xIndex);
+      const atomName = atom.name;
       if (!atomName) return tag;
-      const residueIndex = topology.getAtomResidueIndex(xIndex);
-      const residueName = topology.getResidueByIndex(residueIndex).name;
+      const residue = atom.residue;
+      const residueName = residue.name;
       if (!residueName) return tag + ` (${atomName})`;
       return tag + ` (${residueName} - ${atomName})`;
     };
