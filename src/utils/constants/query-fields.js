@@ -64,6 +64,46 @@ export default {
             "checkbox" : false
         },
         {
+            "name": "Ligand DrugBank id",
+            "path": "references.ligands.drugbank",
+            "type": "string",
+            "example": "DB09330",
+            "options": true,
+            "checkbox" : false
+        },
+        {
+            "name": "Ligand ChEMBL id",
+            "path": "references.ligands.chembl",
+            "type": "string",
+            "example": "CHEMBL14830",
+            "options": true,
+            "checkbox" : false
+        },
+        {
+            "name": "Ligand PDB code",
+            "path": "references.ligands.pdbid",
+            "type": "string",
+            "example": "HEM",
+            "options": true,
+            "checkbox" : false
+        },
+        {
+            "name": "Ligand PDB molecular formula",
+            "path": "references.ligands.formula",
+            "type": "string",
+            "example": "C28H33N7O2",
+            "options": false,
+            "checkbox" : false
+        },
+        {
+            "name": "Ligand SMILES",
+            "path": "references.ligands.smiles",
+            "type": "string",
+            "example": "CN1C=C(C2=CC=CC=C21)C3=NC(=NC=C3)NC4=C(C=C(C(=C4)NC(=O)C=C)N(C)CCN(C)C)OC",
+            "options": false,
+            "checkbox" : false
+        },
+        {
             "name": "Uniprot id",
             "path": "metadata.REFERENCES",
             "type": "string",
