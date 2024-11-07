@@ -67,7 +67,8 @@ const tabs = [
           'pockets',
           'populations',
           'markov', 
-          'ligand-descriptors'
+          'ligand-descriptors',
+          'density'
         ],
       },
     ],

@@ -43,7 +43,8 @@ export const NICE_NAMES = new Map([
     ['populations', 'Populations'],
     ['markov', 'Markov Graph'],
     ['ligand-descriptors', 'Ligand descriptors'],
-    ['clusters', 'Clusters']
+    ['clusters', 'Clusters'],
+    ['density', 'Density'],
 ]);
 
 // Set manually which references have entropies or epitopes
