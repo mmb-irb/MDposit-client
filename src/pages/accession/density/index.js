@@ -21,7 +21,7 @@ import { ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 
-import { getMeanAndStdv } from '../../../utils/statistics';
+import { getMean } from '../../../utils/statistics';
 
 import style from './style.module.css';
 
@@ -63,10 +63,14 @@ const Density = () => {
     densityPayload.data.comps.forEach((comp, index) => {
       const dataset = {};
       dataset.data = comp.dens;
-      const { mean: average, stdv: stddev } = getMeanAndStdv(dataset.data);
-      dataset.average = average;
-      dataset.stddev = stddev;
       dataset.color = colors[index % colors.length];
+      
+      // Calculate mean and stddev for the table display
+      dataset.average = getMean(dataset.data);
+      dataset.stddev = getMean(comp.stdv);
+      
+      // Add the density stddev from the JSON for the graph visualization
+      dataset.densityStdDev = comp.stdv;
       
       const name = comp.name;
       densityData[name] = dataset;
@@ -124,7 +128,7 @@ const Density = () => {
               <TableRow>
                 <TableCell>selected chains</TableCell>
                 <TableCell>{`mean`}</TableCell>
-                <TableCell>{`standard deviation`}</TableCell>
+                <TableCell>{`mean of standard deviations`}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -171,6 +175,7 @@ const Density = () => {
             selfLegend={false}
             dataDisplay={display}
             marks={marks}
+            densityStdDev={true}
           />
         </CardContent>
       </Card>

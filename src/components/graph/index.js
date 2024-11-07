@@ -19,6 +19,7 @@ import {
   mouse,
   zoom,
   event,
+  area,
 } from 'd3';
 
 import { FormControlLabel, Checkbox } from '@mui/material';
@@ -106,7 +107,7 @@ const isCanvasPowered = type => type === 'dash' || type === 'dots';
 // }
 
 const Graph = forwardRef(({ // The main data
-  yData, xAxisValues, step = 1, title, xAxisLabel, yAxisLabel, xScaleFactor = 1, xColors, xWeights, xTooltip, type = 'line', onHover, onSelect, selfLegend = false, displayLegend = false, dataDisplay, setDataDisplay, mean = false, standardDeviation = false, margin = defaultMargins, flippedXAxisValues = false, fullPrecision = false, className, marks }, ref) => { // Note that this is only compatible with dash/dots types, not line // Thea main data to be represented // Optional x tags // not sure // Graph title // The x axis label text // The y axis label text // The difference beyween x values // Color each different dot in the graph dependeing on its x index
+  yData, xAxisValues, step = 1, title, xAxisLabel, yAxisLabel, xScaleFactor = 1, xColors, xWeights, xTooltip, type = 'line', onHover, onSelect, selfLegend = false, displayLegend = false, dataDisplay, setDataDisplay, mean = false, standardDeviation = false, margin = defaultMargins, flippedXAxisValues = false, fullPrecision = false, className, marks, densityStdDev = false }, ref) => { // Note that this is only compatible with dash/dots types, not line // Thea main data to be represented // Optional x tags // not sure // Graph title // The x axis label text // The y axis label text // The difference beyween x values // Color each different dot in the graph dependeing on its x index
   // Define the weights for each x value. This is only compatible with type = 'dots' and makes dots bigger // The function to set what to show on the tooltip based in the x value where the mouse is hovering // Set the type of graph to render. Accepted values: line, dash // Object with each dataset name and a value of true/false to set which data is displayed // dataDisplay setter // Display the mean line in the graph // Display the standard deviation area in the graph // Set an extra margin around the graph // Set if values in x axis is horizontal (false) or vertical (true) // If true, draw all points in the graph no matter how many points are there // Force a classname for the overall component element // Mark x values by displaying a vertical line in their positions
   // -  style: object with all the style names (keys) and their values according to d3
   // -  attr: object with all the attribute names (keys) and their values according to d3
@@ -528,6 +529,39 @@ const Graph = forwardRef(({ // The main data
           .transition()
           .attr('opacity', d => (labels[d] ? 0.1 : 0));
         sdRects.exit().remove();
+      }
+      if (densityStdDev) {
+        // Create area generator for the standard deviation bands
+        const areaGenerator = area()
+          .x(d => x(d.x))
+          .y0(d => y(d.value - d.stddev))
+          .y1(d => y(d.value + d.stddev));
+
+        const sdAreas = main.selectAll('path.density-sd').data(dataKeys);
+        sdAreas
+          .enter()
+          .append('path')
+          .attr('class', 'density-sd')
+          .merge(sdAreas)
+          .attr('fill', d => (data[d] && data[d].color) || 'black')
+          .attr('d', d => {
+            if (!data[d] || !data[d].data || !data[d].densityStdDev) return null;
+            
+            // Create array of points with their standard deviations
+            // Filter points based on precision just like the line drawing
+            const points = data[d].data
+              .filter((_, i) => i % precision === 0)
+              .map((value, i) => ({
+                x: i * step * precision,
+                value: value,
+                stddev: data[d].densityStdDev[i * precision]
+              }));
+            
+            return areaGenerator(points);
+          })
+          .transition()
+          .attr('opacity', d => (labels[d] ? 0.35 : 0.0));
+        sdAreas.exit().remove();
       }
       const minIndex = Math.floor(x.invert(0) / step / precision);
       const maxIndex = Math.ceil(x.invert(width) / step / precision);
