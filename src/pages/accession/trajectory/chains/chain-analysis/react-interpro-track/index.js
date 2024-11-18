@@ -1,6 +1,6 @@
 import React, { memo, useRef, useEffect } from 'react';
 
-import loadCustomElement from '../../../utils/load-custom-element';
+import loadCustomElement from '../../../../../../utils/load-custom-element';
 
 // DANI: Esto lo hice mirando el código del antiguo ProperttySetter, pero no llegué a comprenderlo del todo
 // https://github.com/aurel-l/react-property-setter/blob/master/src/index.ts

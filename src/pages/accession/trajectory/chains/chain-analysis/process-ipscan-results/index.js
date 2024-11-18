@@ -1,5 +1,5 @@
-import colorFromString from '../../../utils/color-from-string';
-import mergeIntervals from '../../../utils/merge-intervals';
+import colorFromString from '../../../../../../utils/color-from-string';
+import mergeIntervals from '../../../../../../utils/merge-intervals';
 
 // Renumerate residue numbers to make them match the actual chain they come from
 const shiftLocations = (fragments, shift) => {

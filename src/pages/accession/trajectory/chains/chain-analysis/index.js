@@ -1,12 +1,12 @@
 import React, { memo, useEffect } from 'react';
 
-import Loading from '../loading';
+import Loading from '../../../../../components/loading';
 
-import useAPI from '../../hooks/use-api';
+import useAPI from '../../../../../hooks/use-api';
 
-import loadCustomElement from '../../utils/load-custom-element';
+import loadCustomElement from '../../../../../utils/load-custom-element';
 
-import { BASE_PATH_PROJECTS } from '../../utils/constants';
+import { BASE_PATH_PROJECTS } from '../../../../../utils/constants';
 
 import processIPScanResults from './process-ipscan-results';
 import InterproTrack from './react-interpro-track';
