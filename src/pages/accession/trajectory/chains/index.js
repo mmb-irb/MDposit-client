@@ -41,12 +41,10 @@ const dbMap = new Map([
 ]);
 
 const ChainsAnalysis = memo(() => {
-    // Load chains, accession and identifier from the project context
-    // 'chains' is undefined if no chains were loaded in this project
+    // Load chains references and the topology manager
     const {
-        chains,
-        accessionAndMdNumber,
         topology: topologyManager,
+        chainReferences,
     } = useContext(ProjectCtx);
     // Portals create a window where a web page is pre rendered without navigating to
     // You can navigate to this web page by clicking on the portal
@@ -182,20 +180,20 @@ const ChainsAnalysis = memo(() => {
     }, []);
   
     // Render the functional analysis with a brief introduction
-    // Here 'chains' is just the chain letters
-    // The main data is downloaded further at the ChainAnalysis component
-    if (chains && chains.length > 0) {
+    // Here chainReferences contains the "analysis" data
+    if (chainReferences && chainReferences.length > 0) {
         return (
         <>
             {/* Brief introduction */}
             <Typography variant="h5">Protein functional analysis</Typography>
             <br />
             <Typography variant="subtitle2">
-            <strong>{chains.length}</strong> chains were analysed.
+            <strong>{chainReferences.length}</strong> chains were analysed.
             </Typography>
             <ul className={style['chain-analysis-list']}>
             {/* Here, main data is displayed */}
-            {chains.map(chainLetter => {
+            {chainReferences.map(chainReference => {
+                const chainLetter = chainReference.name;
                 // Get some data using the topology manager when it is available
                 let name = '';
                 let firstResidueNumber = 1;
@@ -212,8 +210,7 @@ const ChainsAnalysis = memo(() => {
                     </Typography>
                     {/* the main visual asset */}
                     <ChainAnalysis
-                        accessionAndMdNumber={accessionAndMdNumber}
-                        chain={chainLetter}
+                        data={chainReference}
                         firstResidueNumber={firstResidueNumber}
                     />
                 </li>

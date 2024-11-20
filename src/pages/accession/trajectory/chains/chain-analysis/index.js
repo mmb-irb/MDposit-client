@@ -1,12 +1,6 @@
 import React, { memo, useEffect } from 'react';
 
-import Loading from '../../../../../components/loading';
-
-import useAPI from '../../../../../hooks/use-api';
-
 import loadCustomElement from '../../../../../utils/load-custom-element';
-
-import { BASE_PATH_PROJECTS } from '../../../../../utils/constants';
 
 import processIPScanResults from './process-ipscan-results';
 import InterproTrack from './react-interpro-track';
@@ -48,26 +42,18 @@ const loadProtVista = () => {
 };
 
 // The result of this function is memoized since it is a heavy work
-const ChainAnalyses = memo(({ accessionAndMdNumber, chain, firstResidueNumber }) => {
-  // Request the API for the chain data
-  const { loading, payload, error } = useAPI(
-    `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/chains/${chain}`,
-  );
-
+const ChainAnalyses = memo(({ data, firstResidueNumber }) => {
+  // Get the chain letter
+  const chain = data.name;
   // Load the protvista managers
   useEffect(() => {
     loadProtVista();
   }, []);
 
-  // Wait for the chain data to be retrieved
-  if (loading) return <Loading />;
-  if (error) return error.toString();
-  if (!payload) return 'Chain analysis is not found';
-
-  // Mine payload data
-  const sequence = payload.sequence;
+  // Mine data
+  const sequence = data.sequence;
   const sequenceLength = sequence.length;
-  const interproscanData = payload.interproscan;
+  const interproscanData = data.interproscan;
   // It may happen that interproscan data is missing when we have a small sequence
   if (!interproscanData) return 'No InterProScan data';
   const matches = interproscanData.results[0].matches;
