@@ -465,7 +465,10 @@ class Chain {
   get residues () {
     return this.residueIndices.map(residueIndex => new Residue(residueIndex));
   }
-
+  // Get the residue sequence
+  get sequence () {
+    return this.sequences[this.index];
+  }
 }
 
 export class Topology {
@@ -519,14 +522,34 @@ export class Topology {
     this.chainResidueNumbers = this.chainResidueIndices.map(
       residueIndices => residueIndices.map(residueIndex => this.residueNumbers[residueIndex])
     );
+    // Get chain sequences by adding all residue letters together for each chain
+    this.sequences = this.chainResidueIndices.map(residueIndices => 
+      residueIndices.map(residueIndex => getResidueTypeLetter(this.residueNames[residueIndex])).join('')
+    );
     // Save metadata chain names
     // They are not letters ('A', 'B', etc.) but actual names ('Spike', 'Glycans', etc.)
     this.metadataChainNames = metadata.CHAINNAMES;
     // Save metadata forced ligand names
     this.metadataLigandNames = metadata.LIGANDNAMES;
     // Save the references so we can further return reference data from here
-    this.proteinReferences = references && references.filter(ref => ref.uniprot);
-    this.ligandReferences = references && references.filter(ref => ref.pubchem);
+    this.proteinReferences = references.proteins;
+    this.ligandReferences = references.ligands;
+    this.chainReferences = references.chains;
+    // Assign the chain name and index to every chain reference
+    // Match every chain reference with its chain relying on sequence
+    for (const chainReference of this.chainReferences) {
+      for (const [chainIndex, chainName] of Object.entries(this.chainNames)) {
+        // Match sequence
+        const chainSequence = this.sequences[chainIndex];
+        if (chainSequence !== chainReference.sequence) continue;
+        // Once we have a match assign the corresponding name and index
+        chainReference.name = chainName;
+        chainReference.index = +chainIndex;
+        break;
+      }
+      // If we did not manage to match this chain then log an error
+      if (chainReference.index === undefined) console.error('Unmatched chain reference ' + chainReference.sequence);
+    }
   }
 
   // --------------------------------------------------------------------
