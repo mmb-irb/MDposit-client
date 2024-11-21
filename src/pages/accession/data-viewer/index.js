@@ -39,7 +39,7 @@ const parseResponse = payload => {
 const ENDPOINTS = {
   overview: [],
   trajectory: [],
-  files: ['analyses/filenotes'],
+  files: ['filenotes'],
   rgyr: ['analyses/rgyr'],
   rmsds: ['analyses/rmsds', 'analyses/tmscores'],
   'rmsd-perres': ['analyses/rmsd-perres'],
