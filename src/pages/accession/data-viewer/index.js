@@ -79,7 +79,7 @@ const DataViewer = ({ accessionAndMdNumber, subPage }) => {
   console.log(apiResponses);
   // Render every requested URL, even if we still have no response
   return apiResponses.map((response, i) => 
-    <Accordion key={i} slotProps={{ transition: { timeout: 500 } }}>
+    <Accordion key={i} slotProps={{ transition: { timeout: 500 } }} expanded={apiResponses.length === 1}>
       <AccordionSummary>
         <ChevronRightIcon color="primary" fontSize='large'/>
         <Typography variant="h6">{getEndpointLabel(response.url)}</Typography>
