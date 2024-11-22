@@ -803,6 +803,7 @@ const NGLViewer = memo(
             //const componentObject = topology.file;
             stageRef.current.addComponentFromObject(componentObject);
             stageComp = stageRef.current.compList[c];
+            if (!stageComp) return;
             stageComp.onlyTopology = comp.onlyTopology;
             setIsFirstCompStaged(true);
           }
@@ -1241,13 +1242,14 @@ const NGLViewer = memo(
       // Every time the trajectory payloads change this useEffect must be rerun
       useEffect(() => {
         // Check if trajectories are
-        if (!topologies || !trajectories || trajectories.length === 0 || !components) return;
+        if (topologies.length === 0 || trajectories.length === 0 || !components) return;
 
         components.forEach((comp, c) => {
           // Find the topology which matches the component url
           // If a component has no url it will match a topology with no url: the default topology
           const url = comp.topologyURL || null;
           const topology = topologies.find(topology => topology.url === url);
+          if (!topology) return;
           const stageComp = stageRef.current.compList[c];
           // Wait if the topology has not been loaded yet
           if (!stageComp) return;
