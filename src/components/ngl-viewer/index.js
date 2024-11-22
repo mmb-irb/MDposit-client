@@ -151,7 +151,7 @@ const NGLViewer = memo(
       // The last automatic camera focus
       const [focus, setFocus] = useState(initialFocus);
 
-      useMemo(() => {
+      useEffect(() => {
         //console.log(initialFocus);
         setFocus(initialFocus);
       }, [initialFocus]);
@@ -188,6 +188,8 @@ const NGLViewer = memo(
       // Collect the topology on each component
       // If the component has no topology specified use the main topology
       useMemo(() => {
+        // Make sure we already have components
+        if (!components) return;
         setRequestedTopologies(previousRequestedTopologies => {
           const newRequestedTopologies = [];
           components.forEach(comp => {
@@ -322,7 +324,7 @@ const NGLViewer = memo(
         });
       }, [requestedTopologies, pdbDataFile]);
 
-      const mainComponent = components[0] || {};
+      const mainComponent = (components && components[0]) || {};
       const mainTopology = topologies.find(topology => {
         return topology.url === mainComponent.topologyURL;
       });
@@ -350,6 +352,8 @@ const NGLViewer = memo(
       // If the component is not the main component and has no frame specified, use the first frame
       // Only the main component (the first) is allowed to load multiple frames by the moment
       useMemo(() => {
+        // Make sure we already have components
+        if (!components) return;
         // Send a request to the API with the url of the rgyr analysis
         const { loading, payload, error } = fileDescriptors;
         // If we do not have file descritors yet then stop here
@@ -488,6 +492,8 @@ const NGLViewer = memo(
       // Set a function to update the current loading progress
       const updateLoadingProgress = useCallback(
         currentTrajectories => {
+          // Make sure we already have components
+          if (!components) return;
           const mainComp = components[0];
           // Get all trajectories to be used as the current main trajecotry
           const mainTrajectories = [];
@@ -1235,7 +1241,7 @@ const NGLViewer = memo(
       // Every time the trajectory payloads change this useEffect must be rerun
       useEffect(() => {
         // Check if trajectories are
-        if (!topologies || !trajectories || trajectories.length === 0) return;
+        if (!topologies || !trajectories || trajectories.length === 0 || !components) return;
 
         components.forEach((comp, c) => {
           // Find the topology which matches the component url

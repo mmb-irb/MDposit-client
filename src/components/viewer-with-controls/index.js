@@ -256,7 +256,7 @@ const ViewerWithControls = forwardRef(
     }, [accessionAndMdNumber]);
 
     // Anytime components change, check if there are any missing values and fill them with default values
-    useMemo(() => {
+    useEffect(() => {
       // Wait for the default completer to be ready
       if (!completeComponentMissingFields) return;
       // If there are no components then set a default configuration
@@ -278,7 +278,7 @@ const ViewerWithControls = forwardRef(
     }, [finalComponents, completeComponentMissingFields]);
 
     // Anytime the requested frame changes update the main component
-    useMemo(() => {
+    useEffect(() => {
       if (!finalComponents) return;
       if (requestedFrame === undefined) return;
       if (finalComponents[0].frame === requestedFrame) return;
@@ -311,7 +311,11 @@ const ViewerWithControls = forwardRef(
     }, [finalComponents]);
 
     // Anytime representations change, check if there are any missing values and fill them
-    useMemo(() => {
+    // WARNING: Note that this must be a useEffect, not a useMemo, or you will get the following error:
+    //   Warning: Cannot update a component (`Pockets`) while rendering a different component (`ForwardRef`).
+    //   To locate the bad setState() call inside `ForwardRef`, follow the stack trace as described in 
+    //   https://reactjs.org/link/setstate-in-render
+    useEffect(() => {
       // If we still have no default refereferences then stop here
       if (!defaultRepresentations || defaultRepresentations.length === 0) return;
       // If there are no representations then set a default configuration
@@ -325,6 +329,10 @@ const ViewerWithControls = forwardRef(
       const changes = finalRepresentations.map(rep => 
         completeRepresentationMissingFields(rep, DEFAULT_REPRESENTATION_PARAMETERS));
       // If there was any value filled then update the state to trigger a rerender
+      // DANI: Este es el responsable de esto:
+      //   Warning: Cannot update a component (`blablabla`) while rendering a different component (`ForwardRef`).
+      //   To locate the bad setState() call inside `ForwardRef`, follow the stack trace as described in 
+      //   https://reactjs.org/link/setstate-in-render
       if (changes.some(v => v === true)) setFinalRepresentations([...finalRepresentations]);
     }, [finalRepresentations, defaultRepresentations, completeRepresentationMissingFields]);
 
@@ -426,7 +434,7 @@ const ViewerWithControls = forwardRef(
 
     // Find out if there are residues under PBC (Periodic Boundary Conditions) in the topology
     // If there are PBC residues then stop the smooth to prevent misleading artifacts
-    const hasPbcResidues = useMemo(() => {
+    const hasPbcResidues = useEffect(() => {
       if (!topology || !topology.pbcResidues) return;
       const _hasPbcResidues = topology.pbcResidues.size > 0;
       if (_hasPbcResidues) setSmooth(false);
