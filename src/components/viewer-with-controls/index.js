@@ -434,7 +434,7 @@ const ViewerWithControls = forwardRef(
 
     // Find out if there are residues under PBC (Periodic Boundary Conditions) in the topology
     // If there are PBC residues then stop the smooth to prevent misleading artifacts
-    const hasPbcResidues = useEffect(() => {
+    const hasPbcResidues = useMemo(() => {
       if (!topology || !topology.pbcResidues) return;
       const _hasPbcResidues = topology.pbcResidues.size > 0;
       if (_hasPbcResidues) setSmooth(false);
