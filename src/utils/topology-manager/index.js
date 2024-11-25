@@ -604,8 +604,9 @@ export class Topology {
       return residue;
     }
     // There should always be a match
+    const icode_message = icode ? `icode ${icode}` : `no icode`
     throw new Error(
-      `Residue with chain ${chainName}, number ${number} and icode ${icode} does not exist`,
+      `Residue with chain ${chainName}, number ${number} and ${icode_message} does not exist`,
     );
   };
 
