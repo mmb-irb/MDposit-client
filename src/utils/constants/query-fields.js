@@ -290,6 +290,20 @@ export default {
     ],
     "Other": [
         {
+            "name": "Project files",
+            "path": "files.name",
+            "type": "string",
+            "example": "topology.tpr",
+            "options": true
+        },
+        {
+            "name": "MD files",
+            "path": "mds.files.name",
+            "type": "string",
+            "example": "pocket_10.pdb",
+            "options": true
+        },
+        {
             "name": "Type of partner interactions",
             "path": "metadata.INTERACTIONS.type",
             "type": "string",
