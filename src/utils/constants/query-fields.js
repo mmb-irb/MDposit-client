@@ -252,10 +252,17 @@ export default {
     ],
     "Protein related features": [
         {
-            "name": "Sequence",
-            "path": "metadata.SEQUENCES",
+            "name": "Protein sequence",
+            "path": "metadata.PROTSEQ",
             "type": "string",
             "example": "VNLTTRT",
+            "options": false
+        },
+        {
+            "name": "Nucleic acid sequences",
+            "path": "metadata.NUCLSEQ",
+            "type": "string",
+            "example": "CGCGAATTCGCG",
             "options": false
         },
         {
@@ -282,6 +289,20 @@ export default {
         } 
     ],
     "Other": [
+        {
+            "name": "Project files",
+            "path": "files.name",
+            "type": "string",
+            "example": "topology.tpr",
+            "options": true
+        },
+        {
+            "name": "MD files",
+            "path": "mds.files.name",
+            "type": "string",
+            "example": "pocket_10.pdb",
+            "options": true
+        },
         {
             "name": "Type of partner interactions",
             "path": "metadata.INTERACTIONS.type",

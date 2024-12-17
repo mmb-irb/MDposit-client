@@ -46,6 +46,7 @@ const DEFAUL_HOST_CONFIGURATION = {
         wide-world scientific community in order to contribute in research.
     </>,
     logo: 'logo-mdposit',
+    logoLabel: '',
     primaryColor: '#808080', // Grey
     secondaryColor: '#fafafa', // Light grey
     searchExample: 'e.g. Orozco lab',
@@ -218,7 +219,7 @@ const HOST_CONFIGURATIONS = {
     },
     // MMB node development
     'mmb-dev.mddbr.eu': {
-        logo: 'logo-mdposit-mmb',
+        logoLabel: 'MMB node',
         primaryColor: '#BB00BB', // Purple
         description: <>
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
@@ -230,7 +231,7 @@ const HOST_CONFIGURATIONS = {
     // MMB node production
     'mmb.mddbr.eu': {
         production: true,
-        logo: 'logo-mdposit-mmb',
+        logoLabel: 'MMB node',
         primaryColor: '#BB00BB', // Purple
         description: <>
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
@@ -241,7 +242,7 @@ const HOST_CONFIGURATIONS = {
     },
     // ABC node development
     'abc-dev.mddbr.eu': {
-        logo: 'logo-mdposit-abc',
+        logoLabel: 'ABC node',
         primaryColor: '#DC143C', // Crimson red
         description: <>
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
@@ -251,7 +252,7 @@ const HOST_CONFIGURATIONS = {
     // ABC node production
     'abc.mddbr.eu': {
         production: true,
-        logo: 'logo-mdposit-abc',
+        logoLabel: 'ABC node',
         primaryColor: '#DC143C', // Crimson red
         description: <>
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
@@ -260,7 +261,7 @@ const HOST_CONFIGURATIONS = {
     },
     // Oxford node development
     'oxford-dev.mddbr.eu': {
-        logo: 'logo-mdposit-oxford',
+        logoLabel: 'Oxford node',
         primaryColor: '#66CC00', // Green as it is the Oxfrod landscape <3
         description: <>
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
@@ -270,7 +271,7 @@ const HOST_CONFIGURATIONS = {
     // Oxford node production
     'oxford.mddbr.eu': {
         production: true,
-        logo: 'logo-mdposit-oxford',
+        logoLabel: 'Oxford node',
         primaryColor: '#66CC00', // Green as it is the Oxfrod landscape <3
         description: <>
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
@@ -280,7 +281,7 @@ const HOST_CONFIGURATIONS = {
     // Cineca node
     'cineca.mddbr.eu': {
         //production: true,
-        logo: 'logo-mdposit-cineca',
+        logoLabel: 'Cineca node',
         primaryColor: '#99FFFF', // Light blue
         description: <>
             {DEFAUL_HOST_CONFIGURATION.description}<br/>

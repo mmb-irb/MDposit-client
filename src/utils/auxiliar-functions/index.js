@@ -6,3 +6,6 @@ export const caluclateAverage = values => {
     const addition = values.reduce((acc, curr) => acc + curr, 0);
     return addition / values.length;
 }
+
+// Round a number to its neares cent
+export const round2cents = number => Math.round(number * 100) / 100;

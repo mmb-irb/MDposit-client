@@ -107,10 +107,6 @@ const Pockets = () => {
     return { data, frameStep };
   }, [payload, metadata]);
 
-  // Use this hook to get the memoized NGL default representations
-  // We need to access the default representations from here to know the number of representations
-  const defaultRepresentations = useDefaultRepresentations();
-
   // Set the main component to be passed to NGL
   const components = useMemo(() => {
     // Wait for payload to be downloaded
@@ -130,16 +126,23 @@ const Pockets = () => {
     return [mainComponent, ...pocketComponents];
   }, [data, accessionAndMdNumber, metadata, frameStep]);
 
+  // Use this hook to get the memoized NGL default representations
+  // We need to access the default representations from here to know the number of representations
+  const defaultRepresentations = useDefaultRepresentations();
+
   // Define the representations to be displayed in the viewer
   const [ representations, setRepresentations ] = useState(null);
 
   // Set or update the representations state
   useMemo(() => {
     // Wait until we have both the components and the default representations available
-    if (!components || !defaultRepresentations) return;
+    if (!components) return;
+    if (!defaultRepresentations || defaultRepresentations.length === 0) return;
     setRepresentations(previousRepresentations => {
       // This must be the first time we set the representations
       // However this may be recalled during a code refresh while in development
+      // WARNING: This line may cause a shaddy error, starting representations are made just once
+      // Make sure the conditionals above are not met until we are ready to set the representations
       if (previousRepresentations !== null) return previousRepresentations;
       // Reduce the opacity of all default representations
       defaultRepresentations.forEach(rep => {
@@ -166,12 +169,13 @@ const Pockets = () => {
         show: false,
         reference: POCKET_REFERENCE
       }));
-      // Update the states
-      return [
+      // Update the state
+      const allRepresentations = [
         ...defaultRepresentations,
         ...pocketSurfaceRepresentations,
         ...pocketRepresentations
-      ]
+      ];
+      return allRepresentations;
     });
   }, [components, defaultRepresentations]);
 

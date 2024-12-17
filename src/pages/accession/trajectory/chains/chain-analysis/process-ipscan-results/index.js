@@ -1,11 +1,11 @@
-import colorFromString from '../../../utils/color-from-string';
-import mergeIntervals from '../../../utils/merge-intervals';
+import colorFromString from '../../../../../../utils/color-from-string';
+import mergeIntervals from '../../../../../../utils/merge-intervals';
 
 // Renumerate residue numbers to make them match the actual chain they come from
 const shiftLocations = (fragments, shift) => {
   fragments.forEach(fragment => {
-    fragment.start += shift;
-    fragment.end += shift;
+    fragment.start += shift -1;
+    fragment.end += shift -1;
   })
   return fragments;
 }

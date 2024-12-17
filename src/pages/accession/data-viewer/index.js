@@ -39,7 +39,7 @@ const parseResponse = payload => {
 const ENDPOINTS = {
   overview: [],
   trajectory: [],
-  files: ['analyses/filenotes'],
+  files: ['filenotes'],
   rgyr: ['analyses/rgyr'],
   rmsds: ['analyses/rmsds', 'analyses/tmscores'],
   'rmsd-perres': ['analyses/rmsd-perres'],
@@ -79,7 +79,7 @@ const DataViewer = ({ accessionAndMdNumber, subPage }) => {
   console.log(apiResponses);
   // Render every requested URL, even if we still have no response
   return apiResponses.map((response, i) => 
-    <Accordion key={i} slotProps={{ transition: { timeout: 500 } }}>
+    <Accordion key={i} slotProps={{ transition: { timeout: 500 } }} defaultExpanded={apiResponses.length === 1}>
       <AccordionSummary>
         <ChevronRightIcon color="primary" fontSize='large'/>
         <Typography variant="h6">{getEndpointLabel(response.url)}</Typography>

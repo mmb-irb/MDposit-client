@@ -78,11 +78,11 @@ export class Project {
         }
         // Set an internal object to save data requested through the API
         this._apiResponses = {
-            topology: null,
-            interactions: null,
-            references: null,
-            fileDescriptors: null,
-            populations: null
+            topology: undefined,
+            interactions: undefined,
+            references: undefined,
+            fileDescriptors: undefined,
+            populations: undefined
         };
         // Save the topology manager apart so we do not have to re-instantiate the class every time
         this._topologyManager = null;
@@ -117,8 +117,8 @@ export class Project {
     // Interactions getter
     get interactions () {
         const response = this._apiQuery('interactions', this.hasInteractions);
-        if (!response) return null;
-        if (response.loading) return null;
+        if (response === undefined) return undefined;
+        if (response.loading) return undefined;
         if (response.error) throw new Error('Error when downloading project interactions: ' + response.error.message);
         if (!response.payload) throw new Error('Something went wrong with project interactions');
         return response.payload;
@@ -127,7 +127,7 @@ export class Project {
     // References getter
     get references () {
         const response = this._apiQuery('references');
-        if (response.loading) return null;
+        if (response.loading) return undefined;
         if (response.error) throw new Error('Error when downloading project references: ' + response.error.message);
         if (!response.payload) throw new Error('Something went wrong with project references');
         return response.payload;
@@ -135,11 +135,19 @@ export class Project {
     // Specific references getters
     get proteinReferences () {
         const references = this.references;
-        return useMemo(() => references && references.filter(ref => ref.uniprot), [references]);
+        return useMemo(() => references && references.filter(ref => ref.ref_type === 'proteins'), [references]);
     }
     get ligandReferences () {
         const references = this.references;
-        return useMemo(() => references && references.filter(ref => ref.pubchem), [references]);
+        return useMemo(() => references && references.filter(ref => ref.ref_type === 'ligands'), [references]);
+    }
+    get pdbReferences () {
+        const references = this.references;
+        return useMemo(() => references && references.filter(ref => ref.ref_type === 'pdbs'), [references]);
+    }
+    get chainReferences () {
+        const references = this.references;
+        return useMemo(() => references && references.filter(ref => ref.ref_type === 'chains'), [references]);
     }
 
     // Topology getter
@@ -147,13 +155,23 @@ export class Project {
         // Get references to further load them to the topology manager
         // Note that this must be done here to respect hooks
         const references = this.references;
+        // Set an object with references used by the topology manager already classified
+        const topologyManagerReferences = {
+            proteins: this.proteinReferences,
+            ligands: this.ligandReferences,
+            chains: this.chainReferences
+        };
         // Request topology data
         const response = this._apiQuery('topology');
-        if (response.loading) return null;
+        // Make sure data is available
+        if (response.loading) return undefined;
         if (response.error) throw new Error('Error when downloading project topology: ' + response.error.message);
         if (!response.payload) throw new Error('Something went wrong with project topology');
+        // Return the stored value in case we already have it
         if (this._topologyManager) return this._topologyManager;
-        this._topologyManager = new Topology(response.payload, this.metadata, references);
+        // Make sure references are available
+        if (references === undefined) return undefined;
+        this._topologyManager = new Topology(response.payload, this.metadata, topologyManagerReferences);
         return this._topologyManager;
     }
 
