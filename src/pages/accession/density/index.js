@@ -81,12 +81,12 @@ const Density = () => {
     const isEnsemble = metadata.TYPE === 'ensemble';
     // Calculate timestep from z-axis data
     const zValues = densityPayload.data.z;
-    const timestep = zValues[1] - zValues[0]; // Difference between first two points
+    const xStep = zValues[1] - zValues[0]; // Difference between first two points
 
     return {
       densityData,
       frameStep: 1,
-      xAxisStep: timestep,
+      xAxisStep: xStep,
       xAxisLabel: 'Distance (Å)', // Using Angstroms as label
       isEnsemble,
       xTooltip: xValue => `${xValue.toFixed(2)} Å`,
@@ -185,10 +185,10 @@ const Density = () => {
           typeof selected === 'number'
             ? {
               accession: accession,
-              requestedFrame: selectedFrame,
               // This is used only as a tag for the onNail and onClose functions below
               // It has no effect on the viewer
               xSelection: selected,
+              xAxisStep: xAxisStep,
             }
             : null
         }

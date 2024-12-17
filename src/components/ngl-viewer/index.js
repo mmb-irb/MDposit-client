@@ -13,7 +13,7 @@ import React, {
 import { useInView } from 'react-intersection-observer';
 import { clamp } from 'lodash-es';
 import cn from 'classnames';
-import { autoLoad, Stage, ColormakerRegistry, Matrix4 } from 'ngl';
+import { autoLoad, Stage, Shape, ColormakerRegistry, Matrix4 } from 'ngl';
 
 import { frame } from 'timing-functions';
 
@@ -125,11 +125,14 @@ const NGLViewer = memo(
         darkBackground,
         perspective,
         speed,
+        xSelection,
+        xAxisStep,
         // Final components and representations prepared for the viewer
         components,
         representations,
         // Set the highlight representations types
         highlightTypes = defaultHighlightTypes,
+
       },
       ref,
     ) => {
@@ -1205,6 +1208,43 @@ const NGLViewer = memo(
           labelColor: darkBackground ? 16777215 : 1, // 16777215 is white, 1 is black
         });
       }, [isFirstCompStaged, selectedDistances, darkBackground]);
+      
+      useEffect(() => {
+        if (!isFirstCompStaged || !xSelection) return;
+        // Set a representation name. This is useful to find this representation further
+        const name = '*density';
+        const previousComponent= stageRef.current.compList.find(
+          component => component  .name === name,
+        );
+        // Remove the previous representation
+        if (previousComponent)
+          stageRef.current.removeComponent(
+            previousComponent,
+          );
+        else {
+          stageRef.current.viewer.rotationGroup.rotateY(-1.57);
+        };
+        var shape = new Shape("shape", {radialSegments: 10 });
+        const boxCenter = stageRef.current.compList[0].object.center;
+        const bBox = stageRef.current.compList[0].object.boundingBox;
+        shape.addBox(
+          [boxCenter.x, boxCenter.y, xSelection*xAxisStep - xAxisStep/2], 
+          [0, 0, 0], 
+          bBox.max.x - bBox.min.x, 
+          [0, bBox.max.y - bBox.min.y, 0], 
+          [0, 0, 0.01]
+        );
+        shape.addBox(
+          [boxCenter.x, boxCenter.y, xSelection*xAxisStep + xAxisStep/2], 
+          [0, 0, 0], 
+          bBox.max.x - bBox.min.x, 
+          [0, bBox.max.y - bBox.min.y, 0], 
+          [0, 0, -0.01]
+        );
+        var shapeComp = stageRef.current.addComponentFromObject(shape, {name: name});
+        var rep = shapeComp.addRepresentation("buffer", {opacity: 0.1 , roughness: 1});
+        // console.log(stageRef.current.viewer.rotationGroup.rotation);
+      }, [isFirstCompStaged, xSelection]);
 
       // Highlight specific angles
       useEffect(() => {
