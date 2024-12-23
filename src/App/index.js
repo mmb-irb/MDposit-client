@@ -43,8 +43,8 @@ if (!reducedMotion()) {
 }
 
 // Set the header colors (standard model colors)
-const primary = { main: HOST_CONFIG.primaryColor }; // Light indigo
-const secondary = { main: HOST_CONFIG.secondaryColor }; // Light grey
+const primary = { main: HOST_CONFIG.primaryColor }; // Gets color from host config
+const secondary = { main: HOST_CONFIG.secondaryColor };
 
 // Set custom styling theme
 const theme = createTheme({
