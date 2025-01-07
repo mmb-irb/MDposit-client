@@ -1,5 +1,5 @@
 import React from 'react';
-import { Paper, Toolbar, Typography } from '@mui/material';
+import { Typography } from '@mui/material';
 
 import LazyImg from '../../components/lazy-img';
 
@@ -18,14 +18,14 @@ import logoEbrains from '../../images/logo-ebrains.png';
 import logoEbrainsWebP from '../../images/logo-ebrains.webp';
 import logoMDDB from '../../images/logo-mddb.png';
 import logoMDDBWebP from '../../images/logo-mddb.webp';
-import euLogo from '../../images/eu-logo.png';
-import euLogoWebP from '../../images/eu-logo.webp';
+import euLogo from '../../images/eu.png';
+import euLogoWebP from '../../images/eu.webp';
 
-// Show two images which are also links: Human Brain Project and IRB Barcelona
+// Show images which are also links
 const Footer = React.memo(() => (
-  <footer>
-    <Paper>
-      <Toolbar className={style.footer}>
+  <footer className={style.footerWrapper}>
+    <div className={style.footer}>
+      <div className={style.toolbarColumn}>
         <a
           href="https://bioexcel.eu/"
           target="_blank"
@@ -41,7 +41,11 @@ const Footer = React.memo(() => (
             />
           </picture>
         </a>
-        <a href="https://www.bsc.es/" target="_blank" rel="noreferrer noopener">
+        <a
+          href="https://www.bsc.es/"
+          target="_blank"
+          rel="noreferrer noopener"
+        >
           <picture>
             <source type="image/webp" srcSet={logoBSCWebP} />
             <LazyImg
@@ -82,7 +86,11 @@ const Footer = React.memo(() => (
             />
           </picture>
         </a>
-        <a href="https://ebrains.eu/" target="_blank" rel="noreferrer noopener">
+        <a
+          href="https://ebrains.eu/"
+          target="_blank"
+          rel="noreferrer noopener"
+        >
           <picture>
             <source type="image/webp" srcSet={logoEbrainsWebP} />
             <LazyImg
@@ -93,7 +101,11 @@ const Footer = React.memo(() => (
             />
           </picture>
         </a>
-        <a href="https://mddbr.eu/" target="_blank" rel="noreferrer noopener">
+        <a
+          href="https://mddbr.eu/"
+          target="_blank"
+          rel="noreferrer noopener"
+        >
           <picture>
             <source type="image/webp" srcSet={logoMDDBWebP} />
             <LazyImg
@@ -104,13 +116,13 @@ const Footer = React.memo(() => (
             />
           </picture>
         </a>
-      </Toolbar>
+      </div>
+      
       <div className={style.acknowledgements}>
         <div className={style['acknowledgements-text']}>
           <Typography variant="h5">
             <strong>Acknowledgements</strong>
           </Typography>
-          <br />
           This open source software code was developed in part in BioExcel,
           the Human Brain Project, and the Molecular Dynamics Data Bank funded from 
           the European Union's Horizon 2020 Framework Programme for Research and Innovation under Specific
@@ -128,7 +140,7 @@ const Footer = React.memo(() => (
           />
         </div>
       </div>
-    </Paper>
+    </div>
   </footer>
 ));
 
