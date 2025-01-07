@@ -15,6 +15,7 @@ import { faSearch } from '@fortawesome/free-solid-svg-icons';
 // Additional components
 import Card from '../../components/animated-card'; // The exceled parcels in which almost all features are based
 import LazyImg from '../../components/lazy-img'; // Renders an image by a hook
+import Browse from '../browse'; // Add this import
 
 // CSS styles
 import style from './style.module.css';
@@ -45,33 +46,19 @@ const Home = () => {
   const history = useNavigate();
   // Render the home page
   return (
-    <Card className={style.card}>
-      <CardContent className={style['card-content']}>
-        <Typography variant="h5">
-          {HOST_CONFIG.description}
-        </Typography>
-        <Typography variant="h5">
-          Search simulations by their title, authors or group names:
-        </Typography>
-        <span className={style.searchbar}>
-          {/* Search bar */}
-          <TextField
-            variant="outlined"
-            className={style.searchbar}
-            InputProps={inputProps}
-            placeholder={HOST_CONFIG.searchExample}
-            onKeyPress={event => {
-              if (event.key === 'Enter') {
-                //console.log(event.target.value);
-                const query = event.target.value;
-                history('/browse?search=' + query);
-                //ev.preventDefault();
-              }
-            }}
-          />
-        </span>
-      </CardContent>
-    </Card>
+    <>
+      <Card className={style.card}>
+        <CardContent className={style['card-content']}>
+          <Typography variant="h5">
+            {HOST_CONFIG.description}
+          </Typography>
+          <Typography variant="h5">
+            Search simulations by their title, authors or group names:
+          </Typography>
+        </CardContent>
+      </Card>
+      <Browse />
+    </>
   );
 };
 

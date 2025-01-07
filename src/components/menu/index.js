@@ -31,15 +31,6 @@ export default () => (
       <Button
         component={Link}
         color="inherit"
-        to="/browse"
-        startIcon={<WebIcon />}
-        className={style.button}
-      >
-        Browse
-      </Button>
-      <Button
-        component={Link}
-        color="inherit"
         to="/search"
         startIcon={<SearchIcon />}
         className={style.button}
