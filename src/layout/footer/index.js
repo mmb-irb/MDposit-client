@@ -1,5 +1,5 @@
 import React from 'react';
-import { Paper, Toolbar } from '@mui/material';
+import { Paper, Toolbar, Typography } from '@mui/material';
 
 import LazyImg from '../../components/lazy-img';
 
@@ -18,6 +18,8 @@ import logoEbrains from '../../images/logo-ebrains.png';
 import logoEbrainsWebP from '../../images/logo-ebrains.webp';
 import logoMDDB from '../../images/logo-mddb.png';
 import logoMDDBWebP from '../../images/logo-mddb.webp';
+import euLogo from '../../images/eu-logo.png';
+import euLogoWebP from '../../images/eu-logo.webp';
 
 // Show two images which are also links: Human Brain Project and IRB Barcelona
 const Footer = React.memo(() => (
@@ -103,6 +105,29 @@ const Footer = React.memo(() => (
           </picture>
         </a>
       </Toolbar>
+      <div className={style.acknowledgements}>
+        <div className={style['acknowledgements-text']}>
+          <Typography variant="h5">
+            <strong>Acknowledgements</strong>
+          </Typography>
+          <br />
+          This open source software code was developed in part in BioExcel,
+          the Human Brain Project, and the Molecular Dynamics Data Bank funded from 
+          the European Union's Horizon 2020 Framework Programme for Research and Innovation under Specific
+          Grant Agreements No. 675728 (BioExcel), No. 823830 (BioExcel-2), No. 720270 (Human Brain Project SGA1), 
+          No. 785907 (Human Brain Project SGA2) and No. 945539 (Human Brain Project SGA3) and by the Horizon Europe
+          Programme under No. 101093290 (BioExcel-3) and No. 101094651 (Molecular Dynamics Data Bank).
+        </div>
+        <div className={style['acknowledgements-logo']}>
+          <source type="image/webp" srcSet={euLogoWebP} />
+          <LazyImg
+            src={euLogo}
+            loading="lazy"
+            alt=""
+            className={style.fill}
+          />
+        </div>
+      </div>
     </Paper>
   </footer>
 ));

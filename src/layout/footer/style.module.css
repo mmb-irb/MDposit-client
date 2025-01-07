@@ -7,3 +7,26 @@
 .footer img {
   max-width: 100vw;
 }
+
+.acknowledgements {
+  border: 2px solid blue;
+  padding: 1em;
+  display: flex;
+  align-items: flex-start;
+  margin-top: 1em;
+}
+
+.acknowledgements-text {
+  width: 85%;
+}
+
+.acknowledgements-logo {
+  width: 15%;
+  margin-left: 1em;
+  display: flex;
+}
+
+.fill {
+  min-width: 100%;
+  min-height: 100%;
+}
