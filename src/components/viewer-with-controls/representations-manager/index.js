@@ -149,7 +149,7 @@ const RepresentationsManager = memo(
             </TableRow>
           </TableHead>
           <TableBody>
-            {representations.map((representation, index) => (
+            {representations && representations.map((representation, index) => (
               <TableRow key={index}>
                 {/* Name */}
                 <TableCell component="th" scope="row">
