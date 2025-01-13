@@ -151,7 +151,7 @@ const Electrostatic = () => {
 
     // Set the focus to the whole interface
     const wholeInterface = `(${nglInterface1} or ${nglInterface2})`;
-    const initialFocus = { comp: 0, sele: wholeInterface };
+    const initialFocus = { sele: wholeInterface };
     return initialFocus;
   }, [
     topology,

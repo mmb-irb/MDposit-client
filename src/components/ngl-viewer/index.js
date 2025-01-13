@@ -149,8 +149,10 @@ const NGLViewer = memo(
       } = useContext(ProjectCtx);
       const { file: pdbDataFile } = useContext(PdbCtx);
 
-      const [isFirstCompStaged, setIsFirstCompStaged] = useState(false);
-      const [isMainTrajectoryStaged, setIsMainTrajectoryStaged] = useState(false);
+      // Save the main component once it is staged
+      // This components is used by several functions
+      const [mainComponent, setMainComponent] = useState(null);
+      const [mainNglFile, setMainNglFile] = useState(null);
       // The last automatic camera focus
       const [focus, setFocus] = useState(initialFocus);
 
@@ -185,6 +187,8 @@ const NGLViewer = memo(
       // Set a state to store the topology requests
       const [requestedTopologies, setRequestedTopologies] = useState([]);
       // Set also a state to track whenever there is still a downloading topology
+      // LORE: This was useful when we had to wait for all stages to be mounted at the same time
+      // LORE: It does nothing now but its value is still valid and it may be useful for logs
       const [anyLoadingTopology, setAnyLoadingTopology] = useState(false);
 
       // Find if there are new topology to be requested in the components:
@@ -327,15 +331,6 @@ const NGLViewer = memo(
         });
       }, [requestedTopologies, pdbDataFile]);
 
-      const mainComponent = (components && components[0]) || {};
-      const mainTopology = topologies.find(topology => {
-        return topology.url === mainComponent.topologyURL;
-      });
-      const { file: pdbFile } = mainTopology || {
-        loading: false,
-        file: pdbDataFile,
-      };
-
       // Download trajectories ------------------------------------------------------------------------------------------------
 
       // First we find all trajectory URLs (i.e. all requests to API)
@@ -407,25 +402,21 @@ const NGLViewer = memo(
                 return file.filename === trajectoryFilename;
               });
               if (!trajectoryFileDescriptor)
-                throw new Error(
-                  `Trajectory "${trajectoryFilename}" is missing`,
-                );
+                throw new Error( `Trajectory "${trajectoryFilename}" is missing`);
               const trajectoryMetadata = trajectoryFileDescriptor.metadata;
 
               // Get the number of frames in the whole trajectory
-              const trajectoryFrames = trajectoryMetadata.frames;
+              const trajectoryFrames = trajectoryMetadata.frames;                
 
               // Set the number of frames to be requested from the whole trajectory
               let requestedFrames = requestedFramesNumber;
-              if (requestedFramesNumber > trajectoryFrames)
-                requestedFrames = trajectoryFrames;
+              if (requestedFramesNumber > trajectoryFrames) requestedFrames = trajectoryFrames;
               if (Number.isFinite(requestedFrame)) requestedFrames = 1;
               else if (framed) requestedFrames = framed.frames;
+
               // Components which are not the principal must include a 'frame' value
-              else if (!isPrincipal && trajectoryFrames > 1)
-                throw new Error(
-                  `Only the main component is allowed to load multiple frames`,
-                );
+              if (!isPrincipal && requestedFrames > 1) 
+                throw new Error(`Only the main component is allowed to load multiple frames`);
 
               // Frames are added to any url which is missing the frames range according to requestedFramesNumber
               // The only exception are those trajectories whose frame number is lower than requestedFramesNumber
@@ -653,15 +644,15 @@ const NGLViewer = memo(
 
       // Handle the upper left corner viewer logs
       const viewerLogs = useMemo(() => {
-        if (!isFirstCompStaged) return `Loading structure`;
-        if (!pdbFile) return `No structure available`;
+        if (!mainComponent) return `Loading structure`;
+        if (!pdbDataFile) return `No structure available`;
         if (!requestedTrajectories.length && !noTrajectory)
           return `No trajectory available`;
         if (runningTasks > 0) return `Rendering...`;
         return undefined; // Show nothing when everything was finished and fine
       }, [
-        isFirstCompStaged,
-        pdbFile,
+        mainComponent,
+        pdbDataFile,
         requestedTrajectories,
         noTrajectory,
         runningTasks,
@@ -716,15 +707,9 @@ const NGLViewer = memo(
       // Update the controls progress
       useEffect(() => {
         // Check if we are prepared to add the frame change handler and if t is required
-        if (!onProgress || noTrajectory || !isFirstCompStaged || !isMainTrajectoryStaged) return;
-        // Get the first component and check it exists
-        const firstComp = stageRef.current && stageRef.current.compList && stageRef.current.compList[0];
-        if (!firstComp) throw new Error('Something went wrong with the viewer first component');
-        // Get the first (and porbably only) trajectory handler and check it exists
-        const trajectoryHandler = firstComp.trajList && firstComp.trajList[0];
-        if (!trajectoryHandler) throw new Error('Something went wrong with the viewer trajectory handler');
+        if (!onProgress || noTrajectory || !mainNglFile) return;
         // Get the frame count of the final number of frames (once the whole trajectory is loaded)
-        const frameCount = trajectoryHandler.expectedFrames;
+        const frameCount = mainNglFile.expectedFrames;
         // Set the actual function to handle frame change internally in the component
         const frameHandler = frame => {
           //console.log('NGL frameCount: ' + frameCount);
@@ -732,12 +717,12 @@ const NGLViewer = memo(
           onProgress(progress);
         };
         // Add the frame handler to the component signals
-        trajectoryHandler.signals.frameChanged.add(frameHandler);
+        mainNglFile.signals.frameChanged.add(frameHandler);
         // Set a cleanup function to remove the frame handler when there is need
         return () => {
-          trajectoryHandler.signals.frameChanged.remove(frameHandler);
+          mainNglFile.signals.frameChanged.remove(frameHandler);
         };
-      }, [isFirstCompStaged, isMainTrajectoryStaged, noTrajectory, onProgress]);
+      }, [mainNglFile, noTrajectory, onProgress]);
 
       // Resize logic
       // declare handler
@@ -765,50 +750,40 @@ const NGLViewer = memo(
       // PDB file, base structure
       // Set the representations in each component
       useEffect(() => {
-        if (!pdbFile || !components || !representations) return;
-        // Atom occupancy is a field which is not used anywhere but in the electrostatic representation
-        // The electrostatic surface scheme color does not work if the occupancy is 0 (ngl code, not ours)
-        // We set all occupancies to 1, since some topologies may have all occupancies as 0 by default
-        pdbFile.atomStore.occupancy = new Array(
-          pdbFile.atomStore.occupancy.length,
-        ).fill(1);
-
-        // All topologies must be ready before we start loading the components to stage
-        // DANI: Esto es tentador quitarlo para que las topologías vayan cargando cuando llegan
-        // DANI: No obstante, es un percal, hay que hacerlo con tiempo
-        // DANI: Los components de stageRef.current.compList deben estar en orden
-        if (anyLoadingTopology) return;
+        if (!components || !representations) return;
 
         components.forEach((comp, c) => {
           // Set the NGL component
-          let stageComp = stageRef.current.compList[c];
+          let stageComp = stageRef.current.compList.find(stc => stc.myName == comp.name);
           if (!stageComp) {
             // Find the topology which matches the component url
             // If a component has no url it will match a topology with no url: the default topology
             const url = comp.topologyURL || null;
-            const topology = topologies.find(topology => {
-              return topology.url === url;
-            });
+            const topology = topologies.find(topology => topology.url === url);
             // If the topology has not been loaded yet then we have a problem
             // DANI: Todas las topologías deben estar ya listas antes de cargarlas, lee los mensajes de arriba
             if (!topology) return;
             // Stop here if it is not downloaded yet
             if (topology.error)
-              throw new Error(
-                `Topology from '${url}' returned error ${topology.error}`,
-              );
+              throw new Error(`Topology from '${url}' returned error ${topology.error}`);
             if (!topology.file)
               throw new Error(`Topology data from '${url}' is missing`);
+            // Atom occupancy is a field which is not used anywhere but in the electrostatic representation
+            // The electrostatic surface scheme color does not work if the occupancy is 0 (ngl code, not ours)
+            // We set all occupancies to 1, since some topologies may have all occupancies as 0 by default
+            topology.file.atomStore.occupancy = new Array(
+              topology.file.atomStore.occupancy.length,
+            ).fill(1);
             // Add the topology to the NGL
             // Make a deep copy of the topology object to prevent NGL internal bugs
             // This object will store data which is component exclusive
             const componentObject = cloneDeep(topology.file);
             //const componentObject = topology.file;
-            stageRef.current.addComponentFromObject(componentObject);
-            stageComp = stageRef.current.compList[c];
+            stageComp = stageRef.current.addComponentFromObject(componentObject);
+            stageComp.myName = comp.name;
             if (!stageComp) return;
             stageComp.onlyTopology = comp.onlyTopology;
-            setIsFirstCompStaged(true);
+            setMainComponent(stageComp);
           }
 
           // Get current component representations
@@ -971,42 +946,39 @@ const NGLViewer = memo(
           });
         });
       }, [
-        pdbFile,
         components,
         representations,
-        anyLoadingTopology,
         topologies,
         selectedRepresentation,
+        setMainComponent,
       ]);
 
       // Highlight specific atoms
       useEffect(() => {
         if (!topologyManager) return;
         // DANI: He tenido que quitar la condicion de 'instanceof Set' porque sino no me entraba en el heatmap
-        //if (!pdbFile || !(selectedAtoms instanceof Set) || !(selectedAtoms)) {
-        if (!isFirstCompStaged || !selectedAtoms) {
-          return;
-        }
+        //if (!(selectedAtoms instanceof Set) || !selectedAtoms) {
+        if (!mainComponent || !selectedAtoms) return;
 
         // Set a representation name
         // This is useful to find previous representations in further renders
         const nameHighlight = '*highlightedAtoms';
-        const previousHighlightRepresentation = stageRef.current.compList[0].reprList.find(
+        const previousHighlightRepresentation = mainComponent.reprList.find(
           representation => representation.name === nameHighlight,
         );
         if (previousHighlightRepresentation) {
-          stageRef.current.compList[0].removeRepresentation(
+          mainComponent.removeRepresentation(
             previousHighlightRepresentation,
           );
         }
 
         // Name for residues representation
         const nameContextHighlight = '*highlightedAtomResidues';
-        const previousContextRepresentation = stageRef.current.compList[0].reprList.find(
+        const previousContextRepresentation = mainComponent.reprList.find(
           representation => representation.name === nameContextHighlight,
         );
         if (previousContextRepresentation) {
-          stageRef.current.compList[0].removeRepresentation(
+          mainComponent.removeRepresentation(
             previousContextRepresentation,
           );
         }
@@ -1017,7 +989,7 @@ const NGLViewer = memo(
         // ngl starts counting at 0
         const seleHighlight = `@${atoms.map(atomIndex => atomIndex).join(',')}`;
 
-        stageRef.current.compList[0].addRepresentation(highlightTypes.atoms, {
+        mainComponent.addRepresentation(highlightTypes.atoms, {
           sele: seleHighlight,
           opacity: 0.5,
           scale: 1.5,
@@ -1036,7 +1008,7 @@ const NGLViewer = memo(
           ),
         ).join(' or ');
 
-        stageRef.current.compList[0].addRepresentation(
+        mainComponent.addRepresentation(
           highlightTypes.residues,
           {
             sele: otherResidueAtomsSelection,
@@ -1047,7 +1019,7 @@ const NGLViewer = memo(
         // Focus the highlighted zone with the camera
         setFocus({ comp: 0, sele: otherResidueAtomsSelection });
       }, [
-        isFirstCompStaged,
+        mainComponent,
         topologyManager,
         selectedAtoms,
         darkBackground,
@@ -1056,14 +1028,14 @@ const NGLViewer = memo(
 
       // Highlight specific residues
       useEffect(() => {
-        if (!topologyManager || !isFirstCompStaged || !selectedResidueIndices) return;
+        if (!topologyManager || !mainComponent || !selectedResidueIndices) return;
         // Set a representation name. This is useful to find this representation further
         const nameHighlight = '*highlightedResidues';
-        const previousHighlightRepresentation = stageRef.current.compList[0].reprList.find(
+        const previousHighlightRepresentation = mainComponent.reprList.find(
           representation => representation.name === nameHighlight,
         );
         if (previousHighlightRepresentation)
-          stageRef.current.compList[0].removeRepresentation(
+        mainComponent.removeRepresentation(
             previousHighlightRepresentation,
           );
         // If there are no selected residues at all we stop here
@@ -1078,7 +1050,7 @@ const NGLViewer = memo(
           new Set(residueNglSelections),
         ).join(' or ');
         // Represent the previous selection in ball+sticks drawing method
-        stageRef.current.compList[0].addRepresentation(
+        mainComponent.addRepresentation(
           highlightTypes.residues,
           {
             sele: overallNglSelection,
@@ -1089,7 +1061,7 @@ const NGLViewer = memo(
         // Focus the highlighted zone with the camera
         setFocus({ comp: 0, sele: overallNglSelection });
       }, [
-        isFirstCompStaged,
+        mainComponent,
         selectedResidueIndices,
         topologyManager,
         highlightTypes,
@@ -1098,16 +1070,14 @@ const NGLViewer = memo(
       // Highlight specific chains
       // DANI: NO Probado
       useEffect(() => {
-        if (!isFirstCompStaged || !selectedChains) {
-          return;
-        }
+        if (!mainComponent || !selectedChains) return;
         // Set a representation name. This is useful to find this representation further
         const nameHighlight = '*highlightedChains';
-        const previousHighlightRepresentation = stageRef.current.compList[0].reprList.find(
+        const previousHighlightRepresentation = mainComponent.reprList.find(
           representation => representation.name === nameHighlight,
         );
         if (previousHighlightRepresentation)
-          stageRef.current.compList[0].removeRepresentation(
+        mainComponent.removeRepresentation(
             previousHighlightRepresentation,
           );
 
@@ -1118,21 +1088,20 @@ const NGLViewer = memo(
         const nglSelection = Array.from(new Set(chains)).join(' or ');
 
         // Represent the previous selection in ball+sticks drawing method
-        stageRef.current.compList[0].addRepresentation(highlightTypes.chains, {
+        mainComponent.addRepresentation(highlightTypes.chains, {
           sele: nglSelection,
           name: nameHighlight,
         });
         // Focus the highlighted zone with the camera
         setFocus({ comp: 0, sele: nglSelection });
-      }, [isFirstCompStaged, selectedChains, highlightTypes]);
+      }, [mainComponent, selectedChains, highlightTypes]);
 
       // Highlight specific free NGL selections
       useEffect(() => {
-        if (!isFirstCompStaged || !snapRepresentations) return;
-        const currentComponent = stageRef.current.compList[0];
-        const currentRepresentations = currentComponent.reprList;
+        if (!mainComponent || !snapRepresentations) return;
+        const currentRepresentations = mainComponent.reprList;
         snapRepresentations.forEach(snapRepresentation => {
-          currentComponent.addRepresentation(snapRepresentation.type, {
+          mainComponent.addRepresentation(snapRepresentation.type, {
             sele: snapRepresentation.selection,
             name: snapRepresentation.name,
             color: snapRepresentation.color,
@@ -1148,24 +1117,22 @@ const NGLViewer = memo(
             );
             // If so, remove it
             if (previousSnapRepresentation)
-              currentComponent.removeRepresentation(previousSnapRepresentation);
+            mainComponent.removeRepresentation(previousSnapRepresentation);
           });
         };
-      }, [isFirstCompStaged, snapRepresentations]);
+      }, [mainComponent, snapRepresentations]);
 
       // Add specific NGL representations which are added or removed apart from the main component
       // They are faster to update but they are not shown in the representations manager
       useEffect(() => {
-        if (!isFirstCompStaged || !selectedCustom) {
-          return;
-        }
+        if (!mainComponent || !selectedCustom) return;
         // Set a representation name. This is useful to find this representation further
         const nameHighlight = '*highlightedCustom';
-        const previousHighlightRepresentation = stageRef.current.compList[0].reprList.find(
+        const previousHighlightRepresentation = mainComponent.reprList.find(
           representation => representation.name === nameHighlight,
         );
         if (previousHighlightRepresentation)
-          stageRef.current.compList[0].removeRepresentation(
+        mainComponent.removeRepresentation(
             previousHighlightRepresentation,
           );
 
@@ -1174,7 +1141,7 @@ const NGLViewer = memo(
         const nglSelection = Array.from(new Set(selectedCustom)).join(' or ');
 
         // Represent the previous selection in ball+sticks drawing method
-        stageRef.current.compList[0].addRepresentation(
+        mainComponent.addRepresentation(
           highlightTypes.selections,
           {
             sele: nglSelection,
@@ -1183,30 +1150,27 @@ const NGLViewer = memo(
         );
         // Focus the highlighted zone with the camera
         setFocus({ comp: 0, sele: nglSelection });
-      }, [isFirstCompStaged, selectedCustom, highlightTypes]);
+      }, [mainComponent, selectedCustom, highlightTypes]);
 
       // Highlight specific distances
       // When 'selectedDistances' is numeric it is taken as atoms
       // When 'selectedDistances' is string it is taken as residues
       // In both cases it works with residue indices
       useEffect(() => {
-        if (!isFirstCompStaged || !selectedDistances) {
-          return;
-        }
-        //console.log(selectedDistances);
+        if (!mainComponent || !selectedDistances) return;
         // Set a representation name. This is useful to find this representation further
         const name = '*distance';
-        const previousRepresentation = stageRef.current.compList[0].reprList.find(
+        const previousRepresentation = mainComponent.reprList.find(
           representation => representation.name === name,
         );
         // Remove the previous representation
         if (previousRepresentation)
-          stageRef.current.compList[0].removeRepresentation(
+        mainComponent.removeRepresentation(
             previousRepresentation,
           );
 
         // Display the new distance representation
-        stageRef.current.compList[0].addRepresentation('distance', {
+        mainComponent.addRepresentation('distance', {
           atomPair: selectedDistances,
           color: 'skyblue',
           labelUnit: 'angstrom',
@@ -1214,10 +1178,11 @@ const NGLViewer = memo(
           // Label color is the opposite of the background color
           labelColor: darkBackground ? 16777215 : 1, // 16777215 is white, 1 is black
         });
-      }, [isFirstCompStaged, selectedDistances, darkBackground]);
+      }, [mainComponent, selectedDistances, darkBackground]);
       
+      // Display a plane
       useEffect(() => {
-        if (!isFirstCompStaged || !xSelection) return;
+        if (!mainComponent || !xSelection) return;
         // Set a representation name. This is useful to find this representation further
         const name = '*density';
         const previousComponent= stageRef.current.compList.find(
@@ -1232,8 +1197,8 @@ const NGLViewer = memo(
           stageRef.current.viewer.rotationGroup.rotateY(-1.57);
         };
         var shape = new Shape("shape", {radialSegments: 10 });
-        const boxCenter = stageRef.current.compList[0].object.center;
-        const bBox = stageRef.current.compList[0].object.boundingBox;
+        const boxCenter = mainComponent.object.center;
+        const bBox = mainComponent.object.boundingBox;
         shape.addBox(
           [boxCenter.x, boxCenter.y, xSelection*xAxisStep - xAxisStep/2], 
           [0, 0, 0], 
@@ -1251,31 +1216,27 @@ const NGLViewer = memo(
         var shapeComp = stageRef.current.addComponentFromObject(shape, {name: name});
         var rep = shapeComp.addRepresentation("buffer", {opacity: 0.1 , roughness: 1});
         // console.log(stageRef.current.viewer.rotationGroup.rotation);
-      }, [isFirstCompStaged, xSelection]);
+      }, [mainComponent, xSelection]);
 
       // Highlight specific angles
       useEffect(() => {
-        if (!isFirstCompStaged || !selectedAngles) {
-          return;
-        }
+        if (!mainComponent || !selectedAngles) return;
         // Set a representation name. This is useful to find this representation further
         const name = '*angles';
-        const previousRepresentation = stageRef.current.compList[0].reprList.find(
+        const previousRepresentation = mainComponent.reprList.find(
           representation => representation.name === name,
         );
         if (previousRepresentation)
-          stageRef.current.compList[0].removeRepresentation(
+        mainComponent.removeRepresentation(
             previousRepresentation,
           );
 
-        stageRef.current.compList[0].addRepresentation('angle', {
+        mainComponent.addRepresentation('angle', {
           atomTriple: selectedAngles,
           name: name,
           labelColor: darkBackground ? 16777215 : 1, // 16777215 is white, 1 is black
         });
-      }, [isFirstCompStaged, selectedAngles, darkBackground]);
-
-      const [mainNglFile, setMainNglFile] = useState(null);
+      }, [mainComponent, selectedAngles, darkBackground]);
 
       // DCD file, trajectory
       // Once the trajectories are downloaded, load them in corresponding NGL representations
@@ -1283,18 +1244,24 @@ const NGLViewer = memo(
       useEffect(() => {
         // Check if trajectories are
         if (topologies.length === 0 || trajectories.length === 0 || !components) return;
-
         components.forEach((comp, c) => {
           // Find the topology which matches the component url
           // If a component has no url it will match a topology with no url: the default topology
-          const url = comp.topologyURL || null;
-          const topology = topologies.find(topology => topology.url === url);
+          const topologyURL = comp.topologyURL || null;
+          const topology = topologies.find(topology => topology.url === topologyURL);
           if (!topology) return;
-          const stageComp = stageRef.current.compList[c];
+
+          // DANI: Aquí me he quedado
+          // DANI: Con la linea de arriba funciona (a veces) con la de abajo no funciona cuando yo pensaba que funcionaría
+          // DANI: Si sigues tirando del hilo se puede hacer que las topologías vayan cargando a medida que llegan
+          // DANI: y no todas de golpe al final
+          //const stageComp = stageRef.current.compList[c];
+          const stageComp = stageRef.current.compList.find(stc => stc.myName == comp.name);
+
           // Wait if the topology has not been loaded yet
           if (!stageComp) return;
           // Abort if the component is marked as 'only topology'
-          if (stageComp.onlyTopology) return;
+          if (comp.onlyTopology) return;
           // Find the trajectory payload from the component urls and join them
           const trajectoryPayloads = [];
           // Save the combined urls of all trajectories and their lengths
@@ -1305,8 +1272,8 @@ const NGLViewer = memo(
           let trajectoryAtoms;
           let trajectoryFinalExpectedFrames = 0;
           // Record also the frames for each trajectory and add them
-          for (const url of comp.framedURLs) {
-            const trajectory = trajectories.find(trajectory => trajectory.url === url);
+          for (const framedURL of comp.framedURLs) {
+            const trajectory = trajectories.find(trajectory => trajectory.url === framedURL);
             // If the trajectory is not downloaded yet then exit
             if (!trajectory) return;
             // Get atom counts from different trajectories and check they match
@@ -1322,7 +1289,7 @@ const NGLViewer = memo(
             const fitLength = Math.floor(payload.byteLength / bytesPerFrame) * bytesPerFrame;
             const fitPayload = payload.slice(0, fitLength);
             trajectoryPayloads.push(fitPayload);
-            combinedURL += url;
+            combinedURL += framedURL;
             combinedProgress += '/' + trajectory.progress;
           }
 
@@ -1348,7 +1315,8 @@ const NGLViewer = memo(
 
           // Join all payloads into a single trajectory
           let totalPayload;
-          if (trajectoryPayloads.length === 1)
+          if (trajectoryPayloads.length === 0) return;
+          else if (trajectoryPayloads.length === 1)
             totalPayload = trajectoryPayloads[0];
           // DANI: Esto no está bien ahora que hay streaming
           // DANI: Si hubiese dos trayectorias combinadas sus frames quedarían entrelazadas
@@ -1446,7 +1414,6 @@ const NGLViewer = memo(
               });
               // Update the main NGL file
               setMainNglFile(nglFile);
-              setIsMainTrajectoryStaged(true);
             }
             // Set trajectory frame
             nglTrajectory.setFrame(0);
@@ -1492,16 +1459,11 @@ const NGLViewer = memo(
 
       // play/pause
       useEffect(() => {
-        if (!(isFirstCompStaged && isMainTrajectoryStaged)) return;
-        const mainTraj =
-          stageRef.current &&
-          stageRef.current.compList[0] &&
-          stageRef.current.compList[0].trajList[0];
-        if (!mainTraj) throw new Error('Something is wrong with NGL');
-        const { player } = stageRef.current.compList[0].trajList[0].trajectory;
+        if (!mainNglFile) return;
+        const { player } = mainNglFile.trajectory;
         player.setParameters({
           // Set the interpolate step according to the total number of frames to show 1 by 1
-          interpolateStep: 100 / mainTraj.trajectory.frameCount,
+          interpolateStep: 100 / mainNglFile.trajectory.frameCount,
           // Set the animation to go forward and then backward instead of restart if required
           direction: bounce ? 'bounce' : 'forward',
         });
@@ -1514,8 +1476,7 @@ const NGLViewer = memo(
         // Set a cleanup function to prevent fatal errors
         return () => player.pause();
       }, [
-        isFirstCompStaged,
-        isMainTrajectoryStaged,
+        mainNglFile,
         playing,
         isInView,
         noTrajectory,
@@ -1527,8 +1488,8 @@ const NGLViewer = memo(
       // If the topology is too big to reach the required speed it will work as fast as possible
       useEffect(() => {
         // Get the current trajectory
-        if (!isFirstCompStaged) return;
-        const nglFile = stageRef.current.compList[0].trajList[0];
+        if (!mainComponent) return;
+        const nglFile = mainComponent.trajList[0];
         if (!nglFile) return;
         // Set the player speed
         // The 'speed' input ranges from 0 to 100
@@ -1536,7 +1497,7 @@ const NGLViewer = memo(
         //const timeout = 500 / (Math.log2(speed + 1) + 1);
         const timeout = interpolateSpeed(speed);
         nglFile.trajectory.player.setParameters({ timeout: timeout });
-      }, [isFirstCompStaged, speed]);
+      }, [mainComponent, speed]);
 
       // spinning
       useEffect(() => {
@@ -1551,25 +1512,23 @@ const NGLViewer = memo(
 
       // smoothing, player interpolation
       useEffect(() => {
-        if (!(isFirstCompStaged && isMainTrajectoryStaged)) return;
-        stageRef.current.compList[0].trajList[0].trajectory.player.parameters.interpolateType = smooth
-          ? 'linear'
-          : '';
-      }, [isFirstCompStaged, isMainTrajectoryStaged, smooth]);
+        if (!mainNglFile) return;
+        mainNglFile.trajectory.player.parameters.interpolateType = smooth ? 'linear' : '';
+      }, [mainNglFile, smooth]);
 
       // to avoid sometimes when it's not rendering after loading
       useEffect(() => {
-        if (!(isFirstCompStaged && requestedTrajectories.length)) return;
+        if (!(mainComponent && requestedTrajectories.length)) return;
         handleResize();
         return handleResize.cancel;
-      }, [isFirstCompStaged, requestedTrajectories, handleResize]);
+      }, [mainComponent, requestedTrajectories, handleResize]);
 
       // Highlight the selected chain region
       // This useEffect seems to be special:
       // It is run just once but some parts inside keep running on change events
       // listen to change event from nightingale component
       useEffect(() => {
-        if (!topologyManager) return;
+        if (!mainComponent || !topologyManager) return;
         const handler = ({ detail }) => {
           // escape case for event listener
           if (!detail || !(detail.eventtype === 'click' || detail.eventtype === 'reset')) return;
@@ -1592,17 +1551,15 @@ const NGLViewer = memo(
           }
           highlight = highlight.substr(4); // remove initial ' or '
 
-          const structureComponent = stageRef.current.compList[0];
-
-          const previousStructureRepresentation = structureComponent &&
-            structureComponent.reprList.find(
+          const previousStructureRepresentation = mainComponent &&
+          mainComponent.reprList.find(
               representation => representation.name === 'structure',
             );
           if (previousStructureRepresentation)
-            structureComponent.removeRepresentation(previousStructureRepresentation);
+          mainComponent.removeRepresentation(previousStructureRepresentation);
           // no highlight, then default coloring
           if (!highlight) {
-            structureComponent.addRepresentation('cartoon', {
+            mainComponent.addRepresentation('cartoon', {
               sele: CHAIN_SELECTION,
               name: 'structure',
               opacity: 1,
@@ -1621,20 +1578,20 @@ const NGLViewer = memo(
             [['yellow', highlight], ['white', '*']],
             'custom label',
           );
-          structureComponent.addRepresentation('cartoon', {
+          mainComponent.addRepresentation('cartoon', {
             sele: CHAIN_SELECTION,
             name: 'structure',
             opacity: 1,
             color: colorSchemeID,
           });
-          structureComponent.autoView(
+          mainComponent.autoView(
             highlight,
             DEFAULT_ORIENTATION_TRANSITION_DURATION,
           );
         };
         window.addEventListener('change', handler);
         return () => window.removeEventListener('change', handler);
-      }, [topologyManager]);
+      }, [mainComponent, topologyManager]);
 
       // Customize the NGL tooltip
       useEffect(() => {
@@ -1763,7 +1720,11 @@ const NGLViewer = memo(
       // Focus the specified ngl selection with the camera automatically
       useEffect(() => {
         if (!focus) return;
-        const comp = stageRef.current.compList[focus.comp];
+        // The selected region may be in any component, not only the main component
+        // If a component name is passed then search for it
+        const comp = focus.comp
+          ? stageRef.current.compList.find(c => c.myName === focus.comp)
+          : mainComponent;
         if (!comp) return;
         let transition = DEFAULT_ORIENTATION_TRANSITION_DURATION;
         // First transition is instantaneous
@@ -1781,7 +1742,7 @@ const NGLViewer = memo(
           firstFocus.current = false;
         }
         comp.autoView(focus.sele, transition);
-      }, [isFirstCompStaged, focus]);
+      }, [mainComponent, focus]);
 
       // Expose public methods and getters/setters
       useImperativeHandle(
@@ -1805,32 +1766,29 @@ const NGLViewer = memo(
             );
           },
           get currentFrame() {
-            if (!(isFirstCompStaged && requestedTrajectories.length)) return -1;
+            if (!(mainComponent && requestedTrajectories.length)) return -1;
             try {
-              return stageRef.current.compList[0].trajList[0].trajectory
-                .currentFrame;
+              return mainComponent.trajList[0].trajectory.currentFrame;
             } catch (_) {
               return -1;
             }
           },
           set currentFrame(value) {
-            if (!(isFirstCompStaged && requestedTrajectories.length)) return;
+            if (!(mainComponent && requestedTrajectories.length)) return;
             try {
               const total = this.totalFrames;
               let frame = value;
               if (frame < 0) frame = 0;
               if (frame >= total) frame = total - 1;
-              stageRef.current.compList[0].trajList[0].trajectory.setFrame(
-                frame,
-              );
+              mainComponent.trajList[0].trajectory.setFrame(frame);
             } catch (_) {
               /* */
             }
           },
           get totalFrames() {
-            if (!(isFirstCompStaged && requestedTrajectories.length)) return 1;
+            if (!(mainComponent && requestedTrajectories.length)) return 1;
             try {
-              return stageRef.current.compList[0].trajList[0].trajectory.frames
+              return mainComponent.trajList[0].trajectory.frames
                 .length;
             } catch (_) {
               return 1;
@@ -1838,13 +1796,13 @@ const NGLViewer = memo(
           },
           get totalExpectedFrames() {
             try {
-              return stageRef.current.compList[0].trajList[0].expectedFrames;
+              return mainComponent.trajList[0].expectedFrames;
             } catch (_) {
               return 1;
             }
           },
         }),
-        [isFirstCompStaged, requestedTrajectories, handleResize],
+        [mainComponent, requestedTrajectories, handleResize],
       );
 
       // workaround to have multiple ref logic on one element
@@ -1863,7 +1821,7 @@ const NGLViewer = memo(
           <div
             ref={handleRef}
             className={cn(className, style.container, {
-              [style['loading-structure']]: !isFirstCompStaged,
+              [style['loading-structure']]: !mainComponent,
               [style['loading-trajectory']]:
                 !noTrajectory && anyLoadingTrajectory,
               [style['light-theme']]: !darkBackground,

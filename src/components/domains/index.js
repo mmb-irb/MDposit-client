@@ -266,7 +266,7 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
         .map(rep => rep.selection)
         .join(') or (')
     })`;
-    const initialFocus = { comp: 0, sele: focusSelection };
+    const initialFocus = { sele: focusSelection };
     setRepresentations(representations);
     setInitialFocus(initialFocus);
   }, [domains, selectedDomain, overlapedDomain, setRepresentations, setInitialFocus]);
