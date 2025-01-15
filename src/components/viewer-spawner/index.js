@@ -126,7 +126,7 @@ const NGLViewerInDND = props => {
       // WARNING: Then when it is moved for the first time it jumps inside the bonds, not elegant
       bounds="window"
       // Prevent the mouse to drag/resize the window when it is over specific elements
-      cancel="canvas, [data-popover], #preventDragSize"
+      cancel="canvas, [data-popover], #preventDragSize, .prevent-drag"
       // On drag/resize starts we do not change anything, but use the hook to re-render this component
       // The Z Index is updated and the selected window becomes the first in the z axis automatically
       // WARNING: Drag functions are also called when you just click (e.g. clicking buttons)

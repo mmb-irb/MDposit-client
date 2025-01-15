@@ -691,6 +691,7 @@ const ViewerWithControls = forwardRef(
                     value={progress * 100}
                     valueBuffer={load * 100}
                     style={{ height: '1ch' }}
+                    className="prevent-drag"
                   />
                 </div>)
             }
