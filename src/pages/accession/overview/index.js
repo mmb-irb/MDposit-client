@@ -113,11 +113,6 @@ export default React.memo(() => {
     };
   }, [pdbIds]);
 
-  ligandReferences && ligandReferences.forEach(ligandReference => {
-    // Set the ligand name as the domain name
-    const ligandFormula = ligandReference.formula;
-  });
-
   // Download ligand information for every ligand pubchem id in metadata
   const pubchemIds = metadata.LIGANDS;
   const [pubchemInfo, setPubchemInfo] = useState({});
@@ -425,117 +420,120 @@ export default React.memo(() => {
       {Object.keys(pubchemInfo).length > 0 &&
         <Card className={style.card}>
           <CardContent className={style['card-content']}>
-            {Object.entries(pubchemInfo).map(([pubchemId, pubchemData], i) => (
-              <div key={i} className={style['summary-list']}>
-                {i !== 0 && (
-                  <hr style={{ color: 'lightGrey' }} />
-                ) /* An horizontal line to separate protein references */}
-                <LazyImg
-                  src={`https://pubchem.ncbi.nlm.nih.gov/image/imgsrv.fcgi?cid=${pubchemId}&t=l`}
-                  width="200" height="200" loading="lazy"
-                  alt={`3D view of the ${pubchemData.name} structure`}
-                  // cross origin and referrer policy should prevent pubchem cookies
-                  crossOrigin="anonymous" referrerPolicy="no-referrer"
-                  // default background color is like a "broken" white but this CSS trick fixes it
-                  // this was recommended by people from pubchem
-                  className={style['white-background']}
-                />
-                <Typography variant="h6">{pubchemData.name}</Typography>
-                <div>
-                  {`Pubchem ID: `}
-                  <a href={`https://pubchem.ncbi.nlm.nih.gov/compound/${pubchemId}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {pubchemId}
-                  </a>
-                </div>
-                <div>
-                  {ligandReferences && <>
-                    {`Molecular Formula: `}
-                    {ligandReferences[i].formula.toString().split('').map((char, index) => {
-                      if (char.match(/[A-Z]/)) {
-                        return <span key={index} style={{ fontSize: '1.3m' }}>{char}</span>;
-                      } else if (char.match(/[0-9]/)) {
-                        return <sub key={index} style={{ fontSize: '0.9em' }}>{char}</sub>;
-                      } else {
-                        return char;
+            {Object.entries(pubchemInfo).map(([pubchemId, pubchemData], i) => {
+              const ligandReference = ligandReferences && ligandReferences.find(ref => ref.pubchem === pubchemId);
+              return(
+                <div key={i} className={style['summary-list']}>
+                  {i !== 0 && (
+                    <hr style={{ color: 'lightGrey' }} />
+                  ) /* An horizontal line to separate protein references */}
+                  <LazyImg
+                    src={`https://pubchem.ncbi.nlm.nih.gov/image/imgsrv.fcgi?cid=${pubchemId}&t=l`}
+                    width="200" height="200" loading="lazy"
+                    alt={`3D view of the ${pubchemData.name} structure`}
+                    // cross origin and referrer policy should prevent pubchem cookies
+                    crossOrigin="anonymous" referrerPolicy="no-referrer"
+                    // default background color is like a "broken" white but this CSS trick fixes it
+                    // this was recommended by people from pubchem
+                    className={style['white-background']}
+                  />
+                  <Typography variant="h6">{pubchemData.name}</Typography>
+                  <div>
+                    {`Pubchem ID: `}
+                    <a href={`https://pubchem.ncbi.nlm.nih.gov/compound/${pubchemId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {pubchemId}
+                    </a>
+                  </div>
+                  <div>
+                    {ligandReference && <>
+                      {`Molecular Formula: `}
+                      {ligandReference.formula.toString().split('').map((char, index) => {
+                        if (char.match(/[A-Z]/)) {
+                          return <span key={index} style={{ fontSize: '1.3m' }}>{char}</span>;
+                        } else if (char.match(/[0-9]/)) {
+                          return <sub key={index} style={{ fontSize: '0.9em' }}>{char}</sub>;
+                        } else {
+                          return char;
+                        }
+                      })}
+                      </>
                       }
-                    })}
-                    </>
-                    }
-                </div>
-                <div >
-                  {ligandReferences && <>
-                    {`SMILES Formula: `}
-                    {ligandReferences[i].smiles.length > 60 ? (
-                      <>
-                        {ligandReferences[i].smiles.match(/.{1,75}/g).map((line, index) => (
-                          <div key={index}>
-                            {line.split('').map((char, charIndex) => (
-                              <span key={charIndex} className="highlight">{char}</span>
-                            ))}
-                          </div>
-                        ))}
+                  </div>
+                  <div >
+                    {ligandReference && <>
+                      {`SMILES Formula: `}
+                      {ligandReference.smiles.length > 60 ? (
+                        <>
+                          {ligandReference.smiles.match(/.{1,75}/g).map((line, index) => (
+                            <div key={index}>
+                              {line.split('').map((char, charIndex) => (
+                                <span key={charIndex} className="highlight">{char}</span>
+                              ))}
+                            </div>
+                          ))}
+                        </>
+                      ) : (
+                        <>
+                          {ligandReference.smiles.split('').map((char, index) => (
+                            <span key={index} className="highlight">{char}</span>
+                          ))}
+                        </>
+                      )}
                       </>
-                    ) : (
-                      <>
-                        {ligandReferences[i].smiles.split('').map((char, index) => (
-                          <span key={index} className="highlight">{char}</span>
-                        ))}
-                      </>
-                    )}
-                    </>
-                    }
+                      }
+                  </div>
+                  {pubchemData.chemblID && (<div>
+                    {`ChEMBL ID: `}
+                    <a href={pubchemData.chemblURL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {pubchemData.chemblID}
+                    </a>
+                  </div>)}
+                  {pubchemData.drugbankID && (<div>
+                    {`DrugBank ID: `}
+                    <a href={pubchemData.drugbankURL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {pubchemData.drugbankID}
+                    </a>
+                  </div>)}
+                  {ligandReference && ligandReference.pdbid && (<div>
+                    <CardActions>
+                      <Button
+                            component={'a'}
+                            variant="contained"
+                            href={`https://www.ebi.ac.uk/pdbe-srv/pdbechem/chemicalCompound/show/${ligandReference.pdbid}`}
+                            size="small"
+                            color="primary"
+                            target="_blank"
+                            rel="noreferrer noopener"
+                          >
+                            <FontAwesomeIcon icon={faLink} />
+                            &nbsp;PDBe website
+                          </Button>
+                          <Button
+                            component={'a'}
+                            variant="contained"
+                            href={`https://www.rcsb.org/ligand/${ligandReference.pdbid}`}
+                            size="small"
+                            color="primary"
+                            target="_blank"
+                            rel="noreferrer noopener"
+                          >
+                            <FontAwesomeIcon icon={faLink} />
+                            &nbsp;RCSB website
+                          </Button>
+                      </CardActions>
+                  </div>)}
                 </div>
-                {pubchemData.chemblID && (<div>
-                  {`ChEMBL ID: `}
-                  <a href={pubchemData.chemblURL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {pubchemData.chemblID}
-                  </a>
-                </div>)}
-                {pubchemData.drugbankID && (<div>
-                  {`DrugBank ID: `}
-                  <a href={pubchemData.drugbankURL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {pubchemData.drugbankID}
-                  </a>
-                </div>)}
-                {ligandReferences && ligandReferences[i].pdbid && (<div>
-                  <CardActions>
-                    <Button
-                          component={'a'}
-                          variant="contained"
-                          href={`https://www.ebi.ac.uk/pdbe-srv/pdbechem/chemicalCompound/show/${ligandReferences[i].pdbid}`}
-                          size="small"
-                          color="primary"
-                          target="_blank"
-                          rel="noreferrer noopener"
-                        >
-                          <FontAwesomeIcon icon={faLink} />
-                          &nbsp;PDBe website
-                        </Button>
-                        <Button
-                          component={'a'}
-                          variant="contained"
-                          href={`https://www.rcsb.org/ligand/${ligandReferences[i].pdbid}`}
-                          size="small"
-                          color="primary"
-                          target="_blank"
-                          rel="noreferrer noopener"
-                        >
-                          <FontAwesomeIcon icon={faLink} />
-                          &nbsp;RCSB website
-                        </Button>
-                    </CardActions>
-                </div>)}
-              </div>
-            ))}
+              );
+            })}
           </CardContent>
         </Card>
       }
