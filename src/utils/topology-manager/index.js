@@ -538,17 +538,19 @@ export class Topology {
     // Assign the chain name and index to every chain reference
     // Match every chain reference with its chain relying on sequence
     for (const chainReference of this.chainReferences) {
+      chainReference.chains = [];
+      chainReference.chain_indices = [];
       for (const [chainIndex, chainName] of Object.entries(this.chainNames)) {
         // Match sequence
         const chainSequence = this.sequences[chainIndex];
         if (chainSequence !== chainReference.sequence) continue;
         // Once we have a match assign the corresponding name and index
-        chainReference.name = chainName;
-        chainReference.index = +chainIndex;
-        break;
+        chainReference.chains.push(chainName);
+        chainReference.chain_indices.push(+chainIndex);
       }
       // If we did not manage to match this chain then log an error
-      if (chainReference.index === undefined) console.error('Unmatched chain reference ' + chainReference.sequence);
+      if (chainReference.chain_indices.length === 0)
+        console.error('Unmatched chain reference ' + chainReference.sequence);
     }
   }
 

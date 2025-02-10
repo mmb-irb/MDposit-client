@@ -192,30 +192,39 @@ const ChainsAnalysis = memo(() => {
             </Typography>
             <ul className={style['chain-analysis-list']}>
             {/* Here, main data is displayed */}
-            {chainReferences.map(chainReference => {
-                const chainLetter = chainReference.name;
-                // Get some data using the topology manager when it is available
-                let name = '';
-                let firstResidueNumber = 1;
-                if (topologyManager) {
-                    const chain = topologyManager.getChainByName(chainLetter);
-                    name = chain.metadataChainName;
-                    firstResidueNumber = chain.residueNumbers[0];
-                }
-                return (
-                <li key={chainLetter}>
-                    <Typography variant="h6">
-                    <FontAwesomeIcon icon={faAngleRight} />
-                    {` Chain ${chainLetter} ${name ? '(' + name + ')' : ''}`}
-                    </Typography>
-                    {/* the main visual asset */}
-                    <ChainAnalysis
-                        data={chainReference}
-                        firstResidueNumber={firstResidueNumber}
-                    />
-                </li>
-                );
-            })}
+            {(() => {
+                // Build all components in a list so we can sort them by chain at the end
+                const chainComponents = [];
+                chainReferences.forEach(chainReference => {
+                    const chainLetters = chainReference.chains;
+                    chainLetters.forEach(chainLetter => {
+                        // Get some data using the topology manager when it is available
+                        let name = '';
+                        let firstResidueNumber = 1;
+                        if (topologyManager) {
+                            const chain = topologyManager.getChainByName(chainLetter);
+                            name = chain.metadataChainName;
+                            firstResidueNumber = chain.residueNumbers[0];
+                        }
+                        chainComponents.push(
+                            <li key={chainLetter}>
+                                <Typography variant="h6">
+                                <FontAwesomeIcon icon={faAngleRight} />
+                                {` Chain ${chainLetter} ${name ? '(' + name + ')' : ''}`}
+                                </Typography>
+                                {/* the main visual asset */}
+                                <ChainAnalysis
+                                    chain={chainLetter}
+                                    data={chainReference}
+                                    firstResidueNumber={firstResidueNumber}
+                                />
+                            </li>
+                        );
+                    });
+                });
+                // Sort chains alphabetically
+                return chainComponents.sort((a, b) => a.key.localeCompare(b.key));
+            })()}
             </ul>
             <Typography variant="body2">
             Data generated using{' '}
