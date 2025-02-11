@@ -127,6 +127,8 @@ const useStatistics = () => {
   const MethodsComponent = useMemo(() => {
     // Remove the classical MD count since it would eclipse the rest of MD methods
     methodsPayload && delete methodsPayload['metadata.METHOD']['Classical MD'];
+    // Remove null values as well
+    methodsPayload && delete methodsPayload['metadata.METHOD'][null];
     // Set the data to be represented on the pie chart
     const methods = methodsPayload && Object.entries(methodsPayload['metadata.METHOD']);
     if (methods) methods.sort((a, b) => b[1] - a[1]);
