@@ -42,10 +42,7 @@ const dbMap = new Map([
 
 const ChainsAnalysis = memo(() => {
     // Load chains references and the topology manager
-    const {
-        topology: topologyManager,
-        chainReferences,
-    } = useContext(ProjectCtx);
+    const { topology: topologyManager } = useContext(ProjectCtx);
     // Portals create a window where a web page is pre rendered without navigating to
     // You can navigate to this web page by clicking on the portal
     // NOTE: see https://web.dev/hands-on-portals for tutorial on Portals
@@ -181,6 +178,9 @@ const ChainsAnalysis = memo(() => {
   
     // Render the functional analysis with a brief introduction
     // Here chainReferences contains the "analysis" data
+    // WARNING: Use the topology manager chain references, not the project manager references
+    // WARNING: Otherwise, chain references mya no contain the "chains" field in the first render
+    const chainReferences = topologyManager.chainReferences;
     if (chainReferences && chainReferences.length > 0) {
         return (
         <>
