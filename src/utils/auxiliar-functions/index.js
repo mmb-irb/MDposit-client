@@ -1,3 +1,5 @@
+import chroma from 'chroma-js';
+
 // Createa a copy from an object thus not conserving any pointer to the original object contents
 export const copyObject = object => JSON.parse(JSON.stringify(object));
 
@@ -9,3 +11,13 @@ export const caluclateAverage = values => {
 
 // Round a number to its neares cent
 export const round2cents = number => Math.round(number * 100) / 100;
+
+// Create palettes of random spaced colors
+export const createPalette = colorCount => {
+    const colors = [];
+    for (let i = 0; i < colorCount; i++) {
+        const color = chroma.hcl(i / colorCount * 360, 80, 70).css();
+        colors.push(color);
+    }
+    return colors;
+};

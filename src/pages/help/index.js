@@ -16,6 +16,7 @@ import NodeMap from './nodemap';
 
 // Constants
 import { BASE_PATH, BASE_PATH_PROJECTS, HOST_CONFIG } from '../../utils/constants';
+import { createPalette } from '../../utils/auxiliar-functions';
 // API acces
 import useAPI from '../../hooks/use-api';
 import useBatchAPI from 'src/hooks/use-batch-api';
@@ -23,7 +24,6 @@ import useBatchAPI from 'src/hooks/use-batch-api';
 import style from './style.module.css';
 
 import { PieChart } from 'react-minimal-pie-chart';
-import distinctColors from 'distinct-colors';
 import SimpleLegend from '../../components/simple-legend';
 import Histogram from '../../components/histogram';
 
@@ -85,7 +85,7 @@ const useStatistics = () => {
     const options = optionsPayload &&
       Object.entries(optionsPayload[HOST_CONFIG.optionsField]);
     if (options) options.sort((a, b) => b[1] - a[1]);
-    const colors = options && distinctColors({ count: options.length });
+    const colors = options && createPalette(options.length);
     const pieChartData = options
       ? options.map(([key, value], i) => ({
           title: HOST_CONFIG.optionsNiceNames[key] || key,
@@ -130,7 +130,7 @@ const useStatistics = () => {
     // Set the data to be represented on the pie chart
     const methods = methodsPayload && Object.entries(methodsPayload['metadata.METHOD']);
     if (methods) methods.sort((a, b) => b[1] - a[1]);
-    const colors = methods && distinctColors({ count: methods.length });
+    const colors = methods && createPalette(methods.length);
     const pieChartData = methods
       ? methods.map(([key, value], i) => ({
           title: key,
