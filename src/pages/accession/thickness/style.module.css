@@ -1,0 +1,16 @@
+.card {
+  margin: 0.1em 0;
+}
+
+.margined-bottom {
+  margin-bottom: 1em;
+}
+
+.nglcard {
+  margin: 1em;
+  height: 50vh;
+}
+
+.container {
+  height: 100%;
+}

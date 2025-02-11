@@ -68,7 +68,8 @@ const tabs = [
           'populations',
           'markov', 
           'ligand-descriptors',
-          'density'
+          'density',
+          'thickness',
         ],
       },
     ],

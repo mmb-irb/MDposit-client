@@ -70,7 +70,7 @@ const Density = () => {
       dataset.stddev = getMean(comp.stdv);
       
       // Add the density stddev from the JSON for the graph visualization
-      dataset.densityStdDev = comp.stdv;
+      dataset.areaStdDev = comp.stdv;
       
       const name = comp.name;
       densityData[name] = dataset;
@@ -115,8 +115,6 @@ const Density = () => {
   const cents = num => Math.round(num * 100) / 100;
   // Set the y axis label for density
   const yAxisLabel = 'Density';
-
-  console.log('Render')
 
   // Render
   return (
@@ -175,7 +173,7 @@ const Density = () => {
             selfLegend={false}
             dataDisplay={display}
             marks={marks}
-            densityStdDev={true}
+            areaStdDev={true}
           />
         </CardContent>
       </Card>

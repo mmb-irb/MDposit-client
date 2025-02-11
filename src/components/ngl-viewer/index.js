@@ -1838,5 +1838,5 @@ const NGLViewer = memo(
     },
   ),
 );
-
+NGLViewer.displayName = 'NGLViewer'
 export default NGLViewer;

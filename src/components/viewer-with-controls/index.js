@@ -812,4 +812,5 @@ const ViewerWithControls = forwardRef(
   },
 );
 
+ViewerWithControls.displayName = 'ViewerWithControls'
 export default ViewerWithControls;

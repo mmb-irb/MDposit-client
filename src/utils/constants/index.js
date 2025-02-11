@@ -45,6 +45,7 @@ export const NICE_NAMES = new Map([
     ['ligand-descriptors', 'Ligand descriptors'],
     ['clusters', 'Clusters'],
     ['density', 'Density'],
+    ['thickness', 'Thickness'],
 ]);
 
 // Set manually which references have entropies or epitopes
