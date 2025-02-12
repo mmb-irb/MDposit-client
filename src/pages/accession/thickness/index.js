@@ -27,7 +27,7 @@ const Graph = lazy(() =>
 );
 
 const colors = ['green', 'blue', 'red'];
-
+// To see the available schemes log ColormakerRegistry.userSchemes or ColormakerRegistry.schemes
 const generateScheme = (frame, data,std1) => {
   return ColormakerRegistry.addScheme( function( params ){ 
     this.atomColor = function( atom ){
@@ -57,14 +57,11 @@ const generateScheme = (frame, data,std1) => {
       }
       return (r << 16) + (g << 8) + b;
     };
-  });
+  }, 'thickness');
 };
-
 const greyScheme = () => {
   return ColormakerRegistry.addScheme(function(params) {
-    this.atomColor = function(atom) {
-      return 0x808080;
-    };
+    this.atomColor = (atom) => 0x808080
   });
 };
 
@@ -135,7 +132,7 @@ const Thickness = () => {
     return {
       thicknessData,
       frameStep: frameStep,
-      xAxisStep: 1, // Each frame is 1 step
+      xAxisStep: frameStep,
       xAxisLabel: 'Frame',
       isEnsemble,
       xTooltip: xValue => `Frame ${xValue}`,
@@ -187,6 +184,7 @@ const Thickness = () => {
   useMemo(() => {
     if (!components || !thicknessPayload.data) return;
     if (!defaultRepresentations || defaultRepresentations.length === 0) return;
+
     setRepresentations(previous => {
       if (previous !== null) return previous;
       defaultRepresentations.forEach(rep => {
@@ -203,16 +201,23 @@ const Thickness = () => {
     });
   }, [components, defaultRepresentations]);
 
+  // Initialize an empty dictionary for the schemes
+  const schemes = useRef({});
+  // Function to get or generate a scheme for a specific frame
+  const getSchemeForFrame = (frame, data, std1) => {
+    if (!schemes.current[frame]) {
+      schemes.current[frame] = generateScheme(frame, data, std1);
+    }
+    return schemes.current[frame];
+  };
+
   const updateColor = useCallback(progress => {
     if (!thicknessPayload || !thicknessPayload.data) return {};
-    const frame = viewerRef.current.currentFrame - 1;
-    // console.log('progress: ' + progress + ' / frame: ' + frame);
+    const frame = viewerRef.current.currentFrame;
     setRepresentations(previousRepresentations => {
-      //if (previousRepresentations !== null) return previousRepresentations;
-      //console.log('frame: ' + frame);
       previousRepresentations.forEach(rep => {
         if (rep.name == 'M'){
-          rep.color = generateScheme(frame, thicknessPayload.data, thicknessData.membrane.mean_stddev);
+          rep.color = getSchemeForFrame(frame, thicknessPayload.data, thicknessData.membrane.mean_stddev);
           //rep.color = generateGradientScheme();
         }
       });
