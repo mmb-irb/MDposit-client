@@ -1,16 +1,41 @@
-.card {
-  margin: 0.1em 0;
+.paper {
+  height: 50vh;
+  overflow-y: scroll;
 }
 
-.margined-bottom {
-  margin-bottom: 1em;
+.tablecard {
+  display: inline-block;
+  width: 25%;
 }
 
 .nglcard {
-  margin: 1em;
+  display: inline-block;
+  width: 75%;
   height: 50vh;
+}
+
+.margined {
+  margin: 1em;
 }
 
 .container {
   height: 100%;
+}
+
+.selectedrow {
+  background-color: #76ff03;
+}
+
+.graph {
+  height: 40vh;
+}
+
+.graph-placeholder {
+  position: relative;
+  width: 100%;
+  height: 40vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: white;
 }

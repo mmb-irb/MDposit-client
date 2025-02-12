@@ -53,12 +53,17 @@ const ENDPOINTS = {
   pockets: ['analyses/pockets'],
   markov: ['analyses/markov'],
   clusters: ['analyses/clusters'],
+  density: ['analyses/density'],
+  thickness: ['analyses/thickness'],
   electrostatic: ['analyses/interactions'],
   mutations: ['references'],
   epitopes: ['references'],
   populations: [`files/populations.json`],
   'ligand-descriptors': ['references']
 }
+
+// Set a flag for the subpages that are not implemented yet
+const NOT_IMPLEMENTED_ERROR = 'Subpage data is not configured';
 
 // This subpage displays the different API endpoints used in a specific subpage
 const DataViewer = ({ accessionAndMdNumber, subPage }) => {
@@ -69,11 +74,13 @@ const DataViewer = ({ accessionAndMdNumber, subPage }) => {
     const projectUrl = `${BASE_PATH}current/projects/${accessionAndMdNumber}`;
     // Get additional endpoints according to the subpage
     const additionalEndpoints = ENDPOINTS[subPage];
-    if (additionalEndpoints === undefined) return `Subpage "${subPage}" data is not configured`;
+    if (additionalEndpoints === undefined) return NOT_IMPLEMENTED_ERROR;
     // Convert endpoints to valid API URLs
     const additionalUrls = additionalEndpoints.map(endpoint => `${projectUrl}/${endpoint}`);
     return [ projectUrl, ...additionalUrls ]
   }, [accessionAndMdNumber, subPage]);
+  console.log(apiUrls);
+  if (apiUrls === NOT_IMPLEMENTED_ERROR) return NOT_IMPLEMENTED_ERROR;
   // Request all API URLs
   const apiResponses = useBatchAPI(apiUrls);
   console.log(apiResponses);

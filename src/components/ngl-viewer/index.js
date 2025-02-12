@@ -125,7 +125,8 @@ const NGLViewer = memo(
         darkBackground,
         perspective,
         speed,
-        xSelection,
+        xSelection, // To display planes for density analysis
+        rotateX,   // To rotate the stage so the Z axis goes from bottom to top
         xAxisStep,
         // Final components and representations prepared for the viewer
         components,
@@ -1217,6 +1218,12 @@ const NGLViewer = memo(
         var rep = shapeComp.addRepresentation("buffer", {opacity: 0.1 , roughness: 1});
         // console.log(stageRef.current.viewer.rotationGroup.rotation);
       }, [mainComponent, xSelection]);
+      
+      // Rotate the stage
+      useEffect(() => {
+        if (!mainComponent || !rotateX) return;
+        stageRef.current.viewer.rotationGroup.rotateX(-1.57);
+      }, [mainComponent, rotateX]);
 
       // Highlight specific angles
       useEffect(() => {

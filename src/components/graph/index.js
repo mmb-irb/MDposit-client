@@ -106,9 +106,36 @@ const isCanvasPowered = type => type === 'dash' || type === 'dots';
 //    dataset2:{...}
 // }
 
-const Graph = forwardRef(({ // The main data
-  yData, xAxisValues, step = 1, title, xAxisLabel, yAxisLabel, xScaleFactor = 1, xColors, xWeights, xTooltip, type = 'line', onHover, onSelect, selfLegend = false, displayLegend = false, dataDisplay, setDataDisplay, mean = false, standardDeviation = false, margin = defaultMargins, flippedXAxisValues = false, fullPrecision = false, className, marks, areaStdDev = false }, ref) => { // Note that this is only compatible with dash/dots types, not line // Thea main data to be represented // Optional x tags // not sure // Graph title // The x axis label text // The y axis label text // The difference beyween x values // Color each different dot in the graph dependeing on its x index
-  // Define the weights for each x value. This is only compatible with type = 'dots' and makes dots bigger // The function to set what to show on the tooltip based in the x value where the mouse is hovering // Set the type of graph to render. Accepted values: line, dash // Object with each dataset name and a value of true/false to set which data is displayed // dataDisplay setter // Display the mean line in the graph // Display the standard deviation area in the graph // Set an extra margin around the graph // Set if values in x axis is horizontal (false) or vertical (true) // If true, draw all points in the graph no matter how many points are there // Force a classname for the overall component element // Mark x values by displaying a vertical line in their positions
+const Graph = forwardRef(({ 
+  yData,                      // The main data
+  xAxisValues,                // The main data to be represented 
+  step = 1, 
+  title,                      // Graph title 
+  xAxisLabel,                 // The x axis label text
+  yAxisLabel,                 // The y axis label text 
+  xScaleFactor = 1,           // The difference between x values
+  xColors,                    // Color each different dot in the graph dependeing on its x index
+  xWeights,                   // Define the weights for each x value. This is only compatible with type = 'dots' and makes dots bigger 
+  xTooltip,                   // The function to set what to show on the tooltip based in the x value where the mouse is hovering
+  yPadding = 0,             // Add a padding to the y axis range
+  type = 'line',              // Set the type of graph to render. Accepted values: line, dash, dots
+  onHover,                     
+  onSelect,                   
+  selfLegend = false,         
+  displayLegend = false,      
+  dataDisplay,                // Object with each dataset name and a value of true/false to set which data is displayed 
+  setDataDisplay,             // dataDisplay setter    
+  mean = false,               // Display the mean line in the graph 
+  standardDeviation = false,  // Display the standard deviation area in the graph
+  margin = defaultMargins,    // Set an extra margin around the graph
+  flippedXAxisValues = false, // Set if values in x axis is horizontal (false) or vertical (true) 
+  fullPrecision = false,      // If true, draw all points in the graph no matter how many points are there 
+  className,                  // Force a classname for the overall component element
+  marks,                      // Mark x values by displaying a vertical line in their positions
+  areaStdDev = false,          // Display the standard deviation area per point
+  zeroLine = false,            // Draw a line at y=0
+}, 
+  ref) => { 
   // -  style: object with all the style names (keys) and their values according to d3
   // -  attr: object with all the attribute names (keys) and their values according to d3
   // -  x: the position of the mark according to the x axis
@@ -140,7 +167,7 @@ const Graph = forwardRef(({ // The main data
     offset,
     labelsHeight,
     requiredBottomOffset,
-    yAxisLabelHegiht,
+    yAxisLabelHeight,
   } = useMemo(() => {
     // Set the yAxisValues by adding all dataset 'data' values
     let yAxisValues = yEntries
@@ -170,7 +197,7 @@ const Graph = forwardRef(({ // The main data
     // In addition, add a small offset between labels and the axis which is added further
     // This offset is only in x axes, which are rotated 90 degrees and end too much close to the axis
     const xAxisLabelHegiht = xAxisLabel ? labelsHeight : 0;
-    const yAxisLabelHegiht = yAxisLabel ? labelsHeight + roatatedTextOffset : 0;
+    const yAxisLabelHeight = yAxisLabel ? labelsHeight + roatatedTextOffset : 0;
 
     // Finally, estimate the space needed by axes, titles, etc.
     const requiredTopOffset = title ? labelsHeight + axisLabelsOffset : 0;
@@ -180,7 +207,7 @@ const Graph = forwardRef(({ // The main data
     const requiredLeftOffset =
       yAxisValues.length === 1 && yData !== yDataPlaceholder
         ? Math.max(maxYAxisWidth, getTextWidth(yAxisLabel, titlesD3font))
-        : maxYAxisWidth + yAxisLabelHegiht;
+        : maxYAxisWidth + yAxisLabelHeight;
 
     // Set the dimensions and offsets of the graph
     const offset = {
@@ -189,7 +216,7 @@ const Graph = forwardRef(({ // The main data
       bottom: requiredBottomOffset + margin.bottom,
       left: requiredLeftOffset + margin.left,
     };
-    return { offset, labelsHeight, requiredBottomOffset, yAxisLabelHegiht };
+    return { offset, labelsHeight, requiredBottomOffset, yAxisLabelHeight };
   }, [
     flippedXAxisValues,
     margin,
@@ -301,7 +328,7 @@ const Graph = forwardRef(({ // The main data
       offset = previousValues.current.offset,
       labelsHeight = previousValues.current.labelsHeight,
       requiredBottomOffset = previousValues.current.requiredBottomOffset,
-      yAxisLabelHegiht = previousValues.current.yAxisLabelHegiht,
+      yAxisLabelHeight = previousValues.current.yAxisLabelHeight,
       xColors = previousValues.current.xColors,
       xNormalizedWeights = previousValues.current.xNormalizedWeights,
       xTooltip = previousValues.current.xTooltip,
@@ -405,7 +432,7 @@ const Graph = forwardRef(({ // The main data
       previousValues.current.xMin = xMin;
       previousValues.current.xMax = xMax;
 
-      // Set a function which calculates de x position in screen
+      // Set a function which calculates the x position in screen
       // Note that values from this function change when you grab/scroll in the graph
       const x = rescaleX(
         scaleLinear()
@@ -438,16 +465,19 @@ const Graph = forwardRef(({ // The main data
       }
 
       // y axis/axes
+      const yExtent = extent(
+        flatten(
+          dataEntries
+            .filter(([key]) => labels[key])
+            .map(([, { data }]) => extent(data)),
+        ),
+      );
+      
+      // Add padding to the y-axis range
+      const extraY = (yExtent[1] - yExtent[0]) * yPadding;
+      
       const y = scaleLinear()
-        .domain(
-          extent(
-            flatten(
-              dataEntries
-                .filter(([key]) => labels[key])
-                .map(([, { data }]) => extent(data)),
-            ),
-          ),
-        )
+        .domain([yExtent[0] - extraY, yExtent[1] + extraY])
         .nice()
         .range([height - offset.bottom, offset.top]);
 
@@ -471,12 +501,31 @@ const Graph = forwardRef(({ // The main data
           .attr(
             'y',
             margin.left +
-              yAxisLabelHegiht -
+              yAxisLabelHeight -
               roatatedTextOffset -
               axisLabelsOffset,
           )
           .attr('transform', 'rotate(-90)')
           .text(yAxisLabel);
+      }
+
+      // Add zero line if requested
+      if (zeroLine) {
+        const zeroLineEl = main.selectAll('line.zero').data([0]);
+        zeroLineEl
+          .enter()
+          .append('line')
+          .attr('class', 'zero')
+          .merge(zeroLineEl)
+          .attr('stroke', '#000000')
+          .attr('stroke-width', 1)
+          .attr('stroke-dasharray', '5,5')
+          .attr('x1', x(xMin))
+          .attr('x2', x(xMax))
+          .attr('y1', y(0))
+          .attr('y2', y(0))
+          .attr('opacity', 0.3);
+        zeroLineEl.exit().remove();
       }
 
       // mean line
@@ -838,7 +887,7 @@ const Graph = forwardRef(({ // The main data
       previousValues.current.offset = offset;
       previousValues.current.labelsHeight = labelsHeight;
       previousValues.current.requiredBottomOffset = requiredBottomOffset;
-      previousValues.current.yAxisLabelHegiht = yAxisLabelHegiht;
+      previousValues.current.yAxisLabelHeight = yAxisLabelHeight;
       previousValues.current.xColors = xColors;
       previousValues.current.xNormalizedWeights = xNormalizedWeights;
       previousValues.current.xTooltip = xTooltip;
@@ -950,7 +999,7 @@ const Graph = forwardRef(({ // The main data
       offset,
       labelsHeight,
       requiredBottomOffset,
-      yAxisLabelHegiht,
+      yAxisLabelHeight,
       xColors,
       xTooltip,
     });
@@ -964,7 +1013,7 @@ const Graph = forwardRef(({ // The main data
     offset,
     labelsHeight,
     requiredBottomOffset,
-    yAxisLabelHegiht,
+    yAxisLabelHeight,
     xColors,
     xTooltip,
   ]);

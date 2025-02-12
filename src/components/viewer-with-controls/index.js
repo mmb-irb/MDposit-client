@@ -200,7 +200,7 @@ const ViewerWithControls = forwardRef(
       preventTrajectory = false,
       // Set a state setter to handle the frame progress
       onProgress,
-      // The rest of properties
+      // The rest of properties paased to the NGLViewer
       ...props
     },
     ref,

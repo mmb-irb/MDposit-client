@@ -113,7 +113,7 @@ const D3HeatmapGrid = memo(
     // In addition, add a small offset between labels and the axis which is added further
     // This offset is only in x axes, which are rotated 90 degrees and end too much close to the axis
     const xAxisLabelHegiht = xAxisLabel ? labelsHeight : 0;
-    const yAxisLabelHegiht = yAxisLabel ? labelsHeight + roatatedTextOffset : 0;
+    const yAxisLabelHeight = yAxisLabel ? labelsHeight + roatatedTextOffset : 0;
 
     // Finally, estimate the space needed by axes, titles, etc.
     const requiredXOffset = flippedXAxisValues
@@ -122,7 +122,7 @@ const D3HeatmapGrid = memo(
     const requiredYOffset =
       yAxisValues.length === 1
         ? Math.max(maxYAxisWidth, getTextWidth(yAxisLabel, titlesD3font))
-        : maxYAxisWidth + yAxisLabelHegiht;
+        : maxYAxisWidth + yAxisLabelHeight;
 
     // Set the dimensions and offsets of the graph
     const offset = {
@@ -260,7 +260,7 @@ const D3HeatmapGrid = memo(
           .attr(
             'y',
             margin.left +
-              yAxisLabelHegiht -
+              yAxisLabelHeight -
               roatatedTextOffset -
               axisLabelsOffset,
           )

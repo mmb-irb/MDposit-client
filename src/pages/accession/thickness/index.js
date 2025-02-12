@@ -77,6 +77,12 @@ const Thickness = () => {
     payload: thicknessPayload,
     error: thicknessError,
   } = useAPI(`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/thickness/`);
+  
+  const {
+    loading: memMapLoading,
+    payload: memMapPayload,
+    error: memMapError,
+  } = useAPI(`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/mem_map/`);
 
   // Set which thickness components to display
   const [display, setDisplay] = useState({});
@@ -128,14 +134,26 @@ const Thickness = () => {
     };
 
     const isEnsemble = metadata.TYPE === 'ensemble';
-
+    const framesTimeStep = metadata.FRAMESTEP;
+    let xAxisStep, xAxisLabel, xTooltip;
+    if (isEnsemble || !framesTimeStep) {
+      xAxisStep = frameStep;
+      xAxisLabel = 'Frames';
+      xTooltip = xValue => 'frame ' + xValue;
+    }
+    else {
+      const analysisTimeStep = frameStep * framesTimeStep
+      xAxisStep = analysisTimeStep;
+      xAxisLabel = 'Time (ns)';
+      xTooltip = xValue => +xValue.toFixed(2) + ' ns';
+    }
     return {
       thicknessData,
       frameStep: frameStep,
-      xAxisStep: frameStep,
-      xAxisLabel: 'Frame',
+      xAxisStep: xAxisStep,
+      xAxisLabel: xAxisLabel,
       isEnsemble,
-      xTooltip: xValue => `Frame ${xValue}`,
+      xTooltip: xTooltip,
       xValues: thicknessPayload.data.frame,
       defaultDisplay
     };
@@ -158,6 +176,12 @@ const Thickness = () => {
       attr: { fill: '#c8c8c8' },
     };
     return [selectedMark];
+  }, [selected]);
+
+  // Handle the change of frame
+  useEffect(() => {
+    if (!viewerRef.current) return;
+    viewerRef.current.currentFrame = selected;
   }, [selected]);
 
   // Track if the NGL viewer is visible
@@ -188,16 +212,21 @@ const Thickness = () => {
     setRepresentations(previous => {
       if (previous !== null) return previous;
       defaultRepresentations.forEach(rep => {
-        if (rep.name == 'M'){
-        rep.color = generateScheme(0, thicknessPayload.data, thicknessData.membrane.mean_stddev);
-        rep.opacity = 1;
-        rep.selection= '_P';
-        rep.other = {radius: 1.5};
-      } else if (rep.name == 'Protein') {
+      if (rep.name == 'Protein') {
         rep.color = greyScheme();
-      };
+      } else if (rep.name == 'M') {
+        rep.show = false;
+      }
       });
-      return [...defaultRepresentations];
+
+      let distRepr = {
+        'name': 'Distorsion',
+        'type': 'ball+stick',
+        'opacity': 1,
+        'selection': 'DPPC and _P',
+        'other': {radius: 0.75},
+      }
+      return [...defaultRepresentations, distRepr];
     });
   }, [components, defaultRepresentations]);
 
@@ -216,9 +245,8 @@ const Thickness = () => {
     const frame = viewerRef.current.currentFrame;
     setRepresentations(previousRepresentations => {
       previousRepresentations.forEach(rep => {
-        if (rep.name == 'M'){
+        if (rep.name == 'Distorsion'){
           rep.color = getSchemeForFrame(frame, thicknessPayload.data, thicknessData.membrane.mean_stddev);
-          //rep.color = generateGradientScheme();
         }
       });
       return [...previousRepresentations];
@@ -237,81 +265,83 @@ const Thickness = () => {
   // Render
   return (
     <Suspense fallback={<Loading />}>
-      <Card className={style.nglcard} ref={nglRef}>
-        {isNglVisible ? (
-          <ViewerWithControls
-            className={style.container}
-            startingComponents={components}
-            representationsState={[representations, setRepresentations]}
-            onProgress={updateColor}
-            ref={viewerRef}
-          />
-        ) : (
-          <div style={{ height: '50vh' }} />
-        )}
-      </Card>
-      <Card className={style.graph}>
-        <CardContent>
-          <Graph 
-            yData={thicknessData}
-            step={xAxisStep}
-            xAxisLabel={xAxisLabel}
-            xAxisValues={xValues}
-            type={isEnsemble ? 'dots' : 'line'}
-            xTooltip={xTooltip}
-            xScaleFactor={1}
-            yAxisLabel={yAxisLabel}
-            onSelect={setSelected}
-            selfLegend={false}
-            dataDisplay={display}
-            marks={marks}
-            areaStdDev={true}
-          />
-        </CardContent>
-      </Card>
-      <Card className={style.card}>
-        <CardContent>
-          <Table padding="checkbox">
-            <TableHead>
-              <TableRow>
-                <TableCell>selected chains</TableCell>
-                <TableCell>{`mean`}</TableCell>
-                <TableCell>{`mean of standard deviations`}</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {Object.entries(thicknessData).map(([key, thickness], i) => (
-                <TableRow key={key}>
-                  <TableCell>
-                    {
-                      <FormControlLabel
-                        onChange={() =>
-                          setDisplay(previous => {
-                            previous[key] = !previous[key];
-                            return { ...previous };
-                          })
-                        }
-                        control={
-                          <Checkbox
-                            checked={display[key]}
-                            style={{ color: colors[i] }}
+          <Card className={style.tablecard}>
+            <div className={style.paper} >
+              <Table padding="checkbox">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>selected chains</TableCell>
+                    <TableCell>{`mean`}</TableCell>
+                    <TableCell>{`mean of standard deviations`}</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {Object.entries(thicknessData).map(([key, thickness], i) => (
+                    <TableRow key={key}>
+                      <TableCell>
+                        {
+                          <FormControlLabel
+                            onChange={() =>
+                              setDisplay(previous => {
+                                previous[key] = !previous[key];
+                                return { ...previous };
+                              })
+                            }
+                            control={
+                              <Checkbox
+                                checked={display[key]}
+                                style={{ color: colors[i] }}
+                              />
+                            }
+                            label={key}
                           />
                         }
-                        label={key}
-                      />
-                    }
-                  </TableCell>
-                  <TableCell>{cents(thickness.average)}</TableCell>
-                  <TableCell>{cents(thickness.mean_stddev)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-      
+                      </TableCell>
+                      <TableCell>{cents(thickness.average)}</TableCell>
+                      <TableCell>{cents(thickness.mean_stddev)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+          <Card className={style.nglcard} ref={nglRef}>
+              {isNglVisible ? (
+                <ViewerWithControls
+                  className={style.container}
+                  startingComponents={components}
+                  representationsState={[representations, setRepresentations]}
+                  onProgress={updateColor}
+                  ref={viewerRef}
+                  rotateX={true}
+                />
+              ) : (
+                <div style={{ height: '50vh' }} />
+              )}
+          </Card>
+          <Card className={style.graph}>
+              <CardContent>
+                <Graph 
+                  yData={thicknessData}
+                  step={xAxisStep}
+                  xAxisLabel={xAxisLabel}
+                  xAxisValues={xValues}
+                  xTooltip={xTooltip}
+                  yAxisLabel={yAxisLabel}
+                  onSelect={setSelected}
+                  selfLegend={false}
+                  dataDisplay={display}
+                  marks={marks}
+                  areaStdDev={true}
+                  className={style.graph}
+                  zeroLine={true}
+                  yPadding={thicknessData.membrane.mean_stddev/100 }
+                />
+              </CardContent>
+          </Card>
     </Suspense>
   );
 };
 
+Thickness.displayName = 'Thickness'
 export default Thickness;
