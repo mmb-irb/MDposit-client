@@ -1429,6 +1429,9 @@ export const documentation = [
             Three types of density are represented in the graph: number of atoms (N), mass (Da) and electron (e⁻).
             <br />
             <br />
+            Note that trajectories are normally fitted so the protein stay in the center.s
+            <br />
+            <br />
             The plot is <span style={{ color: 'lightGreen' }}>interactive</span>. 
             Click on any point to open a {' '}
             <a

@@ -16,16 +16,12 @@ import {
 import Card from '../../../components/animated-card';
 import ViewerSpawner from '../../../components/viewer-spawner';
 import Loading from '../../../components/loading';
-
 import useAPI from '../../../hooks/use-api';
-
 import { ProjectCtx } from '../../../contexts';
-
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
-
 import { getMean } from '../../../utils/statistics';
-
 import style from './style.module.css';
+import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 
 const Graph = lazy(() =>
   import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
@@ -39,7 +35,7 @@ const tabs = [
   { type: 'electron', label: 'Electron', ylabel: 'Density (e⁻/Å)' },
 ];
 
-const colors = ['black', 'red', 'orange', 'yellow', 'blue', 'green', 'purple'];
+const colors = ['black', 'blue', 'purple','red', 'orange', 'yellow','green'  ];
 
 const Density = () => {
   // Get the metadata
@@ -126,6 +122,23 @@ const Density = () => {
     return [selectedMark];
   }, [selected]);
 
+  // Use default representations hook
+  const defaultRepresentations = useDefaultRepresentations();
+  // Define the representations to be displayed in the viewer
+  const [representations, setRepresentations] = useState(null);
+  // Set or update the representations state
+  useMemo(() => {
+    if (!densityPayload || !densityPayload.data) return;
+    if (!defaultRepresentations || defaultRepresentations.length === 0) return;
+    setRepresentations(previous => {
+      if (previous !== null) return previous;
+      defaultRepresentations.forEach((rep, index) => {
+        rep.color = colors[index % colors.length];
+      });
+      return [...defaultRepresentations];
+    });
+  }, [defaultRepresentations]);
+
   // Render loading or error states
   if (densityLoading) return <Loading />;
   else if (densityError) return densityError.toString();
@@ -155,7 +168,6 @@ const Density = () => {
                 key={t}
                 value={tab}
                 label={tab.label}
-                disabled={tab.type === 'tmscore'}
               />
             ))}
           </Tabs>
@@ -225,6 +237,7 @@ const Density = () => {
               // It has no effect on the viewer
               xSelection: selected,
               xAxisStep: xAxisStep,
+              representationsState: [representations, setRepresentations]
             }
             : null
         }
