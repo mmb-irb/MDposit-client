@@ -77,12 +77,12 @@ const Thickness = () => {
     payload: thicknessPayload,
     error: thicknessError,
   } = useAPI(`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/thickness/`);
-  
+  // Get the membrane map
   const {
     loading: memMapLoading,
     payload: memMapPayload,
     error: memMapError,
-  } = useAPI(`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/mem_map/`);
+  } = useAPI(`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/mem-map/`);
 
   // Set which thickness components to display
   const [display, setDisplay] = useState({});

@@ -1413,12 +1413,20 @@ export const documentation = [
             >
               PyTraj density
             </a>{' '} function, which calculates the density of a system by slicing the z axis every 0.25 Å.
-            The density can be calculated by number, mass, partial charge (q) or electron (Ne – q). 
+            The density can be calculated by number (N), mass (Da) or electron (Ne – q). 
+            <br />
+            <br />
+            The cpptraj density command calculates linear density along a specified coordinate (e.g., Da/Å along the z-axis). 
+            To obtain volumetric density divide the linear density output by the area of the cross-section formed by 
+            the other two dimensions.
           </>
         ),
         page: (
           <>
-            Number of atoms for each chain over the z axis over slices of 0.25 Å.
+            Linear density for each chain over the z axis over slices of 0.25 Å.
+            <br />
+            <br />
+            Three types of density are represented in the graph: number of atoms (N), mass (Da) and electron (e⁻).
             <br />
             <br />
             The plot is <span style={{ color: 'lightGreen' }}>interactive</span>. 

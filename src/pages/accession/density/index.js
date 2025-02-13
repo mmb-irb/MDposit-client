@@ -9,6 +9,8 @@ import {
   TableCell,
   FormControlLabel,
   Checkbox,
+  Tabs,
+  Tab,
 } from '@mui/material';
 
 import Card from '../../../components/animated-card';
@@ -29,6 +31,14 @@ const Graph = lazy(() =>
   import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
 );
 
+const tabs = [
+  // about the units: http://archive.ambermd.org/202203/0008.html
+  { type: 'mass', label: 'Mass', ylabel: 'Density (Da/Å)' },
+  { type: 'number', label: 'Number', ylabel: 'Density (N/Å)' },
+  //{ type: 'charge', label: 'Charge' }, // disable until we can put charges in pytraj topology
+  { type: 'electron', label: 'Electron', ylabel: 'Density (e⁻/Å)' },
+];
+
 const colors = ['black', 'red', 'orange', 'yellow', 'blue', 'green', 'purple'];
 
 const Density = () => {
@@ -41,7 +51,15 @@ const Density = () => {
     payload: densityPayload,
     error: densityError,
   } = useAPI(`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/density/`);
+  // Get the membrane map
+  const {
+    loading: memMapLoading,
+    payload: memMapPayload,
+    error: memMapError,
+  } = useAPI(`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/mem-map/`);
 
+  // Set which tab is selected
+  const [selectedTab, setSelectedTab] = useState(tabs[0]);
   // Set which density components to display
   const [display, setDisplay] = useState({});
 
@@ -62,15 +80,16 @@ const Density = () => {
     // Process each component's density data
     densityPayload.data.comps.forEach((comp, index) => {
       const dataset = {};
-      dataset.data = comp.dens;
+      const type = selectedTab.type;
+      dataset.data = comp[type].dens;
       dataset.color = colors[index % colors.length];
       
       // Calculate mean and stddev for the table display
       dataset.average = getMean(dataset.data);
-      dataset.stddev = getMean(comp.stdv);
+      dataset.stddev = getMean(comp[type].stdv);
       
       // Add the density stddev from the JSON for the graph visualization
-      dataset.areaStdDev = comp.stdv;
+      dataset.areaStdDev = comp[type].stdv;
       
       const name = comp.name;
       densityData[name] = dataset;
@@ -87,12 +106,12 @@ const Density = () => {
       densityData,
       frameStep: 1,
       xAxisStep: xStep,
-      xAxisLabel: 'Distance (Å)', // Using Angstroms as label
+      xAxisLabel: 'Z axis (Å)', // Using Angstroms as label
       isEnsemble,
       xTooltip: xValue => `${xValue.toFixed(2)} Å`,
       xValues: zValues, // Add z values for x-axis
     };
-  }, [metadata, densityPayload]);
+  }, [metadata, densityPayload, selectedTab]);
 
   // Set when one point in the graph is selected
   const [selected, setSelected] = useState(null);
@@ -114,13 +133,32 @@ const Density = () => {
 
   const cents = num => Math.round(num * 100) / 100;
   // Set the y axis label for density
-  const yAxisLabel = 'Density';
 
   // Render
   return (
     <Suspense fallback={<Loading />}>
       <Card className={style.card}>
         <CardContent>
+        <Tabs
+            value={selectedTab}
+            variant="fullWidth"
+            indicatorColor="primary"
+            textColor="primary"
+            onChange={(event, value) => {
+              setSelected(null);
+              setSelectedTab(value);
+            }}
+            className={style['margined-bottom']}
+          >
+            {tabs.map((tab, t) => (
+              <Tab
+                key={t}
+                value={tab}
+                label={tab.label}
+                disabled={tab.type === 'tmscore'}
+              />
+            ))}
+          </Tabs>
           <Table padding="checkbox">
             <TableHead>
               <TableRow>
@@ -165,10 +203,10 @@ const Density = () => {
             yData={densityData}
             step={xAxisStep}
             xAxisLabel={xAxisLabel}
+            yAxisLabel={selectedTab.ylabel}
             type={isEnsemble ? 'dots' : 'line'}
             xTooltip={xTooltip}
             xScaleFactor={1}
-            yAxisLabel={yAxisLabel}
             onSelect={setSelected}
             selfLegend={false}
             dataDisplay={display}
