@@ -117,7 +117,7 @@ const Graph = forwardRef(({
   xColors,                    // Color each different dot in the graph dependeing on its x index
   xWeights,                   // Define the weights for each x value. This is only compatible with type = 'dots' and makes dots bigger 
   xTooltip,                   // The function to set what to show on the tooltip based in the x value where the mouse is hovering
-  yPadding = 0,             // Add a padding to the y axis range
+  yPadding = 0,               // Add a padding to the y axis range
   type = 'line',              // Set the type of graph to render. Accepted values: line, dash, dots
   onHover,                     
   onSelect,                   

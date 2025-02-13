@@ -335,6 +335,7 @@ const Thickness = () => {
                   areaStdDev={true}
                   className={style.graph}
                   zeroLine={true}
+                  margin={{ top: 10, right: 10, bottom: 22, left: 10 }}
                   yPadding={thicknessData.membrane.mean_stddev/100 }
                 />
               </CardContent>
