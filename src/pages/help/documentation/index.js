@@ -1400,6 +1400,67 @@ export const documentation = [
           </>
         ),
       },
+      {
+        id: 'density',
+        header: 'Density',
+        body: (
+          <>
+            Density analysis using{' '}
+            <a
+              href="https://amber-md.github.io/pytraj/latest/analysis.html#pytraj.density"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              PyTraj density
+            </a>{' '} function, which calculates the density of a system by slicing the z axis every 0.25 Å.
+            The density can be calculated by number, mass, partial charge (q) or electron (Ne – q). 
+          </>
+        ),
+        page: (
+          <>
+            Number of atoms for each chain over the z axis over slices of 0.25 Å.
+            <br />
+            <br />
+            The plot is <span style={{ color: 'lightGreen' }}>interactive</span>. 
+            Click on any point to open a {' '}
+            <a
+              href="/help#/help#ngl-viewer"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              viewer
+            </a>{' '} displaying a plane at the place where the density has being calculated.
+          </>
+        ),
+      },
+      {
+        id: 'thickness',
+        header: 'Thickness',
+        body: (
+          <>
+            Membrane thickness analysis performed with the{' '}
+            <a
+              href="https://lipyphilic.readthedocs.io/en/latest/reference/analyses.html#lipid-z-positions-lipyphilic-analysis-z-positions"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              Lipyphilic Z positions
+            </a>{' '} using the most charged atom of each lipid residue as headgroups. 
+          </>
+        ),
+        page: (
+          <>
+            Thickness of the membrane of time meassured as distance between the most 
+            charged atoms of the lipids from of each leaflet. 
+            <br />
+            <br />
+            In the visualization we can see represented the local distorsion where 
+            thinning is displayed in red and thickning in blue, starting from white, 
+            with a gradient that reach a maximum at three times the standard deviation 
+            of the thickness over all the trajectory.
+          </>
+        ),
+      },
     ],
   },
 
