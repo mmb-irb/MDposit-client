@@ -47,12 +47,6 @@ const Density = () => {
     payload: densityPayload,
     error: densityError,
   } = useAPI(`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/density/`);
-  // Get the membrane map
-  const {
-    loading: memMapLoading,
-    payload: memMapPayload,
-    error: memMapError,
-  } = useAPI(`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/mem-map/`);
 
   // Set which tab is selected
   const [selectedTab, setSelectedTab] = useState(tabs[0]);
@@ -67,12 +61,13 @@ const Density = () => {
     xAxisLabel,
     isEnsemble,
     xTooltip,
+    polarRepr,
   } = useMemo(() => {
     if (!densityPayload || !densityPayload.data || !densityPayload.data.comps) return {};
 
     const densityData = {};
     const defaultDisplay = {};
-    
+    let polarRepr = null;
     // Process each component's density data
     densityPayload.data.comps.forEach((comp, index) => {
       const dataset = {};
@@ -87,9 +82,24 @@ const Density = () => {
       // Add the density stddev from the JSON for the graph visualization
       dataset.areaStdDev = comp[type].stdv;
       
-      const name = comp.name;
+      let name = comp.name;
+      if (name === 'polar') {
+        // rename polar to Headgroups or something else
+        name = 'Headgroups';
+      }
       densityData[name] = dataset;
       defaultDisplay[name] = true;
+
+      if (name === 'Headgroups') {
+        polarRepr = {
+          'name': name,
+          'type': 'ball+stick',
+          'color': dataset.color,
+          'opacity': 0.75,
+          'selection': '@' + comp.selection.join(','),
+          'other': {radius: 0.3},
+        }
+      };
     });
 
     setDisplay(defaultDisplay);
@@ -106,6 +116,7 @@ const Density = () => {
       isEnsemble,
       xTooltip: xValue => `${xValue.toFixed(2)} Å`,
       xValues: zValues, // Add z values for x-axis
+      polarRepr
     };
   }, [metadata, densityPayload, selectedTab]);
 
@@ -135,7 +146,7 @@ const Density = () => {
       defaultRepresentations.forEach((rep, index) => {
         rep.color = colors[index % colors.length];
       });
-      return [...defaultRepresentations];
+      return [...defaultRepresentations, polarRepr];
     });
   }, [defaultRepresentations]);
 

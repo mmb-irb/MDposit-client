@@ -1423,13 +1423,13 @@ export const documentation = [
         ),
         page: (
           <>
-            Linear density for each chain over the z axis over slices of 0.25 Å.
+            Linear density for each chain over the z axis over slices of 0.25 Å. Three types of density are represented in the graph: number of atoms (N), mass (Da) and electron (e⁻).
             <br />
             <br />
-            Three types of density are represented in the graph: number of atoms (N), mass (Da) and electron (e⁻).
+            For the headgroups, we choose the most charged atom of each lipid residue.
             <br />
             <br />
-            Note that trajectories are normally fitted so the protein stay in the center.s
+            Note that trajectories are normally fitted so the protein stay in the center.
             <br />
             <br />
             The plot is <span style={{ color: 'lightGreen' }}>interactive</span>. 
