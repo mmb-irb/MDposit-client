@@ -34,7 +34,7 @@ const nglPlaceholder = (
 
 const PCA = () => {
   // Get the current project metadata
-  const { accession, accessionAndMdNumber, metadata, files } = useContext(ProjectCtx);
+  const { accessionAndMdNumber, metadata, files } = useContext(ProjectCtx);
 
   // Load the main data from the API
   const { loading, payload, error } = useAPI(
@@ -94,7 +94,7 @@ const PCA = () => {
     ];
 
     return [representations, components];
-  }, [data, files, projections, accession]);
+  }, [data, files, projections, accessionAndMdNumber]);
 
   if (loading) {
     return <Loading />;

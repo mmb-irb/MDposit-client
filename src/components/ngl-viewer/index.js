@@ -141,7 +141,6 @@ const NGLViewer = memo(
       // True when we just want to display a static structure // Requeste number of frames to display
       // data from context
       const {
-        accession,
         accessionAndMdNumber,
         fileDescriptors,
         curatedOrientation,
@@ -478,7 +477,7 @@ const NGLViewer = memo(
           // Otherwise we return the previous array to do no trigger dependencies
           return currentTrajectories;
         });
-      }, [accession, components, fileDescriptors, requestedFramesNumber]);
+      }, [accessionAndMdNumber, components, fileDescriptors, requestedFramesNumber]);
 
       // Set a state to store trajectories data
       const [trajectories, setTrajectories] = useState([]);

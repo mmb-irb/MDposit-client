@@ -57,7 +57,6 @@ const Sasa = () => {
 
   // Get the current project data
   const {
-    accession,
     accessionAndMdNumber,
     metadata,
     topology: topologyManager,
@@ -239,7 +238,7 @@ const Sasa = () => {
     payload,
     topologyManager,
     metadata,
-    accession,
+    accessionAndMdNumber,
     defaultRepresentations,
     populations,
     setSelectedResidues
