@@ -226,14 +226,12 @@ const RepresentationsManager = memo(
                       })
                     }}
                   >
-                    {!coloringExists(representation.color) && (
-                      <option value={representation.color}>
-                        {representation.color}
-                      </option>
-                    )}
                     {representation.customScheme && (
+                      representation.customScheme.endsWith('distorsion')?
+                      <option value={'custom'}>{'Distorsion'}</option> :
                       <option value={'custom'}>{'Custom'}</option>
                     )}
+                    
                     {availableColoringMethods.map((cm, i) => (
                       <option key={i} value={cm.value}>
                         {cm.label}
