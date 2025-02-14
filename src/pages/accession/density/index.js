@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState, useContext, useMemo } from 'react';
+import React, { lazy, Suspense, useState, useContext, useMemo, useEffect } from 'react';
 
 import {
   CardContent,
@@ -48,11 +48,13 @@ const Density = () => {
     error: densityError,
   } = useAPI(`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/density/`);
 
-  // Set which tab is selected
+  // Set which tab is selected from mass, number, charge, electron
   const [selectedTab, setSelectedTab] = useState(tabs[0]);
   // Set which density components to display
   const [display, setDisplay] = useState({});
-
+  // Track which x value is selected by the user in the graph
+  const [xSelected, setXSelected] = useState([]);
+  
   // Format the data
   const {
     densityData,
@@ -101,7 +103,6 @@ const Density = () => {
         }
       };
     });
-
     setDisplay(defaultDisplay);
     const isEnsemble = metadata.TYPE === 'ensemble';
     // Calculate timestep from z-axis data
@@ -120,36 +121,49 @@ const Density = () => {
     };
   }, [metadata, densityPayload, selectedTab]);
 
-  // Set when one point in the graph is selected
-  const [selected, setSelected] = useState(null);
-  const selectedFrame = selected * frameStep;
-
-  // Set the mark for selected
+  // Set the mark for xSelected
   const marks = useMemo(() => {
     const selectedMark = {
-      x: selected,
+      x: xSelected,
       attr: { fill: '#c8c8c8' },
     };
     return [selectedMark];
-  }, [selected]);
+  }, [xSelected]);
 
   // Use default representations hook
   const defaultRepresentations = useDefaultRepresentations();
   // Define the representations to be displayed in the viewer
   const [representations, setRepresentations] = useState(null);
-  // Set or update the representations state
+  // Set default representations
   useMemo(() => {
     if (!densityPayload || !densityPayload.data) return;
     if (!defaultRepresentations || defaultRepresentations.length === 0) return;
     setRepresentations(previous => {
       if (previous !== null) return previous;
-      defaultRepresentations.forEach((rep, index) => {
+      const keepRepresentations = defaultRepresentations.filter(
+        rep => (rep.selection.startsWith(':') || rep.selection.startsWith('protein')));
+      keepRepresentations.forEach((rep, index) => {
         rep.color = colors[index % colors.length];
       });
-      return [...defaultRepresentations, polarRepr];
+      return [...keepRepresentations, polarRepr];
     });
   }, [defaultRepresentations]);
 
+  // Update the the representations according to selected or hovered pockets
+    useEffect(() => {
+      if (!defaultRepresentations || defaultRepresentations.length === 0) return;
+      setRepresentations(previousRepresentations => { 
+        // Update chain representations
+        var objDisplay = Object.keys(display)
+        previousRepresentations.forEach((previousRepresentation, i) => {
+            const selected = display[objDisplay[i]];
+            previousRepresentation.show = (selected ? true : false);
+        });
+        // Update the state
+        return [...previousRepresentations];
+      })
+    }, [display]);
+    
   // Render loading or error states
   if (densityLoading) return <Loading />;
   else if (densityError) return densityError.toString();
@@ -169,7 +183,7 @@ const Density = () => {
             indicatorColor="primary"
             textColor="primary"
             onChange={(event, value) => {
-              setSelected(null);
+              setXSelected(null);
               setSelectedTab(value);
             }}
             className={style['margined-bottom']}
@@ -185,9 +199,9 @@ const Density = () => {
           <Table padding="checkbox">
             <TableHead>
               <TableRow>
-                <TableCell>selected chains</TableCell>
-                <TableCell>{`mean`}</TableCell>
-                <TableCell>{`mean of standard deviations`}</TableCell>
+                <TableCell>Selected chains</TableCell>
+                <TableCell>{`Mean`}</TableCell>
+                <TableCell>{`Mean of standard deviations`}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -230,7 +244,7 @@ const Density = () => {
             type={isEnsemble ? 'dots' : 'line'}
             xTooltip={xTooltip}
             xScaleFactor={1}
-            onSelect={setSelected}
+            onSelect={setXSelected}
             selfLegend={false}
             dataDisplay={display}
             marks={marks}
@@ -239,28 +253,28 @@ const Density = () => {
         </CardContent>
       </Card>
       <ViewerSpawner
-        // Set the new viewer or null if there is not a proper "selected" value
+        // Set the new viewer or null if there is not a proper "xSelected" value
         newViewer={
-          typeof selected === 'number'
+          typeof xSelected === 'number'
             ? {
               accession: accession,
               // This is used only as a tag for the onNail and onClose functions below
               // It has no effect on the viewer
-              xSelection: selected,
+              xSelection: xSelected,
               xAxisStep: xAxisStep,
               representationsState: [representations, setRepresentations]
             }
             : null
         }
-        // If the nailed/closed viewer is the current viewer then reset the 'selected'
+        // If the nailed/closed viewer is the current viewer then reset the 'xSelected'
         onNail={viewer =>
-          setSelected(previous => {
+          setXSelected(previous => {
             if (viewer.xSelection === previous) return null;
             else return previous;
           })
         }
         onClose={viewer =>
-          setSelected(previous => {
+          setXSelected(previous => {
             if (viewer.xSelection === previous) return null;
             else return previous;
           })
