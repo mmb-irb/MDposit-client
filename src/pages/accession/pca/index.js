@@ -96,12 +96,10 @@ const PCA = () => {
     return [representations, components];
   }, [data, files, projections, accessionAndMdNumber]);
 
-  if (loading) {
-    return <Loading />;
-  }
-  if (error) {
-    return error.toString();
-  }
+  // Return the loading spin if we are still waiting for data
+  if (loading) return <Loading />;
+  // If there was any problem then display it
+  if (error) return error.toString();
 
   return (
     <>
