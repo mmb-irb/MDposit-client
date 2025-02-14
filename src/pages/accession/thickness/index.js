@@ -21,11 +21,13 @@ import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 import { getMean } from '../../../utils/statistics';
 import style from './style.module.css';
 import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
+import ColorLegend from '../../../components/color-legend';
 import { ColormakerRegistry } from 'ngl';
+
+
 const Graph = lazy(() =>
     import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
 );
-
 const colors = ['green', 'blue', 'red'];
 // To see the available schemes log ColormakerRegistry.userSchemes or ColormakerRegistry.schemes
 const generateScheme = (frame, data, std1) => {
@@ -214,15 +216,12 @@ const Thickness = () => {
     useMemo(() => {
         if (!components || !thicknessPayload.data || !memMapPayload) return;
         if (!defaultRepresentations || defaultRepresentations.length === 0) return;
-
+        const keepRepresentations = defaultRepresentations.filter(rep => (rep.name !== 'M'));
         setRepresentations(previous => {
             if (previous !== null) return previous;
-            defaultRepresentations.forEach(rep => {
+            keepRepresentations.forEach(rep => {
                 if (rep.name == 'Protein') {
                     rep.color = 'grey';
-                } else if (rep.name == 'M') {
-                    // TODO: remove representation of the membrane(:M)?
-                    rep.show = false;
                 }
             });
 
@@ -235,7 +234,7 @@ const Thickness = () => {
                 color: 'custom',
                 customScheme: getSchemeForFrame(0, thicknessPayload.data, thicknessData.membrane.mean_stddev)
             }
-            return [...defaultRepresentations, distRepr];
+            return [...keepRepresentations, distRepr];
         });
     }, [components, defaultRepresentations]);
 
@@ -248,7 +247,7 @@ const Thickness = () => {
                     rep.customScheme = getSchemeForFrame(frame, thicknessPayload.data, thicknessData.membrane.mean_stddev);
                 }
             });
-            return [...previousRepresentations];
+            return previousRepresentations;
         });
     }, [thicknessPayload]);
 
@@ -256,7 +255,7 @@ const Thickness = () => {
     if (thicknessLoading) return <Loading />;
     else if (thicknessError) return thicknessError.toString();
     else if (!thicknessPayload) return 'Something bad happened loading thickness data';
-
+    console.log('Render)')
     const cents = num => Math.round(num * 100) / 100;
     // Set the y axis label for thickness
     const yAxisLabel = 'Thickness';
@@ -304,6 +303,16 @@ const Thickness = () => {
                     </Table>
                 </div>
             </Card>
+            <div className={style.legend_container}>
+                <ColorLegend
+                    title={'Distortion (Å)'}
+                    minValue={-thicknessData.membrane.mean_stddev}
+                    maxValue={thicknessData.membrane.mean_stddev}
+                    colorPlan={['red', 'white', 'blue']}
+                    vertical={true}
+                    className={style.legend}
+                />
+            </div>
             <Card className={style.nglcard} ref={nglRef}>
                 {isNglVisible ? (
                     <ViewerWithControls

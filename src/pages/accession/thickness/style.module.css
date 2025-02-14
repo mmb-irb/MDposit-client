@@ -8,6 +8,23 @@
   width: 25%;
 }
 
+.legend_container {
+  height: 50vh;
+  display: inline-flex;
+  align-items: center;
+}
+
+.legend {
+  /* width: 110px; */
+  height: 33vh;
+  margin-bottom: 8vh;
+  margin-left: 1vw;
+  position: absolute;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+
 .nglcard {
   display: inline-block;
   width: 75%;
@@ -39,3 +56,5 @@
   align-items: center;
   background-color: white;
 }
+
+
