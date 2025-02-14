@@ -185,5 +185,17 @@ export class Project {
     get populations () {
         return this._apiQuery('populations', this.isPopulated);
     }
+
+    // Get the reference frame
+    // Coordinates from this frame are to be used when representing the structure
+    // It is a frame which has been selected for distance between atoms to be coherent with atom bonds
+    // i.e. there are not bonded atoms to far or non-bonded atoms to close
+    // If bonds were to be guessed by atom distance they would be guess right
+    get referenceFrame () {
+        // If there is no reference frame then we use the first frame by default
+        // Note that old outdated projects may not have reference frame
+        if (this.refframe === undefined) return 0;
+        return this.refframe;
+    }
 }
   
