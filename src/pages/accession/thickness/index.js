@@ -83,6 +83,22 @@ const Thickness = () => {
 
     // Set which thickness components to display
     const [display, setDisplay] = useState({});
+    // Track if the NGL viewer is visible
+    const [nglRef, isNglVisible] = useInView(useInViewOptions);
+    const viewerRef = useRef(null);
+    // Use default representations hook
+    const defaultRepresentations = useDefaultRepresentations();
+    // Define the representations to be displayed in the viewer
+    const [representations, setRepresentations] = useState(null);
+    // Initialize an empty dictionary for the schemes
+    const schemes = useRef({});
+    // Function to get or generate a scheme for a specific frame
+    const getSchemeForFrame = (frame, data, std1) => {
+        if (!schemes.current[frame]) {
+            schemes.current[frame] = generateScheme(frame, data, std1);
+        }
+        return schemes.current[frame];
+    };
 
     // Format the data
     const {
@@ -164,7 +180,13 @@ const Thickness = () => {
     }, [defaultDisplay]);
 
     // Set when one point in the graph is selected
-    const [selected, setSelected] = useState(null);
+    const [selected, setSelected] = useState(-100);
+    // When the user clicks on the graph
+      const handleFrameSelection = useCallback(frame => {
+        viewerRef.current.togglePlaying(false);
+        viewerRef.current.currentFrame = frame;
+        setSelected(frame);
+      }, []);
 
     // Set the mark for selected
     const marks = useMemo(() => {
@@ -181,10 +203,6 @@ const Thickness = () => {
         viewerRef.current.currentFrame = selected;
     }, [selected]);
 
-    // Track if the NGL viewer is visible
-    const [nglRef, isNglVisible] = useInView(useInViewOptions);
-    const viewerRef = useRef(null);
-
     // Set the main component to be passed to NGL
     const components = useMemo(() => {
         // Wait for payload to be downloaded
@@ -196,21 +214,6 @@ const Thickness = () => {
         const mainComponent = { trajectoryURLs: [mainURL] };
         return [mainComponent];
     }, [accessionAndMdNumber, metadata, frameStep]);
-
-    // Use default representations hook
-    const defaultRepresentations = useDefaultRepresentations();
-    // Define the representations to be displayed in the viewer
-    const [representations, setRepresentations] = useState(null);
-
-    // Initialize an empty dictionary for the schemes
-    const schemes = useRef({});
-    // Function to get or generate a scheme for a specific frame
-    const getSchemeForFrame = (frame, data, std1) => {
-        if (!schemes.current[frame]) {
-            schemes.current[frame] = generateScheme(frame, data, std1);
-        }
-        return schemes.current[frame];
-    };
 
     // Set or update the representations state
     useMemo(() => {
@@ -271,6 +274,7 @@ const Thickness = () => {
             });
             return [...previousRepresentations];
         });
+        setSelected(frame);
     }, [thicknessPayload]);
 
     // Render loading or error states
@@ -278,8 +282,7 @@ const Thickness = () => {
     else if (thicknessError) return thicknessError.toString();
     else if (!thicknessPayload) return 'Something bad happened loading thickness data';
     const cents = num => Math.round(num * 100) / 100;
-    // Set the y axis label for thickness
-    const yAxisLabel = 'Thickness';
+    //console.log('Render')
 
     // Render
     return (
@@ -357,15 +360,15 @@ const Thickness = () => {
                         xAxisLabel={xAxisLabel}
                         xAxisValues={xValues}
                         xTooltip={xTooltip}
-                        yAxisLabel={yAxisLabel}
-                        onSelect={setSelected}
+                        yAxisLabel={'Thickness'}
+                        onSelect={handleFrameSelection}
                         selfLegend={false}
                         dataDisplay={display}
                         marks={marks}
                         areaStdDev={true}
                         className={style.graph}
                         zeroLine={true}
-                        margin={{ top: 10, right: 10, bottom: 22, left: 10 }}
+                        margin={{ top: 10, right: 10, bottom: 30, left: 10 }}
                         yPadding={thicknessData.Membrane.mean_stddev}
                     />
                 </CardContent>

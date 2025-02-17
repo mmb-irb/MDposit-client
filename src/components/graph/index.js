@@ -927,6 +927,11 @@ const Graph = forwardRef(({
       const step = previousValues.current.step;
       // In case we dont have all the arguments yet we stop here
       if (x === undefined) return;
+
+      // Get the container height since we need it for proper mark positioning
+      const { clientHeight: height } = containerRef.current;
+      const { top: offsetTop, bottom: offsetBottom } = offset;
+
       // Remove previous marks
       if (previousValues.current.marks)
         previousValues.current.marks.forEach(prevMark =>
@@ -936,14 +941,15 @@ const Graph = forwardRef(({
       if (!marks) return;
       // Add a vertical band for each mark
       marks.forEach(mark => {
+        if (!Number.isInteger(mark.x)) return; // Skip invalid marks
         const markRect = marksNode
           .append('rect')
           .attr('id', 'mark' + mark.x)
           .attr('x', () =>
             Number.isInteger(mark.x) ? x(mark.x * step) - xUnitWidth / 2 : 0,
           )
-          .attr('y', 0)
-          .attr('height', '100%')
+          .attr('y', offsetTop)  // Start from top offset
+          .attr('height', height - offsetTop - offsetBottom)  // Use container height minus offsets
           .attr('width', () => xUnitWidth);
         if (mark.attr)
           Object.entries(mark.attr).forEach(([key, value]) => {
