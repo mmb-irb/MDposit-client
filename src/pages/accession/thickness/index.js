@@ -98,21 +98,21 @@ const Thickness = () => {
         if (!thicknessPayload || !thicknessPayload.data) return {};
 
         const thicknessData = {
-            'membrane': {
+            'Membrane': {
                 data: thicknessPayload.data.thickness,
                 color: colors[0],
                 average: getMean(thicknessPayload.data.thickness),
                 mean_stddev: getMean(thicknessPayload.data.std_thickness),
                 areaStdDev: thicknessPayload.data.std_thickness
             },
-            'upper leaflet': {
+            'Upper leaflet': {
                 data: thicknessPayload.data.mean_positive,
                 color: colors[1],
                 average: getMean(thicknessPayload.data.mean_positive),
                 mean_stddev: getMean(thicknessPayload.data.std_positive),
                 areaStdDev: thicknessPayload.data.std_positive
             },
-            'lower leaflet': {
+            'Lower leaflet': {
                 data: thicknessPayload.data.mean_negative,
                 color: colors[2],
                 average: getMean(thicknessPayload.data.mean_negative),
@@ -125,9 +125,9 @@ const Thickness = () => {
         const frameStep = thicknessPayload.step || Math.floor(metadata.mdFrames / (frameNumber - 1));
 
         const defaultDisplay = {
-            'membrane': true,
-            'upper leaflet': true,
-            'lower leaflet': true
+            'Membrane': true,
+            'Upper leaflet': true,
+            'Lower leaflet': true
         };
 
         const isEnsemble = metadata.TYPE === 'ensemble';
@@ -225,27 +225,49 @@ const Thickness = () => {
                 }
             });
 
-            let distRepr = {
-                name: 'Distorsion',
+            let distRepr = [{
+                name: 'Upper leaflet',
                 type: 'ball+stick',
                 opacity: 1,
-                selection: '@' + memMapPayload.polar_atoms.join(','),
+                selection: '@' + memMapPayload.mems[0].polar_atoms.top.join(','),
                 other: { radius: 0.75 },
-                color: getSchemeForFrame(0, thicknessPayload.data, thicknessData.membrane.mean_stddev),
+                color: getSchemeForFrame(0, thicknessPayload.data, thicknessData.Membrane.mean_stddev),
                 customScheme: 'distorsion',
-            }
-            return [...keepRepresentations, distRepr];
+            },
+            {
+                name: 'Lower leaflet',
+                type: 'ball+stick',
+                opacity: 1,
+                selection: '@' + memMapPayload.mems[0].polar_atoms.bot.join(','),
+                other: { radius: 0.75 },
+                color: getSchemeForFrame(0, thicknessPayload.data, thicknessData.Membrane.mean_stddev),
+                customScheme: 'distorsion',
+            }]
+            return [...keepRepresentations, ...distRepr];
         });
     }, [components, defaultRepresentations]);
+
+    // Update the the representations according to selected or hovered pockets
+        useEffect(() => {
+          if (!representations || representations.length === 0) return;
+          setRepresentations(previousRepresentations => { 
+            // Update chain representations
+            previousRepresentations.forEach( previousRepresentation => {
+                if (previousRepresentation.name.endsWith('leaflet'))
+                    previousRepresentation.show = (display[previousRepresentation.name] ? true : false);
+            });
+            // Update the state
+            return [...previousRepresentations];
+          })
+        }, [display]);
 
     const updateColor = useCallback(progress => {
         if (!thicknessPayload || !thicknessPayload.data) return {};
         const frame = viewerRef.current.currentFrame;
         setRepresentations(previousRepresentations => {
             previousRepresentations.forEach(rep => {
-                if (rep.name == 'Distorsion') {
-                    rep.color = getSchemeForFrame(frame, thicknessPayload.data, thicknessData.membrane.mean_stddev);
-                }
+                if (rep.name.endsWith('leaflet'))
+                    rep.color = getSchemeForFrame(frame, thicknessPayload.data, thicknessData.Membrane.mean_stddev);
             });
             return [...previousRepresentations];
         });
@@ -306,8 +328,8 @@ const Thickness = () => {
             <Card className={style.legend_container}>
                 <ColorLegend
                     title={'Distortion (Å)'}
-                    minValue={-thicknessData.membrane.mean_stddev}
-                    maxValue={thicknessData.membrane.mean_stddev}
+                    minValue={-thicknessData.Membrane.mean_stddev}
+                    maxValue={thicknessData.Membrane.mean_stddev}
                     colorPlan={['red', 'white', 'blue']}
                     vertical={true}
                     className={style.legend}
@@ -345,7 +367,7 @@ const Thickness = () => {
                         className={style.graph}
                         zeroLine={true}
                         margin={{ top: 10, right: 10, bottom: 22, left: 10 }}
-                        yPadding={thicknessData.membrane.mean_stddev / 100}
+                        yPadding={thicknessData.Membrane.mean_stddev / 100}
                     />
                 </CardContent>
             </Card>
