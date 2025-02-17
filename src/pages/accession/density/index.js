@@ -40,8 +40,6 @@ const colorDict = {A: 'blue', B: 'purple', G: 'green', M: 'orange', polar: 'red'
 const Density = () => {
   // Get the metadata
   const { accession, accessionAndMdNumber, metadata, chains, topology } = useContext(ProjectCtx);
-  console.log('topology',topology)
-  console.log('chains',chains)
   // Send a request to the API with the url of the specific analysis
   const {
     loading: densityLoading,
@@ -146,7 +144,6 @@ const Density = () => {
   // Update the the representations according to selected or hovered pockets
     useEffect(() => {
       if (!representations || representations.length === 0) return;
-      console.log('display', display);
       setRepresentations(previousRepresentations => { 
         // Update chain representations
         var objDisplay = Object.keys(display)
@@ -163,7 +160,7 @@ const Density = () => {
   if (densityLoading) return <Loading />;
   else if (densityError) return densityError.toString();
   else if (!densityPayload) return 'Something bad happened loading density data';
-
+  console.log('Render')
   const cents = num => Math.round(num * 100) / 100;
   // Set the y axis label for density
 

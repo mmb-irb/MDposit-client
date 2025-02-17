@@ -474,10 +474,8 @@ const Graph = forwardRef(({
       );
       
       // Add padding to the y-axis range
-      const extraY = (yExtent[1] - yExtent[0]) * yPadding;
-      
       const y = scaleLinear()
-        .domain([yExtent[0] - extraY, yExtent[1] + extraY])
+        .domain([yExtent[0] - yPadding, yExtent[1] + yPadding])
         .nice()
         .range([height - offset.bottom, offset.top]);
 

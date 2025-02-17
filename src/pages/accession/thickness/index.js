@@ -248,18 +248,18 @@ const Thickness = () => {
     }, [components, defaultRepresentations]);
 
     // Update the the representations according to selected or hovered pockets
-        useEffect(() => {
-          if (!representations || representations.length === 0) return;
-          setRepresentations(previousRepresentations => { 
-            // Update chain representations
-            previousRepresentations.forEach( previousRepresentation => {
-                if (previousRepresentation.name.endsWith('leaflet'))
-                    previousRepresentation.show = display[previousRepresentation.name] ? true : false;
-            });
-            // Update the state
-            return [...previousRepresentations];
-          })
-        }, [display]);
+    useEffect(() => {
+        if (!representations || representations.length === 0) return;
+        setRepresentations(previousRepresentations => { 
+        // Update chain representations
+        previousRepresentations.forEach( previousRepresentation => {
+            if (previousRepresentation.name.endsWith('leaflet'))
+                previousRepresentation.show = display[previousRepresentation.name] ? true : false;
+        });
+        // Update the state
+        return [...previousRepresentations];
+        })
+    }, [display]);
 
     const updateColor = useCallback(progress => {
         if (!thicknessPayload || !thicknessPayload.data) return {};
@@ -277,7 +277,6 @@ const Thickness = () => {
     if (thicknessLoading) return <Loading />;
     else if (thicknessError) return thicknessError.toString();
     else if (!thicknessPayload) return 'Something bad happened loading thickness data';
-    console.log('Render)')
     const cents = num => Math.round(num * 100) / 100;
     // Set the y axis label for thickness
     const yAxisLabel = 'Thickness';
@@ -367,7 +366,7 @@ const Thickness = () => {
                         className={style.graph}
                         zeroLine={true}
                         margin={{ top: 10, right: 10, bottom: 22, left: 10 }}
-                        yPadding={thicknessData.Membrane.mean_stddev / 100}
+                        yPadding={thicknessData.Membrane.mean_stddev}
                     />
                 </CardContent>
             </Card>
