@@ -16,6 +16,7 @@ import Loading from '../../../components/loading';
 import Selector from '../../../components/selector';
 // Viewer pop-up windows
 import ViewerSpawner from '../../../components/viewer-spawner';
+import { Version } from 'src/utils/auxiliar-functions';
 
 const MarkovGraph = lazy(() =>
   import(/* webpackChunkName: 'graph-msm' */ '../../../components/graph-msm'),
@@ -132,7 +133,7 @@ const Clusters = () => {
   // Set the nodes and links to be represented in the Markov graph
   // For every node, set its area according to its population value and then calculate its radius
   // For every link, set is thickness according to the RMSD between the two frames it is connecting
-  const { graphData, availableLinks, clusterIndices } = useMemo(() => {
+  const { graphData, availableLinks, clusterIndices, version, step } = useMemo(() => {
     if (!clustersData) return {};
     // Add the index to every cluster in the original data
     // This allos us to sorth them without loosing track of cluster indices, which are used in transitions
@@ -212,9 +213,12 @@ const Clusters = () => {
         links.push(link);
       }
     });
+    // Mine also the step and analysis version from the cluster data
+    const version = new Version(clustersData.version);
+    const step = clustersData.step;
     // Return both nodes and links inside an object
     const graphData = { nodes: nodes, links: links };
-    return { graphData, availableLinks, clusterIndices };
+    return { graphData, availableLinks, clusterIndices, version, step };
   }, [clustersData, nodesLimit, linksLimit]);
 
   // Set the displayed screenshots in the right order
@@ -224,8 +228,12 @@ const Clusters = () => {
   }, [clusterIndices, screenshots]);
 
   const handleNodeSelect = useCallback(node => {
-    setSelectedFrame(node.value);
-  }, [setSelectedFrame]);
+    // DANI: En las primeras versiones de este análisis la frame de los nodos están mal
+    // DANI: Es la frame de la trayectoria reducida, no de la completa
+    // DANI: De manera que se arregla multiplicandola por el step
+    const newFrame = version.equals('0.0') ? node.value * step : node.value;
+    setSelectedFrame(newFrame);
+  }, [setSelectedFrame, version, step]);
 
   // Render loading or error messages according with the API response as we wait for data
   if (!clustersData) {
