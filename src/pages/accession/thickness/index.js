@@ -303,7 +303,7 @@ const Thickness = () => {
                     </Table>
                 </div>
             </Card>
-            <div className={style.legend_container}>
+            <Card className={style.legend_container}>
                 <ColorLegend
                     title={'Distortion (Å)'}
                     minValue={-thicknessData.membrane.mean_stddev}
@@ -311,8 +311,9 @@ const Thickness = () => {
                     colorPlan={['red', 'white', 'blue']}
                     vertical={true}
                     className={style.legend}
+                    flip={true}
                 />
-            </div>
+            </Card>
             <Card className={style.nglcard} ref={nglRef}>
                 {isNglVisible ? (
                     <ViewerWithControls

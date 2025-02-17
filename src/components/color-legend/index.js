@@ -19,6 +19,7 @@ const ColorLegend = ({
   splits = 19,
   // Set if the color bar must be veritcal
   vertical = false,
+  flip = false,
   // Allow to force a custom className from the parent component
   className,
 }) => {
@@ -46,6 +47,12 @@ const ColorLegend = ({
 
     // Data must be an array inside an array
     const legendData = vertical ? values.map(v => [v]) : [values];
+    if (flip) {
+      // Flip the legend data array
+      legendData.reverse();
+      legendLabels.reverse();
+    }
+
     return { legendData, legendLabels };
   }, [maxValue, minValue, splits, vertical]);
 
