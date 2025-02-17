@@ -231,8 +231,8 @@ const Thickness = () => {
                 opacity: 1,
                 selection: '@' + memMapPayload.polar_atoms.join(','),
                 other: { radius: 0.75 },
-                color: 'custom',
-                customScheme: getSchemeForFrame(0, thicknessPayload.data, thicknessData.membrane.mean_stddev)
+                color: getSchemeForFrame(0, thicknessPayload.data, thicknessData.membrane.mean_stddev),
+                customScheme: 'distorsion',
             }
             return [...keepRepresentations, distRepr];
         });
@@ -244,10 +244,10 @@ const Thickness = () => {
         setRepresentations(previousRepresentations => {
             previousRepresentations.forEach(rep => {
                 if (rep.name == 'Distorsion') {
-                    rep.customScheme = getSchemeForFrame(frame, thicknessPayload.data, thicknessData.membrane.mean_stddev);
+                    rep.color = getSchemeForFrame(frame, thicknessPayload.data, thicknessData.membrane.mean_stddev);
                 }
             });
-            return previousRepresentations;
+            return [...previousRepresentations];
         });
     }, [thicknessPayload]);
 

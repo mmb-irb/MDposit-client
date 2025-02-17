@@ -35,7 +35,7 @@ const tabs = [
   { type: 'electron', label: 'Electron', ylabel: 'Density (e⁻/Å)' },
 ];
 
-const colors = ['black', 'blue', 'purple','red', 'orange', 'yellow','green'  ];
+const colors = ['blue', 'purple','red', 'orange', 'yellow','green','black'];
 
 const Density = () => {
   // Get the metadata
@@ -97,7 +97,7 @@ const Density = () => {
           'name': name,
           'type': 'ball+stick',
           'color': dataset.color,
-          'opacity': 0.75,
+          'opacity': 0.5,
           'selection': '@' + comp.selection.join(','),
           'other': {radius: 0.3},
         }

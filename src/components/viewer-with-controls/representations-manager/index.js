@@ -226,11 +226,11 @@ const RepresentationsManager = memo(
                       })
                     }}
                   >
-                    {representation.customScheme && (
-                      representation.customScheme.endsWith('distorsion')?
-                      <option value={'custom'}>{'Distorsion'}</option> :
+                    {representation.customScheme === 'distorsion' ? (
+                      <option value={representation.color}>{'Distorsion'}</option>
+                    ) : representation.customScheme ? (
                       <option value={'custom'}>{'Custom'}</option>
-                    )}
+                    ) : null}
                     
                     {availableColoringMethods.map((cm, i) => (
                       <option key={i} value={cm.value}>
