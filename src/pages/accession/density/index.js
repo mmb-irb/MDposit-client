@@ -21,7 +21,6 @@ import { ProjectCtx } from '../../../contexts';
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 import { getMean } from '../../../utils/statistics';
 import style from './style.module.css';
-import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 
 const Graph = lazy(() =>
   import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
@@ -35,12 +34,14 @@ const tabs = [
   { type: 'electron', label: 'Electron', ylabel: 'Density (e⁻/Å)' },
 ];
 
-const colors = ['blue', 'purple','red', 'orange', 'yellow','green','black'];
+let colors=[];
+const colorDict = {A: 'blue', B: 'purple', G: 'green', M: 'orange', polar: 'red', L: 'yellow'};
 
 const Density = () => {
   // Get the metadata
-  const { accession, accessionAndMdNumber, metadata, analyses } = useContext(ProjectCtx);
-
+  const { accession, accessionAndMdNumber, metadata, chains, topology } = useContext(ProjectCtx);
+  console.log('topology',topology)
+  console.log('chains',chains)
   // Send a request to the API with the url of the specific analysis
   const {
     loading: densityLoading,
@@ -54,28 +55,29 @@ const Density = () => {
   const [display, setDisplay] = useState({});
   // Track which x value is selected by the user in the graph
   const [xSelected, setXSelected] = useState([]);
-  
+  // Define the representations to be displayed in the viewer
+  const [representations, setRepresentations] = useState(null);
+
   // Format the data
   const {
     densityData,
-    frameStep,
     xAxisStep,
     xAxisLabel,
     isEnsemble,
     xTooltip,
-    polarRepr,
   } = useMemo(() => {
     if (!densityPayload || !densityPayload.data || !densityPayload.data.comps) return {};
 
     const densityData = {};
+    const reps = [];
     const defaultDisplay = {};
-    let polarRepr = null;
     // Process each component's density data
     densityPayload.data.comps.forEach((comp, index) => {
       const dataset = {};
       const type = selectedTab.type;
+      let name = comp.name;
       dataset.data = comp[type].dens;
-      dataset.color = colors[index % colors.length];
+      dataset.color = colorDict[name];
       
       // Calculate mean and stddev for the table display
       dataset.average = getMean(dataset.data);
@@ -84,25 +86,38 @@ const Density = () => {
       // Add the density stddev from the JSON for the graph visualization
       dataset.areaStdDev = comp[type].stdv;
       
-      let name = comp.name;
       if (name === 'polar') {
         // rename polar to Headgroups or something else
         name = 'Headgroups';
-      }
-      densityData[name] = dataset;
-      defaultDisplay[name] = true;
-
-      if (name === 'Headgroups') {
-        polarRepr = {
+        reps.push ({
           'name': name,
           'type': 'ball+stick',
           'color': dataset.color,
           'opacity': 0.5,
           'selection': '@' + comp.selection.join(','),
           'other': {radius: 0.3},
-        }
-      };
+        })
+      } else if (chains.indexOf(name) !== -1) {
+        reps.push ({
+          'name': name,
+          'type': 'cartoon',
+          'color': dataset.color,
+          'selection': ':'+ name,
+        })
+      } else {
+        reps.push ({
+          'name': name,
+          'type': 'licorice',
+          'color': dataset.color,
+          'opacity': 0.5,
+          'selection': ':'+ name,
+        })
+      }
+      densityData[name] = dataset;
+      defaultDisplay[name] = true;
     });
+    colors = reps.map(rep => rep.color);
+    setRepresentations(reps);
     setDisplay(defaultDisplay);
     const isEnsemble = metadata.TYPE === 'ensemble';
     // Calculate timestep from z-axis data
@@ -111,13 +126,11 @@ const Density = () => {
 
     return {
       densityData,
-      frameStep: 1,
       xAxisStep: xStep,
       xAxisLabel: 'Z axis (Å)', // Using Angstroms as label
       isEnsemble,
       xTooltip: xValue => `${xValue.toFixed(2)} Å`,
       xValues: zValues, // Add z values for x-axis
-      polarRepr
     };
   }, [metadata, densityPayload, selectedTab]);
 
@@ -130,28 +143,10 @@ const Density = () => {
     return [selectedMark];
   }, [xSelected]);
 
-  // Use default representations hook
-  const defaultRepresentations = useDefaultRepresentations();
-  // Define the representations to be displayed in the viewer
-  const [representations, setRepresentations] = useState(null);
-  // Set default representations
-  useMemo(() => {
-    if (!densityPayload || !densityPayload.data) return;
-    if (!defaultRepresentations || defaultRepresentations.length === 0) return;
-    setRepresentations(previous => {
-      if (previous !== null) return previous;
-      const keepRepresentations = defaultRepresentations.filter(
-        rep => (rep.selection.startsWith(':') || rep.selection.startsWith('protein')));
-      keepRepresentations.forEach((rep, index) => {
-        rep.color = colors[index % colors.length];
-      });
-      return [...keepRepresentations, polarRepr];
-    });
-  }, [defaultRepresentations]);
-
   // Update the the representations according to selected or hovered pockets
     useEffect(() => {
-      if (!defaultRepresentations || defaultRepresentations.length === 0) return;
+      if (!representations || representations.length === 0) return;
+      console.log('display', display);
       setRepresentations(previousRepresentations => { 
         // Update chain representations
         var objDisplay = Object.keys(display)

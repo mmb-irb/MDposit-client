@@ -254,7 +254,7 @@ const Thickness = () => {
             // Update chain representations
             previousRepresentations.forEach( previousRepresentation => {
                 if (previousRepresentation.name.endsWith('leaflet'))
-                    previousRepresentation.show = (display[previousRepresentation.name] ? true : false);
+                    previousRepresentation.show = display[previousRepresentation.name] ? true : false;
             });
             // Update the state
             return [...previousRepresentations];
