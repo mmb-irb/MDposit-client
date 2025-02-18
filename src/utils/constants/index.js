@@ -46,6 +46,7 @@ export const NICE_NAMES = new Map([
     ['clusters', 'Clusters'],
     ['density', 'Density'],
     ['thickness', 'Thickness'],
+    ['apl', 'Area per lipid'],
 ]);
 
 // Set manually which references have entropies or epitopes

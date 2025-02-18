@@ -55,6 +55,7 @@ const ENDPOINTS = {
   clusters: ['analyses/clusters'],
   density: ['analyses/density'],
   thickness: ['analyses/thickness'],
+  thickness: ['analyses/apl'],
   electrostatic: ['analyses/interactions'],
   mutations: ['references'],
   epitopes: ['references'],

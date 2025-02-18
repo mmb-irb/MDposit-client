@@ -70,6 +70,7 @@ const tabs = [
           'ligand-descriptors',
           'density',
           'thickness',
+          'apl',
         ],
       },
     ],
