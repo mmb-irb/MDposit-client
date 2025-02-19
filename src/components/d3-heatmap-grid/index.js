@@ -31,6 +31,7 @@ const D3HeatmapGrid = memo(
     flippedXAxisValues = true, // Set if values in x axis is horizontal (false) or vertical (true)
     margin = { top: 10, right: 10, bottom: 10, left: 10 },
     className,
+    NaNColor = '#000000' // Default black color for NaN
   }) => {
     if (!data)
       throw new Error(
@@ -57,9 +58,10 @@ const D3HeatmapGrid = memo(
 
     // Join all rows into a single array with all values
     const values = [].concat(...data);
-    // Save the maximum and minimum values
-    const maxv = Math.max(...values);
-    const minv = Math.min(...values);
+    // Save the maximum and minimum values - excluding NaN values
+    const validValues = values.filter(value => !isNaN(value));
+    const maxv = Math.max(...validValues);
+    const minv = Math.min(...validValues);
     // Repeat the x labels as many times as rows are there
     const xlabs = [].concat(...Array(data.length).fill(xAxisValues));
     // Repeat each y label as many times as rows are there
@@ -269,11 +271,19 @@ const D3HeatmapGrid = memo(
       }
 
       // Build color scale
-      const myColor = colorScale
-        ? colorScale
-        : scaleLinear()
-            .range(colorPlan)
-            .domain([minv, (minv + maxv) / 2, maxv]);
+      const myColor = value => {
+        if (isNaN(value)) {
+          return NaNColor;
+        }
+        
+        const colorMapper = colorScale 
+          ? colorScale 
+          : scaleLinear()
+              .range(colorPlan)
+              .domain([minv, (minv + maxv) / 2, maxv]);
+              
+        return colorMapper(value);
+      };
 
       // Get cell size according to d3 scale band
       const cellWidth = x.bandwidth();

@@ -126,8 +126,9 @@ const Heatmap = ({
     }
 
     // Set the legend, which is another heatmap
-    const minValue = Math.min(...data.map(values => Math.min(...values)));
-    const maxValue = Math.max(...data.map(values => Math.max(...values)));
+    const validValues = data.flat().filter(value => !isNaN(value));
+    const minValue = Math.min(...validValues);
+    const maxValue = Math.max(...validValues);
 
     // Save all processed data
     return {
