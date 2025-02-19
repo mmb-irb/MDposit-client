@@ -27,6 +27,8 @@ const Heatmap = ({
   // Titles for x and y axes
   xTitle,
   yTitle,
+  minValue: customMinValue, // Add these new props
+  maxValue: customMaxValue,
 }) => {
   // Data processing
   const {
@@ -127,8 +129,8 @@ const Heatmap = ({
 
     // Set the legend, which is another heatmap
     const validValues = data.flat().filter(value => !isNaN(value));
-    const minValue = Math.min(...validValues);
-    const maxValue = Math.max(...validValues);
+    const minValue = customMinValue ?? Math.min(...validValues);
+    const maxValue = customMaxValue ?? Math.max(...validValues);
 
     // Save all processed data
     return {
@@ -141,7 +143,7 @@ const Heatmap = ({
       ystep,
     };
     // WARNING: Changes in 'inputData' may be not detected
-  }, [inputData, xMaxCells, yMaxCells]);
+  }, [inputData, xMaxCells, yMaxCells, customMinValue, customMaxValue]);
 
   // Render loading or error messages according with the API response
   if (!inputData) return 'Heatmap Error: No "inputData" was provided';
@@ -193,6 +195,8 @@ const Heatmap = ({
         onClick={handleMouseClick}
         onTooltip={handleMouseTooltip}
         className={style.heatmap}
+        minValue={minValue}  // Add these
+        maxValue={maxValue}
       />
       {legendTitle && (
         <CardContent>

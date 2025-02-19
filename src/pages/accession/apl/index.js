@@ -66,6 +66,8 @@ const AreaPerLipid = () => {
               legendTitle=""
               xTitle="X coordinate (Å)"
               yTitle="Y coordinate (Å)"
+              minValue={heatmapData.minValue}
+              maxValue={heatmapData.maxValue}
             />
           </CardContent>
         </Card>
@@ -78,6 +80,8 @@ const AreaPerLipid = () => {
               legendTitle = ""
               xTitle="X coordinate (Å)"
               yTitle="Y coordinate (Å)"
+              minValue={heatmapData.minValue}
+              maxValue={heatmapData.maxValue}
             />
           </CardContent>
         </Card>

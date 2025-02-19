@@ -31,7 +31,9 @@ const D3HeatmapGrid = memo(
     flippedXAxisValues = true, // Set if values in x axis is horizontal (false) or vertical (true)
     margin = { top: 10, right: 10, bottom: 10, left: 10 },
     className,
-    NaNColor = '#000000' // Default black color for NaN
+    NaNColor = '#000000', // Default black color for NaN
+    minValue,
+    maxValue,
   }) => {
     if (!data)
       throw new Error(
@@ -60,8 +62,8 @@ const D3HeatmapGrid = memo(
     const values = [].concat(...data);
     // Save the maximum and minimum values - excluding NaN values
     const validValues = values.filter(value => !isNaN(value));
-    const maxv = Math.max(...validValues);
-    const minv = Math.min(...validValues);
+    const maxv = maxValue ?? Math.max(...validValues);
+    const minv = minValue ?? Math.min(...validValues);
     // Repeat the x labels as many times as rows are there
     const xlabs = [].concat(...Array(data.length).fill(xAxisValues));
     // Repeat each y label as many times as rows are there
