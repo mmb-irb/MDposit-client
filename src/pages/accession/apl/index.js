@@ -8,7 +8,6 @@ import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 import Heatmap from '../../../components/heatmap';
 import ColorLegend from '../../../components/color-legend';
 import style from './style.module.css';
-import { median } from 'd3';
 
 
 const AreaPerLipid = () => {
@@ -30,8 +29,8 @@ const AreaPerLipid = () => {
           }
         }
       }
-      const xLabels = payload.data.grid_x.map(x => Math.round(x * 100) / 100);
-      const yLabels = payload.data.grid_y.map(y => Math.round(y * 100) / 100);
+      const xLabels = payload.data.grid_x.map(x => Math.round(x * 10) / 10);
+      const yLabels = payload.data.grid_y.map(y => Math.round(y * 10) / 10);
       yLabels.reverse();
       grid.reverse();
       return { data: grid, xLabels, yLabels };
@@ -66,10 +65,10 @@ const AreaPerLipid = () => {
 
   return (
     <div>
-      <div style={{ display: 'flex'}}>
-        <Card className={style.margined} id="upper-heatmap" style={{ flex: 1 }}>
+      <Card className={style.container}>
+        <div className={style.plot}>
           <CardContent>
-            <h3>Upper Leaflet</h3>
+            <h3 style={{'padding-left': '30px'}}>Upper Leaflet</h3>
             <Heatmap
               inputData={heatmapData.upper}
               onTooltip={handleHeatmapTooltip}
@@ -80,10 +79,10 @@ const AreaPerLipid = () => {
               maxValue={maxValue}
             />
           </CardContent>
-        </Card>
-        <Card className={style.margined} id="lower-heatmap" style={{ flex: 1 }}>
+        </div>
+        <div  className={style.plot}>
           <CardContent>
-            <h3>Lower Leaflet</h3>
+            <h3 style={{'padding-left': '30px'}}>Lower Leaflet</h3>
             <Heatmap
               inputData={heatmapData.lower}
               onTooltip={handleHeatmapTooltip}
@@ -94,10 +93,9 @@ const AreaPerLipid = () => {
               maxValue={maxValue}
             />
           </CardContent>
-        </Card>
-      </div>
-      <Card className={style.legend}>
-        <CardContent>
+        </div>
+        <div className={style.legend}>
+          <CardContent style={{'padding-top': '0px'}}>
             <ColorLegend
               title="Area per lipid (Å²)"
               minValue={minValue}
@@ -105,25 +103,30 @@ const AreaPerLipid = () => {
               colorPlan={['red', 'white', 'blue']}
               className={style.legend}
             />
-            <Slider
-              size="small"
-              value={stdDevs}
-              onChange={handleStdChange}
-              aria-label="Standard deviations"
-              valueLabelDisplay="auto"
-              min={0.1}
-              max={3}
-              step={0.1}
-              marks={[
-                { value: 0.1, label: '0.1σ' },
-                { value: 0.5, label: '0.5σ' },
-                { value: 1, label: '1σ' },
-                { value: 2, label: '2σ' },
-                { value: 3, label: '3σ' },
-              ]}
-            />
-        </CardContent>
+            <div className={style.slider}>  
+              <Slider
+                
+                size="small"
+                value={stdDevs}
+                onChange={handleStdChange}
+                aria-label="Standard deviations"
+                valueLabelDisplay="auto"
+                min={0.1}
+                max={3}
+                step={0.1}
+                marks={[
+                  { value: 0.1, label: '0.1σ' },
+                  { value: 0.5, label: '0.5σ' },
+                  { value: 1, label: '1σ' },
+                  { value: 2, label: '2σ' },
+                  { value: 3, label: '3σ' },
+                ]}
+              />
+            </div>
+          </CardContent>
+      </div>
       </Card>
+      
       
     </div>
   );

@@ -1,17 +1,19 @@
-.margined {
-  margin: 0em 0;
-}
-
-.margined-bottom {
-  margin-bottom: 0em;
-}
-
-.horizontal {
+.container {
   display: flex;
   flex-direction: row;
-  justify-content: flex-start;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.plot {
+  flex-basis: 50%;
 }
 
 .legend {
-  width: 100%; 
+  flex-basis: 100%;
+}
+
+.slider {
+  padding: 0 15vw 0 15vw;
 }
