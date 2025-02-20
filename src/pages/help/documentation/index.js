@@ -1472,6 +1472,51 @@ export const documentation = [
           </>
         ),
       },
+      {
+        id: 'apl',
+        header: 'Area per lipid',
+        body: (
+          <>
+            Area per lipid (APL) analysis performed with the{' '}
+            <a
+              href="https://pythonhosted.org/fatslim/documentation/apl.html"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              FATSLiM APL
+            </a>{' '} tool. The analysis calculates the local area per lipid for each leaflet 
+            of the membrane using the most charged atom of each lipid residue as 
+            reference points. 
+          </>
+        ),
+        page: (
+          <>
+            This is the Area per Lipid analysis page.
+            <br />
+            <br />
+            Two heatmaps are displayed showing the local area per lipid distribution 
+            for the upper and lower leaflets of the membrane. The area is calculated 
+            on a grid across the membrane plane (XY coordinates). The color scale 
+            represents deviations from the median APL value, where:
+            <br />
+            - Red indicates areas with smaller APL (compressed regions)
+            <br />
+            - White indicates areas close to the median APL
+            <br />
+            - Blue indicates areas with larger APL (expanded regions)
+            <br />
+            <br />
+            The color scale range can be adjusted using the slider below the heatmaps, 
+            which controls how many standard deviations (σ) from the median are shown. 
+            A larger value will show more extreme variations while a smaller value 
+            will highlight subtle differences.
+            <br />
+            <br />
+            Hover over any point in the heatmaps to see the exact coordinates and 
+            area per lipid value at that position. The units are in square Ångstroms (Å²).
+          </>
+        ),
+      },
     ],
   },
 

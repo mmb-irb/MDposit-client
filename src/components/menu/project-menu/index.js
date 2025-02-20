@@ -62,15 +62,20 @@ const tabs = [
         ],
       },
       {
+        name: 'Membranes',
+        analyses: [
+          'thickness',
+          'apl',
+          'density',
+        ],
+      },
+      {
         name: 'Other',
         analyses: [
           'pockets',
           'populations',
           'markov', 
-          'ligand-descriptors',
-          'density',
-          'thickness',
-          'apl',
+          'ligand-descriptors'
         ],
       },
     ],

@@ -31,9 +31,10 @@ const D3HeatmapGrid = memo(
     flippedXAxisValues = true, // Set if values in x axis is horizontal (false) or vertical (true)
     margin = { top: 10, right: 10, bottom: 10, left: 10 },
     className,
-    NaNColor = '#000000', // Default black color for NaN
+    NaNColor = '#ffffff', // Default black color for NaN
     minValue,
     maxValue,
+    addBorder = true, // Add a border to each cell
   }) => {
     if (!data)
       throw new Error(
@@ -298,6 +299,12 @@ const D3HeatmapGrid = memo(
           const xPosition = x(xAxisValues[cx]) - offset.left;
           canvasContext.fillStyle = myColor(value);
           canvasContext.fillRect(xPosition, yPosition, cellWidth, cellHeight);
+        
+        if (addBorder){  
+          // Add border
+          canvasContext.strokeStyle = myColor(value); // Use same color as fill
+          canvasContext.lineWidth = 1;
+          canvasContext.strokeRect(xPosition, yPosition, cellWidth, cellHeight);}
         });
       });
 
