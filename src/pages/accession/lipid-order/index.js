@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState, useContext, useMemo } from 'react';
+import React, { lazy, Suspense, useState, useContext, useMemo, useEffect } from 'react';
 
 import {
   CardContent,
@@ -42,6 +42,8 @@ const LipidOrder = () => {
   // Add state for selected lipid type
   const [selectedLipid, setSelectedLipid] = useState(null);
   const [display, setDisplay] = useState({});
+  const [xSelected, setXSelected] = useState(null);
+  const [representations, setRepresentations] = useState(null);
 
   // Get available lipid types for tabs
   const lipidTypes = useMemo(() => {
@@ -80,6 +82,44 @@ const LipidOrder = () => {
     setDisplay(defaultDisplay);
     return orderParams;
   }, [payload, selectedLipid]);
+
+  // Define representations when data changes
+  useEffect(() => {
+    if (!display || !orderParameters) return;
+    const reps = [{
+      'name': selectedLipid,
+      'type': 'licorice',
+      'color': 'orange',
+      'opacity': 0.5,
+      'selection': `${selectedLipid}`,
+    }];
+
+    if (xSelected !== null) {
+      // Iterate through orderParameters[selectedLipid] dictionary keys
+      Object.keys(orderParameters).forEach((tail, index) => {
+        const atomName = orderParameters[tail].labels[xSelected];
+        if (!atomName) return;
+        reps.push({
+        'name': `${atomName}`,
+        'type': 'ball+stick',
+        'color': colors[index % colors.length],
+        'opacity': 0.9,
+        'selection': `${selectedLipid} and .${atomName}`,
+        'other': { radius: 0.3 },
+        'show': display[tail],
+        });
+      });
+    }
+    setRepresentations(reps);
+  }, [selectedLipid, xSelected, display]);
+
+  // Create marks for graph highlighting
+  const marks = useMemo(() => {
+    return xSelected !== null ? [{
+      x: xSelected,
+      attr: { fill: '#c8c8c8' },
+    }] : [];
+  }, [xSelected]);
 
   if (loading) return <Loading />;
   if (error) return error.toString();
@@ -155,12 +195,35 @@ const LipidOrder = () => {
             selfLegend={false}
             dataDisplay={display}
             labelsOnHover={true}
-            xTooltip={(_, xIndex) => { return `Position ${xIndex + 1}`;
-            }}
-            // onHover={(test, element) => {console.log(test,element)}}
+            xTooltip={(_, xIndex) => `Position ${xIndex + 1}`}
+            onSelect={setXSelected}
+            marks={marks}
           />
         </CardContent>
       </Card>
+      <ViewerSpawner
+        newViewer={
+          typeof xSelected === 'number'
+            ? {
+              accession: accession,
+              xSelection: xSelected,
+              representationsState: [representations, setRepresentations]
+            }
+            : null
+        }
+        onNail={viewer =>
+          setXSelected(previous => {
+            if (viewer.xSelection === previous) return null;
+            else return previous;
+          })
+        }
+        onClose={viewer =>
+          setXSelected(previous => {
+            if (viewer.xSelection === previous) return null;
+            else return previous;
+          })
+        }
+      />
     </Suspense>
   );
 };
