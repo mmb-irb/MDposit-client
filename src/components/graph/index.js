@@ -805,7 +805,7 @@ const Graph = forwardRef(({
             dotDownOffsets[d] = offsetDown;
             return `translate(0, ${offsetDown})`;
           })
-          .attr('opacity', d => (d === 'x' || labels[d] ? 1 : 0))
+          .attr('opacity', d => (d === 'x' || labels[d] && data[d].data[closestIndex]? 1 : 0))
           .selectAll('text')
           .attr('transform', d => {
             if (!labels[d]) return;

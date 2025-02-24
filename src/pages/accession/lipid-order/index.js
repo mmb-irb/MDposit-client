@@ -44,6 +44,7 @@ const LipidOrder = () => {
   const [display, setDisplay] = useState({});
   const [xSelected, setXSelected] = useState(null);
   const [representations, setRepresentations] = useState(null);
+  const [flipY, setFlipY] = useState(true);
 
   // Get available lipid types for tabs
   const lipidTypes = useMemo(() => {
@@ -68,7 +69,7 @@ const LipidOrder = () => {
     chains.forEach((chain, chainIndex) => {
       const name = `${selectedLipid} tail ${chainIndex + 1}`;
       const dataset = {
-        data: Object.values(chain),
+        data: Object.values(chain).map(v => flipY ? -v : v),
         labels: Object.keys(chain),
         color: colors[chainIndex % colors.length],
       };
@@ -81,7 +82,7 @@ const LipidOrder = () => {
 
     setDisplay(defaultDisplay);
     return orderParams;
-  }, [payload, selectedLipid]);
+  }, [payload, selectedLipid, flipY]);
 
   // Define representations when data changes
   useEffect(() => {
@@ -183,9 +184,19 @@ const LipidOrder = () => {
               ))}
             </TableBody>
           </Table>
+          
         </CardContent>
       </Card>
       <Card className={style.card}>
+      <FormControlLabel
+            control={
+              <Checkbox
+                checked={flipY}
+                onChange={(e) => setFlipY(e.target.checked)}
+              />
+            }
+            label="Invert Y-axis values"
+          />
         <CardContent>
           <Graph
             yData={orderParameters}
