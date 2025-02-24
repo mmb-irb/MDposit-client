@@ -160,7 +160,6 @@ const Density = () => {
   if (densityLoading) return <Loading />;
   else if (densityError) return densityError.toString();
   else if (!densityPayload) return 'Something bad happened loading density data';
-  console.log('Render')
   const cents = num => Math.round(num * 100) / 100;
   // Set the y axis label for density
 

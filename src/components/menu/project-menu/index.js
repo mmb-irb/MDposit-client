@@ -64,9 +64,10 @@ const tabs = [
       {
         name: 'Membranes',
         analyses: [
-          'thickness',
           'apl',
           'density',
+          'lipid-order',
+          'thickness',
         ],
       },
       {

@@ -119,7 +119,8 @@ const Graph = forwardRef(({
   xTooltip,                   // The function to set what to show on the tooltip based in the x value where the mouse is hovering
   yPadding = 0,               // Add a padding to the y axis range
   type = 'line',              // Set the type of graph to render. Accepted values: line, dash, dots
-  onHover,                     
+  onHover,  
+  labelsOnHover = false,      // Set the labels to be shown when hovering the graph                   
   onSelect,                   
   selfLegend = false,         
   displayLegend = false,      
@@ -424,9 +425,12 @@ const Graph = forwardRef(({
           .text(title);
       }
 
+      // Set the maximum x index
+      const xMaxIndex = dataEntries[0][1].data.length;
+
       // Set the x minimum and maximum limits
       const xMin = 0;
-      const xMax = dataEntries[0][1].data.length * step;
+      const xMax = xMaxIndex * step;
 
       // Save this values to further reference
       previousValues.current.xMin = xMin;
@@ -778,7 +782,7 @@ const Graph = forwardRef(({
         const closestIndex =
           Math.round(x.invert(xValue) / zoomPrecision / step) * zoomPrecision;
         // If the closest index is out of range then there is no tooltip to show
-        if (closestIndex < xMin || closestIndex > xMax) return;
+        if (closestIndex < 0 || closestIndex > xMaxIndex) return;
         // Track the implicit position of all hovering dots
         // This is useful to know if dot texts would overlap
         const dotDownOffsets = {};
@@ -838,7 +842,13 @@ const Graph = forwardRef(({
             return `translate(0, ${extra - 3})`;
           })
           // Set the dot text in the x axis
-          .text(d => Math.round(data[d].data[closestIndex] * 100) / 100);
+          .text(d => {
+            if (labelsOnHover) {
+              return `${Math.round(data[d].data[closestIndex] * 100) / 100} (${data[d].labels[closestIndex]})`;
+            } else {
+              return Math.round(data[d].data[closestIndex] * 100) / 100;
+            }
+          });
         xDot
           // Set the x position of the dot
           .attr('transform', `translate(${x(closestIndex * step)}, 0)`)
