@@ -31,7 +31,7 @@ const Graph = lazy(() =>
 const colors = ['black', 'red', 'orange', 'yellow', 'green', 'blue', 'purple'];
 
 const LipidOrder = () => {
-  const { accession, accessionAndMdNumber, metadata, analyses } = useContext(ProjectCtx);
+  const { accession, accessionAndMdNumber} = useContext(ProjectCtx);
 
   const {
     loading,
@@ -44,7 +44,9 @@ const LipidOrder = () => {
   const [display, setDisplay] = useState({});
   const [xSelected, setXSelected] = useState(null);
   const [representations, setRepresentations] = useState(null);
-  const [flipY, setFlipY] = useState(true);
+  const [flipY, setFlipY] = useState(false);
+  const [showStdDev, setShowStdDev] = useState(true);
+
 
   // Get available lipid types for tabs
   const lipidTypes = useMemo(() => {
@@ -66,12 +68,13 @@ const LipidOrder = () => {
     const defaultDisplay = {};
     
     const chains = payload.data[selectedLipid];
-    chains.forEach((chain, chainIndex) => {
-      const name = `${selectedLipid} tail ${chainIndex + 1}`;
+    Object.entries(chains).forEach(([chainId, chainData]) => {
+      const name = `${selectedLipid} tail ${parseInt(chainId) + 1}`;
       const dataset = {
-        data: Object.values(chain).map(v => flipY ? -v : v),
-        labels: Object.keys(chain),
-        color: colors[chainIndex % colors.length],
+        data: chainData.avg.map(v => flipY ? -v : v),
+        areaStdDev: chainData.std,
+        labels: chainData.atoms,
+        color: colors[parseInt(chainId) % colors.length],
       };
       const { mean: average, stdv: stddev } = getMeanAndStdv(dataset.data);
       dataset.average = average;
@@ -83,6 +86,15 @@ const LipidOrder = () => {
     setDisplay(defaultDisplay);
     return orderParams;
   }, [payload, selectedLipid, flipY]);
+
+  const maxStd = useMemo(() => {
+    if (!orderParameters || !display) return 0;
+    return Math.max(
+      ...Object.entries(orderParameters)
+        .filter(([key]) => display[key])
+        .map(([_, data]) => Math.max(...(data.areaStdDev || [])))
+    );
+  }, [orderParameters, display]);
 
   // Define representations when data changes
   useEffect(() => {
@@ -189,28 +201,39 @@ const LipidOrder = () => {
       </Card>
       <Card className={style.card}>
       <FormControlLabel
-            control={
-              <Checkbox
-                checked={flipY}
-                onChange={(e) => setFlipY(e.target.checked)}
-              />
-            }
-            label="Invert Y-axis values"
+        control={
+          <Checkbox
+            checked={flipY}
+            onChange={(e) => setFlipY(e.target.checked)}
           />
-        <CardContent>
-          <Graph
-            yData={orderParameters}
-            xAxisLabel="Carbon Position"
-            yAxisLabel="Order Parameter"
-            type="line"
-            selfLegend={false}
-            dataDisplay={display}
-            labelsOnHover={true}
-            xTooltip={(_, xIndex) => `Position ${xIndex + 1}`}
-            onSelect={setXSelected}
-            marks={marks}
+        }
+        label="Invert Y-axis values"
+      />
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={showStdDev}
+            onChange={(e) => setShowStdDev(e.target.checked)}
           />
-        </CardContent>
+        }
+        label="Show standard deviation"
+      />
+      <CardContent>
+        <Graph
+          yData={orderParameters}
+          xAxisLabel="Carbon Position"
+          yAxisLabel="Order Parameter"
+          type="line"
+          selfLegend={false}
+          dataDisplay={display}
+          labelsOnHover={true}
+          xTooltip={(_, xIndex) => `Position ${xIndex + 1}`}
+          onSelect={setXSelected}
+          marks={marks}
+          areaStdDev={showStdDev}
+          yPadding={showStdDev ? maxStd : 0}
+        />
+      </CardContent>
       </Card>
       <ViewerSpawner
         newViewer={

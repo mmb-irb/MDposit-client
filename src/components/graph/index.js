@@ -258,6 +258,8 @@ const Graph = forwardRef(({
     onSelect,
     step,
     marks,
+    areaStdDev:areaStdDev,
+    yPadding: yPadding
   });
 
   // This useEffect must be run only once
@@ -333,6 +335,8 @@ const Graph = forwardRef(({
       xColors = previousValues.current.xColors,
       xNormalizedWeights = previousValues.current.xNormalizedWeights,
       xTooltip = previousValues.current.xTooltip,
+      areaStdDev = previousValues.current.areaStdDev,
+      yPadding = previousValues.current.yPadding,
     } = {}) => {
       // Change the graph size according to the left offset
       graph.attr('width', offset.left);
@@ -580,6 +584,10 @@ const Graph = forwardRef(({
           .transition()
           .attr('opacity', d => (labels[d] ? 0.1 : 0));
         sdRects.exit().remove();
+      }
+      if (previousValues && previousValues.current.areaStdDev !== areaStdDev) {
+        // Remove area if areaStdDev changes
+        main.selectAll('path.density-sd').remove();
       }
       if (areaStdDev) {
         // Create area generator for the standard deviation bands
@@ -899,6 +907,8 @@ const Graph = forwardRef(({
       previousValues.current.xColors = xColors;
       previousValues.current.xNormalizedWeights = xNormalizedWeights;
       previousValues.current.xTooltip = xTooltip;
+      previousValues.current.areaStdDev = areaStdDev;
+      previousValues.current.yPadding = yPadding;
     };
 
     onSelectRef.current = ({ onSelect } = {}) => {
@@ -1016,6 +1026,8 @@ const Graph = forwardRef(({
       yAxisLabelHeight,
       xColors,
       xTooltip,
+      areaStdDev,
+      yPadding
     });
   }, [
     yData,
@@ -1030,6 +1042,8 @@ const Graph = forwardRef(({
     yAxisLabelHeight,
     xColors,
     xTooltip,
+    areaStdDev,
+    yPadding
   ]);
 
   // Handle when weights change apart, since they must be normalized
