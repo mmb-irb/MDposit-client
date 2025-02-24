@@ -1517,6 +1517,54 @@ export const documentation = [
           </>
         ),
       },
+      {
+        id: 'lipid-order',
+        header: 'Lipid order parameter',
+        body: (
+          <>
+            The order parameter analysis calculates the order parameter for lipid tails in the membrane.
+            This parameter provides insights into the degree of order or disorder within the lipid bilayer.
+            The analysis is performed for each lipid type present in the membrane, and the results are displayed
+            as a function of the carbon position along the lipid tail.
+            <br />
+            <br />
+            The order parameter is calculated for each frame in the trajectory, and the mean and standard deviation
+            values are provided for each lipid tail. This analysis is powered by custom scripts developed with {' '}
+            <a
+              href="https://www.mdanalysis.org/"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              MDAnalysis
+            </a>{' '}.
+          </>
+        ),
+        page: (
+          <>
+            This is the Order Parameter analysis page.
+            <br />
+            <br />
+            The order parameter analysis calculates the order parameter for lipid tails in the membrane.
+            This parameter provides insights into the degree of order or disorder within the lipid bilayer.
+            The analysis is performed for each lipid type present in the membrane, and the results are displayed
+            as a function of the carbon position along the lipid tail.
+            <br />
+            <br />
+            The order parameter is calculated for each frame in the trajectory, and the mean and standard deviation
+            values are provided for each lipid tail.
+            <br />
+            <br />
+            The graph below shows the order parameter values for each carbon position along the lipid tails.
+            The horizontal axis represents the carbon position, and the vertical axis represents the order parameter.
+            The table below the graph provides the mean and standard deviation values for each lipid tail.
+            Use the checkboxes to toggle the display of individual lipid tails in the graph.
+            <br />
+            <br />
+            You can interact with the graph to select specific carbon positions and view the corresponding
+            representations in the molecular viewer.
+          </>
+        ),
+      },
     ],
   },
 
