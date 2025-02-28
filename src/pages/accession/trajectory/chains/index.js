@@ -175,6 +175,8 @@ const ChainsAnalysis = memo(() => {
             document.body.removeChild(popup);
         };
     }, []);
+    // If the topology manager is not ready yet then return here
+    if (!topologyManager) return;
   
     // Render the functional analysis with a brief introduction
     // Here chainReferences contains the "analysis" data
