@@ -214,6 +214,8 @@ const ViewerWithControls = forwardRef(
     const [Viewer, setViewer] = useState(NGLViewer);
     // Get project metadata
     const { metadata, accessionAndMdNumber, topology } = useContext(ProjectCtx);
+    // Track the current frame and time
+    const [currentFrameInfo, setCurrentFrameInfo] = useState({ frame: 0, time: 0 });
     // Use metadata to limit available frames number
     const frameNumbers = useMemo(() => {
       const maximumSnapshots = metadata.mdFrames;
@@ -374,7 +376,15 @@ const ViewerWithControls = forwardRef(
       prog => {
         if (onProgress) onProgress(prog);
         setProgress(prog);
-      }, [setProgress, onProgress],
+        
+        // Calculate the current frame and time
+        if (viewerRef.current) {
+          const currentFrame = viewerRef.current.currentFrame;
+          // Calculate time in nanoseconds using the frame step from metadata
+          const timeInNs = metadata.FRAMESTEP ? (metadata.timeLength * prog).toFixed(2) : 0;
+          setCurrentFrameInfo({ frame: currentFrame, time: timeInNs });
+        }
+      }, [setProgress, onProgress, metadata.FRAMESTEP],
     );
 
     // Handle the trajectory load
@@ -680,19 +690,26 @@ const ViewerWithControls = forwardRef(
               // Render an empty div to avoid a Warning message since CardContent expect a ReactNode and an undefuned is not
               ? (<div />)
               // Render the loading/progress bar in case there is a trajectory to be loaded
-              : (<div
-                  className={cn(style.progress, { [style.dark]: darkBackground })}
-                  onClick={handleManualProgress}
-                  onMouseMove={handleManualProgress}
-                >
-                  <LinearProgress
-                    variant="buffer"
-                    color="primary"
-                    value={progress * 100}
-                    valueBuffer={load * 100}
-                    style={{ height: '1ch' }}
-                    className="prevent-drag"
-                  />
+              : (<div className={style.progressContainer}>
+                  <div
+                    className={cn(style.progress, { [style.dark]: darkBackground })}
+                    onClick={handleManualProgress}
+                    onMouseMove={handleManualProgress}
+                  >
+                    <LinearProgress
+                      variant="buffer"
+                      color="primary"
+                      value={progress * 100}
+                      valueBuffer={load * 100}
+                      style={{ height: '1ch' }}
+                      className="prevent-drag"
+                    />
+                  </div>
+                  {metadata.FRAMESTEP && (
+                    <div className={cn(style.timeInfo, { [style.dark]: darkBackground })}>
+                      Time: {currentFrameInfo.time} / {metadata.timeLength} ns 
+                    </div>
+                  )}
                 </div>)
             }
             <div className={style.controls}>
