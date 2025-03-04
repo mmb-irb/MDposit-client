@@ -378,7 +378,14 @@ const Graph = forwardRef(({
       const getZoomPrecision = k =>
         2 ** Math.floor(Math.log2(precisionScale(k)));
 
-      const graphZoom = zoom().scaleExtent([minZoomExtent, maxZoomExtent]);
+      // Set up zoom behavior with translation extent to prevent panning beyond data boundaries
+      const graphZoom = zoom()
+        .scaleExtent([minZoomExtent, maxZoomExtent])
+        .translateExtent([
+          [0, 0],           // Left limit at the minimum x value
+          [width, height]   // Right/bottom boundaries
+        ]);
+
       // By default, the zoom in/out event of d3 prevents the verticall scroll on mouse wheel
       // However, when zoom has reached the maximum or minimum limit, the scroll is re-established
       // The 'on wheel' eventdown here prevents that furtive scroll

@@ -45,7 +45,7 @@ const LipidOrder = () => {
   const [xSelected, setXSelected] = useState(null);
   const [representations, setRepresentations] = useState(null);
   const [flipY, setFlipY] = useState(false);
-  const [showStdDev, setShowStdDev] = useState(false);
+  const [showStdDev, setShowStdDev] = useState(true);
 
 
   // Get available lipid types for tabs
@@ -69,13 +69,12 @@ const LipidOrder = () => {
     
     const chains = payload.data[selectedLipid];
     Object.entries(chains).forEach(([chainId, chainData]) => {
-      // Only write tail if there is more than one element in chains
-      const name = `${selectedLipid}${Object.keys(chains).length > 1 ? ` tail ${parseInt(chainId) + 1}` : ''}`;
+      const name = `${selectedLipid} tail ${parseInt(chainId) + 1}`;
       const dataset = {
-      data: chainData.avg.map(v => flipY ? -v : v),
-      areaStdDev: chainData.std,
-      labels: chainData.atoms,
-      color: colors[parseInt(chainId) % colors.length],
+        data: chainData.avg.map(v => flipY ? -v : v),
+        areaStdDev: chainData.std,
+        labels: chainData.atoms,
+        color: colors[parseInt(chainId) % colors.length],
       };
       const { mean: average, stdv: stddev } = getMeanAndStdv(dataset.data);
       dataset.average = average;
