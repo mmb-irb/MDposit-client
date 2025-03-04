@@ -163,6 +163,20 @@ const CustomSearch = () => {
     history(browseURL);
   };
 
+  // Add event handler for Enter key
+  React.useEffect(() => {
+    const handleKeyPress = (event) => {
+      if (event.key === 'Enter') {
+        parseAndSearch();
+      }
+    };
+
+    document.addEventListener('keypress', handleKeyPress);
+    return () => {
+      document.removeEventListener('keypress', handleKeyPress);
+    };
+  }, []);
+
   // Query all the available fields using the 'options' endpoint
   const projectionStrings = availableFields.filter(field => field.options).map(field => 'projection=' + field.path);
   const projectionQuery = projectionStrings.join('&');
