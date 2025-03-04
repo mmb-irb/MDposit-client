@@ -437,11 +437,18 @@ const ViewerWithControls = forwardRef(
     const handlerFullscreenButton = useCallback(
       () => { if (containerRef.current) screenfull.toggle(containerRef.current) }, []);
 
-    // Exit the options menu by pressing the escape key
+    // Exit the options menu by pressing the escape key and handle spacebar for play/pause
     useEffect(() => {
       const handleKeyPress = event => {
-        if (event.key === 'Escape') openSettings(false);
-        viewerRef.current.autoResize();
+        if (event.key === 'Escape') {
+          openSettings(false);
+          viewerRef.current.autoResize();
+        }
+        // Only handle spacebar if not typing in an input field
+        if (event.key === ' ' && event.target.tagName !== 'INPUT' && event.target.tagName !== 'TEXTAREA') {
+          event.preventDefault(); // Prevent page scrolling
+          togglePlaying(prev => !prev);
+        }
       };
       document.addEventListener('keydown', handleKeyPress, false);
       return () => document.removeEventListener('keydown', handleKeyPress, false);
