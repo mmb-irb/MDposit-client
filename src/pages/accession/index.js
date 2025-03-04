@@ -51,6 +51,15 @@ const SummarySwitch = ({ subPage }) => {
     // This attribute was included before: defaultRepresentation: false
     { defaultRepresentation: false, ext: 'pdb' },
   );
+
+  React.useEffect(() => {
+    const previousTitle = document.title;
+    document.title = project.accession;
+    // Return a cleanup function that will run when the component unmounts
+    return () => {
+      document.title = previousTitle;
+  };
+  }, []);
   // Wait for the pdbData to arrive
   if (pdbData.loading) return <Loading />;
   else if (pdbData.error) return pdbData.error.toString() + ' (in pdbData)';
