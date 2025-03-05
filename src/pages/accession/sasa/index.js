@@ -100,10 +100,13 @@ const Sasa = () => {
     // Check data to be coherent
     // Note that sasa analysis must always have the same number of residues that the topology
     const residueCount = topologyManager.residueCount;
-    if (residueCount !== payload.saspf.length)
-      throw new Error(
-        'Number of residues in the analysis does not match number of residues in the topology',
-      );
+    if (residueCount !== payload.saspf.length) throw new Error(
+      `Number of residues in the analysis (${
+        payload.saspf.length
+      }) does not match number of residues in the topology (${
+        residueCount
+      })`,
+    );
 
     // Duplicate the payload data but removing a few values
     // Data from single atom residues (i.e. ions) is discarded since they may raise the maximum SAS a lot
