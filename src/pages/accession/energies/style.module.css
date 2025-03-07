@@ -12,3 +12,7 @@
   width: 30ch;
   margin: 0.6ch 2ch;
 }
+
+.margined-bottom {
+  margin-bottom: 1em;
+}
