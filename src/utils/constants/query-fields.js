@@ -290,6 +290,13 @@ export default {
     ],
     "Other": [
         {
+            "name": "Available MD analyses",
+            "path": "mds.analyses.name",
+            "type": "string",
+            "example": "pca",
+            "options": true,
+        },
+        {
             "name": "Project files",
             "path": "files.name",
             "type": "string",
