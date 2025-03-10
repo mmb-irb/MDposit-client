@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { noop, zip, random, debounce, clamp } from 'lodash-es';
 import {
   select,
@@ -61,6 +61,11 @@ const Projections = ({
 
   const [switched, toggleSwitched] = useToggleState(false);
 
+  // Count the number of coordinates
+  const coordinatesCount = useMemo(() => 
+    (projectionsData && projectionsData[0].length) || 0,
+  [projectionsData]) ;
+
   useEffect(() => {
     const canvas = select(containerRef.current).append('canvas');
     const graph = select(containerRef.current).append('svg');
@@ -107,14 +112,19 @@ const Projections = ({
     // Select the frame to be displayed by the viewer
     const handleClick = ({ datumIndex } = {}) =>
       // This function is a setter from a useState hook in the parent script (pca/index.js)
-      setRequestedFrame(requestedFrame => {
+      setRequestedFrame(currentFrame => {
+        // If we are out of range then ignore the click
+        if (datumIndex < 0 || datumIndex >= coordinatesCount) return currentFrame;
         if (!totalFrames) {
           console.error('No number of frames in metadata. Are we missing the main trajectory?');
           return null;
         }
-        const target = Math.floor(datumIndex * (totalFrames / datumRange));
-        // If the user clicks in the already selected point it is unselected
-        return target === requestedFrame ? null : target;
+        // Set the target frame
+        const target = datumIndex * framestep;
+        // If the user clicks in the already selected point then it is unselected
+        if (target === currentFrame) return null;
+        // Return the new frame otherwise
+        return target;
       });
 
     drawRef.current = async ({
@@ -394,8 +404,6 @@ const Projections = ({
   useEffect(() => {
     const [xProj, yProj] = switched ? [0, 1] : [1, 0];
 
-    const coordinatesCount =
-      (projectionsData && projectionsData[0].length) || 0;
     const colorScaleWithDomain = colorScale.domain([0, coordinatesCount]);
 
     const xProjectionData = projectionsData[projections[xProj]];
@@ -427,9 +435,7 @@ const Projections = ({
       await schedule(100);
       delaunayDiagramRef.current = Delaunay.from(zipped);
     })();
-  }, [projectionsData, projections, framestep, switched]);
-
-  const coordinatesCount = (projectionsData && projectionsData[0].length) || 0;
+  }, [projectionsData, coordinatesCount, projections, framestep, switched]);
 
   return (
     <>

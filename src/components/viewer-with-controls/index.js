@@ -73,6 +73,7 @@ import reducedMotion from '../../utils/reduced-motion';
 import style from './style.module.css';
 
 import { ProjectCtx } from '../../contexts';
+import { copyObject } from 'src/utils/auxiliar-functions';
 
 // Decide that the default should be to play the trajectory only on "big enough"
 // screens (as a proxy for performance and low-end device detection)
@@ -238,7 +239,7 @@ const ViewerWithControls = forwardRef(
       // If there are no starting components then just leave it as null
       // The defualt completer logic will take over
       if (!startingComponents) return null;
-      return startingComponents.map(comp => JSON.parse(JSON.stringify(comp)));
+      return startingComponents.map(comp => copyObject(comp));
     }, [startingComponents]);
 
     // Set the final components to be passed to the viewer
@@ -291,7 +292,7 @@ const ViewerWithControls = forwardRef(
       // If there are no starting representations then just leave it as null
       // The defualt completer logic will take over
       if (!startingRepresentations) return null;
-      return startingRepresentations.map(rep => JSON.parse(JSON.stringify(rep)));
+      return startingRepresentations.map(rep => copyObject(rep));
     }, [startingRepresentations]);
 
     // Set the final representations to be passed to the viewer
@@ -320,14 +321,18 @@ const ViewerWithControls = forwardRef(
       if (!defaultRepresentations || defaultRepresentations.length === 0) return;
       // If there are no representations then set a default configuration
       if (!finalRepresentations) {
+        // Unless the representations state has been passed from another component above
+        // If it has been passed then delegate the job to that component
+        // Otherwise, we could interfere as it happend with pockets (it was hard to track the problem)
+        if (representationsState) return;
         const defRepresentations = [...defaultRepresentations];
         defRepresentations.forEach(rep => 
-          completeRepresentationMissingFields(rep, DEFAULT_REPRESENTATION_PARAMETERS));
+          completeRepresentationMissingFields(rep));
         return setFinalRepresentations(defRepresentations);
       }
       // Fill missing values among representations with default values
       const changes = finalRepresentations.map(rep => 
-        completeRepresentationMissingFields(rep, DEFAULT_REPRESENTATION_PARAMETERS));
+        completeRepresentationMissingFields(rep));
       // If there was any value filled then update the state to trigger a rerender
       // DANI: Este es el responsable de esto:
       //   Warning: Cannot update a component (`blablabla`) while rendering a different component (`ForwardRef`).
@@ -686,6 +691,7 @@ const ViewerWithControls = forwardRef(
                     value={progress * 100}
                     valueBuffer={load * 100}
                     style={{ height: '1ch' }}
+                    className="prevent-drag"
                   />
                 </div>)
             }

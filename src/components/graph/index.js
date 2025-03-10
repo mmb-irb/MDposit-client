@@ -730,6 +730,8 @@ const Graph = forwardRef(({ // The main data
         // Get the closest x axis index to the current mouse position
         const closestIndex =
           Math.round(x.invert(xValue) / zoomPrecision / step) * zoomPrecision;
+        // If the closest index is out of range then there is no tooltip to show
+        if (closestIndex < xMin || closestIndex > xMax) return;
         // Track the implicit position of all hovering dots
         // This is useful to know if dot texts would overlap
         const dotDownOffsets = {};

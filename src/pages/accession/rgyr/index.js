@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState, useContext, useMemo } from 'react';
+import React, { lazy, Suspense, useState, useContext, useMemo, useCallback } from 'react';
 
 import {
   CardContent,
@@ -53,20 +53,8 @@ const Rgyr = () => {
     rgyrz.color = 'blue';
   }, [payload]);
 
-  // React hooks
-  // Set when one point in the graph is selected
-  const [selected, setSelected] = useState(null);
-
-  // Set the mark for selected
-  const marks = useMemo(() => {
-    const selectedMark = {
-      x: selected,
-      attr: { fill: '#c8c8c8' },
-    };
-    return [selectedMark];
-  }, [selected]);
-
   const {
+    frameStep,
     xAxisStep,
     xAxisLabel,
     isEnsemble,
@@ -109,8 +97,39 @@ const Rgyr = () => {
       }
     }
 
-    return { xAxisStep, xAxisLabel, isEnsemble, xTooltip, xWeights };
+    return { frameStep: analysisFrameStep, xAxisStep, xAxisLabel, isEnsemble, xTooltip, xWeights };
   }, [payload, metadata, populations]);
+
+  // React hooks
+  // Set the index selected in the graph
+  const [selectedGraphIndex, setSelectedGraphIndex] = useState(null);
+
+  // Set the selected frame which corresponds to the selected graph index
+  const selectedFrame = useMemo(() => {
+    if (frameStep === undefined) return null;
+    if (selectedGraphIndex === null) return null;
+    return frameStep * selectedGraphIndex;
+  }, [frameStep, selectedGraphIndex]);
+
+  // Set the mark for the selected frame
+  const marks = useMemo(() => {
+    const selectedMark = {
+      x: selectedGraphIndex,
+      attr: { fill: '#c8c8c8' },
+    };
+    return [selectedMark];
+  }, [selectedGraphIndex]);  
+
+  // Handle when the viewer is closed or nailed
+  // If we close/nail the current active viewer then reset the selected graph index
+  const handleCloseViewer = useCallback(viewer => {
+    setSelectedGraphIndex(currentSelectedGraphIndex => {
+      // If closed viewer is the current active viewer then set the selected index as null
+      if (viewer.graphIndex === currentSelectedGraphIndex) return null;
+      // Otherwise leave the current selected index as is
+      else return currentSelectedGraphIndex;
+    })
+  }, [setSelectedGraphIndex]);
 
   // Render loading or error messages according with the API response
   if (loading || (populations && populations.loading)) return <Loading />;
@@ -174,7 +193,7 @@ const Rgyr = () => {
             xTooltip={xTooltip}
             xScaleFactor={1}
             yAxisLabel={'Rgyr (Å)'}
-            onSelect={setSelected}
+            onSelect={setSelectedGraphIndex}
             selfLegend={true}
             mean={true}
             standardDeviation={true}
@@ -183,25 +202,20 @@ const Rgyr = () => {
         </CardContent>
       </Card>
       <ViewerSpawner
-        // Set the new viewer or null if there is not a proper "selected" value
+        // Set the new viewer or null if there is not a proper "selectedFrame" value
         newViewer={
-          typeof selected === 'number'
-            ? { requestedFrame: selected }
+          selectedFrame !== null
+            ? {
+                requestedFrame: selectedFrame,
+                // This is used only as a tag for the onNail and onClose functions below
+                // It has no effect on the viewer
+                graphIndex: selectedGraphIndex
+              }
             : null
         }
-        // If the nailed/closed viewer is the current viewer then reset the 'selected'
-        onNail={viewer =>
-          setSelected(previous => {
-            if (viewer.requestedFrame === previous) return null;
-            else return previous;
-          })
-        }
-        onClose={viewer =>
-          setSelected(previous => {
-            if (viewer.requestedFrame === previous) return null;
-            else return previous;
-          })
-        }
+        // If the nailed/closed viewer is the current viewer then reset the 'selectedFrame'
+        onNail={handleCloseViewer}
+        onClose={handleCloseViewer}
       />
     </Suspense>
   );

@@ -123,10 +123,10 @@ const Energies = () => {
         {
           selection: guestSelection,
           name: 'Guest elements',
-          type: 'spacefill',
+          type: 'ball+stick',
           color: 'element',
           opacity: 0.3,
-          other: { radius: 0.6 },
+          //other: { radius: 0.6 },
           reference: GUEST_REFERENCE
         }
       ];
@@ -280,7 +280,7 @@ const Energies = () => {
         </CardContent>
         {dataError || !data ? null : (
           <CardContent>
-            <legend>Overall energies summatory</legend>
+            <legend className={style['margined-bottom']}>Overall energies summatory</legend>
             <div>
               <TextField
                 className={style['text-field']}
@@ -365,7 +365,7 @@ const Energies = () => {
             />
             <Graph
               yData={vdwData}
-              title={'vdW'}
+              title={'Van der Waals'}
               xAxisValues={data.xTags}
               xTooltip={xTooltip}
               yAxisLabel={'Interaction energy (kcal/mol)'}
@@ -376,7 +376,7 @@ const Energies = () => {
             />
             <Graph
               yData={bothData}
-              title={'Electrostatic+vdW'}
+              title={'Electrostatic + Van der Waals'}
               xAxisLabel={'Residue'}
               xAxisValues={data.xTags}
               xTooltip={xTooltip}

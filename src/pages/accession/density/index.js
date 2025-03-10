@@ -33,7 +33,7 @@ const colors = ['black', 'red', 'orange', 'yellow', 'blue', 'green', 'purple'];
 
 const Density = () => {
   // Get the metadata
-  const { accession, accessionAndMdNumber, metadata, analyses } = useContext(ProjectCtx);
+  const { accessionAndMdNumber, metadata, analyses } = useContext(ProjectCtx);
 
   // Send a request to the API with the url of the specific analysis
   const {
@@ -184,7 +184,6 @@ const Density = () => {
         newViewer={
           typeof selected === 'number'
             ? {
-              accession: accession,
               // This is used only as a tag for the onNail and onClose functions below
               // It has no effect on the viewer
               xSelection: selected,

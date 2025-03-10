@@ -69,7 +69,7 @@ const InteractionSelector = ({
         className={style['horizontal-margined']}
       >
         {interactions.map((interaction, i) => (
-          <MenuItem key={i} value={i}>
+          <MenuItem key={i} value={i} disabled={interaction.failed}>
             {interaction.label || interaction.name}
           </MenuItem>
         ))}

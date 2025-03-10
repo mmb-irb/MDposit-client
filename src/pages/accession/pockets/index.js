@@ -47,6 +47,9 @@ const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
 const POCKET_REFERENCE = 'pocket';
 const POCKET_SURFACE_REFERENCE = 'pocket surface';
 
+// Default value for the 'shaw all pockets' button
+const showAllPocketsDefault = false;
+
 // Set a function to calculate the average value from a values array
 const roundedAvg = values => {
   const sum = values.reduce((pv, cv) => pv + cv, 0);
@@ -76,7 +79,7 @@ const Pockets = () => {
   const [getColor, freeColor] = useColors();
 
   // Track which pockets is beeing hovered in the list
-  const [showAllPockets, setShowAllPockets] = useState(false);
+  const [showAllPockets, setShowAllPockets] = useState(showAllPocketsDefault);
   // Track which pockets is beeing hovered in the list
   const [hoveredPocket, setHoveredPocket] = useState(null);
 
@@ -162,11 +165,12 @@ const Pockets = () => {
       const pocketRepresentations = components.slice(1).map(pocketComponent => ({
         name: pocketComponent.name,
         type: 'surface',
+        color: 'grey',
         // Make the surface a transparent net
         other: { contour: true },
         label: pocketComponent.name,
         component: pocketComponent.name,
-        show: false,
+        show: showAllPocketsDefault,
         reference: POCKET_REFERENCE
       }));
       // Update the state

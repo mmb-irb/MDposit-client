@@ -70,9 +70,7 @@ const InterproTrack = memo(({ match, length, shape, classAttr }) => {
 });
 
 // The result of this function is memoized since it is a heavy work
-const ChainAnalyses = memo(({ data, firstResidueNumber }) => {
-    // Get the chain letter
-    const chain = data.name;
+const ChainAnalyses = memo(({ chain, data, firstResidueNumber }) => {
     // Import protvista elements in their 'custom' way
     useEffect(() => {
         importProtVista();
