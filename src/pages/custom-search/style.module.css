@@ -2,10 +2,14 @@
   min-height: 70vh;
 }
 
-.margined {
-  margin: 1em;
+.section-header {
+  font-size: 1.3em;
+  margin: 0;
+  font-weight: 500;
 }
-
+.section-header > div {
+  margin: 0;
+}
 .spaced {
   width: 50vh;
   margin-left: 0.5em;
@@ -40,12 +44,11 @@
 }
 
 .section {
-  margin: 1em 0;
+  /* margin: 1em 0; */
 }
 
 .summary {
-  font-size: large;
-  font-weight: bold;
+  /* font-weight: bold; */
   cursor: pointer;
 }
 
@@ -62,4 +65,8 @@
 
 .search {
   margin-right: 1em;
+}
+
+.options > span {
+  font-size: 0.9em;
 }

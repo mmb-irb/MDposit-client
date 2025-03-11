@@ -8,7 +8,7 @@ import React, {
   useState
 } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-
+import CustomSearch from '../custom-search'; // Add this import
 // String managers
 import { parse, stringify } from 'qs';
 
@@ -200,6 +200,9 @@ const Row = ({ projectData, highlight, index, previewUrl }) => {
 };
 
 const Browse = () => {
+  // Add refs for both divs to measure height
+  const verticalRef = useRef(null);
+  const customSearchRef = useRef(null);
   // Get the location and the history
   const location = useLocation();
   const history = useNavigate();
@@ -276,7 +279,7 @@ const Browse = () => {
   // Projects data from the API
   const queryUrl = `${BASE_PATH_PROJECTS}?${searchString}`;
   const { loading: queryLoading, payload: queryPayload, error: queryError } = useAPI(queryUrl);
-
+  
   // While loading
   // Code above is runned multiple times (around 5) each time the browser is loaded
   if (queryLoading && !previousPayload.current) return <Loading />;
@@ -310,9 +313,13 @@ const Browse = () => {
   return (
     <Card>
       <CardContent className={style.minheight}>
-        <div className={style.horizontal}>
-          <Search/>
-          {optionsField && <FormControl className={style.selector}>
+      <div className={style['compact-browse']}>
+        <div className={style['custom-search']}>
+          <CustomSearch /> {/* Add the CustomSearch component */}
+        </div>
+        <div className={style.vertical}>
+          <Search className={style.search}/> 
+          {optionsField && (<FormControl className={style.selector}>
             <InputLabel>{HOST_CONFIG.optionsLabel}</InputLabel>
             <Select
               label={HOST_CONFIG.optionsLabel}
@@ -326,10 +333,7 @@ const Browse = () => {
                 </MenuItem>
               ))}
             </Select>
-          </FormControl>
-            
-          }          
-        </div>
+          </FormControl>)}
         {/* Render a 'no results' card when there are no results for the last search */}
         {!queryLoading && !queryPayload ? (
           <Card className={style['no-results-card']}>
@@ -416,6 +420,8 @@ const Browse = () => {
             </TableRow>
           </TableFooter>
         </Table>
+        </div>
+        </div>
       </CardContent>
     </Card>
   );

@@ -185,7 +185,7 @@ const CustomSearch = () => {
         <hr style={{ color: 'lightGrey' }} />
         {Object.entries(queryFields).map(([category, fields], c) => {
           return <div key={c}>
-            <Typography variant='h5' className={style.margined}>{category}</Typography>
+            <Typography variant='h5' className={style['section-header']}>{category}</Typography>
             {fields.map((field, f) => (
               <Accordion key={f} defaultExpanded={field.defaultOpen || field.path in query}>
                 <AccordionSummary className={style.summary}>{field.name}</AccordionSummary>
@@ -241,8 +241,8 @@ const CustomSearch = () => {
                               />
                             }
                             label={`${option} (${count})`}
-                            style={{ color: 'black' }}
-                            //className={style.outlined}
+                            style={{ color: 'black', }}
+                            className={style.options}
                           />
                         ));
                       }

@@ -74,14 +74,24 @@
   font-size: small;
 }
 
-.horizontal {
+.compact-browse {
+  display: flex;
+  align-items: flex-start; /* align items to the top */
+}
+
+.custom-search {
+  width: 20%;
+}
+
+.vertical {
   display: flex;
   flex-direction: row;
-  margin-bottom: 1em;
+  flex-wrap: wrap;
+  flex: 1;
 }
 
 .selector {
-  width: 60%; /* this percent is competing with the 100% of the search bar */
+  width: 40%; /* this percent is competing with the 100% of the search bar */
   margin-left: 1em;
 }
 
