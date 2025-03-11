@@ -127,6 +127,8 @@ const Row = ({ projectData, highlight, index, previewUrl }) => {
       <TableCell className={style.center}> - </TableCell>
       {/* analyses */}
       <TableCell className={style.center}> - </TableCell>
+      {/* date */}
+      <TableCell className={style.center}> - </TableCell>
     </TableRow>
   );
 
@@ -195,6 +197,12 @@ const Row = ({ projectData, highlight, index, previewUrl }) => {
             />
           ))}
       </TableCell>
+      {/* date */}
+      <TableCell className={style.center}>
+        {project.addedOn 
+          ? new Date(project.addedOn).toLocaleDateString() 
+          : na}
+      </TableCell>
     </TableRow>
   );
 };
@@ -250,6 +258,7 @@ const Browse = () => {
     limit: search.limit || DEFAULT_LIMIT,
     filter: selectedOptionFilter
   });
+  console.log(searchString);
 
   // Scroll up when the page is changed
   useEffect(() => {
@@ -347,6 +356,7 @@ const Browse = () => {
               <TableCell className={style.center}>name</TableCell>
               <TableCell className={style.center}>preview</TableCell>
               <TableCell className={style.center}>analyses</TableCell>
+              <TableCell className={style.center}>date</TableCell>
             </TableRow>
           </TableHead>
           {/* Table body with the content, which is defined above in the Row constant */}
