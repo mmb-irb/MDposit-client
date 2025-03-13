@@ -253,4 +253,5 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
   );
 };
 
+ProjectMenu.displayName = 'ProjectMenu';
 export default ProjectMenu;

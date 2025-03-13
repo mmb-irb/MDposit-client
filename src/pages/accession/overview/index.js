@@ -39,7 +39,7 @@ const typeSettings = {
 };
 
 
-export default React.memo(() => {
+const Overview = React.memo(() => {
   const { accession, identifier, published, metadata, ligandReferences, proteinReferences, mdCount, node } = useContext(
     ProjectCtx,
   );
@@ -586,3 +586,6 @@ export default React.memo(() => {
     </>
   );
 });
+
+Overview.displayName = 'Overview';
+export default Overview;

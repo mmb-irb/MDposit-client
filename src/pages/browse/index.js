@@ -258,7 +258,6 @@ const Browse = () => {
     limit: search.limit || DEFAULT_LIMIT,
     filter: selectedOptionFilter
   });
-  console.log(searchString);
 
   // Scroll up when the page is changed
   useEffect(() => {

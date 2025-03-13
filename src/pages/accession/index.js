@@ -1,5 +1,5 @@
 // React logic
-import React, { lazy, Suspense, useContext, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useContext, useEffect, useMemo, useState } from 'react';
 import { Link, Routes, Route, useLocation, useParams, useNavigate } from 'react-router-dom';
 
 // Visual assets
@@ -118,7 +118,7 @@ const checkProjectDataUpdated = (projectData, requestedAccession, requestedMdNum
   return true;
 };
 
-export default () => {
+const Accession = () => {
   // Get the location and the history
   const location = useLocation();
   const history = useNavigate();
@@ -162,22 +162,17 @@ export default () => {
     // Order chain indices by alphabetic number when we have new project data
     if (project.chains) project.chains.sort();
   }, [project]);
-  // If we are waiting for the API response...
-  if (!updatedProjectData) {
-    // If we are still waiting for the API then stop here
-    // If there was any error or the payload is missing then warn the user and stop here
-    if (projectQuery.loading) return <Loading />;
-    else if (projectQuery.error) return projectQuery.error.toString();
-    else if (!projectQuery.payload)
-      return 'Something bad happened with the project data';
+  // As soon as we receive API data set the new project data
+  useEffect(()=> {
+    if (!projectQuery || !projectQuery.payload) return;
     // If the requested MD was rmeoved then return an error message
     if (projectQuery.payload.removed) return 'The requested MD has been removed';
     // Save the current project data as the state project data
     const newProject = new Project(projectQuery.payload);
     setProject(newProject);
-  }
-  // Should not happen, but sometimes...
-  if (!project) return;
+  }, [projectQuery.payload]);
+  // This may happen in the first renders
+  if (!project) return <Loading />;
   // Set the footer line for the help tooltip
   const doc = docs.find(doc => doc.id === page); // doc may not exist
   const tooltip = doc && doc.page && (
@@ -251,3 +246,6 @@ export default () => {
     </ProjectCtx.Provider>
   );
 };
+
+Accession.displayName = 'Accession';
+export default Accession;
