@@ -52,14 +52,14 @@ const SummarySwitch = ({ subPage }) => {
     { defaultRepresentation: false, ext: 'pdb' },
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     const previousTitle = document.title;
-    document.title = project.accession;
+    document.title = project.accessionAndMdNumber;
     // Return a cleanup function that will run when the component unmounts
     return () => {
       document.title = previousTitle;
   };
-  }, []);
+  }, [project.accessionAndMdNumber]);
   // Wait for the pdbData to arrive
   if (pdbData.loading) return <Loading />;
   else if (pdbData.error) return pdbData.error.toString() + ' (in pdbData)';
