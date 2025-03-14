@@ -35,17 +35,23 @@
   opacity: 0.6;
 }
 
+.error-row > * {
+  opacity: 0.6;
+  color:rgb(243, 36, 0);
+
+}
 .center {
   text-align: center;
 }
 
-.table-head > .center {
-  display: flex;
+th.center {
+  min-width: 7em;
+  padding:0;
 }
 
 .sort {
   justify-content: space-between;
-  padding: 0 0.5em;
+  padding: 0 0 0 0.5em;
   min-width: 0px;
   font-size: initial;
 }

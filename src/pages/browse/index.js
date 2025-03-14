@@ -119,9 +119,9 @@ const Row = ({ projectData, highlight, index, previewUrl }) => {
 
   // In case we retrieve an errored entry
   if (project.error) return (
-    <TableRow ref={ref} className={style['not-published']}>
+    <TableRow ref={ref} className={style['error-row']}>
       {/* accession */}
-      <TableCell className={style.center}> Errored entry </TableCell>
+      <TableCell className={style.center}> {project.accession} </TableCell>
       {/* name */}
       <TableCell className={style.center}> {project.error} </TableCell>
       {/* groups */}
@@ -226,7 +226,7 @@ const Browse = () => {
   // State of the selected option
   const [ selectedOption, setSelectedOption ] = useState(search.option || all);
   // State for the sort direction
-  const [sortDirection, setSortDirection] = useState(1); // -1 for descending, 1 for ascending
+  const [sortConfig, setSortConfig] = useState({ field: 'accession', direction: 1 }); // -1 for descending, 1 for ascending
 
   // Handle when user clicks on the option selector
   const handleChange = useCallback(
@@ -247,14 +247,19 @@ const Browse = () => {
     }, [location, search, setSelectedOption]
   );
   // Handler for toggling sort direction
-  const handleSortDirectionToggle = () => {
-    const newDirection = sortDirection === 1 ? -1 : 1;
-    setSortDirection(newDirection);
+  const handleSort = (field) => {
+    const newDirection = (field === sortConfig.field) ? sortConfig.direction * -1 : 1;
+    const newSortConfig = { field, direction: newDirection };
+    setSortConfig(newSortConfig);
+    
+    // Use metadata.NAME for name sorting
+    const sortField = field === 'name' ? 'metadata.NAME' : field;
+    
     history({
       ...location,
       search: stringify({
         ...search,
-        sort: JSON.stringify({ accession: newDirection })
+        sort: JSON.stringify({ [sortField]: newDirection })
       }),
     });
   };
@@ -272,7 +277,9 @@ const Browse = () => {
     page: search.page || DEFAULT_PAGE,
     limit: search.limit || DEFAULT_LIMIT,
     filter: selectedOptionFilter,
-    sort: JSON.stringify({ accession: sortDirection }),
+    sort: JSON.stringify({ 
+      [sortConfig.field === 'name' ? 'metadata.NAME' : sortConfig.field]: sortConfig.direction 
+    }),
   });
 
   // Scroll up when the page is changed
@@ -280,6 +287,24 @@ const Browse = () => {
     window.scrollTo(0, 0);
   }, [search.page]);
 
+  // Initialize sort config from URL parameters
+  useEffect(() => {
+    if (search.sort) {
+      try {
+        const sortParam = JSON.parse(search.sort);
+        const field = Object.keys(sortParam)[0];
+        const direction = sortParam[field];
+      
+        // Map metadata.NAME back to 'name' for UI purposes
+        const uiField = field === 'metadata.NAME' ? 'name' : field;
+        
+        setSortConfig({ field: uiField, direction });
+      } catch (error) {
+        // Handle invalid sort parameter
+        console.error("Invalid sort parameter", error);
+      }
+    }
+  }, [search.sort]);
   // Save the previous query payload
   // It is rendered in low opacity when the new query payload is empty
   const previousPayload = useRef(null);
@@ -367,10 +392,16 @@ const Browse = () => {
           {/* Table head with the names of each colum */}
           <TableHead className={style['table-head']}>
             <TableRow>
-              <TableCell style={{display: 'flex'}} className={style.center}>accession
-                <Button className={style.sort} onClick={handleSortDirectionToggle}>{sortDirection === 1 ? "▼" : "▲"}</Button>
+              <TableCell className={style.center}>accession
+                <Button className={style.sort} onClick={() => handleSort('accession')}>
+                  {sortConfig.field === 'accession' ? (sortConfig.direction === 1 ? "▼" : "▲") : "⋮"}
+                </Button>
               </TableCell>
-              <TableCell className={style.center}>name</TableCell>
+              <TableCell className={style.center}>name
+                <Button className={style.sort} onClick={() => handleSort('name')}>
+                  {sortConfig.field === 'name' ? (sortConfig.direction === 1 ? "▼" : "▲") : "⋮"}
+                </Button>
+              </TableCell>
               <TableCell className={style.center}>preview</TableCell>
               <TableCell className={style.center}>analyses</TableCell>
               <TableCell className={style.center}>date</TableCell>
