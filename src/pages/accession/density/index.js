@@ -39,7 +39,7 @@ const colorDict = {A: 'blue', B: 'purple', G: 'green', M: 'orange', polar: 'red'
 
 const Density = () => {
   // Get the metadata
-  const { accession, accessionAndMdNumber, metadata, chains, topology } = useContext(ProjectCtx);
+  const { accessionAndMdNumber, metadata, chains } = useContext(ProjectCtx);
   // Send a request to the API with the url of the specific analysis
   const {
     loading: densityLoading,
@@ -248,7 +248,6 @@ const Density = () => {
         newViewer={
           typeof xSelected === 'number'
             ? {
-              accession: accession,
               // This is used only as a tag for the onNail and onClose functions below
               // It has no effect on the viewer
               xSelection: xSelected,

@@ -182,7 +182,7 @@ const Accession = () => {
       <br />
       To learn more about this page and how data is obtained please{' '}
       <a
-        href={`/help#/help#${doc.id}`}
+        href={`/#/help#${doc.id}`}
         target="_blank"
         rel="noreferrer noopener"
       >

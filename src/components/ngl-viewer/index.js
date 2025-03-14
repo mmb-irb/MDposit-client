@@ -142,12 +142,30 @@ const NGLViewer = memo(
       // True when we just want to display a static structure // Requeste number of frames to display
       // data from context
       const {
-        accession,
         accessionAndMdNumber,
         fileDescriptors,
-        curatedOrientation,
+        metadata,
         topology: topologyManager,
       } = useContext(ProjectCtx);
+
+      // Set the curated orientation in NGL format
+      const curatedOrientation = useMemo(() => {
+        // If we do not have metadata yet then stop
+        if (!metadata) return;
+        const ori = metadata.ORIENTATION;
+        // If no curated orientation is set in metadata then stop
+        if (!ori) return;
+        // The matrix 4 resorts values in the input list
+        // In order to make it match the original focus display we must sort them before
+        const sortedOrientation = [
+          ori[0], ori[4], ori[8], ori[12],
+          ori[1], ori[5], ori[9], ori[13],
+          ori[2], ori[6], ori[10], ori[14],
+          ori[3], ori[7], ori[11], ori[15],
+        ];
+        return new Matrix4().set(...sortedOrientation);
+      }, [metadata])
+
       const { file: pdbDataFile } = useContext(PdbCtx);
 
       // Save the main component once it is staged
@@ -167,10 +185,6 @@ const NGLViewer = memo(
       const stageRef = useRef(null);
       const tooltipRef = useRef(null);
       const firstTime = useRef(true);
-      // curatedOrientation might be null
-      const originalOritentationRef = useRef(
-        curatedOrientation ? new Matrix4().set(...curatedOrientation) : null,
-      );
 
       // in-view hook
       const [inViewRef, isInView] = useInView();
@@ -479,7 +493,7 @@ const NGLViewer = memo(
           // Otherwise we return the previous array to do no trigger dependencies
           return currentTrajectories;
         });
-      }, [accession, components, fileDescriptors, requestedFramesNumber]);
+      }, [accessionAndMdNumber, components, fileDescriptors, requestedFramesNumber]);
 
       // Set a state to store trajectories data
       const [trajectories, setTrajectories] = useState([]);
@@ -1571,9 +1585,9 @@ const NGLViewer = memo(
               name: 'structure',
               opacity: 1,
             });
-            if (originalOritentationRef.current) {
+            if (curatedOrientation) {
               stageRef.current.animationControls.orient(
-                originalOritentationRef.current,
+                curatedOrientation,
                 DEFAULT_ORIENTATION_TRANSITION_DURATION,
               );
             }
@@ -1598,7 +1612,7 @@ const NGLViewer = memo(
         };
         window.addEventListener('change', handler);
         return () => window.removeEventListener('change', handler);
-      }, [mainComponent, topologyManager]);
+      }, [mainComponent, topologyManager, curatedOrientation]);
 
       // Customize the NGL tooltip
       useEffect(() => {
@@ -1739,17 +1753,17 @@ const NGLViewer = memo(
           transition = 0;
           // if an original orientation was aleady defined
           // (manually created, and stored in the API)
-          if (originalOritentationRef.current) {
+          if (curatedOrientation) {
             // use it to set the initial orientation
             stageRef.current.animationControls.orient(
-              originalOritentationRef.current,
+              curatedOrientation,
               0,
             );
           }
           firstFocus.current = false;
         }
         comp.autoView(focus.sele, transition);
-      }, [mainComponent, focus]);
+      }, [mainComponent, focus, curatedOrientation]);
 
       // Expose public methods and getters/setters
       useImperativeHandle(
@@ -1766,9 +1780,9 @@ const NGLViewer = memo(
           centerFocus() {
             setFocus({ comp: 0, sele: 'all' });
             // Use the provided orientation, if any
-            if (!originalOritentationRef.current) return;
+            if (!curatedOrientation) return;
             stageRef.current.animationControls.orient(
-              originalOritentationRef.current,
+              curatedOrientation,
               DEFAULT_ORIENTATION_TRANSITION_DURATION,
             );
           },

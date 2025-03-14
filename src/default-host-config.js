@@ -240,6 +240,29 @@ const HOST_CONFIGURATIONS = {
         ...COLLECTION_OPTIONS,
         queryFields: queryFieldsWithCollections,
     },
+    // IRB node development
+    'irb-dev.mddbr.eu': {
+        logoLabel: 'IRB node',
+        primaryColor: '#BB00BB', // Purple
+        description: <>
+            {DEFAUL_HOST_CONFIGURATION.description}<br/>
+            This node contains simulations stored at the MMB group at IRB Barcelona.
+        </>,
+        ...COLLECTION_OPTIONS,
+        queryFields: queryFieldsWithCollections,
+    },
+    // IRB node production
+    'irb.mddbr.eu': {
+        production: true,
+        logoLabel: 'IRB node',
+        primaryColor: '#BB00BB', // Purple
+        description: <>
+            {DEFAUL_HOST_CONFIGURATION.description}<br/>
+            This node contains simulations stored at the MMB group at IRB Barcelona.
+        </>,
+        ...COLLECTION_OPTIONS,
+        queryFields: queryFieldsWithCollections,
+    },
     // ABC node development
     'abc-dev.mddbr.eu': {
         logoLabel: 'ABC node',

@@ -38,7 +38,7 @@ const Electrostatic = () => {
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
 
   // Get the current project data
-  const { topology, interactions } = useContext(ProjectCtx);
+  const { topology, interactions, referenceFrame } = useContext(ProjectCtx);
 
   // The interaction to be displayed
   const [selectedInteraction, setSelectedInteraction] = useState(0);
@@ -201,7 +201,7 @@ const Electrostatic = () => {
           <ViewerWithControls
             className={style.container}
             representationsState={[ representations, setRepresentations ]}
-            requestedFrame={1}
+            requestedFrame={referenceFrame}
             initialFocus={initialFocus}
           />
         ) : (
