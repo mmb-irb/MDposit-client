@@ -30,7 +30,8 @@ import {
   Select,
   MenuItem,
   InputLabel,
-  FormControl
+  FormControl,
+  Button
 } from '@mui/material';
 
 import LazyImg from '../../components/lazy-img';
@@ -224,6 +225,8 @@ const Browse = () => {
 
   // State of the selected option
   const [ selectedOption, setSelectedOption ] = useState(search.option || all);
+  // State for the sort direction
+  const [sortDirection, setSortDirection] = useState(1); // -1 for descending, 1 for ascending
 
   // Handle when user clicks on the option selector
   const handleChange = useCallback(
@@ -243,7 +246,19 @@ const Browse = () => {
       setSelectedOption(value);
     }, [location, search, setSelectedOption]
   );
-  
+  // Handler for toggling sort direction
+  const handleSortDirectionToggle = () => {
+    const newDirection = sortDirection === 1 ? -1 : 1;
+    setSortDirection(newDirection);
+    history({
+      ...location,
+      search: stringify({
+        ...search,
+        sort: JSON.stringify({ accession: newDirection })
+      }),
+    });
+  };
+
   // Get the options field from the host configuration
   const optionsField = HOST_CONFIG.optionsField;
   // Set the selected option filter
@@ -256,7 +271,8 @@ const Browse = () => {
     ref: search.ref,
     page: search.page || DEFAULT_PAGE,
     limit: search.limit || DEFAULT_LIMIT,
-    filter: selectedOptionFilter
+    filter: selectedOptionFilter,
+    sort: JSON.stringify({ accession: sortDirection }),
   });
 
   // Scroll up when the page is changed
@@ -351,7 +367,9 @@ const Browse = () => {
           {/* Table head with the names of each colum */}
           <TableHead className={style['table-head']}>
             <TableRow>
-              <TableCell className={style.center}>accession</TableCell>
+              <TableCell style={{display: 'flex'}} className={style.center}>accession
+                <Button className={style.sort} onClick={handleSortDirectionToggle}>{sortDirection === 1 ? "▼" : "▲"}</Button>
+              </TableCell>
               <TableCell className={style.center}>name</TableCell>
               <TableCell className={style.center}>preview</TableCell>
               <TableCell className={style.center}>analyses</TableCell>
