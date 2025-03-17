@@ -219,22 +219,22 @@ const Browse = () => {
   // State of the selected option
   const [ selectedOption, setSelectedOption ] = useState(search.option || all);
   // State for the sort direction
-  const [sortConfig, setSortConfig] = useState({ field: 'accession', direction: 1 }); // -1 for descending, 1 for ascending
+  const [sortConfig, setSortConfig] = useState({ field: 'added', direction: -1 }); // -1 for descending, 1 for ascending
   // State for the selected sort option and direction combined
   const [selectedSortOption, setSelectedSortOption] = useState(
     search.sortField && search.sortDirection 
       ? `${search.sortField}-${search.sortDirection}` 
-      : 'accession-asc'
+      : 'added-desc'
   );
 
   // Available sort options with both ascending and descending for each field
   const sortOptions = [
-    { value: 'accession-asc', label: 'Accession ▲', field: 'accession', direction: 'asc' },
     { value: 'accession-desc', label: 'Accession ▼', field: 'accession', direction: 'desc' },
-    { value: 'name-asc', label: 'Name ▲', field: 'name', direction: 'asc' },
+    { value: 'accession-asc', label: 'Accession ▲', field: 'accession', direction: 'asc' },
     { value: 'name-desc', label: 'Name ▼', field: 'name', direction: 'desc' },
-    { value: 'added-asc', label: 'Added Date ▲', field: 'added', direction: 'asc' },
+    { value: 'name-asc', label: 'Name ▲', field: 'name', direction: 'asc' },
     { value: 'added-desc', label: 'Added Date ▼', field: 'added', direction: 'desc' },
+    { value: 'added-asc', label: 'Added Date ▲', field: 'added', direction: 'asc' },
   ];
 
   // Handle when user clicks on the option selector
@@ -458,12 +458,12 @@ const Browse = () => {
             <TableRow>
               <TableCell className={style.center}>accession
                 <Button className={style.sort} onClick={() => handleSort('accession')}>
-                  {sortConfig.field === 'accession' ? (sortConfig.direction === 1 ? "▲" : "▼") : ""}
+                  {sortConfig.field === 'accession' ? (sortConfig.direction === 1 ? "▲" : "▼") : "⋮"}
                 </Button>
               </TableCell>
               <TableCell className={style.center}>name
                 <Button className={style.sort} onClick={() => handleSort('name')}>
-                  {sortConfig.field === 'name' ? (sortConfig.direction === 1 ? "▲" : "▼") : ""}
+                  {sortConfig.field === 'name' ? (sortConfig.direction === 1 ? "▲" : "▼") : "⋮"}
                 </Button>
               </TableCell>
               <TableCell className={style.center}>preview</TableCell>
