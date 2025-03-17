@@ -128,8 +128,6 @@ const Row = ({ projectData, highlight, index, previewUrl }) => {
       <TableCell className={style.center}> - </TableCell>
       {/* analyses */}
       <TableCell className={style.center}> - </TableCell>
-      {/* date */}
-      <TableCell className={style.center}> - </TableCell>
     </TableRow>
   );
 
@@ -199,9 +197,6 @@ const Row = ({ projectData, highlight, index, previewUrl }) => {
           ))}
       </TableCell>
       {/* date */}
-      <TableCell className={style.center}>
-        {project.creationDate ? project.creationDate : na}
-      </TableCell>
     </TableRow>
   );
 };
@@ -225,6 +220,22 @@ const Browse = () => {
   const [ selectedOption, setSelectedOption ] = useState(search.option || all);
   // State for the sort direction
   const [sortConfig, setSortConfig] = useState({ field: 'accession', direction: 1 }); // -1 for descending, 1 for ascending
+  // State for the selected sort option and direction combined
+  const [selectedSortOption, setSelectedSortOption] = useState(
+    search.sortField && search.sortDirection 
+      ? `${search.sortField}-${search.sortDirection}` 
+      : 'accession-asc'
+  );
+
+  // Available sort options with both ascending and descending for each field
+  const sortOptions = [
+    { value: 'accession-asc', label: 'Accession ▲', field: 'accession', direction: 'asc' },
+    { value: 'accession-desc', label: 'Accession ▼', field: 'accession', direction: 'desc' },
+    { value: 'name-asc', label: 'Name ▲', field: 'name', direction: 'asc' },
+    { value: 'name-desc', label: 'Name ▼', field: 'name', direction: 'desc' },
+    { value: 'added-asc', label: 'Added Date ▲', field: 'added', direction: 'asc' },
+    { value: 'added-desc', label: 'Added Date ▼', field: 'added', direction: 'desc' },
+  ];
 
   // Handle when user clicks on the option selector
   const handleChange = useCallback(
@@ -244,22 +255,52 @@ const Browse = () => {
       setSelectedOption(value);
     }, [location, search, setSelectedOption]
   );
-  // Handler for toggling sort direction
-  const handleSort = (field) => {
-    const newDirection = (field === sortConfig.field) ? sortConfig.direction * -1 : 1;
-    const newSortConfig = { field, direction: newDirection };
-    setSortConfig(newSortConfig);
+
+  // Handle combined sort option and direction change
+  const handleSortOptionChange = useCallback(({ target: { value } }) => {
+    setSelectedSortOption(value);
     
-    // Use metadata.NAME for name sorting
-    const sortField = field === 'name' ? 'metadata.NAME' : field;
+    const selectedOption = sortOptions.find(option => option.value === value);
+    if (selectedOption) {
+      applySorting(selectedOption.field, selectedOption.direction);
+    }
+  }, []);
+
+  // Apply the sorting with field and direction
+  const applySorting = (field, direction) => {
+    // Convert direction string to number (asc = 1, desc = -1)
+    const directionValue = direction === 'asc' ? 1 : -1;
+    
+    // Update the sort configuration
+    setSortConfig({ field, direction: directionValue });
+    
+    // Use metadata.NAME for name sorting, added for date sorting
+    let sortField = field;
+    if (field === 'name') sortField = 'metadata.NAME';
+    else if (field === 'added') sortField = '_id';
     
     history({
       ...location,
       search: stringify({
         ...search,
-        sort: JSON.stringify({ [sortField]: newDirection })
+        sort: JSON.stringify({ [sortField]: directionValue }),
+        sortField: field,
+        sortDirection: direction
       }),
     });
+  };
+
+  // Handler for toggling sort direction (used for column header clicks)
+  const handleSort = (field) => {
+    // If clicking the same field, toggle direction, otherwise use ascending
+    const currentDirection = sortConfig.field === field ? 
+      (sortConfig.direction === 1 ? 'desc' : 'asc') : 
+      'asc';
+    
+    // Set the combined sort option
+    setSelectedSortOption(`${field}-${currentDirection}`);
+    
+    applySorting(field, currentDirection);
   };
 
   // Get the options field from the host configuration
@@ -276,7 +317,9 @@ const Browse = () => {
     limit: search.limit || DEFAULT_LIMIT,
     filter: selectedOptionFilter,
     sort: JSON.stringify({ 
-      [sortConfig.field === 'name' ? 'metadata.NAME' : sortConfig.field]: sortConfig.direction 
+      [sortConfig.field === 'name' ? 'metadata.NAME' : 
+       sortConfig.field === 'added' ? '_id' : 
+       sortConfig.field]: sortConfig.direction 
     }),
   });
 
@@ -294,15 +337,22 @@ const Browse = () => {
         const direction = sortParam[field];
       
         // Map metadata.NAME back to 'name' for UI purposes
-        const uiField = field === 'metadata.NAME' ? 'name' : field;
+        let uiField = field;
+        if (field === 'metadata.NAME') uiField = 'name';
+        else if (field === '_id') uiField = 'added';
+        
+        // Set direction string based on number value
+        const dirString = direction === 1 ? 'asc' : 'desc';
         
         setSortConfig({ field: uiField, direction });
+        setSelectedSortOption(`${search.sortField || uiField}-${search.sortDirection || dirString}`);
       } catch (error) {
         // Handle invalid sort parameter
         console.error("Invalid sort parameter", error);
       }
     }
   }, [search.sort]);
+
   // Save the previous query payload
   // It is rendered in low opacity when the new query payload is empty
   const previousPayload = useRef(null);
@@ -374,9 +424,25 @@ const Browse = () => {
               ))}
             </Select>
           </FormControl>
-            
-          }          
+          }   
+          
+          <FormControl className={style.selector}>
+            <InputLabel>Sort by</InputLabel>
+            <Select
+              label="Sort by"
+              value={selectedSortOption}
+              onChange={handleSortOptionChange}
+              className={style.fillheight}
+            >
+              {sortOptions.map((option) => (
+                <MenuItem key={option.value} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </div>
+        
         {/* Render a 'no results' card when there are no results for the last search */}
         {!queryLoading && !queryPayload ? (
           <Card className={style['no-results-card']}>
@@ -392,17 +458,16 @@ const Browse = () => {
             <TableRow>
               <TableCell className={style.center}>accession
                 <Button className={style.sort} onClick={() => handleSort('accession')}>
-                  {sortConfig.field === 'accession' ? (sortConfig.direction === 1 ? "▼" : "▲") : "⋮"}
+                  {sortConfig.field === 'accession' ? (sortConfig.direction === 1 ? "▲" : "▼") : ""}
                 </Button>
               </TableCell>
               <TableCell className={style.center}>name
                 <Button className={style.sort} onClick={() => handleSort('name')}>
-                  {sortConfig.field === 'name' ? (sortConfig.direction === 1 ? "▼" : "▲") : "⋮"}
+                  {sortConfig.field === 'name' ? (sortConfig.direction === 1 ? "▲" : "▼") : ""}
                 </Button>
               </TableCell>
               <TableCell className={style.center}>preview</TableCell>
               <TableCell className={style.center}>analyses</TableCell>
-              <TableCell className={style.center}>added</TableCell>
             </TableRow>
           </TableHead>
           {/* Table body with the content, which is defined above in the Row constant */}
