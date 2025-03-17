@@ -200,9 +200,7 @@ const Row = ({ projectData, highlight, index, previewUrl }) => {
       </TableCell>
       {/* date */}
       <TableCell className={style.center}>
-        {project.addedOn 
-          ? new Date(project.addedOn).toLocaleDateString() 
-          : na}
+        {project.creationDate ? project.creationDate : na}
       </TableCell>
     </TableRow>
   );
@@ -404,7 +402,7 @@ const Browse = () => {
               </TableCell>
               <TableCell className={style.center}>preview</TableCell>
               <TableCell className={style.center}>analyses</TableCell>
-              <TableCell className={style.center}>date</TableCell>
+              <TableCell className={style.center}>added</TableCell>
             </TableRow>
           </TableHead>
           {/* Table body with the content, which is defined above in the Row constant */}

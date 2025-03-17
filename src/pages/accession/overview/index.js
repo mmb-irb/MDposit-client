@@ -40,7 +40,7 @@ const typeSettings = {
 
 
 const Overview = React.memo(() => {
-  const { accession, identifier, published, metadata, ligandReferences, proteinReferences, mdCount, node } = useContext(
+  const { accession, identifier, published, metadata, ligandReferences, proteinReferences, mdCount, node, creationDate } = useContext(
     ProjectCtx,
   );
 
@@ -580,6 +580,7 @@ const Overview = React.memo(() => {
             </div>
             <div>Internal project identifier: {identifier}</div>
             <div>Status: {published ? 'published' : 'unpublished'}</div>
+            <div>Addition date: {creationDate ? creationDate : 'Not available'}</div>
           </div>
         </CardContent>
       </Card>

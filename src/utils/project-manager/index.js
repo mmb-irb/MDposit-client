@@ -89,6 +89,8 @@ export class Project {
         this._topologyManager = null;
         // Set the project base URL to request the API
         this._apiBaseUrl = `${BASE_PATH_PROJECTS}/${this.accessionAndMdNumber}`;
+        // Set the creation date as a date object
+        this.creationDate = new Date(this.creationDate).toLocaleDateString('en-GB');
     }
     // Declare the different field endpoints to request the API
     _apiEndpoints = {
