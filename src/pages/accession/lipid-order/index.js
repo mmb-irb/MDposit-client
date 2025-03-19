@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState, useContext, useMemo, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useContext, useMemo, useEffect, useRef } from 'react';
 
 import {
   CardContent,
@@ -11,6 +11,7 @@ import {
   Checkbox,
   Tabs,
   Tab,
+  Typography,
 } from '@mui/material';
 
 import Card from '../../../components/animated-card';
@@ -32,12 +33,18 @@ const colors = ['black', 'red', 'orange', 'yellow', 'green', 'blue', 'purple'];
 
 const LipidOrder = () => {
   const { accession, accessionAndMdNumber} = useContext(ProjectCtx);
-
+  // Send a request to the API with the url of the specific analysis
   const {
     loading,
     payload,
     error,
   } = useAPI(`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/lipid-order/`);
+  // Get the membrane map
+  const {
+    loading: memMapLoading,
+    payload: memMapPayload,
+    error: memMapError,
+} = useAPI(`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/mem-map/`);
 
   // Add state for selected lipid type
   const [selectedLipid, setSelectedLipid] = useState(null);
@@ -46,7 +53,7 @@ const LipidOrder = () => {
   const [representations, setRepresentations] = useState(null);
   const [flipY, setFlipY] = useState(false);
   const [showStdDev, setShowStdDev] = useState(true);
-
+  const lipidResname = useRef(null);
 
   // Get available lipid types for tabs
   const lipidTypes = useMemo(() => {
@@ -62,14 +69,15 @@ const LipidOrder = () => {
   }, [lipidTypes, selectedLipid]);
 
   const orderParameters = useMemo(() => {
-    if (!payload || !selectedLipid) return {};
+    if (!payload || !selectedLipid || !memMapPayload || !memMapPayload.references) return {};
     
     const orderParams = {};
     const defaultDisplay = {};
-    
+    lipidResname.current = memMapPayload.references[selectedLipid].resname;
+
     const chains = payload.data[selectedLipid];
     Object.entries(chains).forEach(([chainId, chainData]) => {
-      const name = `${selectedLipid} tail ${parseInt(chainId) + 1}`;
+      const name = `${lipidResname.current} tail ${parseInt(chainId) + 1}`;
       const dataset = {
         data: chainData.avg.map(v => flipY ? -v : v),
         areaStdDev: chainData.std,
@@ -85,7 +93,7 @@ const LipidOrder = () => {
 
     setDisplay(defaultDisplay);
     return orderParams;
-  }, [payload, selectedLipid, flipY]);
+  }, [payload, selectedLipid, flipY, memMapPayload]);
 
   const maxStd = useMemo(() => {
     if (!orderParameters || !display) return 0;
@@ -100,16 +108,17 @@ const LipidOrder = () => {
   useEffect(() => {
     if (!display || !orderParameters) return;
     const reps = [{
-      'name': selectedLipid,
+      'name': lipidResname.current,
       'type': 'licorice',
       'color': 'orange',
       'opacity': 0.5,
-      'selection': `${selectedLipid}`,
+      'selection': `${lipidResname.current}`,
     }];
 
     if (xSelected !== null) {
       // Iterate through orderParameters[selectedLipid] dictionary keys
       Object.keys(orderParameters).forEach((tail, index) => {
+        console.log('tail'.tail)
         const atomName = orderParameters[tail].labels[xSelected];
         if (!atomName) return;
         reps.push({
@@ -117,7 +126,7 @@ const LipidOrder = () => {
         'type': 'ball+stick',
         'color': colors[index % colors.length],
         'opacity': 0.9,
-        'selection': `${selectedLipid} and .${atomName}`,
+        'selection': `${lipidResname.current} and .${atomName}`,
         'other': { radius: 0.3 },
         'show': display[tail],
         });
@@ -136,7 +145,7 @@ const LipidOrder = () => {
 
   if (loading) return <Loading />;
   if (error) return error.toString();
-  if (!payload) return 'Something bad happened with Lipid Order analysis';
+  if (!payload || !memMapPayload) return 'Something bad happened with Lipid Order analysis';
 
   const cents = num => Math.round(num * 100) / 100;
 
@@ -158,7 +167,17 @@ const LipidOrder = () => {
               <Tab
                 key={lipid}
                 value={lipid}
-                label={lipid}
+                label={
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <span >
+                      {memMapPayload?.references?.[lipid]?.resname || lipid}
+                    </span>
+                    <Typography variant="caption" color="text.secondary">
+                      {/* Add your subtitle here */}
+                      {memMapPayload?.references?.[lipid]?.lipidmaps.name || 'Lipid'}
+                    </Typography>
+                  </div>
+                }
               />
             ))}
           </Tabs>
