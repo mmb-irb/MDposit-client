@@ -312,7 +312,7 @@ const HOST_CONFIGURATIONS = {
         </>
     },
     // BioExcel covid19 development
-    'bioexcel-cv19-dev.bsc.es': {
+    'bioexcel-cv19-dev.mddbr.eu': {
         description: covidDescription,
         name: 'BioExcel - Covid19',
         favicon: 'bioexcel_favicon',
@@ -324,7 +324,7 @@ const HOST_CONFIGURATIONS = {
         options: ['covid'] // Enable covid specific analyses
     },
     // BioExcel covid19 production
-    'bioexcel-cv19.bsc.es': {
+    'bioexcel-cv19.mddbr.eu': {
         production: true,
         name: 'BioExcel - Covid19',
         favicon: 'bioexcel_favicon',
