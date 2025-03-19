@@ -191,7 +191,7 @@ const covidDescription = <>
 const HOST_CONFIGURATIONS = {
     // Testing
     'localhost': {
-        api: 'https://irb.mddbr.eu/api/rest/',
+        api: 'https://irb-dev.mddbr.eu/api/rest/',
         primaryColor: '#707070', // Grey
     },
     // MDposit development

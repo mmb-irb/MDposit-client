@@ -1209,7 +1209,7 @@ const NGLViewer = memo(
             previousComponent,
           );
         else {
-          stageRef.current.viewer.rotationGroup.rotateY(-1.57);
+          stageRef.current.viewer.rotationGroup.rotateY(-1.6);
         };
         var shape = new Shape("shape", {radialSegments: 10 });
         const boxCenter = mainComponent.object.center;
