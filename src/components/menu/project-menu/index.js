@@ -66,6 +66,7 @@ const tabs = [
         analyses: [
           'apl',
           'density',
+          'lipid-inter',
           'lipid-order',
           'thickness',
         ],
