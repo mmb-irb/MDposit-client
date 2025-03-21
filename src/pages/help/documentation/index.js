@@ -1565,6 +1565,56 @@ export const documentation = [
           </>
         ),
       },
+      {
+        id: 'lipid-inter',
+        header: 'Lipid-protein interactions',
+        body: (
+          <>
+            The lipid-protein interactions analysis identifies and quantifies interactions between protein residues 
+            and membrane lipids throughout the trajectory. This analysis helps identify preferential binding spots 
+            on the protein surface and characterize lipid binding patterns.
+            <br />
+            <br />
+            For each protein residue, the analysis calculates the frequency of interactions with different lipid types 
+            by counting the number of frames where any lipid atom comes within a 6 Å cutoff distance.
+            <br />
+            <br />
+            This analysis is powered by custom scripts developed with {' '}
+            <a
+              href="https://www.mdanalysis.org/"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              MDAnalysis
+            </a>{' '}.
+          </>
+        ),
+        page: (
+          <>
+            This is the Lipid-Protein Interactions analysis page.
+            <br />
+            <br />
+            This visualization shows how membrane lipids interact with the protein throughout the trajectory.
+            Select different lipid types using the tabs above to view their specific interaction patterns with
+            the protein.
+            <br />
+            <br />
+            The protein structure is colored according to the frequency of interactions with the selected lipid type.
+            The color gradient ranges from white (no interaction) through orange to dark red (high interaction frequency),
+            indicating how often each protein residue interacts with the selected lipid during the simulation.
+            <br />
+            <br />
+            Protein residues are considered to interact with a lipid when any lipid atom comes within a 6 Å distance
+            of the residue. The interaction frequency represents the proportion of analyzed frames where this 
+            interaction occurs.
+            <br />
+            <br />
+            The selected lipid type is also displayed in the viewer with an orange licorice representation, allowing
+            you to visualize its position relative to the protein. This helps identify binding sites and interpret
+            the colored interaction patterns on the protein surface.
+          </>
+        ),
+      },
     ],
   },
 

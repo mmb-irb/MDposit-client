@@ -67,7 +67,6 @@ const LipidInteractions = () => {
   // Set initial selected lipid when data loads
   useMemo(() => {
     if (lipidTypes.length && !selectedLipid) {
-      console.log(lipidTypes);
       setSelectedLipid(lipidTypes[0]);
     }
   }, [lipidTypes, selectedLipid]);
