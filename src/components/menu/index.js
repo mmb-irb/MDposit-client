@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import Button from '@mui/material/Button';
 
 import HomeIcon from '@mui/icons-material/Home';
-import WebIcon from '@mui/icons-material/Web';
 import SearchIcon from '@mui/icons-material/Search';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import TimelineIcon from '@mui/icons-material/Timeline';
@@ -32,19 +31,10 @@ export default () => (
         component={Link}
         color="inherit"
         to="/browse"
-        startIcon={<WebIcon />}
-        className={style.button}
-      >
-        Browse
-      </Button>
-      <Button
-        component={Link}
-        color="inherit"
-        to="/search"
         startIcon={<SearchIcon />}
         className={style.button}
       >
-        Search
+        Browse
       </Button>
       <Button
         component="a"

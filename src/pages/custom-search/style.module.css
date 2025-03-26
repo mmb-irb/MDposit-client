@@ -1,9 +1,15 @@
 .tall {
   min-height: 70vh;
+  box-shadow: none;
+}
+
+.advanced {
+  font-size: 14px;
+  padding: 0 0 16px 16px;
 }
 
 .margined {
-  margin: 1em;
+  margin: 0 0.5em;
 }
 
 .spaced {
@@ -39,14 +45,17 @@
   padding-right: 0.3em;
 }
 
-.section {
-  margin: 1em 0;
+.accordion{
+  box-shadow: none;
+
 }
 
 .summary {
-  font-size: large;
-  font-weight: bold;
   cursor: pointer;
+}
+
+.section {
+  padding: 0 16px 0;
 }
 
 .aligned {

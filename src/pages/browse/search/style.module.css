@@ -1,5 +1,5 @@
 .searchbar {
-  width: 100%;
+  flex: 2;
   height: 100%;
 }
 

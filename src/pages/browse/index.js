@@ -8,6 +8,7 @@ import React, {
   useState
 } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import CustomSearch from '../custom-search';
 
 // String managers
 import { parse, stringify } from 'qs';
@@ -410,52 +411,56 @@ const Browse = () => {
   // When success
   return (
     <Card>
-      <CardContent className={style.minheight}>
-        <div className={style.horizontal}>
-          <Search/>
-          {optionsField && <FormControl className={style.selector}>
-            <InputLabel>{HOST_CONFIG.optionsLabel}</InputLabel>
-            <Select
-              label={HOST_CONFIG.optionsLabel}
-              value={selectedOption !== all ? selectedOption : ''}
-              onChange={handleChange}
-              className={style.fillheight}
-            >
-              {availableOptions.map((value, i) => (
-                <MenuItem key={i} value={value}>
-                  {HOST_CONFIG.optionsNiceNames[value] || value}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          }   
-          
-          <FormControl className={style.selector}>
-            <InputLabel>Sort by</InputLabel>
-            <Select
-              label="Sort by"
-              value={selectedSortOption}
-              onChange={handleSortOptionChange}
-              className={style.fillheight}
-            >
-              {sortOptions.map((option) => (
-                <MenuItem key={option.value} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+      <CardContent className={style.browser}>
+        <div className={style['left-bar']}>
+          <CustomSearch /> {/* Add the CustomSearch component */}
         </div>
-        
-        {/* Render a 'no results' card when there are no results for the last search */}
-        {!queryLoading && !queryPayload ? (
-          <Card className={style['no-results-card']}>
-            <Typography variant="h5" className={style['no-results-text']}>
-              No results were found
-            </Typography>
-          </Card>
-        ) : []}
-        <Table>
+        <div  className={style['right-bar']}>
+          <div className={style.search}>
+            <Search/>
+            {optionsField && <FormControl className={style.selector}>
+              <InputLabel>{HOST_CONFIG.optionsLabel}</InputLabel>
+              <Select
+                label={HOST_CONFIG.optionsLabel}
+                value={selectedOption !== all ? selectedOption : ''}
+                onChange={handleChange}
+                className={style.fillheight}
+              >
+                {availableOptions.map((value, i) => (
+                  <MenuItem key={i} value={value}>
+                    {HOST_CONFIG.optionsNiceNames[value] || value}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            }   
+            
+            <FormControl className={style.selector}>
+              <InputLabel>Sort by</InputLabel>
+              <Select
+                label="Sort by"
+                value={selectedSortOption}
+                onChange={handleSortOptionChange}
+                className={style.fillheight}
+              >
+                {sortOptions.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </div>
+          
+          {/* Render a 'no results' card when there are no results for the last search */}
+          {!queryLoading && !queryPayload ? (
+            <Card className={style['no-results-card']}>
+              <Typography variant="h5" className={style['no-results-text']}>
+                No results were found
+              </Typography>
+            </Card>
+          ) : []}
+          <Table>
           {/*className={cn({ [style['invalid-results']]: !queryPayload })} */}
           {/* Table head with the names of each colum */}
           <TableHead className={style['table-head']}>
@@ -540,7 +545,8 @@ const Browse = () => {
               />
             </TableRow>
           </TableFooter>
-        </Table>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   );

@@ -90,17 +90,34 @@ th.center {
   font-size: small;
 }
 
-.horizontal {
+.browser {
   display: flex;
-  flex-direction: row;
-  margin-bottom: 1em;
+  align-items: flex-start; /* align items to the top */
+  padding-left: 0;
 }
 
+.left-bar {
+  width: 20%;
+}
+
+.right-bar {
+  width: 80%;
+}
+.search {
+  width: 100%;
+  display: flex;
+}
+
+
 .selector {
-  width: 60%; /* this percent is competing with the 100% of the search bar */
+  flex: 1;
+  width: 40%; /* this percent is competing with the 100% of the search bar */
   margin-left: 1em;
 }
 
 .fillheight {
   height: 100%;
 }
+
+
+

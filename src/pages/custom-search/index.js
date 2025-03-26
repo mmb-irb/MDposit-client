@@ -193,205 +193,216 @@ const CustomSearch = () => {
   // Here is where queries are built by the user
   return (
     <Card className={style.tall}>
-      <CardContent>
-        Use the <b>search</b> menu to create a specific query.
+      <CardContent style={{ paddingLeft: '0' }}>
+        <div className={style.advanced}>Use the <b>search</b> menu to create a specific query.
         Go to{' '} <a href="/#/advanced-search">advanced search</a> for a most complex query.
-        <hr style={{ color: 'lightGrey' }} />
+        </div>
         {Object.entries(queryFields).map(([category, fields], c) => {
-          return <div key={c}>
-            <Typography variant='h5' className={style.margined}>{category}</Typography>
-            {fields.map((field, f) => (
-              <Accordion key={f} defaultExpanded={field.defaultOpen || field.path in query}>
-                <AccordionSummary className={style.summary}>{field.name}</AccordionSummary>
-                <AccordionDetails className={style.section}>
-                  {(() => {
-                    // Get the corresponding payload
-                    if (!optionsPayload) return <Loading />;
-                    // Save the current queries
-                    const currentQuery = query;
-                    // In case it is a field with options (i.e. input is specified through checkboxes)
-                    if (field.options) {
-                      const fieldData = optionsPayload[field.path];
-                      // In case we have nulls or undefineds we merge them in a single 'Not defined' field
-                      let notDefined = 0;
-                      if (fieldData.null) {
-                        notDefined += fieldData.null;
-                        delete fieldData.null;
-                      }
-                      // DANI: De momento los not defined se descartan y ya
-                      // DANI: Está bien poder ver cuantos 'not defined' hay en cada campo, el problema es que la query no va
-                      // DANI: Es complicado dar soporte a esto por los muchos formatos en los campos y los muchos tipos de faltas
-                      // DANI: Not defined puede ser una lista vacía, un null, etc.
-                      //if (notDefined > 0) fieldData[naTag] = notDefined;
-                      // If the field values are set to be selectable as checkboxes
-                      if (field.checkbox) {
-                        // For each entry generate a checkbox
-                        const entries = Object.entries(fieldData).sort(([aKey, aCount], [bKey, bCount]) => bCount - aCount);
-                        return entries.map(([option, count], i) => (
-                          <FormControlLabel
-                            key={i}
-                            onChange={({ target: { checked } }) => {
-                              if (checked) {
-                                if (currentQuery[field.path])
-                                  currentQuery[field.path].push(option);
-                                else currentQuery[field.path] = [option];
-                              } else {
-                                const currentIndex = currentQuery[field.path].indexOf(
-                                  option,
-                                );
-                                currentQuery[field.path].splice(currentIndex, 1);
-                                if (currentQuery[field.path].length === 0)
-                                  delete currentQuery[field.path];
-                              }
-                            }}
-                            control={
-                              <Checkbox
-                                defaultChecked={
-                                  currentQuery[field.path] &&
-                                  currentQuery[field.path].indexOf(option) !== -1
-                                }
-                                style={{ color: 'black' }}
-                                inputProps={{ 'data-key': option }}
-                              />
+          return (
+            <Accordion key={c} defaultExpanded={false} disableGutters="true">
+              <AccordionSummary 
+                expandIcon={<FontAwesomeIcon icon="chevron-down" />} 
+                className={style.categorySummary}
+              >
+                <Typography variant='h6' className={style.margined}>{category}</Typography>
+              </AccordionSummary>
+              <AccordionDetails  className={style.section}>
+                <div>
+                  {fields.map((field, f) => (
+                    <Accordion key={f}  className={style.accordion} disableGutters="true" defaultExpanded={field.defaultOpen || field.path in query}>
+                      <AccordionSummary className={style.summary}>{field.name}</AccordionSummary>
+                      <AccordionDetails>
+                        {(() => {
+                          // Get the corresponding payload
+                          if (!optionsPayload) return <Loading />;
+                          // Save the current queries
+                          const currentQuery = query;
+                          // In case it is a field with options (i.e. input is specified through checkboxes)
+                          if (field.options) {
+                            const fieldData = optionsPayload[field.path];
+                            // In case we have nulls or undefineds we merge them in a single 'Not defined' field
+                            let notDefined = 0;
+                            if (fieldData.null) {
+                              notDefined += fieldData.null;
+                              delete fieldData.null;
                             }
-                            label={`${option} (${count})`}
-                            style={{ color: 'black' }}
-                            //className={style.outlined}
-                          />
-                        ));
-                      }
-                      else {
-                        const handleInputChange = ({ target: { value } }) => {
-                          currentQuery[field.path] = value;
-                          if (value === '') delete currentQuery[field.path];
-                        };
-                        const options = Object.entries(fieldData).map(
-                          ([value, count]) => ({ label: value, count })
-                        ).sort((a, b) => b.count - a.count);
-                        return (
-                          <div className={style.aligned}>
-                            Contains{' '}
-                            <Autocomplete
-                              options={options}
-                              getOptionLabel={option => option.label}
-                              renderOption={(props, option) => <li {...props}>{option.label + ' (' + option.count + ')'}</li>}
-                              sx={{ width: '50vh' }}
-                              clearOnBlur={false}
-                              renderInput={(params) => 
-                                <TextField
-                                  {...params}
-                                  title={'Type here the value for the specified field'}
-                                  defaultValue={currentQuery[field.path]}
-                                  // When pressing enter
-                                  onKeyPress={event => {
-                                    if (event.key === 'Enter') handleInputChange(event);
+                            // DANI: De momento los not defined se descartan y ya
+                            // DANI: Está bien poder ver cuantos 'not defined' hay en cada campo, el problema es que la query no va
+                            // DANI: Es complicado dar soporte a esto por los muchos formatos en los campos y los muchos tipos de faltas
+                            // DANI: Not defined puede ser una lista vacía, un null, etc.
+                            //if (notDefined > 0) fieldData[naTag] = notDefined;
+                            // If the field values are set to be selectable as checkboxes
+                            if (field.checkbox) {
+                              // For each entry generate a checkbox
+                              const entries = Object.entries(fieldData).sort(([aKey, aCount], [bKey, bCount]) => bCount - aCount);
+                              return entries.map(([option, count], i) => (
+                                <FormControlLabel
+                                  key={i}
+                                  onChange={({ target: { checked } }) => {
+                                    if (checked) {
+                                      if (currentQuery[field.path])
+                                        currentQuery[field.path].push(option);
+                                      else currentQuery[field.path] = [option];
+                                    } else {
+                                      const currentIndex = currentQuery[field.path].indexOf(
+                                        option,
+                                      );
+                                      currentQuery[field.path].splice(currentIndex, 1);
+                                      if (currentQuery[field.path].length === 0)
+                                        delete currentQuery[field.path];
+                                    }
                                   }}
-                                  // When clicking out, pressing tabulator, etc.
-                                  onBlur={handleInputChange}
-                                  placeholder={'e.g. ' + field.example}
-                                  className={style.spaced}
-                                />}
-                            />
-                          </div>
-                        );
-                      }
-                    }
-                    // In case it is a field without options (i.e. input is specified through a textfield)
-                    else {
-                      // If the field is a string we show a unique textfield
-                      if (field.type === 'string') {
-                        const handleInputChange = ({ target: { value } }) => {
-                          currentQuery[field.path] = value;
-                          if (value === '') delete currentQuery[field.path];
-                        };
-                        return (
-                          <div className={style.aligned}>
-                            Contains{' '}
-                            <TextField
-                              title={'Type here the value for the specified field'}
-                              defaultValue={currentQuery[field.path]}
-                              // When pressing enter
-                              onKeyPress={event => {
-                                if (event.key === 'Enter') handleInputChange(event);
-                              }}
-                              // When clicking out, pressing tabulator, etc.
-                              onBlur={handleInputChange}
-                              placeholder={'e.g. ' + field.example}
-                              inputProps={{ inputMode: 'text' }}
-                              className={style.spaced}
-                            />
-                          </div>
-                        );
-                      }
-                      // Otherwise it must be a number, since booleans will always be in options
-                      // Then show two textfields: one for the minimum and one for the maximum
-                      else {
-                        const handleInputChange = ({ target: { value } }, side) => {
-                          if (value === '') {
-                            if (!currentQuery[field.path]) return;
-                            if (!currentQuery[field.path][side]) return;
-                            delete currentQuery[field.path][side];
-                            if (Object.keys(currentQuery[field.path]).length === 0)
-                              delete currentQuery[field.path];
-                          } else {
-                            if (!currentQuery[field.path])
-                              return (currentQuery[field.path] = { [side]: value });
-                            currentQuery[field.path][side] = value;
+                                  control={
+                                    <Checkbox
+                                      defaultChecked={
+                                        currentQuery[field.path] &&
+                                        currentQuery[field.path].indexOf(option) !== -1
+                                      }
+                                      style={{ color: 'black' }}
+                                      inputProps={{ 'data-key': option }}
+                                    />
+                                  }
+                                  label={`${option} (${count})`}
+                                  style={{ color: 'black' }}
+                                  //className={style.outlined}
+                                />
+                              ));
+                            }
+                            else {
+                              const handleInputChange = ({ target: { value } }) => {
+                                currentQuery[field.path] = value;
+                                if (value === '') delete currentQuery[field.path];
+                              };
+                              const options = Object.entries(fieldData).map(
+                                ([value, count]) => ({ label: value, count })
+                              ).sort((a, b) => b.count - a.count);
+                              return (
+                                <div className={style.aligned}>
+                                  Contains{' '}
+                                  <Autocomplete
+                                    options={options}
+                                    getOptionLabel={option => option.label}
+                                    renderOption={(props, option) => <li {...props}>{option.label + ' (' + option.count + ')'}</li>}
+                                    sx={{ width: '50vh' }}
+                                    clearOnBlur={false}
+                                    renderInput={(params) => 
+                                      <TextField
+                                        {...params}
+                                        title={'Type here the value for the specified field'}
+                                        defaultValue={currentQuery[field.path]}
+                                        // When pressing enter
+                                        onKeyPress={event => {
+                                          if (event.key === 'Enter') handleInputChange(event);
+                                        }}
+                                        // When clicking out, pressing tabulator, etc.
+                                        onBlur={handleInputChange}
+                                        placeholder={'e.g. ' + field.example}
+                                        className={style.spaced}
+                                      />}
+                                  />
+                                </div>
+                              );
+                            }
                           }
-                        };
-                        return (
-                          <div className={style.aligned}>
-                            Greater than{' '}
-                            <TextField
-                              title={'Type here the value for the specified field'}
-                              defaultValue={
-                                currentQuery[field.path] &&
-                                currentQuery[field.path].min
-                              }
-                              // When pressing enter
-                              onKeyPress={event => {
-                                if (event.key === 'Enter')
-                                  handleInputChange(event, 'min');
-                              }}
-                              // When clicking out, pressing tabulator, etc.
-                              onBlur={event => handleInputChange(event, 'min')}
-                              placeholder={'e.g. ' + field.example}
-                              inputProps={{
-                                inputMode: 'numeric',
-                                pattern: '[0-9.,+-]*',
-                              }}
-                              className={style.spaced}
-                            />{' '}
-                            and lower than{' '}
-                            <TextField
-                              title={'Type here the value for the specified field'}
-                              defaultValue={
-                                currentQuery[field.path] &&
-                                currentQuery[field.path].max
-                              }
-                              // When pressing enter
-                              onKeyPress={event => {
-                                if (event.key === 'Enter')
-                                  handleInputChange(event, 'max');
-                              }}
-                              // When clicking out, pressing tabulator, etc.
-                              onBlur={event => handleInputChange(event, 'max')}
-                              placeholder={'e.g. ' + field.example}
-                              inputProps={{
-                                inputMode: 'numeric',
-                                pattern: '[0-9.,+-]*',
-                              }}
-                              className={style.spaced}
-                            />
-                          </div>
-                        );
-                      }
-                    }
-                  })()}
-                </AccordionDetails>
-              </Accordion>
-            ))}
-          </div>
+                          // In case it is a field without options (i.e. input is specified through a textfield)
+                          else {
+                            // If the field is a string we show a unique textfield
+                            if (field.type === 'string') {
+                              const handleInputChange = ({ target: { value } }) => {
+                                currentQuery[field.path] = value;
+                                if (value === '') delete currentQuery[field.path];
+                              };
+                              return (
+                                <div className={style.aligned}>
+                                  Contains{' '}
+                                  <TextField
+                                    title={'Type here the value for the specified field'}
+                                    defaultValue={currentQuery[field.path]}
+                                    // When pressing enter
+                                    onKeyPress={event => {
+                                      if (event.key === 'Enter') handleInputChange(event);
+                                    }}
+                                    // When clicking out, pressing tabulator, etc.
+                                    onBlur={handleInputChange}
+                                    placeholder={'e.g. ' + field.example}
+                                    inputProps={{ inputMode: 'text' }}
+                                    className={style.spaced}
+                                  />
+                                </div>
+                              );
+                            }
+                            // Otherwise it must be a number, since booleans will always be in options
+                            // Then show two textfields: one for the minimum and one for the maximum
+                            else {
+                              const handleInputChange = ({ target: { value } }, side) => {
+                                if (value === '') {
+                                  if (!currentQuery[field.path]) return;
+                                  if (!currentQuery[field.path][side]) return;
+                                  delete currentQuery[field.path][side];
+                                  if (Object.keys(currentQuery[field.path]).length === 0)
+                                    delete currentQuery[field.path];
+                                } else {
+                                  if (!currentQuery[field.path])
+                                    return (currentQuery[field.path] = { [side]: value });
+                                  currentQuery[field.path][side] = value;
+                                }
+                              };
+                              return (
+                                <div className={style.aligned}>
+                                  Greater than{' '}
+                                  <TextField
+                                    title={'Type here the value for the specified field'}
+                                    defaultValue={
+                                      currentQuery[field.path] &&
+                                      currentQuery[field.path].min
+                                    }
+                                    // When pressing enter
+                                    onKeyPress={event => {
+                                      if (event.key === 'Enter')
+                                        handleInputChange(event, 'min');
+                                    }}
+                                    // When clicking out, pressing tabulator, etc.
+                                    onBlur={event => handleInputChange(event, 'min')}
+                                    placeholder={'e.g. ' + field.example}
+                                    inputProps={{
+                                      inputMode: 'numeric',
+                                      pattern: '[0-9.,+-]*',
+                                    }}
+                                    className={style.spaced}
+                                  />{' '}
+                                  and lower than{' '}
+                                  <TextField
+                                    title={'Type here the value for the specified field'}
+                                    defaultValue={
+                                      currentQuery[field.path] &&
+                                      currentQuery[field.path].max
+                                    }
+                                    // When pressing enter
+                                    onKeyPress={event => {
+                                      if (event.key === 'Enter')
+                                        handleInputChange(event, 'max');
+                                    }}
+                                    // When clicking out, pressing tabulator, etc.
+                                    onBlur={event => handleInputChange(event, 'max')}
+                                    placeholder={'e.g. ' + field.example}
+                                    inputProps={{
+                                      inputMode: 'numeric',
+                                      pattern: '[0-9.,+-]*',
+                                    }}
+                                    className={style.spaced}
+                                  />
+                                </div>
+                              );
+                            }
+                          }
+                        })()}
+                      </AccordionDetails>
+                    </Accordion>
+                  ))}
+                </div>
+              </AccordionDetails>
+            </Accordion>
+          );
         })}
         <div className={style.button}>
           <Button variant="contained" onClick={parseAndSearch} className={style.search}>
