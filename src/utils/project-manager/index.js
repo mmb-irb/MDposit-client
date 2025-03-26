@@ -91,6 +91,7 @@ export class Project {
         this._apiBaseUrl = `${BASE_PATH_PROJECTS}/${this.accessionAndMdNumber}`;
         // Set the creation date as a date object
         this.creationDate = new Date(this.creationDate).toLocaleDateString('en-GB');
+        this.updateDate = this.updateDate ? new Date(this.updateDate).toLocaleDateString('en-GB') : undefined;
     }
     // Declare the different field endpoints to request the API
     _apiEndpoints = {

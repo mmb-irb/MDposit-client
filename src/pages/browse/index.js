@@ -235,6 +235,8 @@ const Browse = () => {
     { value: 'name-asc', label: 'Name ▲', field: 'name', direction: 'asc' },
     { value: 'added-desc', label: 'Added Date ▼', field: 'added', direction: 'desc' },
     { value: 'added-asc', label: 'Added Date ▲', field: 'added', direction: 'asc' },
+    { value: 'updateDate-desc', label: 'Update Date ▼', field: 'updateDate', direction: 'desc' },
+    { value: 'updateDate-asc', label: 'Update Date ▲', field: 'updateDate', direction: 'asc' },
   ];
 
   // Handle when user clicks on the option selector
@@ -274,10 +276,11 @@ const Browse = () => {
     // Update the sort configuration
     setSortConfig({ field, direction: directionValue });
     
-    // Use metadata.NAME for name sorting, added for date sorting
+    // Use metadata.NAME for name sorting, added for date sorting, updateDate for update date sorting
     let sortField = field;
     if (field === 'name') sortField = 'metadata.NAME';
     else if (field === 'added') sortField = '_id';
+    else if (field === 'updateDate') sortField = 'updateDate';
     
     history({
       ...location,
@@ -340,6 +343,7 @@ const Browse = () => {
         let uiField = field;
         if (field === 'metadata.NAME') uiField = 'name';
         else if (field === '_id') uiField = 'added';
+        else if (field === 'updateDate') uiField = 'updateDate';
         
         // Set direction string based on number value
         const dirString = direction === 1 ? 'asc' : 'desc';
