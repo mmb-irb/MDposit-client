@@ -12,10 +12,8 @@
   margin: 0 0.5em;
 }
 
-.spaced {
-  width: 50vh;
-  margin-left: 0.5em;
-  margin-right: 0.5em;
+.spaced > div {
+  font-size: 0.9em;
 }
 
 .trash {
@@ -52,6 +50,15 @@
 
 .summary {
   cursor: pointer;
+  min-height: 0;
+}
+
+.summary > div {
+  margin: 10px 0;
+}
+
+.section > div .accordion:first-child > div > div{
+  margin: 0 0 10px 0;
 }
 
 .section {
@@ -71,4 +78,8 @@
 
 .search {
   margin-right: 1em;
+}
+
+.accordion div:has(.aligned){
+  padding:0;
 }

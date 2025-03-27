@@ -278,7 +278,6 @@ const CustomSearch = () => {
                               ).sort((a, b) => b.count - a.count);
                               return (
                                 <div className={style.aligned}>
-                                  Contains{' '}
                                   <Autocomplete
                                     options={options}
                                     getOptionLabel={option => option.label}
@@ -314,7 +313,6 @@ const CustomSearch = () => {
                               };
                               return (
                                 <div className={style.aligned}>
-                                  Contains{' '}
                                   <TextField
                                     title={'Type here the value for the specified field'}
                                     defaultValue={currentQuery[field.path]}
@@ -349,7 +347,6 @@ const CustomSearch = () => {
                               };
                               return (
                                 <div className={style.aligned}>
-                                  Greater than{' '}
                                   <TextField
                                     title={'Type here the value for the specified field'}
                                     defaultValue={
@@ -369,8 +366,8 @@ const CustomSearch = () => {
                                       pattern: '[0-9.,+-]*',
                                     }}
                                     className={style.spaced}
-                                  />{' '}
-                                  and lower than{' '}
+                                  />
+                                  <span style={{padding: '3px'}}>-</span>
                                   <TextField
                                     title={'Type here the value for the specified field'}
                                     defaultValue={
