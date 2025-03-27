@@ -199,7 +199,7 @@ const CustomSearch = () => {
         </div>
         {Object.entries(queryFields).map(([category, fields], c) => {
           return (
-            <Accordion key={c} defaultExpanded={false} disableGutters="true">
+            <Accordion key={c} defaultExpanded={true} disableGutters="true" className={style['category']}>
               <AccordionSummary 
                 expandIcon={<FontAwesomeIcon icon="chevron-down" />} 
                 className={style.categorySummary}
