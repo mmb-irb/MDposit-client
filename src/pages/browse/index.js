@@ -8,7 +8,7 @@ import React, {
   useState
 } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import CustomSearch from '../custom-search';
+import CustomSearch from './custom-search';
 
 // String managers
 import { parse, stringify } from 'qs';
