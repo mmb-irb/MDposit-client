@@ -1,5 +1,5 @@
 // React
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { debounce } from 'lodash-es';
 import { parse } from 'qs';
@@ -20,8 +20,6 @@ import {
   AccordionDetails,
   Typography
 } from '@mui/material';
-import { faSearch } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 // CSS styles
 import style from './style.module.css';
@@ -143,9 +141,14 @@ const parseUrlQuery = (urlQuery) => {
 // Parse the query to an HTML string which may be passed as an URL
 // Note that this function is called only at the end, when the search button is pressed
 // The actual query is build below in the code
-const parseQuery = currentQuery => {
+const parseQuery = (currentQuery, currentLocation) => {
   // If the query is empty then do not search
   if (Object.keys(currentQuery).length === 0) return;
+  // Parse current URL parameters to preserve them
+  const currentParams = parse(decodeURIComponent(currentLocation.search), {
+    ignoreQueryPrefix: true,
+    decoder: c => c,
+  });
   // Set a function to parse our queries to a mongo query object
   const parsedQuery = {};
   let errors = 0;
@@ -218,8 +221,24 @@ const parseQuery = currentQuery => {
   // This may happen when a numeric textfield has text
   if (errors > 0) return;
 
-  // Return the query made a single URL string
-  return '/browse?query=' + JSON.stringify(parsedQuery);
+  // Create params object with preserved sort parameters
+  const params = {
+    query: JSON.stringify(parsedQuery),
+    // Preserve sort parameters
+    sort: currentParams.sort,
+    sortField: currentParams.sortField,
+    sortDirection: currentParams.sortDirection
+  };
+
+  // Filter out undefined values
+  Object.keys(params).forEach(key => 
+    params[key] === undefined && delete params[key]
+  );
+
+  // Return the query as a URL string with preserved parameters
+  return '/browse?' + Object.entries(params)
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+    .join('&');
 };
 
 // Set the tag to be shown for null and undefined values
@@ -241,50 +260,36 @@ const CustomSearch = () => {
   const urlParams = parse(location.search, { ignoreQueryPrefix: true });
   const urlQuery = urlParams.query;
   
-  // Initialize or get the stored query
-  if (!storedQueries[location.key]) {
-    // If we have a query in the URL, parse it
-    if (urlQuery) {
-      storedQueries[location.key] = parseUrlQuery(urlQuery);
-    } else {
-      storedQueries[location.key] = {};
-    }
-  }
+  // Initialize the query based on URL or empty object
+  const initialQuery = urlQuery ? parseUrlQuery(urlQuery) : {};
+  // Use URL search params as a dependency for state
+  const [query, setQuery] = useState(initialQuery);
+  const [queryUpdated, setQueryUpdated] = useState(false);
+  // Track whether search was triggered by user action or URL change
+  const isUserInitiatedSearchRef = useRef(false);
 
-  // Save the query
-  const [query] = useState(storedQueries[location.key]);
+  // Reset query when URL changes
+  useEffect(() => {
+    if (!urlQuery) {
+      // Clear the query when there's no query parameter in URL
+      setQuery({});
+    } else {
+      // Update query with parsed URL data
+      setQuery(parseUrlQuery(urlQuery));
+    }
+  }, [location.search, urlQuery]);
 
   // Make a function to parse the query once built and browse
   const parseAndSearch = () => {
-    const browseURL = parseQuery(query);
+    isUserInitiatedSearchRef.current = true; // Set the ref instead of state
+    const browseURL = parseQuery(query, location);
     history(browseURL);
   };
 
   // Create a debounced version of the parseAndSearch function
   const debouncedParseAndSearch = debounce(parseAndSearch, DEBOUNCE_DELAY);
-
   // Cleanup the debounced function when component unmounts
-  useEffect(() => {
-    return () => {
-      debouncedParseAndSearch.cancel();
-    };
-  }, []);
-
-  // Add event handler for Enter key
-  useEffect(() => {
-    const handleKeyPress = (event) => {
-      if (event.key === 'Enter') {
-        // Cancel any pending debounced search and execute immediately
-        debouncedParseAndSearch.cancel();
-        parseAndSearch();
-      }
-    };
-
-    document.addEventListener('keypress', handleKeyPress);
-    return () => {
-      document.removeEventListener('keypress', handleKeyPress);
-    };
-  }, []);
+  useEffect(() => debouncedParseAndSearch.cancel(), []);
 
   // Query all the available fields using the 'options' endpoint
   const projectionStrings = availableFields.filter(field => field.options).map(field => 'projection=' + field.path);
@@ -296,8 +301,120 @@ const CustomSearch = () => {
   const optionsUrl = `${BASE_PATH_PROJECTS}/options?${projectionQuery}`;
   const { payload: optionsPayload, error: optionsError } = useAPI(optionsUrl);
 
+  // State to track expanded accordions
+  const [expandedCategory, setExpandedCategory] = useState(true);
+  const [expandedFields, setExpandedFields] = useState({});
+
+  // Initialize expanded state based on URL query
+  useEffect(() => {
+      // Initialize category accordions as expanded
+      const initialCategoryState = {};
+      Object.keys(queryFields).forEach((category) => {
+        initialCategoryState[category] = true;
+      });
+      setExpandedCategory(initialCategoryState);
+      
+      // Initialize field accordions based on defaultOpen only (since query is empty)
+      const initialFieldState = {};
+      Object.values(queryFields).flat().forEach(field => {
+        initialFieldState[field.path] = field.defaultOpen || field.path in query;
+      });
+      setExpandedFields(initialFieldState);
+  }, []);
+
+  useEffect(() => {
+    // Only reset accordions if URL was cleared externally (not by user action)
+    if (!urlQuery && !isUserInitiatedSearchRef.current) {
+      // Initialize category accordions as expanded
+      const initialCategoryState = {};
+      Object.keys(queryFields).forEach((category) => {
+        initialCategoryState[category] = true;
+      });
+      setExpandedCategory(initialCategoryState);
+      
+      // Initialize field accordions based on defaultOpen only (since query is empty)
+      const initialFieldState = {};
+      Object.values(queryFields).flat().forEach(field => {
+        initialFieldState[field.path] = field.defaultOpen || false;
+      });
+      setExpandedFields(initialFieldState);
+    }
+  }, [urlQuery]);
+
+  useEffect(() => {
+    // This will run after navigation has completed
+    if (!urlQuery && isUserInitiatedSearchRef.current) {
+      isUserInitiatedSearchRef.current = false;
+    }
+  }, [location.key]); // Use location.key which changes on every navigation
+  
+  // Handle category accordion changes
+  const handleCategoryChange = (category) => (event, isExpanded) => {
+    setExpandedCategory({
+      ...expandedCategory,
+      [category]: isExpanded
+    });
+  };
+
+  // Handle field accordion changes
+  const handleFieldChange = (fieldPath) => (event, isExpanded) => {
+    setExpandedFields({
+      ...expandedFields,
+      [fieldPath]: isExpanded
+    });
+  };
   // Stop here if any of the requests failed
   if (optionsError) return optionsError.toString();
+
+  // Helper function to update query state and trigger search
+  const updateQueryValue = (fieldPath, value, options = {}) => {
+    const { isArray = false, isRange = false, rangeSide = null } = options;
+    
+    if (isArray) {
+      // Handle checkbox arrays
+      if (!query[fieldPath]) {
+        query[fieldPath] = [value];
+      } else if (Array.isArray(query[fieldPath])) {
+        const index = query[fieldPath].indexOf(value);
+        if (index === -1) {
+          query[fieldPath].push(value);
+        } else {
+          query[fieldPath].splice(index, 1);
+          if (query[fieldPath].length === 0) {
+            delete query[fieldPath];
+          }
+        }
+      }
+    } else if (isRange) {
+      // Handle numeric ranges
+      if (value === '') {
+        if (!query[fieldPath]) return;
+        if (query[fieldPath][rangeSide]) {
+          delete query[fieldPath][rangeSide];
+          if (Object.keys(query[fieldPath]).length === 0) {
+            delete query[fieldPath];
+          }
+        }
+      } else {
+        if (!query[fieldPath]) {
+          query[fieldPath] = { [rangeSide]: value };
+        } else {
+          query[fieldPath][rangeSide] = value;
+        }
+      }
+    } else {
+      // Handle simple string values
+      if (value === '') {
+        delete query[fieldPath];
+      } else {
+        query[fieldPath] = value;
+      }
+    }
+    
+    // Trigger state update and search
+    setQueryUpdated(prev => !prev);
+    debouncedParseAndSearch();
+  };
 
   // Here is where queries are built by the user
   return (
@@ -308,7 +425,13 @@ const CustomSearch = () => {
         </div>
         {Object.entries(queryFields).map(([category, fields], c) => {
           return (
-            <Accordion key={c} defaultExpanded={true} disableGutters={true} className={style['category']}>
+            <Accordion 
+              key={c} 
+              expanded={!!expandedCategory[category]}
+              onChange={handleCategoryChange(category)} 
+              disableGutters={true} 
+              className={style['category']}
+            >
               <AccordionSummary 
                 className={style.categorySummary}
               >
@@ -317,13 +440,13 @@ const CustomSearch = () => {
               <AccordionDetails  className={style.section}>
                 <div>
                   {fields.map((field, f) => {
-                    const isExpanded = field.defaultOpen || field.path in query;
                     return (
                       <Accordion 
                         key={f} 
                         className={style.accordion} 
                         disableGutters={true}
-                        defaultExpanded={isExpanded}
+                        expanded={!!expandedFields[field.path]}
+                        onChange={handleFieldChange(field.path)}
                       >
                         <AccordionSummary className={style.summary}>{field.name}</AccordionSummary>
                         <AccordionDetails>
@@ -348,28 +471,14 @@ const CustomSearch = () => {
                                 const entries = Object.entries(fieldData).sort(([aKey, aCount], [bKey, bCount]) => bCount - aCount);
                                 return entries.map(([option, count], i) => {
                                   // Check if this option is selected from the URL query
-                                  const isChecked = currentQuery[field.path] && 
+                                  const isChecked = !!(currentQuery[field.path] && 
                                     Array.isArray(currentQuery[field.path]) && 
-                                    currentQuery[field.path].includes(option);
+                                    currentQuery[field.path].includes(option));
                                   
                                   return (
                                     <FormControlLabel
                                       key={i}
-                                      onChange={({ target: { checked } }) => {
-                                        if (checked) {
-                                          if (currentQuery[field.path])
-                                            currentQuery[field.path].push(option);
-                                          else currentQuery[field.path] = [option];
-                                        } else {
-                                          const currentIndex = currentQuery[field.path].indexOf(
-                                            option,
-                                          );
-                                          currentQuery[field.path].splice(currentIndex, 1);
-                                          if (currentQuery[field.path].length === 0)
-                                            delete currentQuery[field.path];
-                                        }
-                                        debouncedParseAndSearch();
-                                      }}
+                                      onChange={() => updateQueryValue(field.path, option, { isArray: true })}
                                       control={
                                         <Checkbox
                                           checked={isChecked}
@@ -384,11 +493,6 @@ const CustomSearch = () => {
                                 });
                               }
                               else {
-                                const handleInputChange = ({ target: { value } }) => {
-                                  currentQuery[field.path] = value;
-                                  if (value === '') delete currentQuery[field.path];
-                                  debouncedParseAndSearch();
-                                };
                                 if (!fieldData) return null;
                                 const options = Object.entries(fieldData).map(
                                   ([value, count]) => ({ label: value, count })
@@ -414,9 +518,7 @@ const CustomSearch = () => {
                                         />}
                                       onChange={(event, newValue) => {
                                         const value = newValue ? newValue.label : '';
-                                        currentQuery[field.path] = value;
-                                        if (value === '') delete currentQuery[field.path];
-                                        debouncedParseAndSearch();
+                                        updateQueryValue(field.path, value);
                                       }}
                                     />
                                   </div>
@@ -427,20 +529,16 @@ const CustomSearch = () => {
                             else {
                               // If the field is a string we show a unique textfield
                               if (field.type === 'string') {
-                                const handleInputChange = ({ target: { value } }) => {
-                                  currentQuery[field.path] = value;
-                                  if (value === '') delete currentQuery[field.path];
-                                  debouncedParseAndSearch();
-                                };
                                 return (
                                   <div className={style.aligned}>
                                     <TextField
                                       title={'Type here the value for the specified field'}
                                       value={currentQuery[field.path] || ''}
-                                      onChange={handleInputChange}
-                                      // When pressing enter
+                                      onChange={({ target: { value } }) => updateQueryValue(field.path, value)}
                                       onKeyPress={event => {
-                                        if (event.key === 'Enter') handleInputChange(event);
+                                        if (event.key === 'Enter') {
+                                          updateQueryValue(field.path, event.target.value);
+                                        }
                                       }}
                                       placeholder={'e.g. ' + field.example}
                                       inputProps={{ inputMode: 'text' }}
@@ -452,21 +550,6 @@ const CustomSearch = () => {
                               // Otherwise it must be a number, since booleans will always be in options
                               // Then show two textfields: one for the minimum and one for the maximum
                               else {
-                                const handleInputChange = ({ target: { value } }, side) => {
-                                  if (value === '') {
-                                    if (!currentQuery[field.path]) return;
-                                    if (!currentQuery[field.path][side]) return;
-                                    delete currentQuery[field.path][side];
-                                    if (Object.keys(currentQuery[field.path]).length === 0)
-                                      delete currentQuery[field.path];
-                                  } else {
-                                    if (!currentQuery[field.path])
-                                      return (currentQuery[field.path] = { [side]: value });
-                                    currentQuery[field.path][side] = value;
-                                  }
-                                  debouncedParseAndSearch();
-                                };
-                                
                                 // Get min and max values from query if available
                                 const minValue = currentQuery[field.path] && currentQuery[field.path].min || '';
                                 const maxValue = currentQuery[field.path] && currentQuery[field.path].max || '';
@@ -476,11 +559,14 @@ const CustomSearch = () => {
                                     <TextField
                                       title={'Type here the value for the specified field'}
                                       value={minValue}
-                                      onChange={(e) => handleInputChange(e, 'min')}
-                                      // When pressing enter
+                                      onChange={({ target: { value } }) => 
+                                        updateQueryValue(field.path, value, { isRange: true, rangeSide: 'min' })}
                                       onKeyPress={event => {
-                                        if (event.key === 'Enter')
-                                          handleInputChange(event, 'min');
+                                        if (event.key === 'Enter') {
+                                          updateQueryValue(field.path, event.target.value, 
+                                            { isRange: true, rangeSide: 'min'}
+                                          );
+                                        }
                                       }}
                                       placeholder={'e.g. ' + field.example}
                                       inputProps={{
@@ -493,11 +579,14 @@ const CustomSearch = () => {
                                     <TextField
                                       title={'Type here the value for the specified field'}
                                       value={maxValue}
-                                      onChange={(e) => handleInputChange(e, 'max')}
-                                      // When pressing enter
+                                      onChange={({ target: { value } }) => 
+                                        updateQueryValue(field.path, value, { isRange: true, rangeSide: 'max' })}
                                       onKeyPress={event => {
-                                        if (event.key === 'Enter')
-                                          handleInputChange(event, 'max');
+                                        if (event.key === 'Enter') {
+                                          updateQueryValue(field.path, event.target.value, 
+                                            {isRange: true, rangeSide: 'max'}
+                                          );
+                                        }
                                       }}
                                       placeholder={'e.g. ' + field.example}
                                       inputProps={{
@@ -520,17 +609,6 @@ const CustomSearch = () => {
             </Accordion>
           );
         })}
-        <div className={style.button}>
-          <Button variant="contained" onClick={() => {
-            // Cancel any pending debounced search and execute immediately
-            debouncedParseAndSearch.cancel();
-            parseAndSearch();
-          }} className={style.search}>
-            <FontAwesomeIcon icon={faSearch} />
-            &nbsp;
-            <span>Search</span>
-          </Button>
-        </div>
       </CardContent>
     </Card>
   );

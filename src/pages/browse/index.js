@@ -267,7 +267,7 @@ const Browse = () => {
     if (selectedOption) {
       applySorting(selectedOption.field, selectedOption.direction);
     }
-  }, []);
+  }, [sortOptions, location, search]);
 
   // Apply the sorting with field and direction
   const applySorting = (field, direction) => {
