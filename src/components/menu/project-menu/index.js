@@ -130,14 +130,18 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
   // Get the provided theme
   const theme = useTheme();
   const primaryColor = theme.palette.primary.main;
-  const secondaryColor = theme.palette.secondary.main;
+  const secondaryColor = theme.palette.secondary.contrastText;
 
   // Set the style of the current selected tab
   const currentTabStyle = {
     color: secondaryColor,
     backgroundColor: primaryColor,
   };
-
+  const customTabsStyle = {
+    '& .MuiTabs-indicator': {
+      backgroundColor: theme.palette.secondary.contrastText,
+    }
+  };
   // Check if a string is found in the specified (by the 'index') dropTab links
   // If it is, return the same string. If it is not, return undefined
   const inDrop = (value, index) => {
@@ -155,6 +159,7 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
         textColor="secondary"
         variant="scrollable"
         scrollButtons="auto"
+        sx={customTabsStyle}
       >
         {// Tabs
         tabs.map((tab, index) =>
@@ -168,6 +173,7 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
               value={tab.dir}
               className={style['tab-link']}
               onClick={() => handleClose()}
+              style={tab.dir === subPage ? currentTabStyle : undefined}
             />
           ) : (
             // Tabs which drop a menu with multiple links
@@ -178,6 +184,7 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
               value={inDrop(subPage, index)}
               className={style['tab-link']}
               onClick={event => handleClick(index, event)}
+              style={inDrop(subPage, index) ? currentTabStyle : undefined}
             />
           ),
         )}

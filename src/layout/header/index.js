@@ -16,7 +16,7 @@ const logoWebP = require(`../../images/${HOST_CONFIG.logo}.webp`);
 const logoLabel = HOST_CONFIG.logoLabel;
 // Create styled AppBar with gradient
 const GradientAppBar = styled(AppBar)(({ theme }) => ({
-  background: `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.secondary.main} 90%)`,
+  background: `linear-gradient(45deg, ${theme.palette.primary.main} 55%, ${theme.palette.secondary.main} 100%)`,
 }));
 
 // Renders the logo and all the menu buttons next to it
