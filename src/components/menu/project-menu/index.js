@@ -130,7 +130,7 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
   // Get the provided theme
   const theme = useTheme();
   const primaryColor = theme.palette.primary.main;
-  const secondaryColor = theme.palette.secondary.contrastText;
+  const secondaryColor = theme.palette.secondary.light;
 
   // Set the style of the current selected tab
   const currentTabStyle = {
@@ -139,7 +139,7 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
   };
   const customTabsStyle = {
     '& .MuiTabs-indicator': {
-      backgroundColor: theme.palette.secondary.contrastText,
+      backgroundColor: theme.palette.secondary.light,
     }
   };
   // Check if a string is found in the specified (by the 'index') dropTab links
@@ -152,7 +152,9 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
 
   // Return each of the menu tabs
   return (
-    <AppBar position="sticky" className={style['overcome-parent']}>
+    <AppBar position="sticky" className={style['overcome-parent']}
+      sx={{background: `linear-gradient(90deg, ${theme.palette.primary.main} 55%, ${theme.palette.secondary.main} 100%)`}}
+    >
       <Tabs
         value={subPage}
         indicatorColor="secondary"

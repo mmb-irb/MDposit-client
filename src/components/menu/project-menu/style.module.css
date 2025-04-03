@@ -5,6 +5,7 @@
   padding-left: calc(-50% + 50vw);
   margin-top: -1em;
   margin-bottom: 0.5em;
+  clip-path: inset(0px -10px -10px -10px);
 }
 
 .tab-link {
