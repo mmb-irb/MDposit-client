@@ -20,6 +20,7 @@ import {
   faLink,
   faExclamationTriangle,
 } from '@fortawesome/free-solid-svg-icons';
+import { useTheme } from '@mui/material/styles';
 
 import Card from '../../../components/animated-card';
 import LazyImg from '../../../components/lazy-img';
@@ -333,7 +334,7 @@ const Overview = React.memo(() => {
           if (chemblReference) {
             data.chemblURL = chemblReference.URL;
             const chemblSplits = chemblReference.URL.split('/');
-            data.chemblID = chemblSplits[chemblSplits.length - 2];
+            data.chemblID = chemblSplits[chemblSplits.length - 1];
           }
           // Get drugbank id and url
           const drugbankReference = reference.find(ref => ref.SourceName === 'DrugBank');
@@ -431,6 +432,50 @@ const Overview = React.memo(() => {
                     {' ' + warning.message}
                   </div>
                 ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      {metadata && Array.isArray(metadata.NUCLSEQ) && metadata.NUCLSEQ.length > 0 && (
+        <Card className={style.card}>
+          <CardContent className={style['card-content']}>
+          <div>
+              <Typography marginBottom={'10px'} variant="h6">Nucleic Sequences:</Typography>
+              {metadata.NUCLSEQ.map((seq, index) => (
+                <div 
+                  key={index} 
+                  className={style['card-background']}
+                >
+                <Typography variant="h6" style={{ marginBottom: '5px', marginTop: '10px', fontSize: 'inherit' }}>Sequence {index + 1}:</Typography>
+                  <textarea
+                    readOnly
+                    value={seq}
+                    className={style['textarea']}
+                  />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      {metadata && Array.isArray(metadata.PROTSEQ) && metadata.PROTSEQ.length > 0  && (
+        <Card className={style.card}>
+          <CardContent className={style['card-content']}>
+            <div>
+              <Typography marginBottom={'10px'} variant="h6" sx={{ fontSize: '1.4rem' }}>Protein Sequences:</Typography>
+              {metadata.PROTSEQ.map((seq, index) => (
+                <div 
+                  key={index} 
+                  className={style['card-background']}
+                >
+                <Typography variant="h6" style={{ marginBottom: '5px', marginTop: '10px', fontSize: 'inherit' }} sx={{ fontSize: '1.4rem' }}>Sequence {index + 1}:</Typography>
+                  <textarea
+                    readOnly
+                    value={seq}
+                    className={style['textarea']}
+                  />
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
