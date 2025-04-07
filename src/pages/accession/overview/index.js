@@ -404,16 +404,55 @@ const Overview = React.memo(() => {
                 />
               )}
               {metadata.METHOD}
-              {metadata.DESCRIPTION && <div>{metadata.DESCRIPTION}</div>}
-              {metadata.AUTHORS && <div>Authors: {prettyEnumerate(metadata.AUTHORS)}</div>}
-              {metadata.GROUPS && <div>Groups: {rawEnumerate(metadata.GROUPS)}</div>}
+              {metadata.DESCRIPTION && metadata.DESCRIPTION.length > 0 &&
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div className={style['decorated-list-item__title']}>Description</div>
+                <div className={style['decorated-list-item__content']} style={{  wordBreak: 'break-word' }}>
+                  {metadata.DESCRIPTION}
+                </div>
+              </div>}
+              {metadata.AUTHORS && metadata.AUTHORS.length > 0 &&
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div className={style['decorated-list-item__title']}>Authors</div>
+                <div className={style['decorated-list-item__content']} >
+                  {prettyEnumerate(metadata.AUTHORS)}
+                </div>
+              </div>}
+              {metadata.GROUPS && metadata.GROUPS.length > 0 &&
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div className={style['decorated-list-item__title']}>Groups</div>
+                <div className={style['decorated-list-item__content']} >
+                  {prettyEnumerate(metadata.GROUPS)}
+                </div>
+              </div>}
               {/* Node will exist only in the global API, and the global client has nodes as options */}
               {HOST_CONFIG.global && node && <div>Node: {HOST_CONFIG.optionsNiceNames[node] || node}</div>}
-              {metadata.CONTACT && <div>Contact: {metadata.CONTACT}</div>}
-              {metadata.PROGRAM && <div>Program: {metadata.PROGRAM}</div>}
-              {metadata.VERSION && <div>Version: {metadata.VERSION}</div>}
-              {metadata.LINKS &&
-                metadata.LINKS.map((link, l) => (
+              {metadata.CONTACT && metadata.CONTACT.length > 0 &&
+               <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div className={style['decorated-list-item__title']}>Contact</div>
+                <div className={style['decorated-list-item__content']}>
+                  {metadata.CONTACT}
+                </div>
+              </div>}
+              {metadata.PROGRAM && metadata.PROGRAM.length > 0 &&
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div className={style['decorated-list-item__title']}>Program</div>
+                <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                  {metadata.PROGRAM}
+                </div>
+              </div>}
+              {metadata.VERSION && metadata.VERSION.length > 0 &&
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div className={style['decorated-list-item__title']}>Version</div>
+                <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                  {metadata.VERSION}
+                </div>
+              </div>}
+              {metadata.LINKS && metadata.LINKS.length > 0 &&
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div className={style['decorated-list-item__title']}>Links</div>
+                <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                {metadata.LINKS.map((link, l) => (
                   <div key={l}>
                     {link.name}:{' '}
                     <a
@@ -425,6 +464,8 @@ const Overview = React.memo(() => {
                     </a>
                   </div>
                 ))}
+                </div>
+              </div>}
               {metadata.WARNINGS &&
                 metadata.WARNINGS.map((warning, w) => (
                   <div key={w} style={{ fontWeight: 'bold' }}>
@@ -491,14 +532,22 @@ const Overview = React.memo(() => {
                 <CardContent className={style['vertcial-marginned']}>
                   <div>
                     <div className={style['summary-list']}>
-                      <Typography variant="h6">{reference.name}</Typography>
-                      <div>{reference.gene && `Gene: ${reference.gene}`}</div>
-                      <div>
-                        {reference.organism &&
-                          `Organism: ${reference.organism}`}
+                      <Typography variant="h6" sx={{ fontSize: '1.4rem' }}>{reference.name}</Typography>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <div className={style['decorated-list-item__title']}>Gene</div>
+                        <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                        {reference.gene && `${reference.gene}`}</div>
                       </div>
-                      <div>
-                        {reference.uniprot && `UniProt ID: `}
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <div className={style['decorated-list-item__title']}>Organism</div>
+                        <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                          {reference.organism && `${reference.organism}`}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <div className={style['decorated-list-item__title']}>UniProt ID</div>
+                        <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                          {reference.uniprot&& `UniProt ID: `}
                         <a
                           href={
                             'https://www.uniprot.org/uniprotkb/' +
@@ -509,6 +558,7 @@ const Overview = React.memo(() => {
                         >
                           {reference.uniprot}
                         </a>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -537,7 +587,7 @@ const Overview = React.memo(() => {
               return (
                 <div key={i}>
                   {i !== 0 && <hr style={{ color: 'lightGrey' }} />}
-                  <CardContent style={{ minHeight: 380 }}>
+                  <CardContent className={style['vertcial-marginned']} style={{ minHeight: 380, marginTop: '-1rem' }}>
                     <div>
                       <LazyImg
                         src={imgSrc}
@@ -547,34 +597,49 @@ const Overview = React.memo(() => {
                         alt={`3D view of the ${pdbId} structure`}
                       />
                       <div className={style['summary-list']}>
-                        <div>
-                          PDB Accession: {pdbId}
+                        <Typography variant="h6" sx={{ fontSize: '1.2rem' }}>{title}</Typography>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <div className={style['decorated-list-item__title']}>PDB Accession</div>
+                        <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                          {pdbId}
                           {pdbMetadata.replaces &&
                             ` (replaces ${pdbMetadata.replaces})`}
                         </div>
-                        <Typography variant="h6">{title}</Typography>
+                        </div>
                         <div>
                           {pdbMetadata.status &&
                             pdbMetadata.status !== 'CURRENT' &&
                             `Status: ${pdbMetadata.status}`}
                         </div>
-                        <div>Experimental method: {experimentalMethod}</div>
-                        <div>
-                          Organism
-                          {organisms.length > 1 && 's'}:{' '}
-                          {organisms.length > 0 ? organisms.map((organism, o) => (
-                            <Chip
-                              key={o}
-                              label={organism}
-                              variant="outlined"
-                              color="primary"
-                              className={style.chip}
-                            />
-                          )) : <span className={style['grey']}>not available</span>}
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <div className={style['decorated-list-item__title']}>Experimental method</div>
+                          <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                          {experimentalMethod}
+                          </div>
                         </div>
                         <div>
-                          Keyword
-                          {keywords.length > 1 && 's'}:{' '}
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <div className={style['decorated-list-item__title']}>
+                              Organism
+                          {organisms.length > 1 && 's'}{' '}
+                            </div>
+                            <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}>
+                              {organisms.length > 0 ? organisms.map((organism, o) => (
+                                <Chip
+                                  key={o}
+                                  label={organism}
+                                  variant="outlined"
+                                  color="primary"
+                                  className={style.chip}
+                                />
+                              )) : <span className={style['grey']}>not available</span>}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <div className={style['decorated-list-item__title']}>Keyword</div>
+                          <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}> 
+                          {keywords.length > 1 && 's'}{' '}
                           {keywords.map((keyword, k) => (
                             <Chip
                               key={k}
@@ -585,11 +650,14 @@ const Overview = React.memo(() => {
                             />
                           ))}
                         </div>
-                        <div>
-                          Publication date:{' '}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <div className={style['decorated-list-item__title']} style={{flexBasis: '10vw'}}>Publication date:</div>
+                          <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}>
                           <time dateTime={publishDate.toISOString()}>
                             {publishDate.toDateString()}
                           </time>
+                        </div>
                         </div>
                       </div>
                     </div>
