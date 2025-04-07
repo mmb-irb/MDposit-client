@@ -1,5 +1,14 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, useRef, useMemo } from 'react';
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
+  TextField,
+  Paper,
   CardContent,
   CardActions,
   Button,
@@ -24,6 +33,7 @@ import { parse as urlParse } from 'url';
 import style from './style.module.css';
 
 import { HOST_CONFIG } from '../../../utils/constants';
+import MoleculeViewer from 'src/utils/rdkit/rdkit_viewer';
 
 const COMMA_SEPARATOR = /\s*,\s*/;
 
@@ -37,12 +47,190 @@ const typeSettings = {
     color: '#ffe08f', // light yellow
   },
 };
+const LigandTable = ({ ligandReference }) => {
+  if (!ligandReference) return null;
+  const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
+  const mordredData = ligandReference.mordred || {};
+  const rows = Object.entries(mordredData || {}).map(([key, value]) => ({
+    key,
+    value: typeof value === 'number' ? value.toFixed(2) : String(value),
+  }));
+  // Avoid a layout jump when reaching the last page with empty rows.
+  const emptyRows =
+    page > 0 ? Math.max(0, (1 + page) * rowsPerPage - rows.length) : 0;
+
+  const filteredRows = rows.filter(
+    ({key,value}) =>
+      key.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      value.toString().includes(searchTerm)
+  );
+
+  const handleSearch = (event) => {
+    setSearchTerm(event.target.value);
+    setPage(0);
+  };
+
+  const handleChangePage = (_, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  return (
+    <Paper 
+      sx={{ 
+        width: "auto", 
+        maxWidth: "400px", 
+        padding: "10px", 
+        overflow: "hidden", 
+        boxShadow: "none",
+        margin: "auto",
+        marginTop: "0px",
+        marginBottom: "10px",
+        display:"table",
+        borderCollapse: "collapse"
+      }}
+    >
+      <TextField
+        label="Buscar..."
+        variant="outlined"
+        fullWidth
+        margin="dense"
+        size="small"
+        value={searchTerm}
+        onChange={handleSearch}
+      />
+      <TableContainer>
+        <Table size="small"> {/* Reduce el tamaño de las filas */}
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ fontWeight: "bold", padding: "5px", textAlign: "center" }}>Descriptor</TableCell>
+              <TableCell sx={{ fontWeight: "bold", padding: "5px", textAlign: "center" }}>Valor</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filteredRows.length > 0 ? filteredRows
+              .slice(page * rowsPerPage, (page + 1) * rowsPerPage)
+              .map(({key,value}) => (
+                <TableRow key={key} sx={{ "&:last-child td, &:last-child th": { border: 0 } }} >
+                  <TableCell component="th" sx={{ padding: "5px", textAlign: "center" }}>{key}</TableCell>
+                  <TableCell component="th" sx={{ padding: "5px", textAlign: "center" }}>{value}</TableCell>
+                </TableRow>
+              ))
+            : null}
+            {emptyRows > 0 && (
+              <TableRow style={{ height: 33 * emptyRows }}>
+                <TableCell colSpan={2} />
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+      <TablePagination
+        rowsPerPageOptions={[5, 10, 25, { label: 'All', value: -1 }]}
+        component="div"
+        colSpan={3}
+        count={filteredRows.length}
+        rowsPerPage={rowsPerPage}
+        page={page}
+        onPageChange={handleChangePage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+        sx={{ fontSize: "12px" }}
+        display="flex"
+        //justifyContent="center"
+        //alignItems="flex-start"
+        margin="auto"
+      />
+    </Paper>
+  );
+};
 
 const Overview = React.memo(() => {
   const { accession, identifier, published, metadata, ligandReferences, proteinReferences, mdCount, node, creationDate } = useContext(
     ProjectCtx,
   );
+
+  // Define the state and the function to show the table or not for Mordred (ligands)
+  const [showTable, setShowTable] = useState(new Set());
+  const handleSeeMore = pubchemId => {
+    setShowTable((prev) => {
+      const newShowTable = new Set(prev);
+      if (newShowTable.has(pubchemId)) newShowTable.delete(pubchemId);
+      else newShowTable.add(pubchemId);
+      return newShowTable;
+    });
+  };
+
+  // Define the state and the function to show the Morgan Fingerprint array (ligands)
+  const [selectedFP, setSelectedFP] = useState(new Set());
+  const showMorganFPArray = pubchemId => {
+    setSelectedFP((prev) => {
+      const newSelectedFP = new Set(prev);
+      if (newSelectedFP.has(pubchemId)) newSelectedFP.delete(pubchemId);
+      else newSelectedFP.add(pubchemId);
+      return newSelectedFP;
+    });
+  };
+
+  // Create a little button to show the inchi array
+  const InchiViewer = ({ ligandReference }) => {
+    const [expanded, setExpanded] = useState(false);
+    const maxLength = 30;
+    const toggleExpand = () => setExpanded(!expanded);
+    const inchi = ligandReference.inchi;
+    const displayText = expanded ? inchi : `${inchi.substring(0, maxLength)}... `;
+  
+    return (
+      <div>
+        <div>
+          {displayText.split('').map((char, index) => (
+            <span key={index} className="highlight">{char}</span>
+          ))}
+          {inchi.length > maxLength && (
+            <button onClick={toggleExpand} className="ml-2 text-blue-500 hover:underline">
+              {expanded ? 'See less' : 'See more'}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+  // Get the provided theme
+  const theme = useTheme();
+  const primaryColor = theme.palette.primary.main;
+  const secondaryColor = theme.palette.secondary.main;
+
+  // const dynamicStyle = { borderLeft: `.110rem solid ${primaryColor}` };
+  // const decoratedProps = {className: style["decorated-list-item__content"], style: dynamicStyle };
+
+  const SmilesViewer = ({ ligandReference }) => {
+    const [expanded, setExpanded] = useState(false);
+    const maxLength = 120;
+    const toggleExpand = () => setExpanded(!expanded);
+    const smiles = ligandReference.smiles;
+    const displayText = expanded ? smiles : `${smiles.substring(0, maxLength)}`;
+
+    return (
+      <div className="text-align-center margin-auto max-width-100">
+        <div className="display-inline word-break">
+          {displayText.split('').map((char, index) => (
+            <span key={index} className="highlight">{char}</span>
+          ))}
+          {smiles.length > maxLength && (
+            <button onClick={toggleExpand} className="ml-2 text-blue-500 hover:underline">
+              {expanded ? 'See less' : 'See more'}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   // Download pdb information for every pdb id in metadata from our custom API
   const pdbIds = metadata.PDBIDS;
@@ -429,7 +617,7 @@ const Overview = React.memo(() => {
                   ) /* An horizontal line to separate protein references */}
                   <LazyImg
                     src={`https://pubchem.ncbi.nlm.nih.gov/image/imgsrv.fcgi?cid=${pubchemId}&t=l`}
-                    width="200" height="200" loading="lazy"
+                    width="250" height="250" loading="lazy"
                     alt={`3D view of the ${pubchemData.name} structure`}
                     // cross origin and referrer policy should prevent pubchem cookies
                     crossOrigin="anonymous" referrerPolicy="no-referrer"
@@ -437,72 +625,136 @@ const Overview = React.memo(() => {
                     // this was recommended by people from pubchem
                     className={style['white-background']}
                   />
-                  <Typography variant="h6">{pubchemData.name}</Typography>
-                  <div>
-                    {`Pubchem ID: `}
+                  <Typography variant="h6" sx={{ fontSize: '1.4rem' }}>{pubchemData.name}</Typography>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <div className={style["decorated-list-item__title"]}>Pubchem ID</div>
+                    <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
                     <a href={`https://pubchem.ncbi.nlm.nih.gov/compound/${pubchemId}`}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
                       {pubchemId}
                     </a>
+                    </div>
                   </div>
-                  <div>
-                    {ligandReference && <>
-                      {`Molecular Formula: `}
-                      {ligandReference.formula.toString().split('').map((char, index) => {
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <div className={style["decorated-list-item__title"]}>Molecular Formula</div>
+                    <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                      {ligandReference && ligandReference.formula.toString().split('').map((char, index) => {
                         if (char.match(/[A-Z]/)) {
-                          return <span key={index} style={{ fontSize: '1.3m' }}>{char}</span>;
+                          return <span key={index} style={{ fontSize: '1.1em' }}>{char}</span>;
                         } else if (char.match(/[0-9]/)) {
                           return <sub key={index} style={{ fontSize: '0.9em' }}>{char}</sub>;
                         } else {
                           return char;
                         }
                       })}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    {ligandReference && ligandReference.smiles && <>
+                      <div className={style["decorated-list-item__title"]}>SMILES</div>
+                      <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                        <SmilesViewer ligandReference={ligandReference}/>
+                      </div>
                       </>
                       }
                   </div>
-                  <div >
-                    {ligandReference && <>
-                      {`SMILES Formula: `}
-                      {ligandReference.smiles.length > 60 ? (
-                        <>
-                          {ligandReference.smiles.match(/.{1,75}/g).map((line, index) => (
-                            <div key={index}>
-                              {line.split('').map((char, charIndex) => (
-                                <span key={charIndex} className="highlight">{char}</span>
-                              ))}
-                            </div>
-                          ))}
-                        </>
-                      ) : (
-                        <>
-                          {ligandReference.smiles.split('').map((char, index) => (
-                            <span key={index} className="highlight">{char}</span>
-                          ))}
-                        </>
-                      )}
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    {ligandReference && ligandReference.inchi && <>
+                      <div className={style["decorated-list-item__title"]}>InChI</div>
+                      <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                        <InchiViewer ligandReference={ligandReference}/>
+                      </div>
                       </>
                       }
                   </div>
-                  {pubchemData.chemblID && (<div>
-                    {`ChEMBL ID: `}
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    {ligandReference && ligandReference.inchikey && <>
+                      <div className={style["decorated-list-item__title"]}>InChIKey</div>
+                      <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                        {ligandReference.inchikey}
+                      </div>
+                      </>
+                      }
+                  </div>
+                  <div>
+                  {pubchemData.chemblID && (<div style={{ display: 'flex', alignItems: 'center' }}>
+                    <div className={style["decorated-list-item__title"]}>ChEMBL ID</div>
+                    <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
                     <a href={pubchemData.chemblURL}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
                       {pubchemData.chemblID}
                     </a>
+                    </div>
                   </div>)}
-                  {pubchemData.drugbankID && (<div>
-                    {`DrugBank ID: `}
+                  </div>
+                  <div>
+                  {pubchemData.drugbankID && (<div style={{ display: 'flex', alignItems: 'center' }}>
+                    <div className={style["decorated-list-item__title"]}>DrugBank ID</div>
+                    <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
                     <a href={pubchemData.drugbankURL}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
                       {pubchemData.drugbankID}
                     </a>
+                    </div>
                   </div>)}
+                  </div>
+                  <div>
+                    {ligandReference?.mordred || ligandReference?.morgan_fp_bit_array ? (
+                      <>
+                        <Button onClick={() => handleSeeMore(pubchemId)} color="primary" variant='outlined' style={{ marginTop: '10px', marginBottom: '10px', marginLeft: '1rem' }}>
+                          Ligand Descriptors
+                        </Button>
+                        {showTable.has(pubchemId) && (
+                          <Card className={style.card}>
+                              <div style={{ display: "flex" }}>                            
+                              {ligandReference.mordred ? (
+                                <div style={{ flex: 1, width: "40%", textAlign: "center" }}>
+                                  <h3 style={{marginBottom: "0px"}}>Mordred Descriptors</h3>
+                                  <LigandTable ligandReference={ligandReference} type="mordred"/>
+                                </div>
+                              ) : <></>}
+                              {ligandReference.morgan_fp_bit_array ? (
+                                <div style={{ flex: 1, width: "60%", textAlign: "center" }}>
+                                  <h3>Morgan Fingerprint</h3>
+                                  <MoleculeViewer smiles={ligandReference.smiles} 
+                                  fingerprintData={ligandReference.morgan_highlight_atoms}
+                                  mol_block={ligandReference.mol_block}/>
+                                  {ligandReference.morgan_fp_bit_array && (
+                                    <div>
+                                      <Button onClick={() => showMorganFPArray(pubchemId)} color="primary" variant='outlined' style={{ marginTop: '10px', marginBottom: '10px' }}>
+                                        Show Morgan Fingerprint Array
+                                      </Button>
+                                      {selectedFP.has(pubchemId) && (
+                                        <div>
+                                          <textarea
+                                            readOnly
+                                            value={ligandReference.morgan_fp_bit_array}
+                                            className={style['textarea']}
+                                          />
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div style={{ flex: 1, width: "60%", textAlign: "center" }}>
+                                  <h4>Morgan Fingerprint not available</h4>
+                                </div>
+                              )}
+                          </div>
+                            </Card>
+                          )}
+                        </>
+                      ) : (
+                        <p>No descriptors available</p>
+                      )}
+                  </div>
                   {ligandReference && ligandReference.pdbid && (<div>
                     <CardActions>
                       <Button

@@ -61,7 +61,8 @@ const ENDPOINTS = {
   mutations: ['references'],
   epitopes: ['references'],
   populations: [`files/populations.json`],
-  'ligand-descriptors': ['references']
+  'ligand-descriptors': ['references'],
+  ligands: ['analyses/ligands'],
 }
 
 // Set a flag for the subpages that are not implemented yet
