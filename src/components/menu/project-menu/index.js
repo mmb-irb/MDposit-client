@@ -62,13 +62,21 @@ const tabs = [
         ],
       },
       {
+        name: 'Membranes',
+        analyses: [
+          'apl',
+          'density',
+          'lipid-order',
+          'thickness',
+        ],
+      },
+      {
         name: 'Other',
         analyses: [
           'pockets',
           'populations',
           'markov', 
-          'ligand-descriptors',
-          'density'
+          'ligand-descriptors'
         ],
       },
     ],
@@ -245,4 +253,5 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
   );
 };
 
+ProjectMenu.displayName = 'ProjectMenu';
 export default ProjectMenu;

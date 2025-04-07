@@ -17,3 +17,13 @@
   max-height: 500px;
   overflow-y: scroll;
 }
+
+.info {
+  padding: 0.2em 0.2em;
+  margin: 0 0.2em;
+  cursor: help;
+}
+
+.info > svg {
+  width:0.5em !important;
+}

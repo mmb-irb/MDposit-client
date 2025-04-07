@@ -18,7 +18,7 @@ import {
   faPlusCircle,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-
+import Info from '../../info';
 import style from './style.module.css';
 
 const availableDrawingMethods = [
@@ -142,7 +142,18 @@ const RepresentationsManager = memo(
             <TableRow>
               <TableCell>Name</TableCell>
               <TableCell align="right">Show</TableCell>
-              <TableCell align="right">Selection</TableCell>
+              <TableCell style={{ whiteSpace: 'nowrap' }} align="right">
+                Selection <Info     tooltip={
+                <>
+                  Using{' '}
+                  <a href="https://nglviewer.org/ngl/api/manual/selection-language.html" 
+                    target="_blank" 
+                    rel="noopener noreferrer">
+                    NGL selection language
+                  </a>.
+                </>
+              }  className={style.info} />
+              </TableCell>
               <TableCell align="right">Drawing method</TableCell>
               <TableCell align="right">Coloring method</TableCell>
               <TableCell align="right">Opacity</TableCell>
@@ -226,14 +237,12 @@ const RepresentationsManager = memo(
                       })
                     }}
                   >
-                    {!coloringExists(representation.color) && (
-                      <option value={representation.color}>
-                        {representation.color}
-                      </option>
-                    )}
-                    {representation.customScheme && (
+                    {representation.customScheme === 'distorsion' ? (
+                      <option value={representation.color}>{'Distorsion'}</option>
+                    ) : representation.customScheme ? (
                       <option value={'custom'}>{'Custom'}</option>
-                    )}
+                    ) : null}
+                    
                     {availableColoringMethods.map((cm, i) => (
                       <option key={i} value={cm.value}>
                         {cm.label}

@@ -1,0 +1,64 @@
+.paper {
+  height: 50vh;
+  overflow-y: hidden;
+}
+
+.tablecard {
+  display: inline-block;
+  width: 25%;
+}
+
+.legend_container {
+  height: 50vh;
+  width: 10%; 
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.legend {
+  /* width: 110px; */
+  height: 40vh;
+  padding: 0;
+  margin: 2.5vh 0 7.5vh 0;
+  position: absolute;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.nglcard {
+  display: inline-block;
+  width: 65%;
+  height: 50vh;
+}
+
+.margined {
+  margin: 1em;
+}
+
+.container {
+  height: 100%;
+}
+
+.selectedrow {
+  background-color: #76ff03;
+}
+
+.graph {
+  height: 40vh;
+}
+
+.graph-placeholder {
+  position: relative;
+  width: 100%;
+  height: 40vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: white;
+}
+
+

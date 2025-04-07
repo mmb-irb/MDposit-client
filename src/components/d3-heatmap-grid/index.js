@@ -31,6 +31,10 @@ const D3HeatmapGrid = memo(
     flippedXAxisValues = true, // Set if values in x axis is horizontal (false) or vertical (true)
     margin = { top: 10, right: 10, bottom: 10, left: 10 },
     className,
+    NaNColor = '#ffffff', // Default black color for NaN
+    minValue,
+    maxValue,
+    addBorder = true, // Add a border to each cell
   }) => {
     if (!data)
       throw new Error(
@@ -57,9 +61,10 @@ const D3HeatmapGrid = memo(
 
     // Join all rows into a single array with all values
     const values = [].concat(...data);
-    // Save the maximum and minimum values
-    const maxv = Math.max(...values);
-    const minv = Math.min(...values);
+    // Save the maximum and minimum values - excluding NaN values
+    const validValues = values.filter(value => !isNaN(value));
+    const maxv = maxValue ?? Math.max(...validValues);
+    const minv = minValue ?? Math.min(...validValues);
     // Repeat the x labels as many times as rows are there
     const xlabs = [].concat(...Array(data.length).fill(xAxisValues));
     // Repeat each y label as many times as rows are there
@@ -113,7 +118,7 @@ const D3HeatmapGrid = memo(
     // In addition, add a small offset between labels and the axis which is added further
     // This offset is only in x axes, which are rotated 90 degrees and end too much close to the axis
     const xAxisLabelHegiht = xAxisLabel ? labelsHeight : 0;
-    const yAxisLabelHegiht = yAxisLabel ? labelsHeight + roatatedTextOffset : 0;
+    const yAxisLabelHeight = yAxisLabel ? labelsHeight + roatatedTextOffset : 0;
 
     // Finally, estimate the space needed by axes, titles, etc.
     const requiredXOffset = flippedXAxisValues
@@ -122,7 +127,7 @@ const D3HeatmapGrid = memo(
     const requiredYOffset =
       yAxisValues.length === 1
         ? Math.max(maxYAxisWidth, getTextWidth(yAxisLabel, titlesD3font))
-        : maxYAxisWidth + yAxisLabelHegiht;
+        : maxYAxisWidth + yAxisLabelHeight;
 
     // Set the dimensions and offsets of the graph
     const offset = {
@@ -260,7 +265,7 @@ const D3HeatmapGrid = memo(
           .attr(
             'y',
             margin.left +
-              yAxisLabelHegiht -
+              yAxisLabelHeight -
               roatatedTextOffset -
               axisLabelsOffset,
           )
@@ -269,11 +274,19 @@ const D3HeatmapGrid = memo(
       }
 
       // Build color scale
-      const myColor = colorScale
-        ? colorScale
-        : scaleLinear()
-            .range(colorPlan)
-            .domain([minv, (minv + maxv) / 2, maxv]);
+      const myColor = value => {
+        if (isNaN(value)) {
+          return NaNColor;
+        }
+        
+        const colorMapper = colorScale 
+          ? colorScale 
+          : scaleLinear()
+              .range(colorPlan)
+              .domain([minv, (minv + maxv) / 2, maxv]);
+              
+        return colorMapper(value);
+      };
 
       // Get cell size according to d3 scale band
       const cellWidth = x.bandwidth();
@@ -286,6 +299,12 @@ const D3HeatmapGrid = memo(
           const xPosition = x(xAxisValues[cx]) - offset.left;
           canvasContext.fillStyle = myColor(value);
           canvasContext.fillRect(xPosition, yPosition, cellWidth, cellHeight);
+        
+        if (addBorder){  
+          // Add border
+          canvasContext.strokeStyle = myColor(value); // Use same color as fill
+          canvasContext.lineWidth = 1;
+          canvasContext.strokeRect(xPosition, yPosition, cellWidth, cellHeight);}
         });
       });
 

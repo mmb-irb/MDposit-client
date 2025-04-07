@@ -1,0 +1,19 @@
+.container {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.plot {
+  flex-basis: 50%;
+}
+
+.legend {
+  flex-basis: 100%;
+}
+
+.slider {
+  padding: 0 15vw 0 15vw;
+}

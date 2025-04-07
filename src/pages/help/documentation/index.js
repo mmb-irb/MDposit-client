@@ -1400,6 +1400,171 @@ export const documentation = [
           </>
         ),
       },
+      {
+        id: 'density',
+        header: 'Density',
+        body: (
+          <>
+            Density analysis using{' '}
+            <a
+              href="https://amber-md.github.io/pytraj/latest/analysis.html#pytraj.density"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              PyTraj density
+            </a>{' '} function, which calculates the density of a system by slicing the z axis every 0.25 Å.
+            The density can be calculated by number (N), mass (Da) or electron (Ne – q). 
+            <br />
+            <br />
+            The cpptraj density command calculates linear density along a specified coordinate (e.g., Da/Å along the z-axis). 
+            To obtain volumetric density divide the linear density output by the area of the cross-section formed by 
+            the other two dimensions.
+          </>
+        ),
+        page: (
+          <>
+            Linear density for each chain over the z axis over slices of 0.25 Å. Three types of density are represented in the graph: number of atoms (N), mass (Da) and electron (e⁻).
+            <br />
+            <br />
+            For the headgroups, we choose the most charged atom of each lipid residue.
+            <br />
+            <br />
+            Note that trajectories are normally fitted so the protein stay in the center.
+            <br />
+            <br />
+            The plot is <span style={{ color: 'lightGreen' }}>interactive</span>. 
+            Click on any point to open a {' '}
+            <a
+              href="/help#/help#ngl-viewer"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              viewer
+            </a>{' '} displaying a plane at the place where the density has being calculated.
+          </>
+        ),
+      },
+      {
+        id: 'thickness',
+        header: 'Thickness',
+        body: (
+          <>
+            Membrane thickness analysis performed with the{' '}
+            <a
+              href="https://lipyphilic.readthedocs.io/en/latest/reference/analyses.html#lipid-z-positions-lipyphilic-analysis-z-positions"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              Lipyphilic Z positions
+            </a>{' '} using the most charged atom of each lipid residue as headgroups. 
+          </>
+        ),
+        page: (
+          <>
+            Thickness of the membrane of time meassured as distance between the most 
+            charged atoms of the lipids from of each leaflet. 
+            <br />
+            <br />
+            In the visualization we can see represented the local distorsion where 
+            thinning is displayed in red and thickning in blue, starting from white, 
+            with a gradient that reach a maximum at three times the standard deviation 
+            of the thickness over all the trajectory.
+          </>
+        ),
+      },
+      {
+        id: 'apl',
+        header: 'Area per lipid',
+        body: (
+          <>
+            Area per lipid (APL) analysis performed with the{' '}
+            <a
+              href="https://pythonhosted.org/fatslim/documentation/apl.html"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              FATSLiM APL
+            </a>{' '} tool. The analysis calculates the local area per lipid for each leaflet 
+            of the membrane using the most charged atom of each lipid residue as 
+            reference points. 
+          </>
+        ),
+        page: (
+          <>
+            This is the Area per Lipid analysis page.
+            <br />
+            <br />
+            Two heatmaps are displayed showing the local area per lipid distribution 
+            for the upper and lower leaflets of the membrane. The area is calculated 
+            on a grid across the membrane plane (XY coordinates). The color scale 
+            represents deviations from the median APL value, where:
+            <br />
+            - Red indicates areas with smaller APL (compressed regions)
+            <br />
+            - White indicates areas close to the median APL
+            <br />
+            - Blue indicates areas with larger APL (expanded regions)
+            <br />
+            <br />
+            The color scale range can be adjusted using the slider below the heatmaps, 
+            which controls how many standard deviations (σ) from the median are shown. 
+            A larger value will show more extreme variations while a smaller value 
+            will highlight subtle differences.
+            <br />
+            <br />
+            Hover over any point in the heatmaps to see the exact coordinates and 
+            area per lipid value at that position. The units are in square Ångstroms (Å²).
+          </>
+        ),
+      },
+      {
+        id: 'lipid-order',
+        header: 'Lipid order parameter',
+        body: (
+          <>
+            The order parameter analysis calculates the order parameter for lipid tails in the membrane.
+            This parameter provides insights into the degree of order or disorder within the lipid bilayer.
+            The analysis is performed for each lipid type present in the membrane, and the results are displayed
+            as a function of the carbon position along the lipid tail.
+            <br />
+            <br />
+            The order parameter is calculated for each frame in the trajectory, and the mean and standard deviation
+            values are provided for each lipid tail. This analysis is powered by custom scripts developed with {' '}
+            <a
+              href="https://www.mdanalysis.org/"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              MDAnalysis
+            </a>{' '}.
+          </>
+        ),
+        page: (
+          <>
+            This is the Order Parameter analysis page.
+            <br />
+            <br />
+            The order parameter analysis calculates the order parameter for lipid tails in the membrane.
+            This parameter provides insights into the degree of order or disorder within the lipid bilayer.
+            The analysis is performed for each lipid type present in the membrane, and the results are displayed
+            as a function of the carbon position along the lipid tail.
+            <br />
+            <br />
+            The order parameter is calculated for each frame in the trajectory, and the mean and standard deviation
+            values are provided for each lipid tail.
+            <br />
+            <br />
+            The graph below shows the order parameter values for each carbon position along the lipid tails.
+            The horizontal axis represents the carbon position, and the vertical axis represents the order parameter.
+            The table below the graph provides the mean and standard deviation values for each lipid tail.
+            Use the checkboxes to toggle the display of individual lipid tails in the graph.
+            <br />
+            <br />
+            You can interact with the graph to select specific carbon positions and view the corresponding
+            representations in the molecular viewer.
+          </>
+        ),
+      },
     ],
   },
 

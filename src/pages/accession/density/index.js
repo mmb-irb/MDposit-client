@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState, useContext, useMemo } from 'react';
+import React, { lazy, Suspense, useState, useContext, useMemo, useEffect } from 'react';
 
 import {
   CardContent,
@@ -9,32 +9,37 @@ import {
   TableCell,
   FormControlLabel,
   Checkbox,
+  Tabs,
+  Tab,
 } from '@mui/material';
 
 import Card from '../../../components/animated-card';
 import ViewerSpawner from '../../../components/viewer-spawner';
 import Loading from '../../../components/loading';
-
 import useAPI from '../../../hooks/use-api';
-
 import { ProjectCtx } from '../../../contexts';
-
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
-
 import { getMean } from '../../../utils/statistics';
-
 import style from './style.module.css';
 
 const Graph = lazy(() =>
   import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
 );
 
-const colors = ['black', 'red', 'orange', 'yellow', 'blue', 'green', 'purple'];
+const tabs = [
+  // about the units: http://archive.ambermd.org/202203/0008.html
+  { type: 'mass', label: 'Mass', ylabel: 'Density (Da/Å)' },
+  { type: 'number', label: 'Number', ylabel: 'Density (N/Å)' },
+  //{ type: 'charge', label: 'Charge' }, // disable until we can put charges in pytraj topology
+  { type: 'electron', label: 'Electron', ylabel: 'Density (e⁻/Å)' },
+];
+
+let colors=[];
+const colorDict = {A: 'blue', B: 'purple', G: 'green', M: 'orange', polar: 'red', L: 'yellow'};
 
 const Density = () => {
   // Get the metadata
-  const { accessionAndMdNumber, metadata, analyses } = useContext(ProjectCtx);
-
+  const { accessionAndMdNumber, metadata, chains } = useContext(ProjectCtx);
   // Send a request to the API with the url of the specific analysis
   const {
     loading: densityLoading,
@@ -42,13 +47,18 @@ const Density = () => {
     error: densityError,
   } = useAPI(`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/density/`);
 
+  // Set which tab is selected from mass, number, charge, electron
+  const [selectedTab, setSelectedTab] = useState(tabs[0]);
   // Set which density components to display
   const [display, setDisplay] = useState({});
+  // Track which x value is selected by the user in the graph
+  const [xSelected, setXSelected] = useState([]);
+  // Define the representations to be displayed in the viewer
+  const [representations, setRepresentations] = useState(null);
 
   // Format the data
   const {
     densityData,
-    frameStep,
     xAxisStep,
     xAxisLabel,
     isEnsemble,
@@ -57,26 +67,55 @@ const Density = () => {
     if (!densityPayload || !densityPayload.data || !densityPayload.data.comps) return {};
 
     const densityData = {};
+    const reps = [];
     const defaultDisplay = {};
-    
     // Process each component's density data
     densityPayload.data.comps.forEach((comp, index) => {
       const dataset = {};
-      dataset.data = comp.dens;
-      dataset.color = colors[index % colors.length];
+      const type = selectedTab.type;
+      let name = comp.name;
+      dataset.data = comp[type].dens;
+      dataset.color = colorDict[name];
       
       // Calculate mean and stddev for the table display
       dataset.average = getMean(dataset.data);
-      dataset.stddev = getMean(comp.stdv);
+      dataset.stddev = getMean(comp[type].stdv);
       
       // Add the density stddev from the JSON for the graph visualization
-      dataset.densityStdDev = comp.stdv;
+      dataset.areaStdDev = comp[type].stdv;
       
-      const name = comp.name;
+      if (name === 'polar') {
+        // rename polar to Headgroups or something else
+        name = 'Headgroups';
+        reps.push ({
+          'name': name,
+          'type': 'ball+stick',
+          'color': dataset.color,
+          'opacity': 0.5,
+          'selection': '@' + comp.selection.join(','),
+          'other': {radius: 0.3},
+        })
+      } else if (chains.indexOf(name) !== -1) {
+        reps.push ({
+          'name': name,
+          'type': 'cartoon',
+          'color': dataset.color,
+          'selection': ':'+ name,
+        })
+      } else {
+        reps.push ({
+          'name': name,
+          'type': 'licorice',
+          'color': dataset.color,
+          'opacity': 0.5,
+          'selection': ':'+ name,
+        })
+      }
       densityData[name] = dataset;
       defaultDisplay[name] = true;
     });
-
+    colors = reps.map(rep => rep.color);
+    setRepresentations(reps);
     setDisplay(defaultDisplay);
     const isEnsemble = metadata.TYPE === 'ensemble';
     // Calculate timestep from z-axis data
@@ -85,50 +124,75 @@ const Density = () => {
 
     return {
       densityData,
-      frameStep: 1,
       xAxisStep: xStep,
-      xAxisLabel: 'Distance (Å)', // Using Angstroms as label
+      xAxisLabel: 'Z axis (Å)', // Using Angstroms as label
       isEnsemble,
       xTooltip: xValue => `${xValue.toFixed(2)} Å`,
       xValues: zValues, // Add z values for x-axis
     };
-  }, [metadata, densityPayload]);
+  }, [metadata, densityPayload, selectedTab]);
 
-  // Set when one point in the graph is selected
-  const [selected, setSelected] = useState(null);
-  const selectedFrame = selected * frameStep;
-
-  // Set the mark for selected
+  // Set the mark for xSelected
   const marks = useMemo(() => {
     const selectedMark = {
-      x: selected,
+      x: xSelected,
       attr: { fill: '#c8c8c8' },
     };
     return [selectedMark];
-  }, [selected]);
+  }, [xSelected]);
 
+  // Update the the representations according to selected or hovered pockets
+    useEffect(() => {
+      if (!representations || representations.length === 0) return;
+      setRepresentations(previousRepresentations => { 
+        // Update chain representations
+        var objDisplay = Object.keys(display)
+        previousRepresentations.forEach((previousRepresentation, i) => {
+            const selected = display[objDisplay[i]];
+            previousRepresentation.show = (selected ? true : false);
+        });
+        // Update the state
+        return [...previousRepresentations];
+      })
+    }, [display]);
+    
   // Render loading or error states
   if (densityLoading) return <Loading />;
   else if (densityError) return densityError.toString();
   else if (!densityPayload) return 'Something bad happened loading density data';
-
   const cents = num => Math.round(num * 100) / 100;
   // Set the y axis label for density
-  const yAxisLabel = 'Density';
-
-  console.log('Render')
 
   // Render
   return (
     <Suspense fallback={<Loading />}>
       <Card className={style.card}>
         <CardContent>
+        <Tabs
+            value={selectedTab}
+            variant="fullWidth"
+            indicatorColor="primary"
+            textColor="primary"
+            onChange={(event, value) => {
+              setXSelected(null);
+              setSelectedTab(value);
+            }}
+            className={style['margined-bottom']}
+          >
+            {tabs.map((tab, t) => (
+              <Tab
+                key={t}
+                value={tab}
+                label={tab.label}
+              />
+            ))}
+          </Tabs>
           <Table padding="checkbox">
             <TableHead>
               <TableRow>
-                <TableCell>selected chains</TableCell>
-                <TableCell>{`mean`}</TableCell>
-                <TableCell>{`mean of standard deviations`}</TableCell>
+                <TableCell>Selected chains</TableCell>
+                <TableCell>{`Mean`}</TableCell>
+                <TableCell>{`Mean of standard deviations`}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -167,39 +231,40 @@ const Density = () => {
             yData={densityData}
             step={xAxisStep}
             xAxisLabel={xAxisLabel}
+            yAxisLabel={selectedTab.ylabel}
             type={isEnsemble ? 'dots' : 'line'}
             xTooltip={xTooltip}
             xScaleFactor={1}
-            yAxisLabel={yAxisLabel}
-            onSelect={setSelected}
+            onSelect={setXSelected}
             selfLegend={false}
             dataDisplay={display}
             marks={marks}
-            densityStdDev={true}
+            areaStdDev={true}
           />
         </CardContent>
       </Card>
       <ViewerSpawner
-        // Set the new viewer or null if there is not a proper "selected" value
+        // Set the new viewer or null if there is not a proper "xSelected" value
         newViewer={
-          typeof selected === 'number'
+          typeof xSelected === 'number'
             ? {
               // This is used only as a tag for the onNail and onClose functions below
               // It has no effect on the viewer
-              xSelection: selected,
+              xSelection: xSelected,
               xAxisStep: xAxisStep,
+              representationsState: [representations, setRepresentations]
             }
             : null
         }
-        // If the nailed/closed viewer is the current viewer then reset the 'selected'
+        // If the nailed/closed viewer is the current viewer then reset the 'xSelected'
         onNail={viewer =>
-          setSelected(previous => {
+          setXSelected(previous => {
             if (viewer.xSelection === previous) return null;
             else return previous;
           })
         }
         onClose={viewer =>
-          setSelected(previous => {
+          setXSelected(previous => {
             if (viewer.xSelection === previous) return null;
             else return previous;
           })
