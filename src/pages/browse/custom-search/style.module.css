@@ -1,15 +1,28 @@
 .tall {
   min-height: 70vh;
+  box-shadow: none;
 }
 
+.advanced {
+  font-size: 14px;
+  padding: 0 0 16px 16px;
+}
+
+.category {
+  border: 1px solid rgb(125, 125, 125);
+  border-width: 0px 0 1px 0;
+}
 .margined {
-  margin: 1em;
+  margin: 0 0.5em;
 }
 
-.spaced {
-  width: 50vh;
-  margin-left: 0.5em;
-  margin-right: 0.5em;
+h6.margined  {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.spaced > div {
+  font-size: 0.8em;
 }
 
 .trash {
@@ -39,14 +52,26 @@
   padding-right: 0.3em;
 }
 
-.section {
-  margin: 1em 0;
+.accordion{
+  box-shadow: none;
+
 }
 
 .summary {
-  font-size: large;
-  font-weight: bold;
   cursor: pointer;
+  min-height: 0;
+}
+
+.summary > div {
+  margin: 10px 0;
+}
+
+.section > div .accordion:first-child > div > div{
+  margin: 0 0 10px 0;
+}
+
+.section {
+  padding: 0 16px 0;
 }
 
 .aligned {
@@ -62,4 +87,8 @@
 
 .search {
   margin-right: 1em;
+}
+
+.accordion div:has(.aligned){
+  padding:0;
 }

@@ -244,6 +244,7 @@ const HOST_CONFIGURATIONS = {
     'irb-dev.mddbr.eu': {
         logoLabel: 'IRB node',
         primaryColor: '#BB00BB', // Purple
+        secondaryColor: '#4116a3', // Dark Purple
         description: <>
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations stored at the MMB group at IRB Barcelona.
@@ -256,6 +257,7 @@ const HOST_CONFIGURATIONS = {
         production: true,
         logoLabel: 'IRB node',
         primaryColor: '#BB00BB', // Purple
+        secondaryColor: '#4116a3', // Dark Purple
         description: <>
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations stored at the MMB group at IRB Barcelona.

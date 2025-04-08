@@ -153,7 +153,7 @@ const LigandTable = ({ ligandReference }) => {
 };
 
 const Overview = React.memo(() => {
-  const { accession, identifier, published, metadata, ligandReferences, proteinReferences, mdCount, node, creationDate } = useContext(
+  const { accession, identifier, published, metadata, ligandReferences, proteinReferences, mdCount, node, creationDate, updateDate } = useContext(
     ProjectCtx,
   );
 
@@ -946,6 +946,8 @@ const Overview = React.memo(() => {
             <div>Internal project identifier: {identifier}</div>
             <div>Status: {published ? 'published' : 'unpublished'}</div>
             <div>Addition date: {creationDate ? creationDate : 'Not available'}</div>
+            <div>Last modification: {updateDate ? updateDate : (creationDate ? creationDate : 'Not available')}</div>
+            
           </div>
         </CardContent>
       </Card>
