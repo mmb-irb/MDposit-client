@@ -243,8 +243,22 @@ const HOST_CONFIGURATIONS = {
     // IRB node development
     'irb-dev.mddbr.eu': {
         logoLabel: 'IRB node',
-        primaryColor: '#BB00BB', // Purple
-        secondaryColor: '#4116a3', // Dark Purple
+        theme : createTheme({
+            palette: {
+              primary: {
+                light: '#ba68c8',
+                main: '#BB00BB', // Purple
+                dark: '#4116a3',
+                contrastText: '#fff',
+              },
+              secondary: {
+                light: '#e1bee7',
+                main: '#fafafa',
+                dark: '#ce93d8',
+                contrastText: '#000',
+              },
+            },
+          }),
         description: <>
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations stored at the MMB group at IRB Barcelona.
@@ -307,7 +321,22 @@ const HOST_CONFIGURATIONS = {
     'cineca.mddbr.eu': {
         //production: true,
         logoLabel: 'Cineca node',
-        primaryColor: '#99FFFF', // Light blue
+        theme : createTheme({
+            palette: {
+              primary: {
+                light: '#00e5ff',
+                main: '#99FFFF', // Light blue
+                dark: '#00b8d4',
+                contrastText: '#fff',
+              },
+              secondary: {
+                light: '#e1bee7',
+                main: '#fafafa',
+                dark: '#00b8d4',
+                contrastText: '#000',
+              },
+            },
+          }),
         description: <>
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations from the Cineca node in Bologna.

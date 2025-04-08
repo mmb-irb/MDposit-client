@@ -41,12 +41,9 @@ const KEYFRAMES = {
 if (!reducedMotion()) {
   KEYFRAMES.transform = ['translateY(0)', 'translateY(50px)'];
 }
-
 // Set the header colors (standard model colors)
-const primary = { main: HOST_CONFIG.primaryColor };
-const secondary = { main: HOST_CONFIG.secondaryColor,
-  light: 'rgb(255, 255, 255)',
-};
+const primary = { main: HOST_CONFIG.theme.palette.primary.main }; // Light indigo
+const secondary = { main: HOST_CONFIG.theme.palette.secondary.main }; // Light grey
 
 // Set custom styling theme
 const theme = createTheme({

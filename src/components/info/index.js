@@ -32,6 +32,8 @@ const Info = ({
   tooltip,
   // Set a custom styling
   className,
+  // Set a custom styling for the tooltip
+  sx
 }) => {
   const [open, setOpen] = useState(false);
 
@@ -52,6 +54,7 @@ const Info = ({
           className={className || style.default}
           color={open ? 'info' : 'primary'}
           onClick={toogleOpen}
+          sx={sx}
         >
           <FontAwesomeIcon icon={faInfoCircle} size={'lg'} />
         </IconButton>

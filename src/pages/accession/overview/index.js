@@ -204,11 +204,9 @@ const Overview = React.memo(() => {
   };
   // Get the provided theme
   const theme = useTheme();
-  const primaryColor = theme.palette.primary.main;
-  const secondaryColor = theme.palette.secondary.main;
-
-  // const dynamicStyle = { borderLeft: `.110rem solid ${primaryColor}` };
-  // const decoratedProps = {className: style["decorated-list-item__content"], style: dynamicStyle };
+  const primaryColor = HOST_CONFIG.theme.palette.primary;
+  const secondaryColor = HOST_CONFIG.theme.palette.secondary;
+  const primaryColorLight = HOST_CONFIG.theme.palette.primary.light;
 
   const SmilesViewer = ({ ligandReference }) => {
     const [expanded, setExpanded] = useState(false);
@@ -407,21 +405,21 @@ const Overview = React.memo(() => {
               {metadata.DESCRIPTION && metadata.DESCRIPTION.length > 0 &&
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <div className={style['decorated-list-item__title']}>Description</div>
-                <div className={style['decorated-list-item__content']} style={{  wordBreak: 'break-word' }}>
+                <div className={style['decorated-list-item__content']} style={{  wordBreak: 'break-word', borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                   {metadata.DESCRIPTION}
                 </div>
               </div>}
               {metadata.AUTHORS && metadata.AUTHORS.length > 0 &&
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <div className={style['decorated-list-item__title']}>Authors</div>
-                <div className={style['decorated-list-item__content']} >
+                <div className={style['decorated-list-item__content']} style={{ wordBreak: 'break-word', borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                   {prettyEnumerate(metadata.AUTHORS)}
                 </div>
               </div>}
               {metadata.GROUPS && metadata.GROUPS.length > 0 &&
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <div className={style['decorated-list-item__title']}>Groups</div>
-                <div className={style['decorated-list-item__content']} >
+                <div className={style['decorated-list-item__content']} style={{ wordBreak: 'break-word', borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                   {prettyEnumerate(metadata.GROUPS)}
                 </div>
               </div>}
@@ -430,28 +428,28 @@ const Overview = React.memo(() => {
               {metadata.CONTACT && metadata.CONTACT.length > 0 &&
                <div style={{ display: 'flex', alignItems: 'center' }}>
                 <div className={style['decorated-list-item__title']}>Contact</div>
-                <div className={style['decorated-list-item__content']}>
+                <div className={style['decorated-list-item__content']} style={{ wordBreak: 'break-word', borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                   {metadata.CONTACT}
                 </div>
               </div>}
               {metadata.PROGRAM && metadata.PROGRAM.length > 0 &&
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <div className={style['decorated-list-item__title']}>Program</div>
-                <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                   {metadata.PROGRAM}
                 </div>
               </div>}
               {metadata.VERSION && metadata.VERSION.length > 0 &&
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <div className={style['decorated-list-item__title']}>Version</div>
-                <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                   {metadata.VERSION}
                 </div>
               </div>}
               {metadata.LINKS && metadata.LINKS.length > 0 &&
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <div className={style['decorated-list-item__title']}>Links</div>
-                <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                 {metadata.LINKS.map((link, l) => (
                   <div key={l}>
                     {link.name}:{' '}
@@ -535,18 +533,18 @@ const Overview = React.memo(() => {
                       <Typography variant="h6" sx={{ fontSize: '1.4rem' }}>{reference.name}</Typography>
                       <div style={{ display: 'flex', alignItems: 'center' }}>
                         <div className={style['decorated-list-item__title']}>Gene</div>
-                        <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                        <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                         {reference.gene && `${reference.gene}`}</div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center' }}>
                         <div className={style['decorated-list-item__title']}>Organism</div>
-                        <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                        <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                           {reference.organism && `${reference.organism}`}
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center' }}>
                         <div className={style['decorated-list-item__title']}>UniProt ID</div>
-                        <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                        <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                           {reference.uniprot&& `UniProt ID: `}
                         <a
                           href={
@@ -600,7 +598,7 @@ const Overview = React.memo(() => {
                         <Typography variant="h6" sx={{ fontSize: '1.2rem' }}>{title}</Typography>
                         <div style={{ display: 'flex', alignItems: 'center' }}>
                         <div className={style['decorated-list-item__title']}>PDB Accession</div>
-                        <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                        <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                           {pdbId}
                           {pdbMetadata.replaces &&
                             ` (replaces ${pdbMetadata.replaces})`}
@@ -613,7 +611,7 @@ const Overview = React.memo(() => {
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center' }}>
                           <div className={style['decorated-list-item__title']}>Experimental method</div>
-                          <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                          <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                           {experimentalMethod}
                           </div>
                         </div>
@@ -629,7 +627,10 @@ const Overview = React.memo(() => {
                                   key={o}
                                   label={organism}
                                   variant="outlined"
-                                  color="primary"
+                                  sx={{
+                                    color: secondaryColor.dark,
+                                    borderColor: secondaryColor.dark
+                                  }}                                
                                   className={style.chip}
                                 />
                               )) : <span className={style['grey']}>not available</span>}
@@ -645,14 +646,17 @@ const Overview = React.memo(() => {
                               key={k}
                               label={keyword}
                               variant="outlined"
-                              color="primary"
+                              sx={{
+                                color: secondaryColor.dark,
+                                borderColor: secondaryColor.dark
+                              }}                            
                               className={style.chip}
                             />
                           ))}
                         </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center' }}>
-                          <div className={style['decorated-list-item__title']} style={{flexBasis: '10vw'}}>Publication date:</div>
+                          <div className={style['decorated-list-item__title']} style={{flexBasis: '12vw'}}>Publication date:</div>
                           <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}>
                           <time dateTime={publishDate.toISOString()}>
                             {publishDate.toDateString()}
@@ -662,12 +666,20 @@ const Overview = React.memo(() => {
                       </div>
                     </div>
                     <CardActions>
-                      <Button
-                        component={'a'}
+                    <Button
+                        component="a"
                         variant="contained"
                         href={`https://www.ebi.ac.uk/pdbe/entry/pdb/${pdbId}`}
                         size="small"
-                        color="primary"
+                        sx={{
+                          backgroundColor: secondaryColor.dark,
+                          border: `1px solid ${secondaryColor.dark}`,
+                          color: '#000',
+                          '&:hover': {
+                            backgroundColor: secondaryColor.main,
+                            border: `1px solid ${secondaryColor.main}`,
+                          }
+                        }}
                         target="_blank"
                         rel="noreferrer noopener"
                       >
@@ -679,7 +691,15 @@ const Overview = React.memo(() => {
                         variant="contained"
                         href={`https://www.rcsb.org/structure/${pdbId}`}
                         size="small"
-                        color="primary"
+                        sx={{
+                          backgroundColor: secondaryColor.dark,
+                          border: `1px solid ${secondaryColor.dark}`,
+                          color: '#000',
+                          '&:hover': {
+                            backgroundColor: secondaryColor.main,
+                            border: `1px solid ${secondaryColor.main}`,
+                          }
+                        }}
                         target="_blank"
                         rel="noreferrer noopener"
                       >
@@ -691,7 +711,15 @@ const Overview = React.memo(() => {
                         variant="contained"
                         href={`https://3dbionotes-ws.cnb.csic.es/?queryId=${pdbId}`}
                         size="small"
-                        color="primary"
+                        sx={{
+                          backgroundColor: secondaryColor.dark,
+                          border: `1px solid ${secondaryColor.dark}`,
+                          color: '#000',
+                          '&:hover': {
+                            backgroundColor: secondaryColor.main,
+                            border: `1px solid ${secondaryColor.main}`,
+                          }
+                        }}
                         target="_blank"
                         rel="noreferrer noopener"
                       >
@@ -703,7 +731,15 @@ const Overview = React.memo(() => {
                         variant="contained"
                         href={`https://www.pdbbind-plus.org.cn/browse/${pdbId}`}
                         size="small"
-                        color="primary"
+                        sx={{
+                          backgroundColor: secondaryColor.dark,
+                          border: `1px solid ${secondaryColor.dark}`,
+                          color: '#000',
+                          '&:hover': {
+                            backgroundColor: secondaryColor.main,
+                            border: `1px solid ${secondaryColor.main}`,
+                          }
+                        }}
                         target="_blank"
                         rel="noreferrer noopener"
                       >
@@ -741,7 +777,7 @@ const Overview = React.memo(() => {
                   <Typography variant="h6" sx={{ fontSize: '1.4rem' }}>{pubchemData.name}</Typography>
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                   <div className={style["decorated-list-item__title"]}>Pubchem ID</div>
-                    <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                    <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                     <a href={`https://pubchem.ncbi.nlm.nih.gov/compound/${pubchemId}`}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -752,7 +788,7 @@ const Overview = React.memo(() => {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                     <div className={style["decorated-list-item__title"]}>Molecular Formula</div>
-                    <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                    <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                       {ligandReference && ligandReference.formula.toString().split('').map((char, index) => {
                         if (char.match(/[A-Z]/)) {
                           return <span key={index} style={{ fontSize: '1.1em' }}>{char}</span>;
@@ -767,7 +803,7 @@ const Overview = React.memo(() => {
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                     {ligandReference && ligandReference.smiles && <>
                       <div className={style["decorated-list-item__title"]}>SMILES</div>
-                      <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                      <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                         <SmilesViewer ligandReference={ligandReference}/>
                       </div>
                       </>
@@ -776,7 +812,7 @@ const Overview = React.memo(() => {
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                     {ligandReference && ligandReference.inchi && <>
                       <div className={style["decorated-list-item__title"]}>InChI</div>
-                      <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                      <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                         <InchiViewer ligandReference={ligandReference}/>
                       </div>
                       </>
@@ -785,7 +821,7 @@ const Overview = React.memo(() => {
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                     {ligandReference && ligandReference.inchikey && <>
                       <div className={style["decorated-list-item__title"]}>InChIKey</div>
-                      <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                      <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                         {ligandReference.inchikey}
                       </div>
                       </>
@@ -794,7 +830,7 @@ const Overview = React.memo(() => {
                   <div>
                   {pubchemData.chemblID && (<div style={{ display: 'flex', alignItems: 'center' }}>
                     <div className={style["decorated-list-item__title"]}>ChEMBL ID</div>
-                    <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                    <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                     <a href={pubchemData.chemblURL}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -807,7 +843,7 @@ const Overview = React.memo(() => {
                   <div>
                   {pubchemData.drugbankID && (<div style={{ display: 'flex', alignItems: 'center' }}>
                     <div className={style["decorated-list-item__title"]}>DrugBank ID</div>
-                    <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                    <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                     <a href={pubchemData.drugbankURL}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -940,14 +976,36 @@ const Overview = React.memo(() => {
         <CardContent className={style['card-content']}>
           <Typography variant="h6">Project information</Typography>
           <div className={style['summary-list']}>
-            <div>
-              Public project accession: {accession || <code>not assigned</code>}
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+             <div className={style['decorated-list-item__title']} style={{flexBasis: '16vw'}}>Public project accession:</div>
+             <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}>
+              {accession || <code>not assigned</code>}
             </div>
-            <div>Internal project identifier: {identifier}</div>
-            <div>Status: {published ? 'published' : 'unpublished'}</div>
-            <div>Addition date: {creationDate ? creationDate : 'Not available'}</div>
-            <div>Last modification: {updateDate ? updateDate : (creationDate ? creationDate : 'Not available')}</div>
-            
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+             <div className={style['decorated-list-item__title']} style={{flexBasis: '16vw'}}>Internal project identifier:</div>
+             <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}>
+              {identifier}
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+             <div className={style['decorated-list-item__title']} style={{ flexBasis: '16vw'}}>Status:</div>
+             <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}>
+             {published ? 'published' : 'unpublished'}
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+             <div className={style['decorated-list-item__title']} style={{flexBasis: '16vw'}}>Addition date:</div>
+             <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}>
+             {creationDate ? creationDate : 'Not available'}
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <div className={style['decorated-list-item__title']} style={{flexBasis: '16vw'}}>Last modification:</div>
+            <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}>
+              {updateDate ? updateDate : (creationDate ? creationDate : 'Not available')}
+            </div>
+          </div>
           </div>
         </CardContent>
       </Card>

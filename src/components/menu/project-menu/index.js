@@ -22,6 +22,7 @@ import { ProjectCtx } from '../../../contexts';
 import { NICE_NAMES } from '../../../utils/constants';
 import style from './style.module.css';
 
+import { HOST_CONFIG } from '../../../utils/constants';
 // Set the configuration of the tabs to be displayed in the menu
 // Each tab must have 'dir' or 'drops'. Never both, never none.
 // Tabs with 'dir' link the user directly on click
@@ -52,6 +53,7 @@ const tabs = [
           'electrostatic',
           'hbonds',
           'energies',
+          'ligands'
         ],
       },
       {
@@ -129,8 +131,9 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
 
   // Get the provided theme
   const theme = useTheme();
-  const primaryColor = theme.palette.primary.main;
-  const secondaryColor = theme.palette.secondary.light;
+  const primaryColor = HOST_CONFIG.theme.palette.primary.main;
+  const primaryDarkColor = HOST_CONFIG.theme.palette.primary.dark;
+  const secondaryColor = HOST_CONFIG.theme.palette.secondary.dark;
 
   // Set the style of the current selected tab
   const currentTabStyle = {
@@ -152,9 +155,8 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
 
   // Return each of the menu tabs
   return (
-    <AppBar position="sticky" className={style['overcome-parent']}
-      sx={{background: `linear-gradient(90deg, ${theme.palette.primary.main} 55%, ${theme.palette.secondary.main} 100%)`}}
-    >
+    <AppBar position="sticky" 
+    className={style['overcome-parent']} sx={{background: `linear-gradient(90deg, ${primaryColor} 65%, ${primaryDarkColor} 100%)`}}>
       <Tabs
         value={subPage}
         indicatorColor="secondary"
