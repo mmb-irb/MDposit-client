@@ -24,9 +24,6 @@ import {
 // CSS styles
 import style from './style.module.css';
 
-// It is used to check if the user has the reduced motion setting active
-import reducedMotion from '../../../utils/reduced-motion';
-
 // Constants
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 const DEBOUNCE_DELAY = 500; // Half a second delay, same as in search component
@@ -40,17 +37,8 @@ import { HOST_CONFIG } from "../../../utils/constants";
 
 // Get the avilable search fields
 const queryFields = HOST_CONFIG.queryFields;
+const optionsField = HOST_CONFIG.optionsField;
 const availableFields = Object.values(queryFields).reduce((acc, curr) => acc.concat(curr), []);
-
-// These keyframes are used for an animate()
-// An image opacity is iterated between 0 (invisible) and 1 (visible)
-const keyframes = { opacity: [0, 1] };
-
-// Same image vertical position is iterated between 0 and 50 pixels (It may have no effect)
-// This is only set when user has not activated the reduced motion option from the navigator
-if (!reducedMotion()) {
-  keyframes.transform = ['translateX(2.5%)', 'translateX(0)'];
-}
 
 // Escape all regex sensible characters
 const escapeRegExp = input => {
@@ -88,9 +76,9 @@ const parseUrlQuery = (urlQuery) => {
 
       // Handle direct equality (for checkbox values)
       if (field.checkbox) {
-        internalQuery[key] = [value === null ? naTag : String(value)];
+        internalQuery[key] = [value === null ? NA_TAG : String(value)];
       } else {
-        internalQuery[key] = value === null ? naTag : String(value);
+        internalQuery[key] = value === null ? NA_TAG : String(value);
       }
     });
 
@@ -102,9 +90,9 @@ const parseUrlQuery = (urlQuery) => {
         
         const [key, value] = entries[0];
         if (!internalQuery[key]) {
-          internalQuery[key] = [value === null ? naTag : String(value)];
+          internalQuery[key] = [value === null ? NA_TAG : String(value)];
         } else if (Array.isArray(internalQuery[key])) {
-          internalQuery[key].push(value === null ? naTag : String(value));
+          internalQuery[key].push(value === null ? NA_TAG : String(value));
         }
       });
     }
@@ -124,7 +112,7 @@ const parseUrlQuery = (urlQuery) => {
             const orKey = Object.keys(orCondition)[0];
             const orValue = orCondition[orKey];
             if (orKey === key) {
-              internalQuery[key].push(orValue === null ? naTag : String(orValue));
+              internalQuery[key].push(orValue === null ? NA_TAG : String(orValue));
             }
           });
         }
@@ -142,13 +130,19 @@ const parseUrlQuery = (urlQuery) => {
 // Note that this function is called only at the end, when the search button is pressed
 // The actual query is build below in the code
 const parseQuery = (currentQuery, currentLocation) => {
-  // If the query is empty then do not search
-  if (Object.keys(currentQuery).length === 0) return;
   // Parse current URL parameters to preserve them
   const currentParams = parse(decodeURIComponent(currentLocation.search), {
     ignoreQueryPrefix: true,
     decoder: c => c,
   });
+  // If the query is empty, rebuild the URL with only the currentParams
+  if (Object.keys(currentQuery).length === 0) {
+    delete currentParams.query; // Remove the 'query' key
+    return '/browse?' + Object.entries(currentParams)
+      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+      .join('&');
+  }
+  
   // Set a function to parse our queries to a mongo query object
   const parsedQuery = {};
   let errors = 0;
@@ -158,7 +152,7 @@ const parseQuery = (currentQuery, currentLocation) => {
     const currentField = availableFields.find(f => f.path === key);
     // Provided that value will allways be a string (or string array) do the corresponding parsing
     const parseType = string => {
-      if (string === naTag) return { $eq: null };
+      if (string === NA_TAG) return { $eq: null };
       if (currentField.type === 'string') return string;
       if (currentField.type === 'int' || currentField.type === 'float')
         return +string;
@@ -215,7 +209,7 @@ const parseQuery = (currentQuery, currentLocation) => {
     parsedQuery['$or'] = value.map(v => ({ [key]: parseType(v) }));
   };
 
-  // Prase the query
+  // Parse the query
   Object.entries(currentQuery).forEach(entry => parseAndAddQuery(entry));
 
   // This may happen when a numeric textfield has text
@@ -223,11 +217,8 @@ const parseQuery = (currentQuery, currentLocation) => {
 
   // Create params object with preserved sort parameters
   const params = {
+    ...currentParams, // Preserve sort parameters
     query: JSON.stringify(parsedQuery),
-    // Preserve sort parameters
-    sort: currentParams.sort,
-    sortField: currentParams.sortField,
-    sortDirection: currentParams.sortDirection
   };
 
   // Filter out undefined values
@@ -242,7 +233,7 @@ const parseQuery = (currentQuery, currentLocation) => {
 };
 
 // Set the tag to be shown for null and undefined values
-const naTag = 'Not defined';
+const NA_TAG = 'Not defined';
 
 // Store queries per location id, since I am not able to make the location remember a bloody state
 const storedQueries = {};
@@ -289,7 +280,9 @@ const CustomSearch = () => {
   // Create a debounced version of the parseAndSearch function
   const debouncedParseAndSearch = debounce(parseAndSearch, DEBOUNCE_DELAY);
   // Cleanup the debounced function when component unmounts
-  useEffect(() => debouncedParseAndSearch.cancel(), []);
+  useEffect(() => {
+    return () => debouncedParseAndSearch.cancel();
+  }, []);
 
   // Query all the available fields using the 'options' endpoint
   const projectionStrings = availableFields.filter(field => field.options).map(field => 'projection=' + field.path);
@@ -299,55 +292,49 @@ const CustomSearch = () => {
   // DANI: Se piden todas las options de golpe, lo cual no es muy eficiente y la API tarda 3 segundos aprox
   // DANI: Hemos decidido que este valor se guardará en la db y se actualizará periódicamente, cosa mucho más eficiente
   const optionsUrl = `${BASE_PATH_PROJECTS}/options?${projectionQuery}`;
-  const { payload: optionsPayload, error: optionsError } = useAPI(optionsUrl);
+  const { payload: optionsPayload, error: optionsError } = useAPI(optionsUrl, { name: 'browse', cacheOn: true });
 
   // State to track expanded accordions
   const [expandedCategory, setExpandedCategory] = useState(true);
   const [expandedFields, setExpandedFields] = useState({});
 
   // Initialize expanded state based on URL query
-  useEffect(() => {
-      // Initialize category accordions as expanded
-      const initialCategoryState = {};
-      Object.keys(queryFields).forEach((category) => {
-        initialCategoryState[category] = true;
-      });
-      setExpandedCategory(initialCategoryState);
-      
-      // Initialize field accordions based on defaultOpen only (since query is empty)
-      const initialFieldState = {};
-      Object.values(queryFields).flat().forEach(field => {
-        initialFieldState[field.path] = field.defaultOpen || field.path in query;
-      });
-      setExpandedFields(initialFieldState);
-  }, []);
+  const initializeExpandedState = (queryFields, query, defaultOpen = false) => {
+    // Initialize category accordions as expanded
+    const categoryState = Object.keys(queryFields).reduce((acc, category) => {
+      acc[category] = true;
+      return acc;
+    }, {});
+    // Initialize field accordions based on defaultOpen only (since query is empty)
+    const fieldState = Object.values(queryFields).flat().reduce((acc, field) => {
+      acc[field.path] = field.defaultOpen || (defaultOpen && field.path in query);
+      return acc;
+    }, {});
+  
+    return { categoryState, fieldState };
+  };
 
+  // Set initial expanded state based on URL query
+  useEffect(() => {
+    const { categoryState, fieldState } = initializeExpandedState(queryFields, query, true);
+    setExpandedCategory(categoryState);
+    setExpandedFields(fieldState);
+  }, []);
+  
   useEffect(() => {
     // Only reset accordions if URL was cleared externally (not by user action)
-    if (!urlQuery && !isUserInitiatedSearchRef.current) {
-      // Initialize category accordions as expanded
-      const initialCategoryState = {};
-      Object.keys(queryFields).forEach((category) => {
-        initialCategoryState[category] = true;
-      });
-      setExpandedCategory(initialCategoryState);
-      
-      // Initialize field accordions based on defaultOpen only (since query is empty)
-      const initialFieldState = {};
-      Object.values(queryFields).flat().forEach(field => {
-        initialFieldState[field.path] = field.defaultOpen || false;
-      });
-      setExpandedFields(initialFieldState);
+    // and there is no query or search options
+    if (!urlQuery && !isUserInitiatedSearchRef.current && !location.search) {
+      const { categoryState, fieldState } = initializeExpandedState(queryFields, query);
+      setExpandedCategory(categoryState);
+      setExpandedFields(fieldState);
     }
-  }, [urlQuery]);
-
-  useEffect(() => {
-    // This will run after navigation has completed
-    if (!urlQuery && isUserInitiatedSearchRef.current) {
+    // Reset the ref after handling the state update
+    if (isUserInitiatedSearchRef.current) {
       isUserInitiatedSearchRef.current = false;
-    }
-  }, [location.key]); // Use location.key which changes on every navigation
-  
+  }
+  }, [location.search, urlQuery]);
+
   // Handle category accordion changes
   const handleCategoryChange = (category) => (event, isExpanded) => {
     setExpandedCategory({
@@ -440,6 +427,7 @@ const CustomSearch = () => {
               <AccordionDetails  className={style.section}>
                 <div>
                   {fields.map((field, f) => {
+                    if (field.path === optionsField) return null; // hide the one in OptionsFilter
                     return (
                       <Accordion 
                         key={f} 
@@ -464,10 +452,10 @@ const CustomSearch = () => {
                                 notDefined += fieldData.null;
                                 delete fieldData.null;
                               }
+                              if (!fieldData) return null;
                               // If the field values are set to be selectable as checkboxes
                               if (field.checkbox) {
                                 // For each entry generate a checkbox
-                                if (!fieldData) return null;
                                 const entries = Object.entries(fieldData).sort(([aKey, aCount], [bKey, bCount]) => bCount - aCount);
                                 return entries.map(([option, count], i) => {
                                   // Check if this option is selected from the URL query
@@ -493,7 +481,6 @@ const CustomSearch = () => {
                                 });
                               }
                               else {
-                                if (!fieldData) return null;
                                 const options = Object.entries(fieldData).map(
                                   ([value, count]) => ({ label: value, count })
                                 ).sort((a, b) => b.count - a.count);
