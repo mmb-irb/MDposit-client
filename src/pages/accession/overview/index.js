@@ -1,5 +1,14 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, useRef, useMemo } from 'react';
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
+  TextField,
+  Paper,
   CardContent,
   CardActions,
   Button,
@@ -11,6 +20,7 @@ import {
   faLink,
   faExclamationTriangle,
 } from '@fortawesome/free-solid-svg-icons';
+import { useTheme } from '@mui/material/styles';
 
 import Card from '../../../components/animated-card';
 import LazyImg from '../../../components/lazy-img';
@@ -24,6 +34,7 @@ import { parse as urlParse } from 'url';
 import style from './style.module.css';
 
 import { HOST_CONFIG } from '../../../utils/constants';
+import MoleculeViewer from 'src/utils/rdkit/rdkit_viewer';
 
 const COMMA_SEPARATOR = /\s*,\s*/;
 
@@ -37,12 +48,190 @@ const typeSettings = {
     color: '#ffe08f', // light yellow
   },
 };
+const LigandTable = ({ ligandReference }) => {
+  if (!ligandReference) return null;
+  const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
+  const mordredData = ligandReference.mordred || {};
+  const rows = Object.entries(mordredData || {}).map(([key, value]) => ({
+    key,
+    value: typeof value === 'number' ? value.toFixed(2) : String(value),
+  }));
+  // Avoid a layout jump when reaching the last page with empty rows.
+  const emptyRows =
+    page > 0 ? Math.max(0, (1 + page) * rowsPerPage - rows.length) : 0;
+
+  const filteredRows = rows.filter(
+    ({key,value}) =>
+      key.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      value.toString().includes(searchTerm)
+  );
+
+  const handleSearch = (event) => {
+    setSearchTerm(event.target.value);
+    setPage(0);
+  };
+
+  const handleChangePage = (_, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  return (
+    <Paper 
+      sx={{ 
+        width: "auto", 
+        maxWidth: "400px", 
+        padding: "10px", 
+        overflow: "hidden", 
+        boxShadow: "none",
+        margin: "auto",
+        marginTop: "0px",
+        marginBottom: "10px",
+        display:"table",
+        borderCollapse: "collapse"
+      }}
+    >
+      <TextField
+        label="Buscar..."
+        variant="outlined"
+        fullWidth
+        margin="dense"
+        size="small"
+        value={searchTerm}
+        onChange={handleSearch}
+      />
+      <TableContainer>
+        <Table size="small"> {/* Reduce el tamaño de las filas */}
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ fontWeight: "bold", padding: "5px", textAlign: "center" }}>Descriptor</TableCell>
+              <TableCell sx={{ fontWeight: "bold", padding: "5px", textAlign: "center" }}>Valor</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filteredRows.length > 0 ? filteredRows
+              .slice(page * rowsPerPage, (page + 1) * rowsPerPage)
+              .map(({key,value}) => (
+                <TableRow key={key} sx={{ "&:last-child td, &:last-child th": { border: 0 } }} >
+                  <TableCell component="th" sx={{ padding: "5px", textAlign: "center" }}>{key}</TableCell>
+                  <TableCell component="th" sx={{ padding: "5px", textAlign: "center" }}>{value}</TableCell>
+                </TableRow>
+              ))
+            : null}
+            {emptyRows > 0 && (
+              <TableRow style={{ height: 33 * emptyRows }}>
+                <TableCell colSpan={2} />
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+      <TablePagination
+        rowsPerPageOptions={[5, 10, 25, { label: 'All', value: -1 }]}
+        component="div"
+        colSpan={3}
+        count={filteredRows.length}
+        rowsPerPage={rowsPerPage}
+        page={page}
+        onPageChange={handleChangePage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+        sx={{ fontSize: "12px" }}
+        display="flex"
+        //justifyContent="center"
+        //alignItems="flex-start"
+        margin="auto"
+      />
+    </Paper>
+  );
+};
 
 const Overview = React.memo(() => {
   const { accession, identifier, published, metadata, ligandReferences, proteinReferences, mdCount, node, creationDate, updateDate } = useContext(
     ProjectCtx,
   );
+
+  // Define the state and the function to show the table or not for Mordred (ligands)
+  const [showTable, setShowTable] = useState(new Set());
+  const handleSeeMore = pubchemId => {
+    setShowTable((prev) => {
+      const newShowTable = new Set(prev);
+      if (newShowTable.has(pubchemId)) newShowTable.delete(pubchemId);
+      else newShowTable.add(pubchemId);
+      return newShowTable;
+    });
+  };
+
+  // Define the state and the function to show the Morgan Fingerprint array (ligands)
+  const [selectedFP, setSelectedFP] = useState(new Set());
+  const showMorganFPArray = pubchemId => {
+    setSelectedFP((prev) => {
+      const newSelectedFP = new Set(prev);
+      if (newSelectedFP.has(pubchemId)) newSelectedFP.delete(pubchemId);
+      else newSelectedFP.add(pubchemId);
+      return newSelectedFP;
+    });
+  };
+
+  // Create a little button to show the inchi array
+  const InchiViewer = ({ ligandReference }) => {
+    const [expanded, setExpanded] = useState(false);
+    const maxLength = 30;
+    const toggleExpand = () => setExpanded(!expanded);
+    const inchi = ligandReference.inchi;
+    const displayText = expanded ? inchi : `${inchi.substring(0, maxLength)}... `;
+  
+    return (
+      <div>
+        <div>
+          {displayText.split('').map((char, index) => (
+            <span key={index} className="highlight">{char}</span>
+          ))}
+          {inchi.length > maxLength && (
+            <button onClick={toggleExpand} className="ml-2 text-blue-500 hover:underline">
+              {expanded ? 'See less' : 'See more'}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+  // Get the provided theme
+  const theme = useTheme();
+  const primaryColor = theme.palette.primary.main;
+  const secondaryColor = theme.palette.secondary.main;
+
+  // const dynamicStyle = { borderLeft: `.110rem solid ${primaryColor}` };
+  // const decoratedProps = {className: style["decorated-list-item__content"], style: dynamicStyle };
+
+  const SmilesViewer = ({ ligandReference }) => {
+    const [expanded, setExpanded] = useState(false);
+    const maxLength = 120;
+    const toggleExpand = () => setExpanded(!expanded);
+    const smiles = ligandReference.smiles;
+    const displayText = expanded ? smiles : `${smiles.substring(0, maxLength)}`;
+
+    return (
+      <div className="text-align-center margin-auto max-width-100">
+        <div className="display-inline word-break">
+          {displayText.split('').map((char, index) => (
+            <span key={index} className="highlight">{char}</span>
+          ))}
+          {smiles.length > maxLength && (
+            <button onClick={toggleExpand} className="ml-2 text-blue-500 hover:underline">
+              {expanded ? 'See less' : 'See more'}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   // Download pdb information for every pdb id in metadata from our custom API
   const pdbIds = metadata.PDBIDS;
@@ -145,7 +334,7 @@ const Overview = React.memo(() => {
           if (chemblReference) {
             data.chemblURL = chemblReference.URL;
             const chemblSplits = chemblReference.URL.split('/');
-            data.chemblID = chemblSplits[chemblSplits.length - 2];
+            data.chemblID = chemblSplits[chemblSplits.length - 1];
           }
           // Get drugbank id and url
           const drugbankReference = reference.find(ref => ref.SourceName === 'DrugBank');
@@ -215,16 +404,55 @@ const Overview = React.memo(() => {
                 />
               )}
               {metadata.METHOD}
-              {metadata.DESCRIPTION && <div>{metadata.DESCRIPTION}</div>}
-              {metadata.AUTHORS && <div>Authors: {prettyEnumerate(metadata.AUTHORS)}</div>}
-              {metadata.GROUPS && <div>Groups: {rawEnumerate(metadata.GROUPS)}</div>}
+              {metadata.DESCRIPTION && metadata.DESCRIPTION.length > 0 &&
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div className={style['decorated-list-item__title']}>Description</div>
+                <div className={style['decorated-list-item__content']} style={{  wordBreak: 'break-word' }}>
+                  {metadata.DESCRIPTION}
+                </div>
+              </div>}
+              {metadata.AUTHORS && metadata.AUTHORS.length > 0 &&
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div className={style['decorated-list-item__title']}>Authors</div>
+                <div className={style['decorated-list-item__content']} >
+                  {prettyEnumerate(metadata.AUTHORS)}
+                </div>
+              </div>}
+              {metadata.GROUPS && metadata.GROUPS.length > 0 &&
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div className={style['decorated-list-item__title']}>Groups</div>
+                <div className={style['decorated-list-item__content']} >
+                  {prettyEnumerate(metadata.GROUPS)}
+                </div>
+              </div>}
               {/* Node will exist only in the global API, and the global client has nodes as options */}
               {HOST_CONFIG.global && node && <div>Node: {HOST_CONFIG.optionsNiceNames[node] || node}</div>}
-              {metadata.CONTACT && <div>Contact: {metadata.CONTACT}</div>}
-              {metadata.PROGRAM && <div>Program: {metadata.PROGRAM}</div>}
-              {metadata.VERSION && <div>Version: {metadata.VERSION}</div>}
-              {metadata.LINKS &&
-                metadata.LINKS.map((link, l) => (
+              {metadata.CONTACT && metadata.CONTACT.length > 0 &&
+               <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div className={style['decorated-list-item__title']}>Contact</div>
+                <div className={style['decorated-list-item__content']}>
+                  {metadata.CONTACT}
+                </div>
+              </div>}
+              {metadata.PROGRAM && metadata.PROGRAM.length > 0 &&
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div className={style['decorated-list-item__title']}>Program</div>
+                <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                  {metadata.PROGRAM}
+                </div>
+              </div>}
+              {metadata.VERSION && metadata.VERSION.length > 0 &&
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div className={style['decorated-list-item__title']}>Version</div>
+                <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                  {metadata.VERSION}
+                </div>
+              </div>}
+              {metadata.LINKS && metadata.LINKS.length > 0 &&
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div className={style['decorated-list-item__title']}>Links</div>
+                <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                {metadata.LINKS.map((link, l) => (
                   <div key={l}>
                     {link.name}:{' '}
                     <a
@@ -236,6 +464,8 @@ const Overview = React.memo(() => {
                     </a>
                   </div>
                 ))}
+                </div>
+              </div>}
               {metadata.WARNINGS &&
                 metadata.WARNINGS.map((warning, w) => (
                   <div key={w} style={{ fontWeight: 'bold' }}>
@@ -243,6 +473,50 @@ const Overview = React.memo(() => {
                     {' ' + warning.message}
                   </div>
                 ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      {metadata && Array.isArray(metadata.NUCLSEQ) && metadata.NUCLSEQ.length > 0 && (
+        <Card className={style.card}>
+          <CardContent className={style['card-content']}>
+          <div>
+              <Typography marginBottom={'10px'} variant="h6">Nucleic Sequences:</Typography>
+              {metadata.NUCLSEQ.map((seq, index) => (
+                <div 
+                  key={index} 
+                  className={style['card-background']}
+                >
+                <Typography variant="h6" style={{ marginBottom: '5px', marginTop: '10px', fontSize: 'inherit' }}>Sequence {index + 1}:</Typography>
+                  <textarea
+                    readOnly
+                    value={seq}
+                    className={style['textarea']}
+                  />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      {metadata && Array.isArray(metadata.PROTSEQ) && metadata.PROTSEQ.length > 0  && (
+        <Card className={style.card}>
+          <CardContent className={style['card-content']}>
+            <div>
+              <Typography marginBottom={'10px'} variant="h6" sx={{ fontSize: '1.4rem' }}>Protein Sequences:</Typography>
+              {metadata.PROTSEQ.map((seq, index) => (
+                <div 
+                  key={index} 
+                  className={style['card-background']}
+                >
+                <Typography variant="h6" style={{ marginBottom: '5px', marginTop: '10px', fontSize: 'inherit' }} sx={{ fontSize: '1.4rem' }}>Sequence {index + 1}:</Typography>
+                  <textarea
+                    readOnly
+                    value={seq}
+                    className={style['textarea']}
+                  />
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -258,14 +532,22 @@ const Overview = React.memo(() => {
                 <CardContent className={style['vertcial-marginned']}>
                   <div>
                     <div className={style['summary-list']}>
-                      <Typography variant="h6">{reference.name}</Typography>
-                      <div>{reference.gene && `Gene: ${reference.gene}`}</div>
-                      <div>
-                        {reference.organism &&
-                          `Organism: ${reference.organism}`}
+                      <Typography variant="h6" sx={{ fontSize: '1.4rem' }}>{reference.name}</Typography>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <div className={style['decorated-list-item__title']}>Gene</div>
+                        <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                        {reference.gene && `${reference.gene}`}</div>
                       </div>
-                      <div>
-                        {reference.uniprot && `UniProt ID: `}
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <div className={style['decorated-list-item__title']}>Organism</div>
+                        <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                          {reference.organism && `${reference.organism}`}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <div className={style['decorated-list-item__title']}>UniProt ID</div>
+                        <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                          {reference.uniprot&& `UniProt ID: `}
                         <a
                           href={
                             'https://www.uniprot.org/uniprotkb/' +
@@ -276,6 +558,7 @@ const Overview = React.memo(() => {
                         >
                           {reference.uniprot}
                         </a>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -304,7 +587,7 @@ const Overview = React.memo(() => {
               return (
                 <div key={i}>
                   {i !== 0 && <hr style={{ color: 'lightGrey' }} />}
-                  <CardContent style={{ minHeight: 380 }}>
+                  <CardContent className={style['vertcial-marginned']} style={{ minHeight: 380, marginTop: '-1rem' }}>
                     <div>
                       <LazyImg
                         src={imgSrc}
@@ -314,34 +597,49 @@ const Overview = React.memo(() => {
                         alt={`3D view of the ${pdbId} structure`}
                       />
                       <div className={style['summary-list']}>
-                        <div>
-                          PDB Accession: {pdbId}
+                        <Typography variant="h6" sx={{ fontSize: '1.2rem' }}>{title}</Typography>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <div className={style['decorated-list-item__title']}>PDB Accession</div>
+                        <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                          {pdbId}
                           {pdbMetadata.replaces &&
                             ` (replaces ${pdbMetadata.replaces})`}
                         </div>
-                        <Typography variant="h6">{title}</Typography>
+                        </div>
                         <div>
                           {pdbMetadata.status &&
                             pdbMetadata.status !== 'CURRENT' &&
                             `Status: ${pdbMetadata.status}`}
                         </div>
-                        <div>Experimental method: {experimentalMethod}</div>
-                        <div>
-                          Organism
-                          {organisms.length > 1 && 's'}:{' '}
-                          {organisms.length > 0 ? organisms.map((organism, o) => (
-                            <Chip
-                              key={o}
-                              label={organism}
-                              variant="outlined"
-                              color="primary"
-                              className={style.chip}
-                            />
-                          )) : <span className={style['grey']}>not available</span>}
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <div className={style['decorated-list-item__title']}>Experimental method</div>
+                          <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                          {experimentalMethod}
+                          </div>
                         </div>
                         <div>
-                          Keyword
-                          {keywords.length > 1 && 's'}:{' '}
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <div className={style['decorated-list-item__title']}>
+                              Organism
+                          {organisms.length > 1 && 's'}{' '}
+                            </div>
+                            <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}>
+                              {organisms.length > 0 ? organisms.map((organism, o) => (
+                                <Chip
+                                  key={o}
+                                  label={organism}
+                                  variant="outlined"
+                                  color="primary"
+                                  className={style.chip}
+                                />
+                              )) : <span className={style['grey']}>not available</span>}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <div className={style['decorated-list-item__title']}>Keyword</div>
+                          <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}> 
+                          {keywords.length > 1 && 's'}{' '}
                           {keywords.map((keyword, k) => (
                             <Chip
                               key={k}
@@ -352,11 +650,14 @@ const Overview = React.memo(() => {
                             />
                           ))}
                         </div>
-                        <div>
-                          Publication date:{' '}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <div className={style['decorated-list-item__title']} style={{flexBasis: '10vw'}}>Publication date:</div>
+                          <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}>
                           <time dateTime={publishDate.toISOString()}>
                             {publishDate.toDateString()}
                           </time>
+                        </div>
                         </div>
                       </div>
                     </div>
@@ -429,7 +730,7 @@ const Overview = React.memo(() => {
                   ) /* An horizontal line to separate protein references */}
                   <LazyImg
                     src={`https://pubchem.ncbi.nlm.nih.gov/image/imgsrv.fcgi?cid=${pubchemId}&t=l`}
-                    width="200" height="200" loading="lazy"
+                    width="250" height="250" loading="lazy"
                     alt={`3D view of the ${pubchemData.name} structure`}
                     // cross origin and referrer policy should prevent pubchem cookies
                     crossOrigin="anonymous" referrerPolicy="no-referrer"
@@ -437,72 +738,136 @@ const Overview = React.memo(() => {
                     // this was recommended by people from pubchem
                     className={style['white-background']}
                   />
-                  <Typography variant="h6">{pubchemData.name}</Typography>
-                  <div>
-                    {`Pubchem ID: `}
+                  <Typography variant="h6" sx={{ fontSize: '1.4rem' }}>{pubchemData.name}</Typography>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <div className={style["decorated-list-item__title"]}>Pubchem ID</div>
+                    <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
                     <a href={`https://pubchem.ncbi.nlm.nih.gov/compound/${pubchemId}`}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
                       {pubchemId}
                     </a>
+                    </div>
                   </div>
-                  <div>
-                    {ligandReference && <>
-                      {`Molecular Formula: `}
-                      {ligandReference.formula.toString().split('').map((char, index) => {
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <div className={style["decorated-list-item__title"]}>Molecular Formula</div>
+                    <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                      {ligandReference && ligandReference.formula.toString().split('').map((char, index) => {
                         if (char.match(/[A-Z]/)) {
-                          return <span key={index} style={{ fontSize: '1.3m' }}>{char}</span>;
+                          return <span key={index} style={{ fontSize: '1.1em' }}>{char}</span>;
                         } else if (char.match(/[0-9]/)) {
                           return <sub key={index} style={{ fontSize: '0.9em' }}>{char}</sub>;
                         } else {
                           return char;
                         }
                       })}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    {ligandReference && ligandReference.smiles && <>
+                      <div className={style["decorated-list-item__title"]}>SMILES</div>
+                      <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                        <SmilesViewer ligandReference={ligandReference}/>
+                      </div>
                       </>
                       }
                   </div>
-                  <div >
-                    {ligandReference && <>
-                      {`SMILES Formula: `}
-                      {ligandReference.smiles.length > 60 ? (
-                        <>
-                          {ligandReference.smiles.match(/.{1,75}/g).map((line, index) => (
-                            <div key={index}>
-                              {line.split('').map((char, charIndex) => (
-                                <span key={charIndex} className="highlight">{char}</span>
-                              ))}
-                            </div>
-                          ))}
-                        </>
-                      ) : (
-                        <>
-                          {ligandReference.smiles.split('').map((char, index) => (
-                            <span key={index} className="highlight">{char}</span>
-                          ))}
-                        </>
-                      )}
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    {ligandReference && ligandReference.inchi && <>
+                      <div className={style["decorated-list-item__title"]}>InChI</div>
+                      <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                        <InchiViewer ligandReference={ligandReference}/>
+                      </div>
                       </>
                       }
                   </div>
-                  {pubchemData.chemblID && (<div>
-                    {`ChEMBL ID: `}
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    {ligandReference && ligandReference.inchikey && <>
+                      <div className={style["decorated-list-item__title"]}>InChIKey</div>
+                      <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
+                        {ligandReference.inchikey}
+                      </div>
+                      </>
+                      }
+                  </div>
+                  <div>
+                  {pubchemData.chemblID && (<div style={{ display: 'flex', alignItems: 'center' }}>
+                    <div className={style["decorated-list-item__title"]}>ChEMBL ID</div>
+                    <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
                     <a href={pubchemData.chemblURL}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
                       {pubchemData.chemblID}
                     </a>
+                    </div>
                   </div>)}
-                  {pubchemData.drugbankID && (<div>
-                    {`DrugBank ID: `}
+                  </div>
+                  <div>
+                  {pubchemData.drugbankID && (<div style={{ display: 'flex', alignItems: 'center' }}>
+                    <div className={style["decorated-list-item__title"]}>DrugBank ID</div>
+                    <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor}` }}>
                     <a href={pubchemData.drugbankURL}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
                       {pubchemData.drugbankID}
                     </a>
+                    </div>
                   </div>)}
+                  </div>
+                  <div>
+                    {ligandReference?.mordred || ligandReference?.morgan_fp_bit_array ? (
+                      <>
+                        <Button onClick={() => handleSeeMore(pubchemId)} color="primary" variant='outlined' style={{ marginTop: '10px', marginBottom: '10px', marginLeft: '1rem' }}>
+                          Ligand Descriptors
+                        </Button>
+                        {showTable.has(pubchemId) && (
+                          <Card className={style.card}>
+                              <div style={{ display: "flex" }}>                            
+                              {ligandReference.mordred ? (
+                                <div style={{ flex: 1, width: "40%", textAlign: "center" }}>
+                                  <h3 style={{marginBottom: "0px"}}>Mordred Descriptors</h3>
+                                  <LigandTable ligandReference={ligandReference} type="mordred"/>
+                                </div>
+                              ) : <></>}
+                              {ligandReference.morgan_fp_bit_array ? (
+                                <div style={{ flex: 1, width: "60%", textAlign: "center" }}>
+                                  <h3>Morgan Fingerprint</h3>
+                                  <MoleculeViewer smiles={ligandReference.smiles} 
+                                  fingerprintData={ligandReference.morgan_highlight_atoms}
+                                  mol_block={ligandReference.mol_block}/>
+                                  {ligandReference.morgan_fp_bit_array && (
+                                    <div>
+                                      <Button onClick={() => showMorganFPArray(pubchemId)} color="primary" variant='outlined' style={{ marginTop: '10px', marginBottom: '10px' }}>
+                                        Show Morgan Fingerprint Array
+                                      </Button>
+                                      {selectedFP.has(pubchemId) && (
+                                        <div>
+                                          <textarea
+                                            readOnly
+                                            value={ligandReference.morgan_fp_bit_array}
+                                            className={style['textarea']}
+                                          />
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div style={{ flex: 1, width: "60%", textAlign: "center" }}>
+                                  <h4>Morgan Fingerprint not available</h4>
+                                </div>
+                              )}
+                          </div>
+                            </Card>
+                          )}
+                        </>
+                      ) : (
+                        <p>No descriptors available</p>
+                      )}
+                  </div>
                   {ligandReference && ligandReference.pdbid && (<div>
                     <CardActions>
                       <Button
