@@ -8,7 +8,7 @@ import React, {
 } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import CustomSearch from './custom-search';
-import Row from './Row';
+import Row from './row';
 
 // String managers
 import { parse, stringify } from 'qs';
