@@ -511,10 +511,10 @@ export const documentation = [
     children: [
       {
         id: 'rmsds',
-        header: 'RMSds',
+        header: 'RMSDs',
         body: (
           <>
-            RMSds page includes both <TextLink name={'RMSd'} id={'rmsd'} /> and{' '}
+            RMSDs page includes both <TextLink name={'RMSD'} id={'rmsd'} /> and{' '}
             <TextLink name={'TM score'} id={'tm-score'} /> analyses together.
           </>
         ),
@@ -540,7 +540,7 @@ export const documentation = [
             <br />
             Graph displays the RMSD/TM score value in each frame along the
             trajectory. The horizontal axis stands for the trajectory time in
-            nanoseconds. The vertical axis may stand for the RMSd in Ångstroms
+            nanoseconds. The vertical axis may stand for the RMSD in Ångstroms
             (Å) or the TM score. The graph is{' '}
             <span style={{ color: 'lightGreen' }}>interactive</span>. Use the
             mouse wheel to zoom in a specific region. Click and hold at any
@@ -560,14 +560,14 @@ export const documentation = [
       },
       {
         id: 'rmsd',
-        header: 'RMSd',
+        header: 'RMSD',
         body: (
           <>
-            RMSd analyses have been run against the first frame and against the
-            average structure of the whole trajectory. RMSd analyses have been
+            RMSD analyses have been run against the first frame and against the
+            average structure of the whole trajectory. RMSD analyses have been
             run over different protein atom selections: all protein atoms
             (protein), heavy atoms (protein-h), backbone and alpha carbon
-            (c-alpha). The RMSd value of the structure is stored for up to 5000
+            (c-alpha). The RMSD value of the structure is stored for up to 5000
             frames along the trajectory.
             <br />
             <br />
@@ -603,7 +603,7 @@ export const documentation = [
       },
       {
         id: 'rmsd-perres',
-        header: 'RMSd per residue',
+        header: 'RMSD per residue',
         body: (
           <>
             The RMSD (Root Mean Squared Deviation) per residue analysis computes
@@ -619,10 +619,10 @@ export const documentation = [
         ),
         page: (
           <>
-            This is the RMSd per residue analysis.
+            This is the RMSD per residue analysis.
             <br />
             <br />
-            RMSd values are calculated against the trajectory first frame. First
+            RMSD values are calculated against the trajectory first frame. First
             panel is the residue selector. Residues are divided by chains.
             Chains are delimited by their titles and residues may be expanded or
             compressed for each chain independently. Each residue is represented
@@ -663,7 +663,7 @@ export const documentation = [
       },
       {
         id: 'rmsd-pairwise',
-        header: 'RMSd pairwise',
+        header: 'RMSD pairwise',
         body: (
           <>
             The RMSD (Root Mean Squared Deviation) pairwise analysis computes
@@ -678,7 +678,7 @@ export const documentation = [
         ),
         page: (
           <>
-            This is the RMSd pairwise analysis.
+            This is the RMSD pairwise analysis.
             <br />
             <br />
             A RMSD pairwise analysis is run for all residues (Overall), which is
@@ -688,9 +688,9 @@ export const documentation = [
             be displayed.
             <br />
             <br />
-            Heatmap represents the RMSd between each pair of frames along the
+            Heatmap represents the RMSD between each pair of frames along the
             trajectory. Both horizontal and vertical axes stand for frame
-            numbers. The color stands for the RMSd value and it ranges from blue
+            numbers. The color stands for the RMSD value and it ranges from blue
             (low) to red (high). The legend below shows the corresponding values
             in Ångstroms (Å). The heatmap is{' '}
             <span style={{ color: 'lightGreen' }}>interactive</span>. Hover any

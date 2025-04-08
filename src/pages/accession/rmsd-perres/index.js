@@ -333,7 +333,7 @@ const RmsdPerres = () => {
             type={isEnsemble ? 'dots' : 'line'}
             xWeights={xWeights}
             xTooltip={xTooltip}
-            yAxisLabel={'RMSd (Å)'}
+            yAxisLabel={'RMSD (Å)'}
             onSelect={handleFrameSelection}
             className={style.graph}
             ref={graphRef}

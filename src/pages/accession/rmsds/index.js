@@ -32,8 +32,8 @@ const Graph = lazy(() =>
 );
 
 const tabs = [
-  { reference: 'firstframe', type: 'rmsd', label: 'First frame RMSd' },
-  { reference: 'average', type: 'rmsd', label: 'Average RMSd' },
+  { reference: 'firstframe', type: 'rmsd', label: 'First frame RMSD' },
+  { reference: 'average', type: 'rmsd', label: 'Average RMSD' },
   { reference: 'firstframe', type: 'tmscore', label: 'First frame TM score' },
   { reference: 'average', type: 'tmscore', label: 'Average TM score' },
 ];
@@ -182,8 +182,8 @@ const Rmsds = () => {
   else if (populations && !populations.payload)
     return 'Something bad happened with populations';
 
-  // Set the y axis label according to if it is an RMSd or a TM score
-  let yAxisLabel = 'RMSd (Å)';
+  // Set the y axis label according to if it is an RMSD or a TM score
+  let yAxisLabel = 'RMSD (Å)';
   if (selectedTab.type === 'tmscore') yAxisLabel = 'TM score';
 
   const cents = num => Math.round(num * 100) / 100;
