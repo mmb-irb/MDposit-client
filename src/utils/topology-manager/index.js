@@ -503,6 +503,8 @@ export class Topology {
     if (!this.referenceTypes && this.references) this.referenceTypes = this.references.map(r => 'protein');
     this.residueReferenceIndices = topology.residue_reference_indices;
     this.residueReferenceNumbers = topology.residue_reference_numbers;
+    // Save atom bonds
+    this.atomBonds = topology.atom_bonds
     // Save the PBC (Priodic Boundary Conditions) residues
     this.pbcResidues = topology.pbc_residues && new Set(topology.pbc_residues);
     // Data is stored in a down-top structure according to atom-residue-chain indices

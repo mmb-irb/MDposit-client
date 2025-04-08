@@ -765,7 +765,7 @@ const NGLViewer = memo(
       // PDB file, base structure
       // Set the representations in each component
       useEffect(() => {
-        if (!components || !representations) return;
+        if (!components || !representations || !topologyManager) return;
 
         components.forEach((comp, c) => {
           // Set the NGL component
@@ -789,6 +789,26 @@ const NGLViewer = memo(
             topology.file.atomStore.occupancy = new Array(
               topology.file.atomStore.occupancy.length,
             ).fill(1);
+            // Set atom bonds according to our topology
+            const safeBonds = topologyManager.atomBonds;
+            if (safeBonds) {
+              const bondStore = topology.file.bondStore;
+              // Remove default bonds
+              bondStore.length = 0;
+              bondStore.count = 0;
+              bondStore.atomIndex1 = new Int32Array;
+              bondStore.atomIndex2 = new Int32Array;
+              bondStore.bondOrder = new Int32Array;
+              // Add every bond in the topology
+              safeBonds.forEach((bondedAtomsIndices, atomIndex) => {
+                const atom1 = topology.file.getAtomProxy(atomIndex);
+                bondedAtomsIndices.forEach(bondedAtomIndex => {
+                  const atom2 = topology.file.getAtomProxy(bondedAtomIndex);
+                  // The '1' stands for the bond order (idk what this is)
+                  bondStore.addBond(atom1, atom2, 1);
+                });
+              });
+            }
             // Add the topology to the NGL
             // Make a deep copy of the topology object to prevent NGL internal bugs
             // This object will store data which is component exclusive
@@ -966,6 +986,7 @@ const NGLViewer = memo(
         topologies,
         selectedRepresentation,
         setMainComponent,
+        topologyManager,
       ]);
 
       // Highlight specific atoms
