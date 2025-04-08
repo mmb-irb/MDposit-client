@@ -4,6 +4,9 @@ import { copyObject } from "src/utils/auxiliar-functions";
 // Import default query fields
 import defaultQueryFields from "src/utils/constants/query-fields";
 
+// Import createTheme from MUI to set the theme of each host
+import { createTheme } from '@mui/material/styles';
+
 // Set the behaviour of the web client depending of the URL which makes the request
 // Note that this script must be placed after the src directory for react to use it and JSX to be parsed
 
