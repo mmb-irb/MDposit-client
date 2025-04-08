@@ -195,7 +195,22 @@ const HOST_CONFIGURATIONS = {
     // Testing
     'localhost': {
         api: 'https://irb-dev.mddbr.eu/api/rest/',
-        primaryColor: '#707070', // Grey
+        theme : createTheme({
+            palette: {
+              primary: {
+                light: '#eeeeee',
+                main: '#707070', // Grey
+                dark: '#424242',
+                contrastText: '#fff',
+              },
+              secondary: {
+                light: '#f5f5f5',
+                main: '#424242',
+                dark: '#212121',
+                contrastText: '#000',
+              },
+            },
+          }),
     },
     // MDposit development
     'mdposit-dev.mddbr.eu': {
