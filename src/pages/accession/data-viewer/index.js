@@ -57,7 +57,7 @@ const ENDPOINTS = {
   thickness: ['analyses/thickness'],
   apl: ['analyses/apl'],
   'lipid-order': ['analyses/lipid-order'],
-  'lipid-order': ['analyses/lipid-inter'],
+  'lipid-inter': ['analyses/lipid-inter'],
   electrostatic: ['analyses/interactions'],
   mutations: ['references'],
   epitopes: ['references'],
