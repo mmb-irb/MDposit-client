@@ -38,7 +38,7 @@ const Row = ({ projectData, highlight, index, previewUrl }) => {
   } = project;
   // Declare a hook from a type called "useRef"
   const ref = useRef(null);
-  // This type of hook is like an "useEfect" but it is runned after the layout is calculated and before it is painted
+  // This type of hook is like a "useEffect" but it runs after the layout is calculated and before it is painted
   // useEffect here would re-render the whole page, thus creating "load hesitation" and a delay
   useLayoutEffect(() => {
     if (!(ref.current && ref.current.animate)) return;
