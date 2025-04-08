@@ -212,7 +212,7 @@ const Accession = () => {
         {/* Render the accession */}
         <Typography variant="h6" className={style.title}>
           {`Project ${accession}`}
-          <ChevronRightIcon fontSize='large' sx={{color: primaryDarkColor,'&:hover': {backgroundColor: primaryDarkColor}}}/>
+          <ChevronRightIcon fontSize='large' sx={{color: primaryDarkColor}}/>
           {/* MD selector */}
           {multipleMDs &&
             <Select
@@ -231,10 +231,10 @@ const Accession = () => {
               ))}
             </Select>
           }
-          {multipleMDs && <ChevronRightIcon fontSize='large' sx={{color: primaryDarkColor,'&:hover': {backgroundColor: primaryDarkColor}}}/>}
+          {multipleMDs && <ChevronRightIcon fontSize='large' sx={{color: primaryDarkColor}}/>}
           {`${NICE_NAMES.get(page) || page} page ${isData ? ' (data)' : ''}`}
           {!isData && doc && doc.page && (
-            <Info tooltip={tooltip} className={style.info} sx={{color: secondaryColor,'&:hover': {backgroundColor: secondaryColor}}}/>
+            <Info tooltip={tooltip} className={style.info} sx={{color: secondaryColor}}/>
           )}
         </Typography>
         {/* Render a button which links to the API */}
@@ -245,9 +245,7 @@ const Accession = () => {
           className={style['link-to-api']}
           sx={{
             color: primaryDarkColor,
-            '&:hover': {
-              backgroundColor: primaryDarkColor
-            }}}
+            }}
         >
           <FontAwesomeIcon icon={faBook} />
           &nbsp;&nbsp;data in this page
