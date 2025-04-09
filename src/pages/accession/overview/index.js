@@ -37,16 +37,7 @@ import MoleculeViewer from 'src/utils/rdkit/rdkit_viewer';
 
 const COMMA_SEPARATOR = /\s*,\s*/;
 
-const typeSettings = {
-  trajectory: {
-    label: 'Trajectory',
-    color: '#8ffffd', // light blue
-  },
-  ensemble: {
-    label: 'Ensemble',
-    color: '#ffe08f', // light yellow
-  },
-};
+
 const LigandTable = ({ ligandReference }) => {
   if (!ligandReference) return null;
   const [searchTerm, setSearchTerm] = useState("");
@@ -205,6 +196,16 @@ const Overview = React.memo(() => {
   const theme = useTheme();
   const secondaryColor = theme.palette.secondary;
 
+  const typeSettings = {
+    trajectory: {
+      label: 'Trajectory',
+      color: theme.palette.secondary.main, // light blue
+    },
+    ensemble: {
+      label: 'Ensemble',
+      color: theme.palette.secondary.dark, // light yellow
+    },
+  };
   const SmilesViewer = ({ ligandReference }) => {
     const [expanded, setExpanded] = useState(false);
     const maxLength = 120;
@@ -392,6 +393,7 @@ const Overview = React.memo(() => {
                   variant="outlined"
                   style={{
                     backgroundColor: typeSettings[metadata.TYPE].color,
+                    color: secondaryColor.contrastText,
                     fontSize: '1em',
                     marginRight: '0.8em',
                   }}
