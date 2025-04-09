@@ -22,6 +22,15 @@ export const createPalette = colorCount => {
     return colors;
 };
 
+// Join 2 ArrayBuffer
+// https://stackoverflow.com/questions/10786128/appending-arraybuffers
+export const appendBuffer = (buffer1, buffer2) => {
+    var tmp = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
+    tmp.set(new Uint8Array(buffer1), 0);
+    tmp.set(new Uint8Array(buffer2), buffer1.byteLength);
+    return tmp.buffer;
+}
+
 export class Version {
     constructor (versionString) {
         // If there is no version then consider it the 0.0.0

@@ -62,6 +62,7 @@ import useDefaultRepresentations from '../ngl-viewer/use-default-representations
 
 // Hooks
 import useToggleState from '../../hooks/use-toggle-state';
+import useViewerData from '../../hooks/use-viewer-data';
 
 import connectionLevel, {
   LOW,
@@ -493,6 +494,14 @@ const ViewerWithControls = forwardRef(
     const noTrajectory = preventTrajectory || (mainComponent && (mainComponent.onlyTopology ||
       Number.isFinite(mainComponent.frame))); // May be 0
 
+    // Download viewer data from the API according to the components configuration
+    const {
+      topologies,
+      trajectories,
+      anyLoadingTopology,
+      anyLoadingTrajectory
+    } = useViewerData(finalComponents, requestedFramesNumber, handleLoad);
+
     // DANI: Si no quieres buscarte problemas no cambies las "Card"s de aquí abajo por "div"s o similar
     return (
       <Card
@@ -523,15 +532,18 @@ const ViewerWithControls = forwardRef(
                 spinning={spinning}
                 smooth={smooth}
                 onProgress={handleProgress}
-                onLoad={handleLoad}
                 ref={viewerRef}
                 noTrajectory={noTrajectory}
-                requestedFramesNumber={requestedFramesNumber}
                 darkBackground={darkBackground}
                 perspective={perspective}
                 speed={speed}
                 components={finalComponents}
                 representations={finalRepresentations}
+                // Viewer data incluting both structure and coordinates
+                topologies={topologies}
+                trajectories={trajectories}
+                anyLoadingTopology={anyLoadingTopology}
+                anyLoadingTrajectory={anyLoadingTrajectory}
                 {...props}
               />
               {settings && (

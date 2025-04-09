@@ -95,6 +95,7 @@ export class Project {
     // Declare the different field endpoints to request the API
     _apiEndpoints = {
         topology: `/topology`,
+        structure: `/structure`,
         interactions: `/analyses/interactions`,
         references: `/references`,
         fileDescriptors: `/filenotes`,
@@ -199,6 +200,18 @@ export class Project {
         // Note that old outdated projects may not have reference frame
         if (this.refframe === undefined) return 0;
         return this.refframe;
+    }
+
+    // Get the main structure data
+    // Note that the viewer would be already able to do it itself
+    // However we do it from here since this data is to be reused along different pages
+    // Thus we avoid having to download the same data every time
+    get structureData () {
+        const response = this._apiQuery('structure');
+        if (response.loading) return undefined;
+        if (response.error) throw new Error('Error when downloading project structure: ' + response.error.message);
+        if (!response.payload) throw new Error('Something went wrong with project structure');
+        return new Blob( [ response.payload ], { type: 'text/plain'} );
     }
 }
   

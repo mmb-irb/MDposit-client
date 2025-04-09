@@ -9,7 +9,7 @@ import React, {
   useEffect,
   useContext,
 } from 'react';
-//import useToggleState from '../../hooks/use-toggle-state';
+// Hook to download viewer data from the API according to the components configuration
 import { useInView } from 'react-intersection-observer';
 import { clamp } from 'lodash-es';
 import cn from 'classnames';
@@ -18,16 +18,14 @@ import { autoLoad, Stage, Shape, ColormakerRegistry, Matrix4 } from 'ngl';
 import { frame } from 'timing-functions';
 
 import { setNGLFile, updateNGLFile } from './payload-to-ngl-file';
-import getFrames from './get-frames';
 
-import { ProjectCtx, PdbCtx } from '../../contexts';
+import { ProjectCtx } from '../../contexts';
 
 import { setTooltipPosition } from '../../utils/tooltip-position-manager';
 
-import style from './style.module.css';
+import { appendBuffer } from '../../utils/auxiliar-functions';
 
-// To get frames
-import { BASE_PATH_PROJECTS } from '../../utils/constants';
+import style from './style.module.css';
 
 // Make a deep copy of an object even with cyclic references
 import { cloneDeep } from 'lodash-es';
@@ -35,11 +33,6 @@ import { cloneDeep } from 'lodash-es';
 // Used to just wait
 import { sleep } from 'timing-functions';
 
-import https from 'https-browserify';
-import http from 'stream-http';
-import { parse as urlParse } from 'url';
-
-const DEFAULT_NUMBER_OF_FRAMES = 25;
 const DEFAULT_ORIENTATION_TRANSITION_DURATION = 750; // 750 ms
 
 const CHAIN_SELECTION = 'polymer and not hydrogen ';
@@ -49,29 +42,6 @@ const isValidColor = colorName => {
   s.color = colorName;
   return s.color === colorName;
 };
-
-const frameRangeFormat = /\?frames=(?<start>\d+):(?<end>\d+)(:(?<step>\d+))?/;
-const parseFrameRange = frameRange => {
-  // Search in the function's parameter value "string" by using a specified regexp format: STEP_FORMAT
-  const parsed = frameRangeFormat.exec(frameRange);
-  if (!parsed) return null;
-  // The 'frameRangeFormat' has 3 defined groups: start, end and step
-  // Use the value from the 3 groups to define and save the desired frames
-  const start = +parsed.groups.start;
-  const end = Math.max(+parsed.groups.end, start); // If the end is less than the start then just use the start
-  const step = +(parsed.groups.step || 1);
-  const frames = Math.floor((end - start) / step) + 1;
-  return { start, end, step, frames };
-};
-
-// Join 2 ArrayBuffer
-// https://stackoverflow.com/questions/10786128/appending-arraybuffers
-function appendBuffer(buffer1, buffer2) {
-  var tmp = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
-  tmp.set(new Uint8Array(buffer1), 0);
-  tmp.set(new Uint8Array(buffer2), buffer1.byteLength);
-  return tmp.buffer;
-}
 
 // Set the number of bytes per element in trajectory data
 const BYTES_PER_COORDINATE = 4; // float 32
@@ -85,14 +55,12 @@ const minimumSpeed = 0;
 const maximumSpeed = 100;
 const slowestTimeout = 1000;
 const fastestTimeout = 50;
-const interpolateSpeed = currentSpeed => {
-  return (
-    slowestTimeout +
-    (currentSpeed - minimumSpeed) *
-      ((fastestTimeout - slowestTimeout) / (maximumSpeed - minimumSpeed))
-  );
-};
+const interpolateSpeed = currentSpeed => (
+  slowestTimeout + (currentSpeed - minimumSpeed) *
+  ((fastestTimeout - slowestTimeout) / (maximumSpeed - minimumSpeed))
+);
 
+// Set representation types for the different types of highlights
 const defaultHighlightTypes = {
   atoms: 'spacefill',
   residues: 'ball+stick',
@@ -109,9 +77,7 @@ const NGLViewer = memo(
         spinning,
         smooth,
         onProgress,
-        onLoad,
         bounce = false, // Set if the animation, when finished, starts again (false) or goes back (true)
-        requestedFramesNumber = DEFAULT_NUMBER_OF_FRAMES, // The number of frames to be represented
         selectedAtoms, // Atom index of the atom and residue to be represented
         selectedResidueIndices, // Residue indices from residues to be highlighted
         selectedChains, // Chain letters from chains to be represented
@@ -131,19 +97,19 @@ const NGLViewer = memo(
         // Final components and representations prepared for the viewer
         components,
         representations,
+        // Viewer data incluting both structure and coordinates
+        topologies,
+        trajectories,
+        anyLoadingTopology,
+        anyLoadingTrajectory,
         // Set the highlight representations types
         highlightTypes = defaultHighlightTypes,
-
       },
       ref,
     ) => {
 
-      // If no URL is provided then use the main trajectory // URL to find the trajectory data in the API
-      // True when we just want to display a static structure // Requeste number of frames to display
-      // data from context
+      // Get project data
       const {
-        accessionAndMdNumber,
-        fileDescriptors,
         metadata,
         topology: topologyManager,
       } = useContext(ProjectCtx);
@@ -166,15 +132,13 @@ const NGLViewer = memo(
         return new Matrix4().set(...sortedOrientation);
       }, [metadata])
 
-      const { file: pdbDataFile } = useContext(PdbCtx);
-
       // Save the main component once it is staged
       // This components is used by several functions
       const [mainComponent, setMainComponent] = useState(null);
       const [mainNglFile, setMainNglFile] = useState(null);
       // The last automatic camera focus
       const [focus, setFocus] = useState(initialFocus);
-
+      // Set the initial focus
       useEffect(() => {
         //console.log(initialFocus);
         setFocus(initialFocus);
@@ -192,434 +156,43 @@ const NGLViewer = memo(
       // Set the content of the tooltip in JSX format
       const [tooltipContent, setTooltipContent] = useState(null);
 
-      // Download topologies ----------------------------------------------------------------------
-
-      // Download all requested topologies: Each component may have a different structure URL.
-      // Set the first component topology as the 'pdbData'
-      // If a topologyURL is provided, download data form the API
-      // Otherwise, use the main structure
-
-      // Set a state to store the topology requests
-      const [requestedTopologies, setRequestedTopologies] = useState([]);
-      // Set also a state to track whenever there is still a downloading topology
-      // LORE: This was useful when we had to wait for all stages to be mounted at the same time
-      // LORE: It does nothing now but its value is still valid and it may be useful for logs
-      const [anyLoadingTopology, setAnyLoadingTopology] = useState(false);
-
-      // Find if there are new topology to be requested in the components:
-      // Collect the topology on each component
-      // If the component has no topology specified use the main topology
-      useMemo(() => {
-        // Make sure we already have components
-        if (!components) return;
-        setRequestedTopologies(previousRequestedTopologies => {
-          const newRequestedTopologies = [];
-          components.forEach(comp => {
-            const url = comp.topologyURL || null;
-            const selection = comp.atomSelection || null;
-            // Check if the url is new
-            // Else, skip this url since it has been requested already
-            const allRequestedTopologies = [
-              ...previousRequestedTopologies,
-              ...newRequestedTopologies,
-            ];
-            const current = allRequestedTopologies.find(topology => {
-              return topology.url === url;
-            });
-            if (current) return;
-            // Some urls may be missing
-            // This happens when the component wants the default topology from the pdbData
-            if (url === null) {
-              // Add a request with null url in order to get pdbData as a topology
-              // Do it only once for all components
-              newRequestedTopologies.push({
-                url: null,
-                loading: false,
-                error: null,
-              });
-            } else {
-              // Add the topology to the list, so it will be requested to the API
-              newRequestedTopologies.push({
-                url: url,
-                selection: selection,
-                loading: true,
-                requested: false,
-                error: null,
-              });
-              setAnyLoadingTopology(true);
-            }
-          });
-          return [...previousRequestedTopologies, ...newRequestedTopologies];
-        });
-      }, [components, setRequestedTopologies]);
-
-      // Set a state to store the downloaded topologies
-      const [topologies, setTopologies] = useState([]);
-
-      // Keep track of all requests in case we have to abort them further
-      const currentRequests = useRef([]);
-
-      // Download all requested topologies/structures from the API
+      // Set the NGL parsed topologies
+      const [ parsedTopologies, setParsedTopologies ] = useState([]);
+      // Store the URLs of those topologies already started to be parsed
+      // This is to avoid processing twice the same topology
+      // Note that the processing is async, so we can not rely in the parsedTopologies state
+      // A topology may be parsing and not be included in this state yet for a brief moment
+      const alreadyParsedTopologies = useRef(new Set());
+      // Update the parsed topologies every time the downloaded topologies change
       useEffect(() => {
-        requestedTopologies.forEach(requestedTopology => {
-          // Check if the requested url has the data already downloaded
-          // If so, skip this request
-          if (requestedTopology.file) return;
-          // If the topology failed to load do not try it again
-          if (requestedTopology.error) return;
-          // If the topology has been already requested do not request it again
-          if (requestedTopology.requested) return;
-          // Get the topology URL
-          const url = requestedTopology.url;
-          // If there is no URL load the context pdbData
-          if (url === null) {
-            // WARNING: The '[...previous]' is essential to make the array object change
-            // This is important, since the 'topologies' object is used as a dependency further
-            // And if we do not change the array then the change is not detected
-            setTopologies(previous => {
-              requestedTopology.loading = false;
-              // Then check the loading state of all requested topologies and update the overall loading state
-              const anyLoading = requestedTopologies.some(t => t.loading);
-              setAnyLoadingTopology(anyLoading);
-              // The topology with the pdb data has not url
-              const topology = { url: null, file: pdbDataFile };
-              return [...previous, topology];
-            });
-          }
-          // If there is an URL
-          else {
-            requestedTopology.requested = true;
-            // Create the POST body
-            const postData = JSON.stringify({
-              selection : requestedTopology.selection
-            });
-            // Request the API
-            // http exception is added for local testing in http://localhost
-            const protocol = url.substring(0, 5) === 'https' ? https : http;
-            const requestOptions = urlParse(url);
-            // We use the POST method instead of the regular GET method to allow long atom selections when requesting structure
-            // However, if we are requesting a file the POST method is not supported
-            const isStructureEndpoint = requestOptions.path.endsWith('/structure')
-            requestOptions.method = isStructureEndpoint ? 'POST' : 'GET';
-            requestOptions.headers = {
-              'Content-Type': 'application/json',
-              'Content-Length': postData.length
-            }
-            const request = protocol.request(requestOptions, response => {
-              // Track the amout of bytes already downloaded
-              let responseContent = new ArrayBuffer(0);
-              response
-                .on('data', chunk => {
-                  responseContent = appendBuffer(responseContent, chunk);
-                })
-                .on('end', () => {
-                  const stringBlob = new Blob( [ responseContent ], { type: 'text/plain'} );
-                  autoLoad(stringBlob, { defaultRepresentation: false, ext: "pdb" })
-                    .then(file => {
-                      setTopologies(previous => {
-                        requestedTopology.loading = false;
-                        // Then check the loading state of all requested topologies and update the overall loading state
-                        const anyLoading = requestedTopologies.some(t => t.loading);
-                        setAnyLoadingTopology(anyLoading);
-                        const topology = { url: url, file: file };
-                        return [...previous, topology];
-                      })
-                    })
-                    .catch(error => {
-                      requestedTopology.loading = false;
-                      // Then check the loading state of all requested topologies and update the overall loading state
-                      const anyLoading = requestedTopologies.some(t => t.loading);
-                      setAnyLoadingTopology(anyLoading);
-                      requestedTopology.error = error;
-                    });                  
-                });
-            });
-            // Send the request data (POST method feature)
-            if (requestOptions.method === 'POST'){
-              request.write(postData);
-            }
-            // Close the request for it to actually start
-            // Note that this is required for the https.request altought it was not by https.get
-            request.end();
-            currentRequests.current.push(request);
-          }
+        // Iterate downloaded topologies
+        topologies.forEach(topology => {
+          // If the topology still has not the data then skip it
+          if (!topology.file) return;
+          // If the topology is already among the parsed topologies then skip it
+          if (topology.url in alreadyParsedTopologies.current) return;
+          alreadyParsedTopologies.current.add(topology.url);
+          // Parse the structure to a NGL file
+          const stringBlob = new Blob( [ topology.file ], { type: 'text/plain'} );
+          autoLoad(stringBlob, { defaultRepresentation: false, ext: "pdb" })
+            // Once the parse has been completed update the parsed topologies state
+            .then(prasedFile => {
+              // Copy the content of the topology object
+              const newParsedTopology = { ...topology };
+              // Replace the original file by the parsed file
+              newParsedTopology.file = prasedFile;
+              // Now push it to the parsed topologies
+              setParsedTopologies(previous => [...previous, newParsedTopology]);
+            })
+            // If there is any problem then log it to the console
+            .catch(error => { console.error(error) });
         });
-      }, [requestedTopologies, pdbDataFile]);
-
-      // Download trajectories ------------------------------------------------------------------------------------------------
-
-      // First we find all trajectory URLs (i.e. all requests to API)
-      // Then we ask the API skipping repeated URLs
-
-      // Set a function to modify an url by adding the frames range according to requestedFramesNumber
-      // The only exception are those trajectories whose frame number is lower than requestedFramesNumber
-
-      // Set a state to store requested trajectories and their loading status
-      const [requestedTrajectories, setRequestedTrajectories] = useState([]);
-      // Set also a state to track whenever there is still a downloading trajectory
-      const [anyLoadingTrajectory, setAnyLoadingTrajectory] = useState(false);
-
-      // Find if there are new trajectories to be requested in the components:
-      // Collect trajectories on each component
-      // If the component has no trajectory specified use the main trajectory
-      // If the component is not the main component and has no frame specified, use the first frame
-      // Only the main component (the first) is allowed to load multiple frames by the moment
-      useMemo(() => {
-        // Make sure we already have components
-        if (!components) return;
-        // Send a request to the API with the url of the rgyr analysis
-        const { loading, payload, error } = fileDescriptors;
-        // If we do not have file descritors yet then stop here
-        if (loading) return;
-        // Throw it in case something went wrong with the donwload
-        else if (error) throw error;
-        else if (!payload) throw new Error('Something bad happened with file descriptors');
-        // Finally update the trajectories state
-        setRequestedTrajectories(currentTrajectories => {
-          // Save the new requetsed trajectories
-          const newTrajectories = [];
-
-          // Set the url to ask the API
-          // Here, if you ask for the trajectory.bin instead of just trajectory, you get the whole file
-          // This is because the only route of the API accepting frames selection is the "trajectory" endpoint
-          // Other paths such as "trajectory.bin" will be processed as "/:files"
-          const baseUrl = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/trajectory`;
-
-          components.forEach((comp, c) => {
-            if (comp.onlyTopology) return;
-
-            // Set the first component as the 'principal' component
-            const isPrincipal = c === 0;
-            const requestedFrame = comp.frame;
-
-            // Get the trajectory urls
-            // If the component has no trajectory url specified then use the main trajectory url alone
-            let urls = comp.trajectoryURLs || [baseUrl];
-
-            // Add the frames number of all the component requested trajectories
-            comp.frameCount = 0;
-
-            urls.forEach((url, u) => {
-              // Check if the url is already framed
-              const framed = parseFrameRange(url);
-
-              // Get the name of the trajectory file inside the database
-              // i.e. the end of the requested URL
-              // The exception is the API endpoint 'trajectory', which uses the 'trajectory.bin' file
-              let trajectoryFilename = url.split('/').slice(-1)[0];
-              if (framed)
-                trajectoryFilename = trajectoryFilename.split('?frames=')[0];
-              if (trajectoryFilename === 'trajectory')
-                trajectoryFilename = 'trajectory.bin';
-
-              // Get the file descriptor of the required trajectory
-              const trajectoryFileDescriptor = payload.find(file => {
-                return file.filename === trajectoryFilename;
-              });
-              if (!trajectoryFileDescriptor)
-                throw new Error( `Trajectory "${trajectoryFilename}" is missing`);
-              const trajectoryMetadata = trajectoryFileDescriptor.metadata;
-
-              // Get the number of frames in the whole trajectory
-              const trajectoryFrames = trajectoryMetadata.frames;                
-
-              // Set the number of frames to be requested from the whole trajectory
-              let requestedFrames = requestedFramesNumber;
-              if (requestedFramesNumber > trajectoryFrames) requestedFrames = trajectoryFrames;
-              if (Number.isFinite(requestedFrame)) requestedFrames = 1;
-              else if (framed) requestedFrames = framed.frames;
-
-              // Components which are not the principal must include a 'frame' value
-              if (!isPrincipal && requestedFrames > 1) 
-                throw new Error(`Only the main component is allowed to load multiple frames`);
-
-              // Frames are added to any url which is missing the frames range according to requestedFramesNumber
-              // The only exception are those trajectories whose frame number is lower than requestedFramesNumber
-              let finalUrl = url;
-              // Get the expected number of frames returned, which may not be exactly the requested number
-              let returnedFrames;
-              // In case the url is already frammed
-              if (framed) {
-                // Find maximum number of frames to be returned (trajectory frames or requetsed frames)
-                const maximumFrames = Math.min(trajectoryFrames, framed.end);
-                returnedFrames = Math.ceil(maximumFrames / framed.step);
-              }
-              // Modify the url if it is not framed yet
-              else {
-                // Get the string frames range according to requestedFramesNumber
-                const { range: framesRange, frames: framesCount } = getFrames(
-                  trajectoryFrames,
-                  requestedFrames,
-                  requestedFrame,
-                );
-                returnedFrames = framesCount;
-
-                // Add the frames range to the original url
-                if (framesRange) finalUrl = url + `?frames=${framesRange}`;
-              }
-
-              // Set the component framed url if it doesn't exists
-              if (!comp.framedURLs) comp.framedURLs = [];
-
-              // Save this final url in the framedURL in the component
-              // Overwrite the previous framed url if exists
-              comp.framedURLs[u] = finalUrl;
-
-              // Add the requested frames number to the frame count
-              comp.frameCount += requestedFrames;
-
-              // Check if the requested url is already in the list
-              // If so, skip this request
-              // If not, save the request url and proceed
-              const current = currentTrajectories.find(trajectory => {
-                return trajectory.url === finalUrl;
-              });
-              if (!current) {
-                newTrajectories.push({
-                  url: finalUrl,
-                  frames: returnedFrames,
-                  // Add also the atoms number, which is used further
-                  atoms: trajectoryMetadata.atoms,
-                  loading: true,
-                  requested: false,
-                });
-                setAnyLoadingTrajectory(true);
-              }
-            });
-          });
-          // In case there are new requested trajectories we return a new array to trigger dependencies
-          if (newTrajectories.length > 0)
-            return [...currentTrajectories, ...newTrajectories];
-          // Otherwise we return the previous array to do no trigger dependencies
-          return currentTrajectories;
+        setParsedTopologies(previousParsedTopologies => {
+          // Set a new array to trigger the render when setting the new state
+          const newParsedTopologies = [ ...previousParsedTopologies ];
+          return newParsedTopologies;
         });
-      }, [accessionAndMdNumber, components, fileDescriptors, requestedFramesNumber]);
-
-      // Set a state to store trajectories data
-      const [trajectories, setTrajectories] = useState([]);
-
-      // Set a function to update the current loading progress
-      const updateLoadingProgress = useCallback(
-        currentTrajectories => {
-          // Make sure we already have components
-          if (!components) return;
-          const mainComp = components[0];
-          // Get all trajectories to be used as the current main trajecotry
-          const mainTrajectories = [];
-          mainComp.framedURLs.forEach(url => {
-            const trajectory = currentTrajectories.find(trajectory => trajectory.url === url);
-            if (trajectory) mainTrajectories.push(trajectory);
-          });
-          if (mainTrajectories.length === 0) return;
-          // Then calculate the average progress in all loading trajectories and update the progress state
-          const overallFrames = mainTrajectories
-            .map(trajectory => trajectory.frames)
-            .reduce((a, b) => a + b, 0);
-          const overallProgress =
-            mainTrajectories
-              .map(trajectory => trajectory.progress * trajectory.frames)
-              .reduce((a, b) => a + b, 0) / overallFrames;
-          onLoad(overallProgress);
-        }, [components, onLoad],
-      );
-
-      // Download the requested trajectory data (frames)
-      useEffect(() => {
-        requestedTrajectories.forEach(trajectory => {
-          // Check if the trajectory has been requested already
-          // If so, skip this request
-          if (trajectory && trajectory.requested) return;
-          trajectory.requested = true;
-
-          // Set the loading status as true
-          trajectory.loading = true;
-          trajectory.progress = 0;
-
-          // DANI: Todavía no me ha hecho falta hacer una selección larga de atomos/frames
-          // DANI: Todo está listo a nivel de API
-          // DANI: Solo hará falta reformar un poco el viewer-with-controls y este script
-          const postData = JSON.stringify({});
-
-          // Request the API
-          // http exception is added for local testing in http://localhost
-          const protocol = trajectory.url.substring(0, 5) === 'https' ? https : http;
-          const requestOptions = urlParse(trajectory.url);
-          // Check if the request points to the /trajectory endpoint or it is pointing to a file
-          const requestPathsteps = requestOptions.pathname.split('/')
-          const isTrajectoryEndpoint = requestPathsteps[requestPathsteps.length -1] === 'trajectory'
-          // We use the POST method instead of the regular GET method to allow long atom selections
-          // However, if we are retrieving a specific file the the POST method is not implemented
-          requestOptions.method = isTrajectoryEndpoint ? 'POST' : 'GET';
-          requestOptions.headers = {
-            'Content-Type': 'application/json',
-            'Content-Length': postData.length
-          }
-          const request = protocol.request(requestOptions, response => {
-            const totalBytes = response.headers['content-length'];
-            // Set the new trajectory
-            setTrajectories(previousTrajectories => {
-              const newTrajectory = {
-                url: trajectory.url,
-                frames: trajectory.frames,
-                atoms: trajectory.atoms,
-                payload: new ArrayBuffer(0),
-                progress: 0,
-              };
-              return [...previousTrajectories, newTrajectory];
-            });
-            // Track the amout of bytes already downloaded
-            let byteCount = 0;
-            response
-              .on('data', chunk => {
-                byteCount += chunk.byteLength;
-                trajectory.progress = byteCount / totalBytes;
-                // Update trajectories with the current partial data we have
-                setTrajectories(previousTrajectories => {
-                  const currentTrajectory = previousTrajectories.find(
-                    t => t.url === trajectory.url,
-                  );
-                  currentTrajectory.payload = appendBuffer(
-                    currentTrajectory.payload,
-                    chunk,
-                  );
-                  currentTrajectory.progress = trajectory.progress;
-                  // Update the current progess
-                  updateLoadingProgress(previousTrajectories);
-                  return [...previousTrajectories];
-                });
-              })
-              .on('end', () => {
-                // Save the main data in the ref
-                trajectory.loading = false;
-                // Then check the loading state of all requested trajectories and update the overall loading state
-                const anyLoading = requestedTrajectories.some(
-                  trajectory => trajectory.loading,
-                );
-                setAnyLoadingTrajectory(anyLoading);
-              });
-          });
-          // Send the request data (POST method feature)
-          if (requestOptions.method === 'POST'){
-            request.write(postData);
-          }
-          // Close the request for it to actually start
-          // Note that this is required for the https.request altought it was not by https.get
-          request.end();
-          currentRequests.current.push(request);
-        });
-      }, [requestedTrajectories, updateLoadingProgress]);
-
-      // If the whole component is removed then abort all requests in case they were not finished
-      // DANI: No he verificado que esto funcione bien a nivel de API
-      useEffect(() => {
-        // I save it in a constant to avoid a non-sense warning
-        const redundantList = currentRequests.current;
-        return () => {
-          redundantList.forEach(request => {
-            request.abort();
-          });
-        };
-      }, []);
+      }, [topologies]);
 
       // Set a state to keep track of the current working tasks in the viewer
       // This is useful to update the upper left corner logs in the viewer
@@ -660,15 +233,13 @@ const NGLViewer = memo(
       // Handle the upper left corner viewer logs
       const viewerLogs = useMemo(() => {
         if (!mainComponent) return `Loading structure`;
-        if (!pdbDataFile) return `No structure available`;
-        if (!requestedTrajectories.length && !noTrajectory)
+        if (!trajectories.length && !noTrajectory)
           return `No trajectory available`;
         if (runningTasks > 0) return `Rendering...`;
         return undefined; // Show nothing when everything was finished and fine
       }, [
         mainComponent,
-        pdbDataFile,
-        requestedTrajectories,
+        trajectories,
         noTrajectory,
         runningTasks,
       ]);
@@ -774,7 +345,7 @@ const NGLViewer = memo(
             // Find the topology which matches the component url
             // If a component has no url it will match a topology with no url: the default topology
             const url = comp.topologyURL || null;
-            const topology = topologies.find(topology => topology.url === url);
+            const topology = parsedTopologies.find(topology => topology.url === url);
             // If the topology has not been loaded yet then we have a problem
             // DANI: Todas las topologías deben estar ya listas antes de cargarlas, lee los mensajes de arriba
             if (!topology) return;
@@ -983,7 +554,7 @@ const NGLViewer = memo(
       }, [
         components,
         representations,
-        topologies,
+        parsedTopologies,
         selectedRepresentation,
         setMainComponent,
         topologyManager,
@@ -1285,12 +856,12 @@ const NGLViewer = memo(
       // Every time the trajectory payloads change this useEffect must be rerun
       useEffect(() => {
         // Check if trajectories are
-        if (topologies.length === 0 || trajectories.length === 0 || !components) return;
+        if (parsedTopologies.length === 0 || trajectories.length === 0 || !components) return;
         components.forEach((comp, c) => {
           // Find the topology which matches the component url
           // If a component has no url it will match a topology with no url: the default topology
           const topologyURL = comp.topologyURL || null;
-          const topology = topologies.find(topology => topology.url === topologyURL);
+          const topology = parsedTopologies.find(topology => topology.url === topologyURL);
           if (!topology) return;
 
           // DANI: Aquí me he quedado
@@ -1434,14 +1005,6 @@ const NGLViewer = memo(
             if (!file) return;
             const nglFile = stageComp.addTrajectory(file);
             const nglTrajectory = nglFile.trajectory;
-            // Count the real numer of frames in the current trajectory and reset the 'requestedFramesNumber'
-            // DANI: Esto lo he quitado porque creo que podría dar problemas
-            // DANI: Las requestedFramesNumber son el número de frames que se piden, no el real
-            // DANI: Si hay que mostrar el número real en algún punto mejor crea otro state
-            // if (setRequestedFramesNumber && c === 0) {
-            //   const frameCount = nglTrajectory.frameCount;
-            //   setRequestedFramesNumber(frameCount);
-            // }
             // Add the frame change handler only if it is the main component
             if (c === 0) {
               // Save the expected frames number here in the NGL file
@@ -1462,14 +1025,11 @@ const NGLViewer = memo(
           }
         });
       }, [
-        topologies,
+        parsedTopologies,
         trajectories,
         components,
         noTrajectory,
         setMainNglFile,
-        // The requestedFramesNumber dependency may seem redundant but it is not
-        // It is useful to switch between previously downloaded trajectories with different number of frames
-        requestedFramesNumber,
         // This playing here is just to avoid the warning
         // I can't disable the warning with "// eslint-disable-line react-hooks/exhaustive-deps"
         // This is because the automatic formatter puts the warning one line down because it is stupid
@@ -1560,10 +1120,10 @@ const NGLViewer = memo(
 
       // to avoid sometimes when it's not rendering after loading
       useEffect(() => {
-        if (!(mainComponent && requestedTrajectories.length)) return;
+        if (!(mainComponent && trajectories.length)) return;
         handleResize();
         return handleResize.cancel;
-      }, [mainComponent, requestedTrajectories, handleResize]);
+      }, [mainComponent, trajectories, handleResize]);
 
       // Highlight the selected chain region
       // This useEffect seems to be special:
@@ -1808,7 +1368,7 @@ const NGLViewer = memo(
             );
           },
           get currentFrame() {
-            if (!(mainComponent && requestedTrajectories.length)) return -1;
+            if (!(mainComponent && trajectories.length)) return -1;
             try {
               return mainComponent.trajList[0].trajectory.currentFrame;
             } catch (_) {
@@ -1816,7 +1376,7 @@ const NGLViewer = memo(
             }
           },
           set currentFrame(value) {
-            if (!(mainComponent && requestedTrajectories.length)) return;
+            if (!(mainComponent && trajectories.length)) return;
             try {
               const total = this.totalFrames;
               let frame = value;
@@ -1828,7 +1388,7 @@ const NGLViewer = memo(
             }
           },
           get totalFrames() {
-            if (!(mainComponent && requestedTrajectories.length)) return 1;
+            if (!(mainComponent && trajectories.length)) return 1;
             try {
               return mainComponent.trajList[0].trajectory.frames
                 .length;
@@ -1844,7 +1404,7 @@ const NGLViewer = memo(
             }
           },
         }),
-        [mainComponent, requestedTrajectories, handleResize],
+        [mainComponent, trajectories, handleResize],
       );
 
       // workaround to have multiple ref logic on one element
