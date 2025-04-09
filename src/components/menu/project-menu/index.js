@@ -131,9 +131,9 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
 
   // Get the provided theme
   const theme = useTheme();
-  const primaryColor = HOST_CONFIG.theme.palette.primary.main;
-  const primaryDarkColor = HOST_CONFIG.theme.palette.primary.dark;
-  const secondaryColor = HOST_CONFIG.theme.palette.secondary.dark;
+  const primaryColor = theme.palette.primary.main;
+  const primaryDarkColor = theme.palette.primary.dark;
+  const secondaryColor = theme.palette.secondary.contrastText;
 
   // Set the style of the current selected tab
   const currentTabStyle = {
@@ -142,7 +142,7 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
   };
   const customTabsStyle = {
     '& .MuiTabs-indicator': {
-      backgroundColor: theme.palette.secondary.light,
+      backgroundColor: theme.palette.secondary.contrastText,
     }
   };
   // Check if a string is found in the specified (by the 'index') dropTab links
