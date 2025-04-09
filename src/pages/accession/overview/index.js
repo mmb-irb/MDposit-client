@@ -184,7 +184,18 @@ const Overview = React.memo(() => {
             <span key={index} className="highlight">{char}</span>
           ))}
           {inchi.length > maxLength && (
-            <button onClick={toggleExpand} className="ml-2 text-blue-500 hover:underline">
+            <button onClick={toggleExpand} 
+            className="ml-2 text-blue-500 hover:underline"
+            //cursor="pointer"
+            style={{
+              padding: '4px 6px',
+              borderRadius: '1.5px',
+              cursor: 'pointer',
+              display: 'inline-block',
+              fontSize: '14px',
+              margin: '2px 4px',
+            }}
+            >
               {expanded ? 'See less' : 'See more'}
             </button>
           )}
@@ -229,7 +240,7 @@ const Overview = React.memo(() => {
               cursor: 'pointer',
               display: 'inline-block',
               fontSize: '14px',
-              margin: '3px 4px',
+              margin: '2px 4px',
             }}
             >
               {expanded ? 'See less' : 'See more'}
@@ -875,7 +886,7 @@ const Overview = React.memo(() => {
                           color: '#000',
                           '&:hover': {
                             backgroundColor: secondaryColor.light,
-                            border: `1px solid ${secondaryColor.main}`,
+                            border: `1px solid ${secondaryColor.dark}`,
                           }
                         }}
                         >
@@ -907,7 +918,7 @@ const Overview = React.memo(() => {
                                         color: '#000',
                                         '&:hover': {
                                           backgroundColor: secondaryColor.light,
-                                          border: `1px solid ${secondaryColor.main}`,
+                                          border: `1px solid ${secondaryColor.dark}`,
                                         }
                                       }}
                                       >

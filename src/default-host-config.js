@@ -263,7 +263,7 @@ const HOST_CONFIGURATIONS = {
             contrastText: '#fff', 
             },
             secondary: {
-            main: '#3a29f6', // R58 G41 9915E7
+            main: '#aa00ff', // R58 G41 9915E7
             dark: '#9915E7', // R153 G21 B231 not used
             contrastText: 'rgb(236, 236, 236)',
             },
