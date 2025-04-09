@@ -21,7 +21,8 @@ import {
   faExclamationTriangle,
 } from '@fortawesome/free-solid-svg-icons';
 import { useTheme } from '@mui/material/styles';
-
+import  Info  from '../../../components/info';
+import { docs } from '../../help/documentation';
 import Card from '../../../components/animated-card';
 import LazyImg from '../../../components/lazy-img';
 
@@ -89,7 +90,7 @@ const LigandTable = ({ ligandReference }) => {
       }}
     >
       <TextField
-        label="Buscar..."
+        label="Search..."
         variant="outlined"
         fullWidth
         margin="dense"
@@ -206,7 +207,7 @@ const Overview = React.memo(() => {
   // Get the provided theme
   const theme = useTheme();
   const secondaryColor = theme.palette.secondary;
-
+  const primaryDarkColor = theme.palette.primary.dark;
   const typeSettings = {
     trajectory: {
       label: 'Trajectory',
@@ -250,7 +251,41 @@ const Overview = React.memo(() => {
       </div>
     );
   };
-
+  // Set mordred and morgan documentation
+  const mordredDoc = docs.find(doc => doc.id === 'mordred descriptors');
+  const mordredTooltip = mordredDoc && mordredDoc.page && (
+    <>
+      {mordredDoc.page}
+      <br />
+      <br />
+      To learn more about this page and how data is obtained please{' '}
+      <a
+        href={`/#/help#${mordredDoc.id}`}
+        target="_blank"
+        rel="noreferrer noopener"
+      >
+        {'click here'}
+      </a>
+      .
+    </>
+  );
+  const morganDoc = docs.find(doc => doc.id === 'morgan fingerprint');
+  const morganTooltip = morganDoc && morganDoc.page && (
+    <>
+      {morganDoc.page}
+      <br />
+      <br />
+      To learn more about this page and how data is obtained please{' '}
+      <a
+        href={`/#/help#${morganDoc.id}`}
+        target="_blank"
+        rel="noreferrer noopener"
+      >
+        {'click here'}
+      </a>
+      .
+    </>
+  );
   // Download pdb information for every pdb id in metadata from our custom API
   const pdbIds = metadata.PDBIDS;
   const [pdbInfo, setPdbInfo] = useState({});
@@ -897,13 +932,23 @@ const Overview = React.memo(() => {
                               <div style={{ display: "flex" }}>                            
                               {ligandReference.mordred ? (
                                 <div style={{ flex: 1, width: "40%", textAlign: "center" }}>
-                                  <h3 style={{marginBottom: "0px"}}>Mordred Descriptors</h3>
+                                  <Typography variant="h6" className={style.title}>
+                                    Mordred Descriptors
+                                    {mordredDoc && mordredDoc.page && (
+                                      <Info tooltip={mordredTooltip} className={style.info} sx={{color: primaryDarkColor}}/>
+                                    )}
+                                  </Typography>
                                   <LigandTable ligandReference={ligandReference} type="mordred"/>
                                 </div>
                               ) : <></>}
                               {ligandReference.morgan_fp_bit_array ? (
                                 <div style={{ flex: 1, width: "60%", textAlign: "center" }}>
-                                  <h3>Morgan Fingerprint</h3>
+                                  <Typography variant="h6" className={style.title}>
+                                    Morgan Fingerprint
+                                    {morganDoc && morganDoc.page && (
+                                      <Info tooltip={morganTooltip} className={style.info} sx={{color: primaryDarkColor}}/>
+                                    )}
+                                  </Typography>
                                   <MoleculeViewer smiles={ligandReference.smiles} 
                                   fingerprintData={ligandReference.morgan_highlight_atoms}
                                   mol_block={ligandReference.mol_block}/>

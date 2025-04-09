@@ -257,6 +257,82 @@ export const documentation = [
         ),
       },
       {
+        id: 'mordred descriptors',
+        header: 'Mordred descriptors',
+        body: (
+          <>
+            The Mordred descriptors provide detailed information about a molecule’s 
+            structure, properties, and behavior. They help translate chemical structures 
+            into numerical values, which are useful for tasks like drug discovery, 
+            property prediction, and machine learning in chemistry.
+          </>
+        ),
+        page: (
+          <>
+            <p>
+            The Mordred descriptors shown in the table represent numerical values that describe various 
+            structural and chemical features of the ligand molecules. These values are generated using 
+            different descriptor calculators, each capturing a specific aspect of molecular behavior.
+             </p>
+              <p>
+              The descriptors were calculated using <strong>RDKit</strong> in combination with the 
+              <strong> Mordred</strong> library.
+              </p>
+              <p>For this analysis, the following calculators were used:</p>
+              <ul>
+                <li><strong>ABCIndex</strong>: Measures the branching of the molecule’s structure.</li>
+                <li><strong>AcidicGroupCount</strong> (<code>nAcid</code>): Counts acidic functional groups.</li>
+                <li><strong>BasicGroupCount</strong> (<code>nBase</code>): Counts basic functional groups.</li>
+                <li><strong>RingCount</strong> (<code>nRing</code>, <code>n3Ring</code>, <code>n4Ring</code>): Detects rings and their sizes.</li>
+                <li><strong>Constitutional</strong>: Basic properties like atom count and molecular weight.</li>
+                <li><strong>TopologicalCharge</strong>: Shape, partial charges, and polarity indicators.</li>
+                <li><strong>HydrogenBond</strong>: Hydrogen bond donors and acceptors.</li>
+                <li><strong>Lipinski</strong>: Evaluates drug-likeness (Lipinski’s Rule of Five).</li>
+                <li><strong>FragmentComplexity</strong>: Analyzes complex molecular substructures.</li>
+                <li><strong>PathCount</strong>: Counts molecular paths of varying lengths.</li>
+              </ul>
+          </>
+        ),
+      },
+      {
+        id: 'morgan fingerprint',
+        header: 'Morgan fingerprint',
+        body: (
+          <p>
+            The Morgan fingerprint is a type of molecular fingerprint that encodes the structure of a molecule into a binary vector. 
+            It enables mapping of specific structural patterns within a defined bond radius, and is commonly used to represent 
+            molecular features for similarity searching and machine learning applications.
+          </p>
+        ),
+        page: (
+          <>
+            <p>
+              The Morgan fingerprint is a widely used method to represent molecular structures as binary vectors, 
+              capturing circular atom environments within a certain radius. It is especially useful for tasks such as 
+              molecular similarity, clustering, and predictive modeling in cheminformatics.
+            </p>
+            <p>
+              In this project, the Morgan fingerprint was generated using <strong>RDKit</strong> with a radius of <code>2</code> and
+              vector sizes of <code>1024</code> and <code>2048</code> bits. The binary array encodes 
+              structural patterns around each atom, allowing for efficient comparison of molecular features.
+            </p>
+            <p>
+              In addition to generating the fingerprint vector, we also extracted atom-level information using RDKit’s 
+              <code>AdditionalOutput</code> methods, which include:
+            </p>
+            <ul>
+              <li><strong>AtomCounts</strong>: Tracks how often each atom contributes to the fingerprint.</li>
+              <li><strong>AtomToBits</strong>: Maps atoms to the fingerprint bits they influence.</li>
+              <li><strong>BitInfoMap</strong>: Stores which atoms and radii contributed to each bit.</li>
+            </ul>
+            <p>
+              This information is useful for visualizing and interpreting which parts of a ligand are responsible for specific features 
+              in the fingerprint, and can be used for highlighting relevant atoms in molecular diagrams.
+            </p>
+          </>
+        ),
+      },
+      {
         id: 'trajectory',
         header: 'Trajectory page',
         body: (
