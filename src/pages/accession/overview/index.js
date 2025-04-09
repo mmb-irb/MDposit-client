@@ -867,7 +867,19 @@ const Overview = React.memo(() => {
                   <div>
                     {ligandReference?.mordred || ligandReference?.morgan_fp_bit_array ? (
                       <>
-                        <Button onClick={() => handleSeeMore(pubchemId)} color="primary" variant='outlined' style={{ marginTop: '10px', marginBottom: '10px', marginLeft: '1rem' }}>
+                        <Button onClick={() => handleSeeMore(pubchemId)} 
+                        variant='outlined' 
+                        style={{ marginTop: '10px', marginBottom: '10px', marginLeft: '1rem' }}
+                        sx={{
+                          backgroundColor: secondaryColor.main,
+                          border: `1px solid ${secondaryColor.dark}`,
+                          color: '#000',
+                          '&:hover': {
+                            backgroundColor: secondaryColor.light,
+                            border: `1px solid ${secondaryColor.main}`,
+                          }
+                        }}
+                        >
                           Ligand Descriptors
                         </Button>
                         {showTable.has(pubchemId) && (
@@ -887,7 +899,19 @@ const Overview = React.memo(() => {
                                   mol_block={ligandReference.mol_block}/>
                                   {ligandReference.morgan_fp_bit_array && (
                                     <div>
-                                      <Button onClick={() => showMorganFPArray(pubchemId)} color="primary" variant='outlined' style={{ marginTop: '10px', marginBottom: '10px' }}>
+                                      <Button onClick={() => showMorganFPArray(pubchemId)} 
+                                      variant='outlined' 
+                                      style={{ marginTop: '10px', marginBottom: '10px' }}
+                                      sx={{
+                                        backgroundColor: secondaryColor.main,
+                                        border: `1px solid ${secondaryColor.dark}`,
+                                        color: '#000',
+                                        '&:hover': {
+                                          backgroundColor: secondaryColor.light,
+                                          border: `1px solid ${secondaryColor.main}`,
+                                        }
+                                      }}
+                                      >
                                         Show Morgan Fingerprint Array
                                       </Button>
                                       {selectedFP.has(pubchemId) && (
@@ -922,9 +946,17 @@ const Overview = React.memo(() => {
                             variant="contained"
                             href={`https://www.ebi.ac.uk/pdbe-srv/pdbechem/chemicalCompound/show/${ligandReference.pdbid}`}
                             size="small"
-                            color="primary"
                             target="_blank"
                             rel="noreferrer noopener"
+                            sx={{
+                              backgroundColor: secondaryColor.dark,
+                              border: `1px solid ${secondaryColor.dark}`,
+                              color: '#000',
+                              '&:hover': {
+                                backgroundColor: secondaryColor.main,
+                                border: `1px solid ${secondaryColor.main}`,
+                              }
+                            }}
                           >
                             <FontAwesomeIcon icon={faLink} />
                             &nbsp;PDBe website
@@ -934,9 +966,17 @@ const Overview = React.memo(() => {
                             variant="contained"
                             href={`https://www.rcsb.org/ligand/${ligandReference.pdbid}`}
                             size="small"
-                            color="primary"
                             target="_blank"
                             rel="noreferrer noopener"
+                            sx={{
+                              backgroundColor: secondaryColor.dark,
+                              border: `1px solid ${secondaryColor.dark}`,
+                              color: '#000',
+                              '&:hover': {
+                                backgroundColor: secondaryColor.main,
+                                border: `1px solid ${secondaryColor.main}`,
+                              }
+                            }}
                           >
                             <FontAwesomeIcon icon={faLink} />
                             &nbsp;RCSB website

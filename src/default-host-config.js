@@ -348,8 +348,8 @@ const HOST_CONFIGURATIONS = {
                 contrastText: '#fff',
               },
               secondary: {
-                light: '#e1bee7',
-                main: '#fafafa',
+                light: '#84ffff',
+                main: '#00e5ff',
                 dark: '#00b8d4',
                 contrastText: '#000',
               },
