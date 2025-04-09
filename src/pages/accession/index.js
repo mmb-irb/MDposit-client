@@ -40,7 +40,6 @@ import ProjectMenu from '../../components/menu/project-menu';
 // Component used to visualize API data related to the current subpage
 import DataViewer from './data-viewer';
 
-import { HOST_CONFIG } from '../../utils/constants';
 import { useTheme } from '@mui/material/styles';
 // Render the accession summary
 const SummarySwitch = ({ subPage }) => {
@@ -122,9 +121,7 @@ const checkProjectDataUpdated = (projectData, requestedAccession, requestedMdNum
 
 const Accession = () => {
   const theme = useTheme();
-  const primaryColor = HOST_CONFIG.theme.palette.primary.main;
-  const primaryDarkColor = HOST_CONFIG.theme.palette.primary.dark;
-  const secondaryColor = HOST_CONFIG.theme.palette.secondary.dark;
+  const primaryDarkColor = theme.palette.primary.dark;
 
   // Get the location and the history
   const location = useLocation();
@@ -234,7 +231,7 @@ const Accession = () => {
           {multipleMDs && <ChevronRightIcon fontSize='large' sx={{color: primaryDarkColor}}/>}
           {`${NICE_NAMES.get(page) || page} page ${isData ? ' (data)' : ''}`}
           {!isData && doc && doc.page && (
-            <Info tooltip={tooltip} className={style.info} sx={{color: secondaryColor}}/>
+            <Info tooltip={tooltip} className={style.info} sx={{color: primaryDarkColor}}/>
           )}
         </Typography>
         {/* Render a button which links to the API */}

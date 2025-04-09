@@ -7,7 +7,6 @@ import Menu from '../../components/menu';
 import LazyImg from '../../components/lazy-img';
 
 import style from './style.module.css';
-
 import { HOST_CONFIG } from '../../utils/constants';
 
 // Get logo images depending on host configuration
@@ -15,13 +14,9 @@ const logo = require(`../../images/${HOST_CONFIG.logo}.png`);
 const logoWebP = require(`../../images/${HOST_CONFIG.logo}.webp`);
 const logoLabel = HOST_CONFIG.logoLabel;
 
-const primaryColor = HOST_CONFIG.theme.palette.primary.main;
-const primaryDarkColor = HOST_CONFIG.theme.palette.primary.dark;
-const secondaryColor = HOST_CONFIG.theme.palette.secondary.dark;
-
 // Create styled AppBar with gradient
 const GradientAppBar = styled(AppBar)(({ theme }) => ({
-  background: `linear-gradient(90deg, ${primaryColor} 65%, ${primaryDarkColor} 100%)`,
+  background: `linear-gradient(90deg, ${theme.palette.primary.main} 65%, ${theme.palette.primary.dark} 100%)`,
 }));
 
 // Renders the logo and all the menu buttons next to it

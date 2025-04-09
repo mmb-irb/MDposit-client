@@ -4,9 +4,6 @@ import { copyObject } from "src/utils/auxiliar-functions";
 // Import default query fields
 import defaultQueryFields from "src/utils/constants/query-fields";
 
-// Import createTheme from MUI to set the theme of each host
-import { createTheme } from '@mui/material/styles';
-
 // Set the behaviour of the web client depending of the URL which makes the request
 // Note that this script must be placed after the src directory for react to use it and JSX to be parsed
 
@@ -195,22 +192,20 @@ const HOST_CONFIGURATIONS = {
     // Testing
     'localhost': {
         api: 'https://irb-dev.mddbr.eu/api/rest/',
-        theme : createTheme({
-            palette: {
-              primary: {
-                light: '#eeeeee',
-                main: '#707070', // Grey
-                dark: '#424242',
-                contrastText: '#fff',
-              },
-              secondary: {
-                light: '#f5f5f5',
-                main: '#424242',
-                dark: '#212121',
-                contrastText: '#000',
-              },
+        palette: {
+            primary: {
+            light: '#eeeeee',
+            main:'rgb(145, 142, 142)', // Grey
+            dark:'rgb(223, 223, 223)',
+            contrastText: '#fff',
+            },  
+            secondary: {
+            light: '#f5f5f5',
+            main:'rgb(122, 122, 122)',
+            dark: 'rgb(163, 163, 163)',
+            contrastText: '#fff',
             },
-          }),
+        },
     },
     // MDposit development
     'mdposit-dev.mddbr.eu': {
@@ -261,22 +256,18 @@ const HOST_CONFIGURATIONS = {
     // IRB node development
     'irb-dev.mddbr.eu': {
         logoLabel: 'IRB node',
-        theme : createTheme({
-            palette: {
-              primary: {
-                light: '#ba68c8',
-                main: '#BB00BB', // Purple
-                dark: '#4116a3',
-                contrastText: '#fff',
-              },
-              secondary: {
-                light: '#e1bee7',
-                main: '#fafafa',
-                dark: '#ce93d8',
-                contrastText: '#000',
-              },
+        palette: {
+            primary: {
+            main: '#cf05ca', // R207 G5 B202
+            dark: '#4116a3', // R65 G22 B163
+            contrastText: '#fff', 
             },
-          }),
+            secondary: {
+            main: '#3a29f6', // R58 G41 9915E7
+            dark: '#9915E7', // R153 G21 B231 not used
+            contrastText: '#fafafa',
+            },
+        },
         description: <>
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations stored at the MMB group at IRB Barcelona.
@@ -339,22 +330,20 @@ const HOST_CONFIGURATIONS = {
     'cineca.mddbr.eu': {
         //production: true,
         logoLabel: 'Cineca node',
-        theme : createTheme({
-            palette: {
-              primary: {
-                light: '#00e5ff',
-                main: '#99FFFF', // Light blue
-                dark: '#00b8d4',
-                contrastText: '#fff',
-              },
-              secondary: {
-                light: '#e1bee7',
-                main: '#fafafa',
-                dark: '#00b8d4',
-                contrastText: '#000',
-              },
+        palette: {
+            primary: {
+            light: '#00e5ff',
+            main: '#99FFFF', // Light blue
+            dark: '#00b8d4',
+            contrastText: '#fff',
             },
-          }),
+            secondary: {
+            light: '#e1bee7', // not used
+            main: '#fafafa',
+            dark: '#00b8d4', // not used
+            contrastText: '#00b8d4',
+            },
+        },
         description: <>
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations from the Cineca node in Bologna.
