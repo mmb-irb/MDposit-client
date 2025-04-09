@@ -35,9 +35,6 @@ const Browse = lazy(() =>
 const AdvancedSearch = lazy(() =>
   import(/* webpackChunkName: 'advanced-search' */ '../pages/advanced-search'),
 );
-const CustomSearch = lazy(() =>
-  import(/* webpackChunkName: 'custom-search' */ '../pages/custom-search'),
-);
 const MetaAnalysis = lazy(() =>
 import(/* webpackChunkName: 'meta-analysis' */ '../pages/meta-analysis'),
 );
@@ -91,14 +88,6 @@ const Base = () => {
               element={
                 <Suspense fallback={null}>
                   <Browse />
-                </Suspense>
-              }
-            />
-            <Route
-              path="search"
-              element={
-                <Suspense fallback={null}>
-                  <CustomSearch />
                 </Suspense>
               }
             />

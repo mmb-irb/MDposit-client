@@ -106,13 +106,13 @@ const LipidOrder = () => {
 
   // Define representations when data changes
   useEffect(() => {
-    if (!display || !orderParameters) return;
+    if (!display || !orderParameters || !memMapPayload) return;
     const reps = [{
       'name': lipidResname.current,
       'type': 'licorice',
       'color': 'orange',
       'opacity': 0.5,
-      'selection': `${lipidResname.current}`,
+      'selection': `( ${memMapPayload.references[selectedLipid].indices} )`,
     }];
 
     if (xSelected !== null) {
@@ -122,13 +122,13 @@ const LipidOrder = () => {
         const atomName = orderParameters[tail].labels[xSelected];
         if (!atomName) return;
         reps.push({
-        'name': `${atomName}`,
-        'type': 'ball+stick',
-        'color': colors[index % colors.length],
-        'opacity': 0.9,
-        'selection': `${lipidResname.current} and .${atomName}`,
-        'other': { radius: 0.3 },
-        'show': display[tail],
+          'name': `${atomName}`,
+          'type': 'ball+stick',
+          'color': colors[index % colors.length],
+          'opacity': 0.9,
+          'selection': `( ${memMapPayload.references[selectedLipid].indices} ) and .${atomName}`,
+          'other': { radius: 0.3 },
+          'show': display[tail],
         });
       });
     }

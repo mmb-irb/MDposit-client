@@ -192,7 +192,20 @@ const HOST_CONFIGURATIONS = {
     // Testing
     'localhost': {
         api: 'https://irb-dev.mddbr.eu/api/rest/',
-        primaryColor: '#707070', // Grey
+        palette: {
+            primary: {
+            light: '#eeeeee',
+            main:'rgb(145, 142, 142)', // Grey
+            dark:'rgb(223, 223, 223)',
+            contrastText: '#fff',
+            },  
+            secondary: {
+            light: '#f5f5f5',
+            main:'rgb(122, 122, 122)',
+            dark: 'rgb(163, 163, 163)',
+            contrastText: '#fff',
+            },
+        },
     },
     // MDposit development
     'mdposit-dev.mddbr.eu': {
@@ -243,7 +256,18 @@ const HOST_CONFIGURATIONS = {
     // IRB node development
     'irb-dev.mddbr.eu': {
         logoLabel: 'IRB node',
-        primaryColor: '#BB00BB', // Purple
+        palette: {
+            primary: {
+            main: '#cf05ca', // R207 G5 B202
+            dark: '#4116a3', // R65 G22 B163
+            contrastText: '#fff', 
+            },
+            secondary: {
+            main: '#aa00ff', // R58 G41 9915E7
+            dark: '#9915E7', // R153 G21 B231 not used
+            contrastText: 'rgb(236, 236, 236)',
+            },
+        },
         description: <>
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations stored at the MMB group at IRB Barcelona.
@@ -256,6 +280,7 @@ const HOST_CONFIGURATIONS = {
         production: true,
         logoLabel: 'IRB node',
         primaryColor: '#BB00BB', // Purple
+        secondaryColor: '#4116a3', // Dark Purple
         description: <>
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations stored at the MMB group at IRB Barcelona.
@@ -305,7 +330,20 @@ const HOST_CONFIGURATIONS = {
     'cineca.mddbr.eu': {
         //production: true,
         logoLabel: 'Cineca node',
-        primaryColor: '#99FFFF', // Light blue
+        palette: {
+            primary: {
+            light: '#00e5ff',
+            main: '#99FFFF', // Light blue
+            dark: '#00b8d4',
+            contrastText: '#fff',
+            },
+            secondary: {
+                light: '#84ffff',
+                main: '#00e5ff',
+                dark: '#00b8d4',
+                contrastText: '#000',
+            },
+        },
         description: <>
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations from the Cineca node in Bologna.
@@ -335,6 +373,54 @@ const HOST_CONFIGURATIONS = {
         ...UNIT_OPTIONS,
         queryFields: queryFieldsWithCovid,
         options: ['covid'] // Enable covid specific analyses
+    },
+    // JSC
+    'jsc.mddbr.eu': {
+        production: true,
+        api: 'https://jsc.mddbr.eu/api/rest/', // be aware that the URL must be the same as the one in the server (no relative paths allowed)))
+        primaryColor: '#c5b96b', // Golden,
+        logoLabel: 'JSC node',
+        name:'MDposit JSC'
+    },
+    // BSC
+    'bsc.mddbr.eu': {
+        production: true,
+        api: 'https://bsc.mddbr.eu/api/rest/', // be aware that the URL must be the same as the one in the server (no relative paths allowed)))
+        primaryColor: '#a8cdf3', // Golden,
+        logoLabel: 'PKLR node',
+        name:'PKLR@MDDB'
+    },
+    // FLORIDA DEV
+    'devmddb.rc.ufl.edu': {
+        production: false,
+        api: 'https://devmddb.rc.ufl.edu/api/rest/', // be aware that the URL must be the same as the one in the server (no relative paths allowed)))
+        primaryColor: '#eb94d3', // pink,
+        logoLabel: 'florida node',
+        name:'MDposit florida'
+    },
+    // INRIA
+    'inria.mddbr.eu': {
+        production: true,
+        api: 'https://inria.mddbr.eu/api/rest/', // be aware that the URL must be the same as the one in the server (no relative paths allowed)))
+        primaryColor: '#5e8568', // green,
+        logoLabel: 'inria node',
+        name:'MDposit inria'
+    },
+    // RPBS
+    'rpbs.mddbr.eu': {
+        production: true,
+        api: 'https://rpbs.mddbr.eu/api/rest/', // be aware that the URL must be the same as the one in the server (no relative paths allowed)))
+        primaryColor: '#6bc5b8', // Turquoise,
+        logoLabel: 'RPBS node',
+        name:'MDposit RPBS'
+    },
+    // PODMAN DEV
+    '10.4.96.40': {
+        production: false,
+        api: 'https://10.4.96.40/api/rest/', // be aware that the URL must be the same as the one in the server (no relative paths allowed)))
+        primaryColor: '#ff0000', // Golden,
+        logoLabel: 'Podman node',
+        name:'MDposit Podman'
     },
 };
 

@@ -182,7 +182,7 @@ const ChainsAnalysis = memo(() => {
     // Here chainReferences contains the "analysis" data
     // WARNING: Use the topology manager chain references, not the project manager references
     // WARNING: Otherwise, chain references mya no contain the "chains" field in the first render
-    const chainReferences = topologyManager.chainReferences;
+    const chainReferences = topologyManager && topologyManager.chainReferences;
     if (chainReferences && chainReferences.length > 0) {
         return (
         <>

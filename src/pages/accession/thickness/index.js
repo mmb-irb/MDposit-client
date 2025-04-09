@@ -66,7 +66,7 @@ const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
 
 const Thickness = () => {
     // Get the metadata
-    const { accession, accessionAndMdNumber, metadata, analyses } = useContext(ProjectCtx);
+    const { accessionAndMdNumber, metadata, chains } = useContext(ProjectCtx);
 
     // Send a request to the API with the url of the specific analysis
     const {
@@ -137,9 +137,7 @@ const Thickness = () => {
             }
         };
 
-        const frameNumber = thicknessPayload.data.thickness.length;
-        const frameStep = thicknessPayload.step || Math.floor(metadata.mdFrames / (frameNumber - 1));
-
+        const frameStep = thicknessPayload.data.step;
         const defaultDisplay = {
             'Membrane': true,
             'Upper leaflet': true,
@@ -219,11 +217,11 @@ const Thickness = () => {
     useMemo(() => {
         if (!components || !thicknessPayload.data || !memMapPayload) return;
         if (!defaultRepresentations || defaultRepresentations.length === 0) return;
-        const keepRepresentations = defaultRepresentations.filter(rep => (rep.name !== 'M'));
+        const keepRepresentations = defaultRepresentations.filter(rep => (rep.name !== 'M' && rep.name !== 'Membrane'));
         setRepresentations(previous => {
             if (previous !== null) return previous;
             keepRepresentations.forEach(rep => {
-                if (rep.name == 'Protein') {
+                if (rep.name == 'Protein' || chains.indexOf(rep.selection.slice(1,2)) !== -1) {
                     rep.color = 'grey';
                 }
             });

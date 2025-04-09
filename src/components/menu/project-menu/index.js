@@ -22,6 +22,7 @@ import { ProjectCtx } from '../../../contexts';
 import { NICE_NAMES } from '../../../utils/constants';
 import style from './style.module.css';
 
+import { HOST_CONFIG } from '../../../utils/constants';
 // Set the configuration of the tabs to be displayed in the menu
 // Each tab must have 'dir' or 'drops'. Never both, never none.
 // Tabs with 'dir' link the user directly on click
@@ -52,6 +53,7 @@ const tabs = [
           'electrostatic',
           'hbonds',
           'energies',
+          'ligands'
         ],
       },
       {
@@ -66,6 +68,7 @@ const tabs = [
         analyses: [
           'apl',
           'density',
+          'lipid-inter',
           'lipid-order',
           'thickness',
         ],
@@ -129,14 +132,19 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
   // Get the provided theme
   const theme = useTheme();
   const primaryColor = theme.palette.primary.main;
-  const secondaryColor = theme.palette.secondary.main;
+  const primaryDarkColor = theme.palette.primary.dark;
+  const secondaryColor = theme.palette.secondary.contrastText;
 
   // Set the style of the current selected tab
   const currentTabStyle = {
     color: secondaryColor,
     backgroundColor: primaryColor,
   };
-
+  const customTabsStyle = {
+    '& .MuiTabs-indicator': {
+      backgroundColor: theme.palette.secondary.contrastText,
+    }
+  };
   // Check if a string is found in the specified (by the 'index') dropTab links
   // If it is, return the same string. If it is not, return undefined
   const inDrop = (value, index) => {
@@ -147,13 +155,15 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
 
   // Return each of the menu tabs
   return (
-    <AppBar position="sticky" className={style['overcome-parent']}>
+    <AppBar position="sticky" 
+    className={style['overcome-parent']} sx={{background: `linear-gradient(90deg, ${primaryColor} 65%, ${primaryDarkColor} 100%)`}}>
       <Tabs
         value={subPage}
         indicatorColor="secondary"
         textColor="secondary"
         variant="scrollable"
         scrollButtons="auto"
+        sx={customTabsStyle}
       >
         {// Tabs
         tabs.map((tab, index) =>
@@ -167,6 +177,7 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
               value={tab.dir}
               className={style['tab-link']}
               onClick={() => handleClose()}
+              style={tab.dir === subPage ? currentTabStyle : undefined}
             />
           ) : (
             // Tabs which drop a menu with multiple links
@@ -177,6 +188,7 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
               value={inDrop(subPage, index)}
               className={style['tab-link']}
               onClick={event => handleClick(index, event)}
+              style={inDrop(subPage, index) ? currentTabStyle : undefined}
             />
           ),
         )}

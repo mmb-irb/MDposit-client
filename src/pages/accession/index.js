@@ -40,6 +40,7 @@ import ProjectMenu from '../../components/menu/project-menu';
 // Component used to visualize API data related to the current subpage
 import DataViewer from './data-viewer';
 
+import { useTheme } from '@mui/material/styles';
 // Render the accession summary
 const SummarySwitch = ({ subPage }) => {
   // Load the project context
@@ -119,6 +120,9 @@ const checkProjectDataUpdated = (projectData, requestedAccession, requestedMdNum
 };
 
 const Accession = () => {
+  const theme = useTheme();
+  const primaryDarkColor = theme.palette.primary.dark;
+
   // Get the location and the history
   const location = useLocation();
   const history = useNavigate();
@@ -205,7 +209,7 @@ const Accession = () => {
         {/* Render the accession */}
         <Typography variant="h6" className={style.title}>
           {`Project ${accession}`}
-          <ChevronRightIcon color="primary" fontSize='large'/>
+          <ChevronRightIcon fontSize='large' sx={{color: primaryDarkColor}}/>
           {/* MD selector */}
           {multipleMDs &&
             <Select
@@ -224,10 +228,10 @@ const Accession = () => {
               ))}
             </Select>
           }
-          {multipleMDs && <ChevronRightIcon color="primary" fontSize='large'/>}
+          {multipleMDs && <ChevronRightIcon fontSize='large' sx={{color: primaryDarkColor}}/>}
           {`${NICE_NAMES.get(page) || page} page ${isData ? ' (data)' : ''}`}
           {!isData && doc && doc.page && (
-            <Info tooltip={tooltip} className={style.info} />
+            <Info tooltip={tooltip} className={style.info} sx={{color: primaryDarkColor}}/>
           )}
         </Typography>
         {/* Render a button which links to the API */}
@@ -236,6 +240,9 @@ const Accession = () => {
           target="_blank"
           to={`/id/${accessionAndMdNumber}/${page}/data`}
           className={style['link-to-api']}
+          sx={{
+            color: primaryDarkColor,
+            }}
         >
           <FontAwesomeIcon icon={faBook} />
           &nbsp;&nbsp;data in this page

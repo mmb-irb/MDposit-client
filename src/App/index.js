@@ -41,11 +41,18 @@ const KEYFRAMES = {
 if (!reducedMotion()) {
   KEYFRAMES.transform = ['translateY(0)', 'translateY(50px)'];
 }
-
 // Set the header colors (standard model colors)
-const primary = { main: HOST_CONFIG.primaryColor }; // Light indigo
-const secondary = { main: HOST_CONFIG.secondaryColor }; // Light grey
-
+console.log('HOST_CONFIG', HOST_CONFIG);
+let palette;
+if (HOST_CONFIG.palette) {
+  palette  = HOST_CONFIG.palette;
+} else {
+  // Set the default colors (standard model colors)
+  palette = {
+      primary: { main: HOST_CONFIG.primaryColor },
+      secondary: { main: HOST_CONFIG.secondaryColor }
+  };
+}
 // Set custom styling theme
 const theme = createTheme({
   typography: {
@@ -61,7 +68,7 @@ const theme = createTheme({
       },
     },
   },
-  palette: { primary, secondary },
+  palette: palette,
   props: {
     MuiTableCell: {
       align: 'center',

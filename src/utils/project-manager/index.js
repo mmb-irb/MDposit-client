@@ -52,7 +52,7 @@ export class Project {
         // These analyses are always visible but not clickable when data is missing
         const genericAnalyses = [ 'rmsds', 'rgyr', 'fluctuation', 'pca', 'rmsd-perres',
             'rmsd-pairwise', 'dist-perres', 'hbonds', 'energies', 'pockets', 'sasa', 'clusters',
-             'density', 'thickness', 'apl', 'lipid-order' ];
+             'density', 'thickness', 'apl', 'lipid-order', 'lipid-inter' ];
         for (const analysis of genericAnalyses) {
             this.directions[analysis] = this.analyses.includes(analysis);
         }
@@ -91,6 +91,7 @@ export class Project {
         this._apiBaseUrl = `${BASE_PATH_PROJECTS}/${this.accessionAndMdNumber}`;
         // Set the creation date as a date object
         this.creationDate = new Date(this.creationDate).toLocaleDateString('en-GB');
+        this.updateDate = this.updateDate ? new Date(this.updateDate).toLocaleDateString('en-GB') : undefined;
     }
     // Declare the different field endpoints to request the API
     _apiEndpoints = {

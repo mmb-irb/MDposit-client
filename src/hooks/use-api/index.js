@@ -13,10 +13,47 @@ const loading = {
   loading: true,
 };
 
+
+// Default cache expiration time (e.g., 1 hour in milliseconds)
+const DEFAULT_CACHE_EXPIRATION = 60 * 60 * 1000;
+
+// Load cache from localStorage
+const loadCache = () => {
+  const cachedData = localStorage.getItem('apiCache');
+  return cachedData ? JSON.parse(cachedData) : {};
+};
+
+// Save cache to localStorage
+const saveCache = (cache) => {
+  localStorage.setItem('apiCache', JSON.stringify(cache));
+};
+
+// Cache object to store API responses
+let cache = loadCache();
 // Get data from the API
-const useAPI = url => {
+const useAPI = (url, cacheOptions = {}) => {
+  // Destructure options and set default values
+  const {
+    name = '',
+    cacheOn = false,
+    cacheExpiration = DEFAULT_CACHE_EXPIRATION, // Default cache expiration
+  } = cacheOptions;
+  
+  // Check cache synchronously before initializing state
+  const initialData = (() => {
+    if (cacheOn && cache[name]) {
+      const responseData = cache[name];
+      const now = Date.now();
+      const receivedTime = new Date(responseData.received).getTime()
+      // Use cached data if it hasn't expired
+      if (now - receivedTime < cacheExpiration) {
+        return responseData;
+      }
+    }
+    return blank;
+  })();
   // Set the 'data' state object, which is returned at the end of this function
-  const [data, setData] = useState(blank);
+  const [data, setData] = useState(initialData);
 
   // This react hook is responisble for sending the request to the API
   // This react hook has 'url' dependencies, so it is only runned once per request
@@ -52,8 +89,14 @@ const useAPI = url => {
           loading: false,
           payload: response.data,
           error: null,
-          time: responseTime
+          time: responseTime,
+          received: endTime,
         };
+        // Cache the response if caching is enabled
+        if (cacheOn) {
+          cache[name] = responseData;
+          saveCache(cache);
+        }
         setData(responseData);
       })
       // Otherwise
@@ -81,8 +124,8 @@ const useAPI = url => {
   // Data is returned this way
   // Data is returned only if the data.url matches the url from this request
   // These urls do not macth each first time 'useAPI' is called
-  // 'data' is not reset each time 'useAPI' is called so the url is fro, the previous request
-  if (data.url === url) return data;
+  // 'data' is not reset each time 'useAPI' is called so the url is from the previous request
+  if (data.url === url || initialData.url === url) return data;
   // The first time 'useAPI' is called only { loading: true } is returned
   else return loading;
 };
