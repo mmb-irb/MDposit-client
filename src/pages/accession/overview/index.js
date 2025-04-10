@@ -252,7 +252,7 @@ const Overview = React.memo(() => {
     );
   };
   // Set mordred and morgan documentation
-  const mordredDoc = docs.find(doc => doc.id === 'mordred descriptors');
+  const mordredDoc = docs.find(doc => doc.id === 'mordred-descriptors');
   const mordredTooltip = mordredDoc && mordredDoc.page && (
     <>
       {mordredDoc.page}
@@ -269,7 +269,7 @@ const Overview = React.memo(() => {
       .
     </>
   );
-  const morganDoc = docs.find(doc => doc.id === 'morgan fingerprint');
+  const morganDoc = docs.find(doc => doc.id === 'morgan-fingerprint');
   const morganTooltip = morganDoc && morganDoc.page && (
     <>
       {morganDoc.page}

@@ -257,7 +257,7 @@ export const documentation = [
         ),
       },
       {
-        id: 'mordred descriptors',
+        id: 'mordred-descriptors',
         header: 'Mordred descriptors',
         body: (
           <>
@@ -295,7 +295,7 @@ export const documentation = [
         ),
       },
       {
-        id: 'morgan fingerprint',
+        id: 'morgan-fingerprint',
         header: 'Morgan fingerprint',
         body: (
           <p>
