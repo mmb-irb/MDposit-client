@@ -42,7 +42,6 @@ if (!reducedMotion()) {
   KEYFRAMES.transform = ['translateY(0)', 'translateY(50px)'];
 }
 // Set the header colors (standard model colors)
-console.log('HOST_CONFIG', HOST_CONFIG);
 let palette;
 if (HOST_CONFIG.palette) {
   palette  = HOST_CONFIG.palette;
