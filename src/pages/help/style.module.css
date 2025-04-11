@@ -4,16 +4,6 @@
   height: 90vh;
 }
 
-.horizontal {
-  display: flex;
-  flex-direction: row;
-}
-
-.noresult {
-  justify-content: center;
-  align-items: center;
-}
-
 .menu {
   overflow-y: scroll;
   width: 20%;
@@ -51,26 +41,4 @@
   display: block;
   content: '';
   margin-top: 0.5em;
-}
-
-.piechart {
-  width: 300px;
-  height: 300px;
-  margin: 1em;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.legend {
-  margin: 1em;
-}
-
-.nodemap {
-  height: 25em;
-  width: 100%;
-  border: solid #000;
-  border-width: 0.2em;
-  margin-top: 0.5em;
-  margin-bottom: 1em;
 }

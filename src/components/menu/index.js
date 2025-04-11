@@ -7,6 +7,7 @@ import HomeIcon from '@mui/icons-material/Home';
 import SearchIcon from '@mui/icons-material/Search';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import TimelineIcon from '@mui/icons-material/Timeline';
+import BarChart from '@mui/icons-material/BarChart';
 import HelpIcon from '@mui/icons-material/Help';
 import MailIcon from '@mui/icons-material/Mail';
 
@@ -54,6 +55,15 @@ export default () => (
         className={style.button}
       >
         Meta-analysis
+      </Button>
+      <Button
+        component={Link}
+        color="inherit"
+        to="/statistics"
+        startIcon={<BarChart />}
+        className={style.button}
+      >
+        Statistics
       </Button>
       <Button
         component={Link}

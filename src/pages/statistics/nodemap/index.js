@@ -6,14 +6,17 @@ import {
   Marker
 } from "react-simple-maps";
 
-// Get the map
-import map from './map.json';
-
 // Auxiliar functions
 import { caluclateAverage } from '../../../utils/auxiliar-functions';
 
 // Use this to access the primary color according to the style palette
 import { useTheme } from '@mui/material/styles';
+
+// Get the map
+import map from './map.json';
+
+// CSS styling
+import style from './style.module.css';
 
 // Set the distance cutoff to merge nodes together (in coordinate grades)
 const NODE_DISTANCE_CUTOFF = 0.01;
@@ -30,6 +33,14 @@ const getCentroid = (nodes) => {
   return [xMean, yMean];
 };
 
+// Set the maps to be displayed
+// This in now manually hardcoded since it is a ever changing landscape
+const MAP_CONFIGS = [
+  { rotate: [-2,-46,0], center: [0,0], scale: 1300 },
+  { rotate: [85,-30,0], center: [0,0], scale: 1300 }
+];
+
+// A map with all available nodes
 const NodeMap = ({ nodeData, className }) => {
   // Get the paletter primary color
   const theme = useTheme();
@@ -37,8 +48,8 @@ const NodeMap = ({ nodeData, className }) => {
   // Set node representations
   // Several nodes may be combined in a single representation to avoid overlaps
   // DANI: Esta lógica es muy simple, si hay muchos nodos habrá que replanteársela
-  const { nodeGroups, center } = useMemo(() => {
-    if (!nodeData) return { nodeGroups: [], center: [0, 0] };
+  const nodeGroups = useMemo(() => {
+    if (!nodeData) return null;
     // Group nodes together by distance
     const _nodeGroups = [];
     // Iterate nodes
@@ -54,47 +65,45 @@ const NodeMap = ({ nodeData, className }) => {
       // Otherwise set a new group for this node
       _nodeGroups.push({ nodes: [node], location: node.location });
     }
-    // Calculate the center of all nodes
-    const _center = getCentroid(nodeData);
-    return { nodeGroups: _nodeGroups, center: _center };
+    return _nodeGroups;
   },[nodeData]);
 
-  return (
-    <ComposableMap
-      projection="geoAzimuthalEqualArea"
-      projectionConfig={{
-        center: [center[1], center[0]],
-        scale: 1300
-      }}
-      className={className}
-    >
-      <Geographies
-        geography={map}
-        fill="#D6D6DA"
-        stroke="#FFFFFF"
-        strokeWidth={0.5}
+  return (<div className={className}>
+      {MAP_CONFIGS.map((config, c) => 
+      (<ComposableMap
+        key={c}
+        projection="geoAzimuthalEqualArea"
+        projectionConfig={config}
+        className={style.maps}
       >
-        {({ geographies }) =>
-          geographies.map((geo) => (
-            <Geography key={geo.rsmKey} geography={geo} />
+        <Geographies
+          geography={map}
+          fill="#D6D6DA"
+          stroke="#FFFFFF"
+          strokeWidth={0.5}
+        >
+          {({ geographies }) =>
+            geographies.map((geo) => (
+              <Geography key={geo.rsmKey} geography={geo} />
+            ))
+          }
+        </Geographies>
+        {nodeGroups && nodeGroups.map((group, g) => [
+          // Add a marker in the map for every node
+          <Marker key={g} coordinates={[group.location[1], group.location[0]]}>
+            <circle r={8} fill={primary} />
+          </Marker>,
+          ...group.nodes.map((node, i) => (
+            <Marker key={`${g}.${i}`} coordinates={[group.location[1], group.location[0] + 0.6 + i]}>
+              <text fontSize={"large"} textAnchor="middle" fill={primary}>
+                {node.name}
+              </text>
+            </Marker>            
           ))
-        }
-      </Geographies>
-      {nodeGroups && nodeGroups.map((group, g) => [
-        // Add a marker in the map for every node
-        <Marker key={g} coordinates={[group.location[1], group.location[0]]}>
-          <circle r={8} fill={primary} />
-        </Marker>,
-        ...group.nodes.map((node, i) => (
-          <Marker key={`${g}.${i}`} coordinates={[group.location[1], group.location[0] + 0.6 + i]}>
-            <text fontSize={"large"} textAnchor="middle" fill={primary}>
-              {node.name}
-            </text>
-          </Marker>            
-        ))
-      ])}
-    </ComposableMap>
-  );
+        ])}
+      </ComposableMap>
+    ))}
+  </div>)
 };
 
 export default NodeMap;

@@ -36,7 +36,10 @@ const AdvancedSearch = lazy(() =>
   import(/* webpackChunkName: 'advanced-search' */ '../pages/advanced-search'),
 );
 const MetaAnalysis = lazy(() =>
-import(/* webpackChunkName: 'meta-analysis' */ '../pages/meta-analysis'),
+  import(/* webpackChunkName: 'meta-analysis' */ '../pages/meta-analysis'),
+);
+const Statistics = lazy(() =>
+  import(/* webpackChunkName: 'meta-analysis' */ '../pages/statistics'),
 );
 const Help = lazy(() => import(/* webpackChunkName: 'help' */ '../pages/help'));
 const Contact = lazy(() =>
@@ -104,6 +107,14 @@ const Base = () => {
               element={
                 <Suspense fallback={null}>
                   <MetaAnalysis />
+                </Suspense>
+              }
+            />
+            <Route
+              path="statistics"
+              element={
+                <Suspense fallback={null}>
+                  <Statistics />
                 </Suspense>
               }
             />

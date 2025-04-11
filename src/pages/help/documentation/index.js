@@ -26,17 +26,19 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Icon } from '@mui/material';
 
 // Set a simpler TextLink component
-const TextLink = ({ name, id, url }) => (
-  <>
-    <a
-      href={id ? `/help#/help#${id}` : url}
-      target="_blank"
-      rel="noreferrer noopener"
-    >
+const TextLink = ({ name, id, page, url }) => {
+  // Set the targe URL depending on the different possible inputs
+  let finalUrl = url;
+  if (!finalUrl) finalUrl = page && `/#/${page}`;
+  if (!finalUrl) finalUrl = id && `/#/help#${id}`;
+  if (!finalUrl) throw new Error('Missing argument in TextLink component');
+  // Set the link component
+  return (<>
+    <a href={finalUrl} target="_blank" rel="noreferrer noopener" >
       {name}
     </a>
-  </>
-);
+  </>);
+}
 // Set the name of the webpage
 const webpageName = 'MDposit';
 
@@ -206,6 +208,16 @@ export const documentation = [
           </>
         ),
       },
+      {
+        id: 'summary',
+        header: 'Data summary and statistics',
+        body: (
+          <>
+            A summary of current data is available in
+            the <TextLink name={'statistics page'} page={'statistics'} />.
+          </>
+        ),
+      }
     ],
   },
   {
