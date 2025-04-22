@@ -15,13 +15,21 @@ import { createPalette } from '../../utils/auxiliar-functions';
 import useAPI from '../../hooks/use-api';
 
 import style from './style.module.css';
+import { useTheme } from '@mui/material/styles';
 
 import { PieChart } from 'react-minimal-pie-chart';
 import SimpleLegend from '../../components/simple-legend';
 import Histogram from '../../components/histogram';
+import TimelineChart from './timeline';
 
 // Current data summary
 export default () => {
+
+    // Get the provided theme
+    const theme = useTheme();
+    const primaryColor = theme.palette.primary.main;
+    const secondaryColor = theme.palette.secondary.main;
+    
     // Use the API to get the summary
     const summaryUrl = `${BASE_PATH_PROJECTS}/summary`;
     const { payload: summaryPayload, error: summaryError } = useAPI(summaryUrl);
@@ -29,6 +37,10 @@ export default () => {
     // Use the API to get the options
     const optionsUrl = `${BASE_PATH_PROJECTS}/options?projection=${HOST_CONFIG.optionsField}`;
     const { payload: optionsPayload, error: optionsError } = useAPI(optionsUrl);
+    
+    // Use the API to get the project growth data
+    const growthUrl = `${BASE_PATH_PROJECTS}/summary/growth`;
+    const { payload: growthPayload, error: growthError } = useAPI(growthUrl);
   
     // Prepare data for the options pie chart
     const { optionsPieChartData, optionsLegendData } = useMemo(() => {
@@ -123,7 +135,7 @@ export default () => {
   
     // Handle possible errors by just showing a log error in the console
     // Thus we allow the rest of the page to keep loading
-    [summaryError, optionsError, methodsError, snapshotsError, oldSnapshotsError, atomsError, nodesError].forEach(error => {
+    [summaryError, optionsError, methodsError, snapshotsError, oldSnapshotsError, atomsError, nodesError, growthError].forEach(error => {
         if (error) console.error(error.message);
     });
 
@@ -190,6 +202,7 @@ export default () => {
                     data={frameCounts}
                     xAxisLabelText={'Number of snapshots'}
                     yAxisLabelText={'Number of MDs'}
+                    color={primaryColor}
                     onHover={d => `There are ${d.length} MDs with a number of snapshots between ${d.x0} and ${d.x1}`}
                 />
             </div>
@@ -199,10 +212,21 @@ export default () => {
                     data={atomsPayload && atomsPayload["metadata.SYSTATS"]}
                     xAxisLabelText={'Number of atoms'}
                     yAxisLabelText={'Number of projects'}
-                    color={"#ffcc00"}
+                    color={secondaryColor}
                     onHover={d => `There are ${d.length} MDs with a number of atoms between ${d.x0} and ${d.x1}`}
                 />
             </div>
+        </div>
+        <Typography variant="h6">Projects and MDs Growth Over Time</Typography>
+        <div className={style.timelineChart}>
+            {growthPayload ? (
+                <TimelineChart 
+                    data={growthPayload} 
+                    className={style.growthChart}
+                />
+            ) : (
+                'Loading growth data...'
+            )}
         </div>
     </>);
 };
