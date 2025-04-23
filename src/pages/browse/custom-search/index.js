@@ -554,7 +554,7 @@ const CustomSearch = () => {
                                           );
                                         }
                                       }}
-                                      placeholder={'e.g. ' + field.example}
+                                      placeholder={'> e.g. ' + field.example}
                                       inputProps={{
                                         inputMode: 'numeric',
                                         pattern: '[0-9.,+-]*',
@@ -574,7 +574,7 @@ const CustomSearch = () => {
                                           );
                                         }
                                       }}
-                                      placeholder={'e.g. ' + field.example}
+                                      placeholder={'< e.g. ' + field.example}
                                       inputProps={{
                                         inputMode: 'numeric',
                                         pattern: '[0-9.,+-]*',

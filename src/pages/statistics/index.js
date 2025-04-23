@@ -28,7 +28,7 @@ export default () => {
     // Get the provided theme
     const theme = useTheme();
     const primaryColor = theme.palette.primary.main;
-    const secondaryColor = theme.palette.secondary.main;
+    const secondaryColor = theme.palette.secondary.dark;
     
     // Use the API to get the summary
     const summaryUrl = `${BASE_PATH_PROJECTS}/summary`;
