@@ -84,7 +84,12 @@ const NodeMap = ({ nodeData, className }) => {
         >
           {({ geographies }) =>
             geographies.map((geo) => (
-              <Geography key={geo.rsmKey} geography={geo} />
+              <Geography key={geo.rsmKey} geography={geo} 
+              style={{
+                default: { outline: "none" },
+                hover: { outline: "none" },
+                pressed: { outline: "none" },
+              }}/>
             ))
           }
         </Geographies>
