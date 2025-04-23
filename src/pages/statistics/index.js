@@ -168,8 +168,8 @@ export default () => {
         Total number of stored analyses:{' '}
         {summaryPayload ? summaryPayload.totalAnalyses : 'Loading...'}
         <br />
-        Total size of the uncompressed data (TB):{' '}
-        {summaryPayload ? summaryPayload.storageStats.dataSizeInTB : 'Loading...'}
+        Total size of the uncompressed data:{' '} 
+        {summaryPayload ? `${summaryPayload.storageStats.dataSizeInTB} (TB)` : 'Loading...'}
         <br />
         {HOST_CONFIG.optionsField && <>
             <Typography variant="h6">{`Projects per ${HOST_CONFIG.optionsLabel}`}</Typography>
