@@ -148,10 +148,10 @@ export default () => {
         </>}
         <Typography key={0} variant="h6">Data summary</Typography>
         Total number of projects:{' '}
-        {summaryPayload ? summaryPayload.projectsCount : 'Loading...'}
+        {summaryPayload ? summaryPayload.projectsCount.toLocaleString() : 'Loading...'}
         <br />
         Total number of MDs:{' '}
-        {summaryPayload ? summaryPayload.mdCount : 'Loading...'}
+        {summaryPayload ? summaryPayload.mdCount.toLocaleString() : 'Loading...'}
         <br />
         {/*
             DANI: Funciona. Solo lo he quitado temporalmente por un tema "político"
@@ -160,13 +160,13 @@ export default () => {
             <br />
         */}
         Total amount of MD frames:{' '}
-        {summaryPayload ? summaryPayload.totalFrames : 'Loading...'}
+        {summaryPayload ? summaryPayload.totalFrames.toLocaleString() : 'Loading...'}
         <br />
         Total number of stored files:{' '}
-        {summaryPayload ? summaryPayload.totalFiles : 'Loading...'}
+        {summaryPayload ? summaryPayload.totalFiles.toLocaleString() : 'Loading...'}
         <br />
         Total number of stored analyses:{' '}
-        {summaryPayload ? summaryPayload.totalAnalyses : 'Loading...'}
+        {summaryPayload ? summaryPayload.totalAnalyses.toLocaleString() : 'Loading...'}
         <br />
         Total size of the uncompressed data:{' '} 
         {summaryPayload ? `${summaryPayload.storageStats.dataSizeInTB} (TB)` : 'Loading...'}
@@ -205,7 +205,8 @@ export default () => {
                     xAxisLabelText={'Number of snapshots'}
                     yAxisLabelText={'Number of MDs'}
                     color={primaryColor}
-                    onHover={d => `There are ${d.length} MDs with a number of snapshots between ${d.x0} and ${d.x1}`}
+                    binMethod={'sturges'}
+                    onHover={d => `There are ${d.length} MDs with a number of snapshots between ${Math.floor(d.x0)} and ${Math.floor(d.x1)}`}
                 />
             </div>
             <div className={style.half}>
@@ -215,7 +216,8 @@ export default () => {
                     xAxisLabelText={'Number of atoms'}
                     yAxisLabelText={'Number of projects'}
                     color={secondaryColor}
-                    onHover={d => `There are ${d.length} MDs with a number of atoms between ${d.x0} and ${d.x1}`}
+                    binMethod={'sturges'}
+                    onHover={d => `There are ${d.length} MDs with a number of atoms between ${Math.floor(d.x0)} and ${Math.floor(d.x1)}`}
                 />
             </div>
         </div>
