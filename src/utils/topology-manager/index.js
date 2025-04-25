@@ -1,4 +1,18 @@
 import { range } from 'lodash-es';
+import {
+  RESIDUE_NAME_LETTERS,
+  PROTEIN_RESIDUE_NAME_LETTERS,
+  DNA_RESIDUE_NAME_LETTERS,
+  RNA_RESIDUE_NAME_LETTERS,
+  FATTY_RESIDUE_NAMES,
+  STEROID_RESIDUE_NAMES,
+  STANDARD_SOLVENT_RESIDUE_NAMES,
+  STANDARD_COUNTER_ION_ATOM_NAMES,
+  STANDARD_DUMMY_ATOM_NAMES,
+  DUMMY_ATOM_ELEMENT,
+  CG_ATOM_ELEMENT
+} from './residues-library';
+import { countElement } from 'src/utils/auxiliar-functions';
 const ngl = require('ngl');
 
 // Topology manager
@@ -88,8 +102,7 @@ export const parsedSelectionRanger = (selection, addWhiteSpaces = true) => {
 const nglFormat = /^\[[0-9a-zA-Z_]*\]([0-9]*)([A-Z]?):([A-Z])$/;
 export const nglNumerationParser = numeration => {
   const result = nglFormat.exec(numeration);
-  if (!result)
-    throw new Error('No matched NGL numeration value: ' + numeration);
+  if (!result) throw new Error('No matched NGL numeration value: ' + numeration);
   const chain = result[3];
   const residue = result[1];
   const icode = result[2] || ''; // DANI: El icode es de mi huerto. Falta chequear
@@ -98,112 +111,6 @@ export const nglNumerationParser = numeration => {
   // Complex numeration
   const complex = chain + ':' + residue + icode;
   return { chain, residue: +residue, icode, nglSelection, complex };
-};
-
-// Define the residue type letters
-const residueLetters = {
-  ALA: 'A',
-  ALAN: 'A',
-  ALAC: 'A',
-  ARG: 'R',
-  ARGN: 'R',
-  ARGC: 'R',
-  ASN: 'N',
-  ASNN: 'N',
-  ASNC: 'N',
-  ASP: 'D',
-  ASPN: 'D',
-  ASPC: 'D',
-  CYS: 'C',
-  CYSN: 'C',
-  CYSC: 'C',
-  CYH: 'C',
-  CSH: 'C',
-  CSS: 'C',
-  CYX: 'C',
-  CYP: 'C',
-  GLN: 'Q',
-  GLNN: 'Q',
-  GLNC: 'Q',
-  GLU: 'E',
-  GLUN: 'E',
-  GLUC: 'E',
-  GLY: 'G',
-  GLYN: 'G',
-  GLYC: 'G',
-  HIS: 'H',
-  HISN: 'H',
-  HISC: 'H',
-  HID: 'H',
-  HIE: 'H',
-  HIP: 'H',
-  HSD: 'H',
-  HSE: 'H',
-  ILE: 'I',
-  ILEN: 'I',
-  ILEC: 'I',
-  ILU: 'I',
-  LEU: 'L',
-  LEUN: 'L',
-  LEUC: 'L',
-  LYS: 'K',
-  LYSN: 'K',
-  LYSC: 'K',
-  MET: 'M',
-  METN: 'M',
-  METC: 'M',
-  PHE: 'F',
-  PHEN: 'F',
-  PHEC: 'F',
-  PRO: 'P',
-  PRON: 'P',
-  PROC: 'P',
-  PRØ: 'P',
-  PR0: 'P',
-  PRZ: 'P',
-  SER: 'S',
-  SERN: 'S',
-  SERC: 'S',
-  THR: 'T',
-  THRN: 'T',
-  THRC: 'R',
-  TRP: 'W',
-  TRPN: 'W',
-  TRPC: 'W',
-  TRY: 'W',
-  TYR: 'Y',
-  TYRN: 'Y',
-  TYRC: 'Y',
-  VAL: 'V',
-  VALN: 'V',
-  VALC: 'V',
-  // Nucleotides
-  A: 'A',
-  A3: 'A',
-  A5: 'A',
-  C: 'C',
-  C3: 'C',
-  C5: 'C',
-  T: 'T',
-  T3: 'T',
-  T5: 'T',
-  G: 'G',
-  G3: 'G',
-  G5: 'G',
-  U: 'U',
-  U3: 'U',
-  U5: 'U',
-  DA: 'A',
-  DT: 'T',
-  DC: 'C',
-  DG: 'G',
-};
-
-export const getResidueTypeLetter = residueType => {
-  if (!residueType) return;
-  const letter = residueLetters[residueType];
-  if (letter) return letter;
-  return 'X';
 };
 
 // Check if an NGL residues is cartoon supported or not
@@ -250,7 +157,7 @@ export const nglSelectionExists = (
 };
 
 // Set the element colors for displaying
-const elementColors = {
+const ELEMENT_COLORS = {
   H: 'white',
   C: 'grey',
   N: 'blue',
@@ -284,9 +191,13 @@ class Atom {
   }
   // Viewer color representations for this atom according to tis element
   get elementColor () {
-    const color = elementColors[this.element];
+    const color = ELEMENT_COLORS[this.element];
     if (!color) return 'black';
     return color;
+  }
+  // Check if the resiude is coarse grained
+  get isCg () {
+    return this.element === CG_ATOM_ELEMENT;
   }
 }
 
@@ -296,6 +207,8 @@ class Residue {
   constructor(topology, residueIndex) {
     this.topology = topology;
     this.index = residueIndex;
+    // Internal variables
+    this._classification = undefined;
   }
   // Original residue number (source numeration)
   get number () {
@@ -333,7 +246,111 @@ class Residue {
   }
   // Residue standard letter (e.g. ARG -> R)
   get letter () {
-    return getResidueTypeLetter(this.type);
+    if (!this.type) return;
+    const letter = RESIDUE_NAME_LETTERS[this.type];
+    if (letter) return letter;
+    return 'X';
+  }
+  // Get a cassification for this residue
+  // This is quite standard for proteins and nucleic acids
+  // It also relies on references to classify ligands
+  // However, it delegates in the 'classificationByName' function for the rest
+  // Available classifications:
+  // - protein
+  // - dna
+  // - rna
+  // - carbohydrate
+  // - fatty
+  // - steroid
+  // - ion
+  // - solvent
+  // - acetyl
+  // - amide
+  // - other
+  get classification () {
+    // If the classification was previously found then return the stored value
+    if (this._classification !== undefined) return this._classification;
+    // If this is a coarse grain residue then we can not classify it through the smart way
+    // We can only rely in residue names
+    if (this.isCg) {
+      this._classification = this.classificationByName;
+      return this._classification;
+    }
+    // Classify according this residue according to its atom composition
+    // ----- Ions -----------------------------------------------
+    // If it has only one atom then it must be an ion
+    if (this.atomCount === 1) {
+      this._classification = 'ion';
+      return this._classification;
+    }
+    // ----- Solvent -----------------------------------------------
+    // Solvent is water molecules
+    // First rely on the residue name
+    if (this.type in STANDARD_SOLVENT_RESIDUE_NAMES) {
+      this._classification = 'solvent'
+      return this._classification
+    }
+    // It may be water with a not known name
+    // Literally check if its a molecule with 3 atoms: 2 hydrogens and 1 oxygen
+    if (this.atomCount === 3) {
+      const atomElements = this.atoms.map(atom => atom.element);
+      const hydrogenCount = countElement(atomElements, 'H');
+      const oxygenCount = countElement(atomElements, 'O');
+      if (hydrogenCount === 2 && oxygenCount === 1) {
+        this._classification = 'solvent'
+        return this._classification
+      }
+    }
+    // ----- Protein -----------------------------------------------
+    // Protein definition according to vmd:
+    // a residue with atoms named C, N, CA, and O
+    // In our case we accept OC1 and OC2 or OT1 and OT2 instead of O for terminal residues
+    const atomNames = new Set(this.atoms.map(atom => atom.type));
+    if (['C', 'N', 'CA'].every(element => atomNames.includes(element)) && (
+      'O' in atomNames ||
+      ['OC1', 'OC2'].every(element => atomNames.includes(element)) ||
+      ['OT1', 'OT2'].every(element => atomNames.includes(element))
+    )) {
+      this._classification = 'protein'
+      return this._classification
+    }
+    // ----- Nucleic -----------------------------------------------
+    // Nucleic acids definition according to vmd:
+    // a residue with atoms named P, O1P, O2P and either O3’, C3’, C4’, C5’, O5’ or O3*, C3*, C4*, C5*, O5*
+    // Apparently it has been fixed so now a residue does not need to be phosphorylated to be considered nucleic
+    if (["O3'", "C3'", "C4'", "C5'", "O5'"].every(element => atomNames.includes(element))
+    || ["O3*", "C3*", "C4*", "C5*", "O5*"].every(element => atomNames.includes(element))) {
+      // At this point we know it is nucleic
+      // We must tell the difference between DNA and RNA
+      if (atomNames.includes("O2'") || atomNames.includes("O2*")) this._classification = 'rna'
+      else this._classification = 'dna'
+      return this._classification
+    }
+    // ----- Ligands -----------------------------------------------
+    // If this residue is a ligand according to the references then classify it as ligand
+    if (this.referenceType === 'ligand') {
+      this._classification = 'ligand'
+      return this._classification
+    }
+    // ----- Others -----------------------------------------------
+    // If the residue does not fall in any of the previous conditions then we do not know what it is
+    return 'unknown'
+  }
+  // Set an alternative function to "try" to classify the residues according only to its name
+  // This is useful for corase grain residues whose atoms may not reflect the real atoms
+  // WARNING: This logic is very limited and may return "unknown"
+  // WARNING: This logic relies in atom names, which may be not standard
+  get classificationByName () {
+    if (this.type in PROTEIN_RESIDUE_NAME_LETTERS) return 'protein';
+    if (this.type in DNA_RESIDUE_NAME_LETTERS) return 'dna';
+    if (this.type in RNA_RESIDUE_NAME_LETTERS) return 'rna';
+    if (this.type in NUCLEIC_RESIDUE_NAME_LETTERS) return 'nucleic';
+    if (this.type in FATTY_RESIDUE_NAMES) return 'fatty';
+    if (this.type in STEROID_RESIDUE_NAMES) return 'steroid';
+    if (this.type in STANDARD_COUNTER_ION_ATOM_NAMES) return 'ion';
+    if (this.type in STANDARD_SOLVENT_RESIDUE_NAMES) return 'solvent';
+    // If we do not know what it is
+    return 'unknown'
   }
   // Reference index in the topology
   get referenceIndex () {
@@ -389,6 +406,12 @@ class Residue {
   get isPbc () {
     return this.topology.pbcResidues.has(this.index);
   }
+  // Check if the resiude is coarse grained
+  get isCg () {
+    for (const atom of this.iteratoms())
+      if (atom.isCg) return true;
+    return false;
+  }
   // Standard label for display
   get standardLabel () {
     // Add the chain to the label only if there is more than ona chain
@@ -426,6 +449,10 @@ class Residue {
   * iteratoms () {
     for (const atomIndex of this.atomIndices) 
       yield this.topology.getAtomByIndex(atomIndex);
+  }
+
+  get atoms () {
+    return [...this.iteratoms()]
   }
 
 };
@@ -526,7 +553,7 @@ export class Topology {
     );
     // Get chain sequences by adding all residue letters together for each chain
     this.sequences = this.chainResidueIndices.map(residueIndices => 
-      residueIndices.map(residueIndex => getResidueTypeLetter(this.residueNames[residueIndex])).join('')
+      residueIndices.map(residueIndex => this.getResidueByIndex(residueIndex).letter).join('')
     );
     // Save metadata chain names
     // They are not letters ('A', 'B', etc.) but actual names ('Spike', 'Glycans', etc.)
@@ -698,9 +725,9 @@ export class Topology {
   };
 
   // Get all atom colors according to their elements
-  getAtomElementColors = () => {
+  getAtomELEMENT_COLORS = () => {
     return this.atomElements.map(element => {
-      const color = elementColors[element];
+      const color = ELEMENT_COLORS[element];
       if (!color) return 'black';
       return color;
     });
