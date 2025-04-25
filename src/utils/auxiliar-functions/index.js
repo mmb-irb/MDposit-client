@@ -12,6 +12,9 @@ export const caluclateAverage = values => {
 // Round a number to its neares cent
 export const round2cents = number => Math.round(number * 100) / 100;
 
+// Count the number of specific elements in an array
+export const countElement = (array, target) => array.reduce((total, value) => value == target ? total + 1: total, 0);
+
 // Create palettes of random spaced colors
 export const createPalette = colorCount => {
     const colors = [];
