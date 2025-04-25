@@ -79,7 +79,6 @@ const tabs = [
           'pockets',
           'populations',
           'markov', 
-          'density'
         ],
       },
     ],

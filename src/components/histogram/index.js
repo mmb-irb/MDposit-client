@@ -27,8 +27,21 @@ const margin = {
   bottom: 60,
 };
 
+// Convert number to superscript 
+function formatExponent(exp) {
+  const superscripts = {
+    '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
+    '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹',
+    '-': '⁻'
+  };
+
+  return exp.toString().split('')
+    .map(char => superscripts[char] || char)
+    .join('');
+}
+
 // Set the size of the axis numbers
-const axisNumbersFontSize = "16px";
+const axisNumbersFontSize = "15px";
 const axisLabelsFontSize = "24px";
 
 const Histogram = forwardRef(({
@@ -41,6 +54,9 @@ const Histogram = forwardRef(({
   color = '#69b3a2',
   // Set the onHover function
   onHover,
+  binMethod = 'log', // log, sturges, root, manual
+  // Manually set number of bins (optional)
+  binCount = 10,
   // Force a classname for the overall component element
   className,
 }, ref) => {
@@ -97,60 +113,150 @@ const Histogram = forwardRef(({
 
     // Set a function to update data changes
     updateDataRef.current = ({ data }) => {
+      if (!data || Object.keys(data).length === 0) return;
 
-      // Create exponential series of ranges of values
-      // Add to each range the sum of value counts within that range
-      const scaleCounts = {};
-      Object.entries(data).forEach(([value, count]) => {
-        const valueScale = value.toString().length - 1;
-        if (scaleCounts[valueScale]) scaleCounts[valueScale] += count;
-        else scaleCounts[valueScale] = count;
-      });
+      // If using automatic logarithmic binning (current approach)
+      if (binMethod === 'log') {
+        // Create exponential series of ranges of values
+        // Add to each range the sum of value counts within that range
+        const scaleCounts = {};
+        Object.entries(data).forEach(([value, count]) => {
+          const valueScale = value.toString().length - 1;
+          if (scaleCounts[valueScale]) scaleCounts[valueScale] += count;
+          else scaleCounts[valueScale] = count;
+        });
 
-      // Get minimum and maximum scales
-      const minScale = Object.keys(scaleCounts).reduce((cv, nv) => {
-        return Math.min(cv, nv);
-      }, Infinity);
-      const maxScale = Object.keys(scaleCounts).reduce((cv, nv) => {
-        return Math.max(cv, nv);
-      }, -Infinity);
-      // Create the xTicks to be used as x range as well
-      // Note that we add 1 to the last scale, so we can plot a histogram bar between the actual last scale and the next
-      const xTicks = [];
-      for (let scale = minScale; scale <= maxScale + 1; scale++) {
-        xTicks.push(10**scale);
-      }
-      // Set data as it is about to be passed to d3
-      const columnsData = Object.values(scaleCounts).map((count, i) => {
-        return { x0: xTicks[i], x1: xTicks[i+1], length: count }
-      });
+        // Get minimum and maximum scales
+        const minScale = Object.keys(scaleCounts).reduce((cv, nv) => {
+          return Math.min(cv, nv);
+        }, Infinity);
+        const maxScale = Object.keys(scaleCounts).reduce((cv, nv) => {
+          return Math.max(cv, nv);
+        }, -Infinity);
+        // Create the xTicks to be used as x range as well
+        // Note that we add 1 to the last scale, so we can plot a histogram bar between the actual last scale and the next
+        const xTicks = [];
+        for (let scale = minScale; scale <= maxScale + 1; scale++) {
+          xTicks.push(10 ** scale);
+        }
+        // Set data as it is about to be passed to d3
+        const columnsData = Object.values(scaleCounts).map((count, i) => {
+          return { x0: xTicks[i], x1: xTicks[i + 1], length: count }
+        });
 
-      // Find the maximum count among scaleCounts
-      const maxCount = Object.values(scaleCounts).reduce((cv, nv) => {
-        return Math.max(cv, nv);
-      }, -Infinity);
+        // Find the maximum count among scaleCounts
+        const maxCount = Object.values(scaleCounts).reduce((cv, nv) => {
+          return Math.max(cv, nv);
+        }, -Infinity);
 
-      // Set axes
-      x.domain([xTicks[0], xTicks[xTicks.length - 1]]);
-      y.domain([0, maxCount]);
+        // Set axes
+        x.domain([xTicks[0], xTicks[xTicks.length - 1]]);
+        y.domain([0, maxCount]);
 
-      // Load new data in columns
-      const newColumnsData = graph.selectAll("rect").data(columnsData);
+        // Load new data in columns
+        const newColumnsData = graph.selectAll("rect").data(columnsData);
 
-      // Remove columns which are no longer necessary
-      newColumnsData.exit().remove();
+        // Remove columns which are no longer necessary
+        newColumnsData.exit().remove();
 
-      // Add new columns which are now necessary according to new data
-      newColumnsData.enter().append('rect');
+        // Add new columns which are now necessary according to new data
+        newColumnsData.enter().append('rect');
 
-      // Edit the final columns now that we have added and removed some
-      graph.selectAll("rect")
-        .attr("fill", color)
-        .append("svg:title")
+        // Edit the final columns now that we have added and removed some
+        graph.selectAll("rect")
+          .attr("fill", color)
+          .append("svg:title")
           .text(onHover);
 
-      // Force a redraw
-      updateSizeRef.current();
+        // Force a redraw
+        updateSizeRef.current();
+      }
+      else {
+        if (binMethod === 'sturges' || binMethod === 'root') {
+          const totalDataPoints = Object.values(data).reduce((cv, nv) => {
+            return cv + nv;
+          }, 0);
+          if (binMethod === 'sturges') {
+            binCount = Math.ceil(Math.log2(totalDataPoints) + 1);
+          }
+          else if (binMethod === 'root') {
+            binCount = Math.ceil(Math.sqrt(totalDataPoints));
+          }
+        }
+
+        // Manual bin count approach with equal width bins on log scale
+        // Find min and max values from data
+        const values = Object.keys(data).map(Number);
+        const minValue = Math.min(...values);
+        const maxValue = Math.max(...values);
+
+        // For equal bins in log scale, calculate bin edges using exponential distribution
+        const logMinValue = Math.log10(minValue > 0 ? minValue : 0.1); // Handle zero/negative values
+        const logMaxValue = Math.log10(maxValue);
+        const logRange = logMaxValue - logMinValue;
+        const logBinWidth = logRange / binCount;
+
+        // Create bins
+        const bins = {};
+        for (let i = 0; i < binCount; i++) {
+          bins[i] = 0;
+        }
+
+        // Create xTicks for bin edges in log space
+        const xTicks = [];
+        for (let i = 0; i <= binCount; i++) {
+          xTicks.push(Math.pow(10, logMinValue + i * logBinWidth));
+        }
+
+        // Distribute data into bins
+        Object.entries(data).forEach(([value, count]) => {
+          const numValue = Number(value);
+          if (numValue <= 0) return; // Skip non-positive values in log scale
+
+          // Find appropriate bin for this value
+          let binIndex = binCount - 1; // Default to last bin
+          for (let i = 0; i < binCount; i++) {
+            if (numValue >= xTicks[i] && numValue < xTicks[i + 1]) {
+              binIndex = i;
+              break;
+            }
+          }
+          // Special case for max value
+          if (numValue === maxValue) binIndex = binCount - 1;
+
+          bins[binIndex] += count;
+        });
+
+        // Set data for d3
+        const columnsData = Object.values(bins).map((count, i) => {
+          return { x0: xTicks[i], x1: xTicks[i + 1], length: count };
+        });
+
+        // Find the maximum count
+        const maxCount = Math.max(...Object.values(bins));
+
+        // Set axes
+        x.domain([xTicks[0], xTicks[xTicks.length - 1]]);
+        y.domain([0, maxCount]);
+
+        // Load new data in columns
+        const newColumnsData = graph.selectAll("rect").data(columnsData);
+
+        // Remove columns which are no longer necessary
+        newColumnsData.exit().remove();
+
+        // Add new columns which are now necessary according to new data
+        newColumnsData.enter().append('rect');
+
+        // Edit the final columns now that we have added and removed some
+        graph.selectAll("rect")
+          .attr("fill", color)
+          .append("svg:title")
+          .text(onHover);
+
+        // Force a redraw
+        updateSizeRef.current();
+      }
     }
 
     // Set a function to update columns color
@@ -177,7 +283,20 @@ const Histogram = forwardRef(({
       // Set axis positions
       x.range([margin.left, margin.left + actualWidth]);
       xAxis.attr("transform", "translate(0," + (margin.top + actualHeight) + ")")
-        .call(axisBottom(x).ticks(columnsCount))
+        .call(axisBottom(x)
+          .ticks(columnsCount)
+          .tickFormat(d => {
+            // Convert to superscript exponent notation
+            if (d === 0) return '0';
+            const exp = Math.log10(d);
+            if (Number.isInteger(exp)) {
+              if (exp === 0) return '1';
+              if (exp === 1) return '10';
+              return `10${formatExponent(exp)}`;
+            }
+            return '';
+          })
+        )
         .style("font-size", axisNumbersFontSize);
       y.range([margin.top + actualHeight, margin.top]);
       yAxis.attr("transform", "translate(" + margin.left + ", 0)").call(axisLeft(y))
@@ -193,7 +312,7 @@ const Histogram = forwardRef(({
       columns
         //.attr("x", 1)
         .attr("transform", d => "translate(" + x(d.x0) + "," + y(d.length) + ")")
-        .attr("width", d => x(d.x1) - x(d.x0) -1)
+        .attr("width", d => x(d.x1) - x(d.x0) - 1)
         .attr("height", d => height - margin.bottom - y(d.length))
     };
 
@@ -209,27 +328,27 @@ const Histogram = forwardRef(({
 
   // Handle when data changes
   useEffect(() => {
-    updateDataRef.current({data});
+    updateDataRef.current({ data });
   }, [data]);
 
   // Handle when x axis label text changes
   useEffect(() => {
-    updateXAxisLabelText.current({xAxisLabelText});
+    updateXAxisLabelText.current({ xAxisLabelText });
   }, [xAxisLabelText]);
 
   // Handle when y axis label text changes
   useEffect(() => {
-    updateYAxisLabelText.current({yAxisLabelText});
+    updateYAxisLabelText.current({ yAxisLabelText });
   }, [yAxisLabelText]);
 
   // Handle when color changes
   useEffect(() => {
-    updateColor.current({color});
+    updateColor.current({ color });
   }, [color]);
 
   // Handle when onHover changes
   useEffect(() => {
-    updateOnHover.current({onHover});
+    updateOnHover.current({ onHover });
   }, [onHover]);
 
   return (

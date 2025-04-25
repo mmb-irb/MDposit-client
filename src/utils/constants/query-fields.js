@@ -317,6 +317,13 @@ export default {
             "example": "protein-protein",
             "options": true,
             "checkbox" : true
+        },
+        {
+            "name": "Number of MDs",
+            "path": "mdcount",
+            "type": "int",
+            "example": "any integer number",
+            "options": false
         }
     ]
 };

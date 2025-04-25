@@ -127,11 +127,11 @@ const LipidInteractions = () => {
     const customScheme = getSchemeForLipid(selectedLipid);
     defaultRepresentations.forEach(rep => {
 
-        if (chains.indexOf(rep.selection.slice(1,2)) !== -1) {
+        if (chains.indexOf(rep.selection.slice(1,2)) !== -1 || rep.name === 'Protein') { 
             rep.color = 'custom';
             rep.type = 'spacefill';
             rep.customScheme = customScheme;
-        } else if (rep.name === 'Membrane') {
+        } else if (rep.name === 'Membrane' || rep.name === 'M') {
             rep.color = 'orange';
             rep.opacity = 0.0;
         }

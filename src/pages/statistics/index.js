@@ -15,13 +15,21 @@ import { createPalette } from '../../utils/auxiliar-functions';
 import useAPI from '../../hooks/use-api';
 
 import style from './style.module.css';
+import { useTheme } from '@mui/material/styles';
 
 import { PieChart } from 'react-minimal-pie-chart';
 import SimpleLegend from '../../components/simple-legend';
 import Histogram from '../../components/histogram';
+import TimelineChart from './timeline';
 
 // Current data summary
 export default () => {
+
+    // Get the provided theme
+    const theme = useTheme();
+    const primaryColor = theme.palette.primary.main;
+    const secondaryColor = theme.palette.secondary.dark;
+    
     // Use the API to get the summary
     const summaryUrl = `${BASE_PATH_PROJECTS}/summary`;
     const { payload: summaryPayload, error: summaryError } = useAPI(summaryUrl);
@@ -29,6 +37,10 @@ export default () => {
     // Use the API to get the options
     const optionsUrl = `${BASE_PATH_PROJECTS}/options?projection=${HOST_CONFIG.optionsField}`;
     const { payload: optionsPayload, error: optionsError } = useAPI(optionsUrl);
+    
+    // Use the API to get the project growth data
+    const growthUrl = `${BASE_PATH_PROJECTS}/summary/growth`;
+    const { payload: growthPayload, error: growthError } = useAPI(growthUrl);
   
     // Prepare data for the options pie chart
     const { optionsPieChartData, optionsLegendData } = useMemo(() => {
@@ -123,7 +135,7 @@ export default () => {
   
     // Handle possible errors by just showing a log error in the console
     // Thus we allow the rest of the page to keep loading
-    [summaryError, optionsError, methodsError, snapshotsError, oldSnapshotsError, atomsError, nodesError].forEach(error => {
+    [summaryError, optionsError, methodsError, snapshotsError, oldSnapshotsError, atomsError, nodesError, growthError].forEach(error => {
         if (error) console.error(error.message);
     });
 
@@ -136,10 +148,10 @@ export default () => {
         </>}
         <Typography key={0} variant="h6">Data summary</Typography>
         Total number of projects:{' '}
-        {summaryPayload ? summaryPayload.projectsCount : 'Loading...'}
+        {summaryPayload ? summaryPayload.projectsCount.toLocaleString() : 'Loading...'}
         <br />
         Total number of MDs:{' '}
-        {summaryPayload ? summaryPayload.mdCount : 'Loading...'}
+        {summaryPayload ? summaryPayload.mdCount.toLocaleString() : 'Loading...'}
         <br />
         {/*
             DANI: Funciona. Solo lo he quitado temporalmente por un tema "político"
@@ -148,14 +160,16 @@ export default () => {
             <br />
         */}
         Total amount of MD frames:{' '}
-        {summaryPayload ? summaryPayload.totalFrames : 'Loading...'}
+        {summaryPayload ? summaryPayload.totalFrames.toLocaleString() : 'Loading...'}
         <br />
         Total number of stored files:{' '}
-        {summaryPayload ? summaryPayload.totalFiles : 'Loading...'}
+        {summaryPayload ? summaryPayload.totalFiles.toLocaleString() : 'Loading...'}
         <br />
         Total number of stored analyses:{' '}
-        {summaryPayload ? summaryPayload.totalAnalyses : 'Loading...'}
+        {summaryPayload ? summaryPayload.totalAnalyses.toLocaleString() : 'Loading...'}
         <br />
+        Total size of the uncompressed data:{' '} 
+        {summaryPayload ? `${summaryPayload.storageStats.dataSizeInTB} (TB)` : 'Loading...'}
         <br />
         {HOST_CONFIG.optionsField && <>
             <Typography variant="h6">{`Projects per ${HOST_CONFIG.optionsLabel}`}</Typography>
@@ -190,7 +204,9 @@ export default () => {
                     data={frameCounts}
                     xAxisLabelText={'Number of snapshots'}
                     yAxisLabelText={'Number of MDs'}
-                    onHover={d => `There are ${d.length} MDs with a number of snapshots between ${d.x0} and ${d.x1}`}
+                    color={primaryColor}
+                    binMethod={'sturges'}
+                    onHover={d => `There are ${d.length} MDs with a number of snapshots between ${Math.floor(d.x0)} and ${Math.floor(d.x1)}`}
                 />
             </div>
             <div className={style.half}>
@@ -199,10 +215,22 @@ export default () => {
                     data={atomsPayload && atomsPayload["metadata.SYSTATS"]}
                     xAxisLabelText={'Number of atoms'}
                     yAxisLabelText={'Number of projects'}
-                    color={"#ffcc00"}
-                    onHover={d => `There are ${d.length} MDs with a number of atoms between ${d.x0} and ${d.x1}`}
+                    color={secondaryColor}
+                    binMethod={'sturges'}
+                    onHover={d => `There are ${d.length} MDs with a number of atoms between ${Math.floor(d.x0)} and ${Math.floor(d.x1)}`}
                 />
             </div>
+        </div>
+        <Typography variant="h6">Projects and MDs Growth Over Time</Typography>
+        <div className={style.timelineChart}>
+            {growthPayload ? (
+                <TimelineChart 
+                    data={growthPayload} 
+                    className={style.growthChart}
+                />
+            ) : (
+                'Loading growth data...'
+            )}
         </div>
     </>);
 };
