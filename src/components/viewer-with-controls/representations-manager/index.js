@@ -161,7 +161,7 @@ const RepresentationsManager = memo(
           </TableHead>
           <TableBody>
             {representations && representations.map((representation, index) => (
-              <TableRow key={index}>
+              <TableRow key={representation.reference || index}>
                 {/* Name */}
                 <TableCell component="th" scope="row">
                   {representation.name}
@@ -186,7 +186,7 @@ const RepresentationsManager = memo(
                 {/* Selection */}
                 <TableCell align="right">
                   <TextField
-                    value={representation.selection}
+                    defaultValue={representation.selection}
                     variant="outlined"
                     onKeyPress={event => {
                       if (event.key !== 'Enter') return;
