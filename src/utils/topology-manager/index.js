@@ -1,9 +1,9 @@
-import { range } from 'lodash-es';
 import {
   RESIDUE_NAME_LETTERS,
   PROTEIN_RESIDUE_NAME_LETTERS,
   DNA_RESIDUE_NAME_LETTERS,
   RNA_RESIDUE_NAME_LETTERS,
+  NUCLEIC_RESIDUE_NAME_LETTERS,
   FATTY_RESIDUE_NAMES,
   STEROID_RESIDUE_NAMES,
   STANDARD_SOLVENT_RESIDUE_NAMES,
@@ -238,16 +238,13 @@ class Residue {
     return selection;
   }
   // Residue name
-  get type () {
-    return this.topology.residueNames[this.index];
-  }
   get name () {
-    return this.type;
+    return this.topology.residueNames[this.index];
   }
   // Residue standard letter (e.g. ARG -> R)
   get letter () {
-    if (!this.type) return;
-    const letter = RESIDUE_NAME_LETTERS[this.type];
+    if (!this.name) return;
+    const letter = RESIDUE_NAME_LETTERS[this.name];
     if (letter) return letter;
     return 'X';
   }
@@ -286,7 +283,7 @@ class Residue {
     // ----- Solvent -----------------------------------------------
     // Solvent is water molecules
     // First rely on the residue name
-    if (this.type in STANDARD_SOLVENT_RESIDUE_NAMES) {
+    if (this.name in STANDARD_SOLVENT_RESIDUE_NAMES) {
       this._classification = 'solvent'
       return this._classification
     }
@@ -305,11 +302,11 @@ class Residue {
     // Protein definition according to vmd:
     // a residue with atoms named C, N, CA, and O
     // In our case we accept OC1 and OC2 or OT1 and OT2 instead of O for terminal residues
-    const atomNames = new Set(this.atoms.map(atom => atom.type));
-    if (['C', 'N', 'CA'].every(element => atomNames.includes(element)) && (
-      'O' in atomNames ||
-      ['OC1', 'OC2'].every(element => atomNames.includes(element)) ||
-      ['OT1', 'OT2'].every(element => atomNames.includes(element))
+    const atomNames = new Set(this.atoms.map(atom => atom.name));
+    if (['C', 'N', 'CA'].every(name => atomNames.has(name)) && (
+      atomNames.has('O') ||
+      ['OC1', 'OC2'].every(name => atomNames.has(name)) ||
+      ['OT1', 'OT2'].every(name => atomNames.has(name))
     )) {
       this._classification = 'protein'
       return this._classification
@@ -318,11 +315,11 @@ class Residue {
     // Nucleic acids definition according to vmd:
     // a residue with atoms named P, O1P, O2P and either O3’, C3’, C4’, C5’, O5’ or O3*, C3*, C4*, C5*, O5*
     // Apparently it has been fixed so now a residue does not need to be phosphorylated to be considered nucleic
-    if (["O3'", "C3'", "C4'", "C5'", "O5'"].every(element => atomNames.includes(element))
-    || ["O3*", "C3*", "C4*", "C5*", "O5*"].every(element => atomNames.includes(element))) {
+    if (["O3'", "C3'", "C4'", "C5'", "O5'"].every(name => atomNames.has(name))
+    || ["O3*", "C3*", "C4*", "C5*", "O5*"].every(name => atomNames.has(name))) {
       // At this point we know it is nucleic
       // We must tell the difference between DNA and RNA
-      if (atomNames.includes("O2'") || atomNames.includes("O2*")) this._classification = 'rna'
+      if (atomNames.has("O2'") || atomNames.has("O2*")) this._classification = 'rna'
       else this._classification = 'dna'
       return this._classification
     }
@@ -333,22 +330,23 @@ class Residue {
       return this._classification
     }
     // ----- Others -----------------------------------------------
-    // If the residue does not fall in any of the previous conditions then we do not know what it is
-    return 'unknown'
+    // If the residue does not fall in any of the previous conditions then try it with the residue name
+    this._classification = this.classificationByName;
+    return this._classification;
   }
   // Set an alternative function to "try" to classify the residues according only to its name
   // This is useful for corase grain residues whose atoms may not reflect the real atoms
   // WARNING: This logic is very limited and may return "unknown"
   // WARNING: This logic relies in atom names, which may be not standard
   get classificationByName () {
-    if (this.type in PROTEIN_RESIDUE_NAME_LETTERS) return 'protein';
-    if (this.type in DNA_RESIDUE_NAME_LETTERS) return 'dna';
-    if (this.type in RNA_RESIDUE_NAME_LETTERS) return 'rna';
-    if (this.type in NUCLEIC_RESIDUE_NAME_LETTERS) return 'nucleic';
-    if (this.type in FATTY_RESIDUE_NAMES) return 'fatty';
-    if (this.type in STEROID_RESIDUE_NAMES) return 'steroid';
-    if (this.type in STANDARD_COUNTER_ION_ATOM_NAMES) return 'ion';
-    if (this.type in STANDARD_SOLVENT_RESIDUE_NAMES) return 'solvent';
+    if (this.name in PROTEIN_RESIDUE_NAME_LETTERS) return 'protein';
+    if (this.name in DNA_RESIDUE_NAME_LETTERS) return 'dna';
+    if (this.name in RNA_RESIDUE_NAME_LETTERS) return 'rna';
+    if (this.name in NUCLEIC_RESIDUE_NAME_LETTERS) return 'nucleic';
+    if (FATTY_RESIDUE_NAMES.has(this.name)) return 'fatty';
+    if (STEROID_RESIDUE_NAMES.has(this.name)) return 'steroid';
+    if (STANDARD_COUNTER_ION_ATOM_NAMES.has(this.name)) return 'ion';
+    if (STANDARD_SOLVENT_RESIDUE_NAMES.has(this.name)) return 'solvent';
     // If we do not know what it is
     return 'unknown'
   }
@@ -427,7 +425,7 @@ class Residue {
     let labelIcode = this.icode;
     if (!labelIcode) labelIcode = '';
     // Get the residue name
-    const labelType = `(${this.type})`;
+    const labelType = `(${this.name})`;
     // Finally return the label
     return labelChain + labelNumber + labelIcode + labelType;
   }
@@ -447,12 +445,12 @@ class Residue {
   }
   // Iterate residue atoms
   * iteratoms () {
-    for (const atomIndex of this.atomIndices) 
-      yield this.topology.getAtomByIndex(atomIndex);
+    for (const atomIndex of this.atomIndices)
+      yield new Atom(this.topology, atomIndex);
   }
-
+  // Get all atoms already parsed
   get atoms () {
-    return [...this.iteratoms()]
+    return [...this.iteratoms()];
   }
 
 };
