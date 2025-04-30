@@ -1,5 +1,5 @@
 // Get the use memo hook
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 // Function to request data through the API
 import useAPI from '../../hooks/use-api';
 // Constants
@@ -9,8 +9,10 @@ import {
     REFERENCES_WITH_ENTROPIES,
     REFERENCES_WITH_EPITOPES
 } from '../constants';
-// Load the topology manager class
+// Import the topology manager class
 import { Topology } from '../../utils/topology-manager';
+// Import the NGL structure parser
+import { autoLoad } from 'ngl';
 
 // Set the project class
 export class Project {
@@ -208,11 +210,39 @@ export class Project {
     // However we do it from here since this data is to be reused along different pages
     // Thus we avoid having to download the same data every time
     get structureData () {
+        // Ask the API for the structural data
         const response = this._apiQuery('structure');
+        // Parse and memoize the result
+        const structureData = useMemo(() => {
+            if (!response.payload) return undefined;
+            return new Blob( [ response.payload ], { type: 'text/plain'} );
+        }, [response.payload]);
+        // Wait for the response and handle some possible errors
         if (response.loading) return undefined;
         if (response.error) throw new Error('Error when downloading project structure: ' + response.error.message);
         if (!response.payload) throw new Error('Something went wrong with project structure');
-        return new Blob( [ response.payload ], { type: 'text/plain'} );
+        return structureData
+    }
+
+    // Get the main structure data parsed by NGL
+    get nglStructure () {
+        // Set a state to store the already parsed data
+        const [ nglStructure, setNglStructure ] = useState(undefined);
+        // Get the current structure data
+        const structureData = this.structureData;
+        // Load the structure data in NGL asynchronously    
+        useEffect(() => {
+            if (!structureData) return;
+            autoLoad(structureData, { defaultRepresentation: false, ext: "pdb" })
+                // Once the parse has been completed update the parsed structure state
+                .then(prasedStructure => { setNglStructure({ file: prasedStructure }) })
+                // If there is any problem then log it to the console
+                .catch(error => {
+                    console.error(error);
+                    setNglStructure({ error });
+                });
+        }, [structureData])
+        return nglStructure;
     }
 }
   

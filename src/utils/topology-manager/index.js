@@ -12,149 +12,12 @@ import {
   DUMMY_ATOM_ELEMENT,
   CG_ATOM_ELEMENT
 } from './residues-library';
-import { countElement } from 'src/utils/auxiliar-functions';
-const ngl = require('ngl');
+import { countElement, parsedSelectionRanger } from 'src/utils/auxiliar-functions';
 
 // Topology manager
 // Many functions to handle atom/residue/chain numeration conversions and more
 // All these functions which need the topology are able to read the context topology
 // However, it may be better to pass them the topology as an argument since the context may be null
-
-// There are 4 different residue numeration types in the client:
-// - Residue indices: From 0 to 'n'
-//   Used in some internal managments
-// - Residue numbers: Source numbers in the original topology file
-//   Residue numbers may be repeated, have gaps or do not start at 0 or 1. May include icodes.
-// - Residue reference numbers (protein residues only): The number according to uniprot reference sequence
-//   Reference numbers are displayed in the viewer or analysis results when available
-
-// This function transforms a range selection string into a numeric array
-// It handles abbreviated selection syntax to literal selection syntax
-// e.g. "1, 3, 5-8" => [1, 3, 5, 6, 7, 8]
-const rangedSyntax = /^([0-9]*)-([0-9]*)$/;
-export const rangedSelectionParser = selection => {
-  // Filter data
-  const units = selection.split(', ');
-  const parsedSelection = [];
-  for (const u of units) {
-    // If the ranged syntax is found, get all numbers in between
-    if (u.match(rangedSyntax)) {
-      const matches = rangedSyntax.exec(u);
-      const rangedUnits = range(+matches[1], +matches[2] + 1);
-      parsedSelection.push(...rangedUnits);
-    } else parsedSelection.push(+u);
-  }
-  return parsedSelection;
-};
-
-// Do the opposite that the previous function
-// e.g. [1, 3, 5, 6, 7, 8] => "1, 3, 5-8"
-// In addition track the minimum serie length
-// Return 'small' = true when there are series of 3 residues or less
-// These small residue selections will be not represented in cartoon due to an NGL bug
-// https://github.com/nglviewer/ngl/issues/223
-export const parsedSelectionRanger = (selection, addWhiteSpaces = true) => {
-  const separator = addWhiteSpaces ? ', ' : ',';
-  let rangedSelection = '';
-  let minimumSerieLength = Number.POSITIVE_INFINITY;
-  selection.sort((a, b) => a - b); // Sort numbers numerically
-  const selectionLength = selection.length;
-  // When the selection is a single value
-  if (selectionLength === 1) {
-    return { rangedSelection: selection[0].toString(), small: true };
-  }
-  for (let i = 0; i < selectionLength; i++) {
-    const num = selection[i];
-    rangedSelection += separator + num;
-    for (let j = i + 1; j < selectionLength; j++) {
-      const nextNum = selection[j];
-      let length = j - i; // The serie length
-      if (nextNum - num !== length) {
-        // End of the serie
-        // The length here is the length which broke the serie
-        // i.e. if the length here is 2 the actual serie length is 1
-        length -= 1;
-        minimumSerieLength = Math.min(length, minimumSerieLength);
-        // If the length of the serie is <= 1 then no worth making a range here
-        if (length > 1) {
-          const prevNum = selection[j - 1];
-          rangedSelection += '-' + prevNum;
-          i = j - 1;
-        }
-        break;
-      }
-      if (j === selectionLength - 1) {
-        // End of the selection
-        minimumSerieLength = Math.min(length, minimumSerieLength);
-        if (length > 1) {
-          rangedSelection += '-' + nextNum;
-          i = j;
-        }
-      }
-    }
-  }
-  const small = minimumSerieLength <= 3;
-  rangedSelection = rangedSelection.substring(separator.length); // Remove the first separator
-  return { rangedSelection, small };
-};
-
-// Harvest from a '[residue_type]residue:chain' string the chain letter and the residue number values
-const nglFormat = /^\[[0-9a-zA-Z_]*\]([0-9]*)([A-Z]?):([A-Z])$/;
-export const nglNumerationParser = numeration => {
-  const result = nglFormat.exec(numeration);
-  if (!result) throw new Error('No matched NGL numeration value: ' + numeration);
-  const chain = result[3];
-  const residue = result[1];
-  const icode = result[2] || ''; // DANI: El icode es de mi huerto. Falta chequear
-  // Formated selection to select this specific residue in NGL
-  const nglSelection = ':' + chain + ' and ' + residue;
-  // Complex numeration
-  const complex = chain + ':' + residue + icode;
-  return { chain, residue: +residue, icode, nglSelection, complex };
-};
-
-// Check if an NGL residues is cartoon supported or not
-// e.g. check if it is recognized by NGL as a protein, RNA or DNA residue
-export const isCartoonSupported = nglResidue => {
-  return nglResidue.isProtein() || nglResidue.isRna() || nglResidue.isDna();
-};
-
-// Convert a ngl selection string into an array of residue indices
-// If the 'onlyCartoonSupported' parameter is passed then it will return only cartoon supported residues
-export const nglSelection2residueIndices = (
-  nglSelection,
-  onlyCartoonSupported = false,
-  viewerTopology,
-) => {
-  const residueIndices = [];
-  // Save the selection in ngl format (structureComponent)
-  const selection = new ngl.Selection(nglSelection);
-  // Save the data from structure which corresponds to the selection atoms
-  const view = viewerTopology.getView(selection);
-  if (onlyCartoonSupported) {
-    view.eachResidue(residue => {
-      if (isCartoonSupported(residue)) residueIndices.push(residue.index);
-    });
-  } else {
-    view.eachResidue(residue => {
-      residueIndices.push(residue.index);
-    });
-  }
-  return residueIndices;
-};
-
-// Check if a NGL selection contains any atom
-export const nglSelectionExists = (
-  nglSelection,
-  viewerTopology,
-) => {
-  // Save the selection in ngl format (structureComponent)
-  const selection = new ngl.Selection(nglSelection);
-  // Save the data from structure which corresponds to the selection atoms
-  const view = viewerTopology.getView(selection);
-  if (view.atomCount === 0) return false;
-  return true;
-};
 
 // Set the element colors for displaying
 const ELEMENT_COLORS = {
@@ -452,7 +315,6 @@ class Residue {
   get atoms () {
     return [...this.iteratoms()];
   }
-
 };
 
 // Set a chain handler
@@ -486,13 +348,18 @@ class Chain {
   get residueNumbers () {
     return this.topology.chainResidueNumbers[this.index];
   }
-  // Get residue handlers
-  get residues () {
-    return this.residueIndices.map(residueIndex => new Residue(residueIndex));
-  }
   // Get the residue sequence
   get sequence () {
     return this.sequences[this.index];
+  }
+  // Iterate chain residues
+  * iterresidues () {
+    for (const residueIndex of this.residueIndices)
+      yield new Residue(this.topology, residueIndex);
+  }
+  // Get all residues already parsed
+  get residues () {
+    return [...this.iterresidues()];
   }
 }
 
@@ -593,6 +460,10 @@ export class Topology {
     return this.residueNumbers.length;
   }
 
+  get chainCount () {
+    return this.chainNames.length;
+  }
+
   // --------------------------------------------------------------------
   // Atom getters
   // --------------------------------------------------------------------
@@ -658,6 +529,28 @@ export class Topology {
     if (chainIndex === -1)
       throw new Error(`Chain ${chainName} is not found in the topology`);
     return new Chain(this, chainIndex);
+  }
+
+  // --------------------------------------------------------------------
+  // ITERATORS
+  // --------------------------------------------------------------------
+
+  // Iterate topology atoms
+  * iteratoms () {
+    for (let atomIndex = 0; atomIndex < this.atomCount; atomIndex++) 
+      yield new Atom(this, atomIndex);
+  }
+
+  // Iterate topology residues
+  * iterresidues () {
+    for (let residueIndex = 0; residueIndex < this.residueCount; residueIndex++) 
+      yield new Residue(this, residueIndex);
+  }
+
+  // Iterate topology chains
+  * iterchains () {
+    for (let chainIndex = 0; chainIndex < this.chainCount; chainIndex++) 
+      yield new Chain(this, chainIndex);
   }
 
   // --------------------------------------------------------------------

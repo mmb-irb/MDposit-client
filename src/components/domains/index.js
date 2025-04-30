@@ -19,7 +19,7 @@ import style from './style.module.css';
 
 import Loading from '../loading';
 
-import { rangedSelectionParser } from '../../utils/topology-manager';
+import { rangedSelectionParser } from '../../utils/auxiliar-functions';
 
 // Show floatting bubles with domain names
 // When a bubble is selected the domain is represented
@@ -141,7 +141,7 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
           const { rangedSelection: nglSelection, small } = topology.residueIndices2Ngl(mappedSelection);
           const newRepresentation = { ...representation };
           newRepresentation.selection = nglSelection;
-          // parsedSelectionRanger returns 'small' = true when there are series of 3 residues or less
+          // residueIndices2Ngl returns 'small' = true when there are series of 3 residues or less
           // These small residue selections will be not represented in cartoon due to an NGL bug
           // https://github.com/nglviewer/ngl/issues/223
           if (small) newRepresentation.type = 'licorice';
