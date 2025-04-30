@@ -53,7 +53,6 @@ const LipidOrder = () => {
   const [representations, setRepresentations] = useState(null);
   const [flipY, setFlipY] = useState(false);
   const [showStdDev, setShowStdDev] = useState(true);
-  const lipidResname = useRef(null);
 
   // Get available lipid types for tabs
   const lipidTypes = useMemo(() => {
@@ -73,11 +72,10 @@ const LipidOrder = () => {
     
     const orderParams = {};
     const defaultDisplay = {};
-    lipidResname.current = memMapPayload.references[selectedLipid].resname;
 
     const chains = payload.data[selectedLipid];
     Object.entries(chains).forEach(([chainId, chainData]) => {
-      const name = `${lipidResname.current} tail ${parseInt(chainId) + 1}`;
+      const tailName = `${memMapPayload.references[selectedLipid].resname} tail ${parseInt(chainId) + 1}`;
       const dataset = {
         data: chainData.avg.map(v => flipY ? -v : v),
         areaStdDev: chainData.std,
@@ -87,10 +85,9 @@ const LipidOrder = () => {
       const { mean: average, stdv: stddev } = getMeanAndStdv(dataset.data);
       dataset.average = average;
       dataset.stddev = stddev;
-      orderParams[name] = dataset;
-      defaultDisplay[name] = true;
+      orderParams[tailName] = dataset;
+      defaultDisplay[tailName] = true;
     });
-
     setDisplay(defaultDisplay);
     return orderParams;
   }, [payload, selectedLipid, flipY, memMapPayload]);
@@ -104,22 +101,28 @@ const LipidOrder = () => {
     );
   }, [orderParameters, display]);
 
-  // Define representations when data changes
-  useEffect(() => {
+  const baseLipidRep = useMemo(() => {
     if (!display || !orderParameters || !memMapPayload) return;
-    const reps = [{
-      'name': lipidResname.current,
+    return {
+      'name': memMapPayload.references[selectedLipid].resname,
       'type': 'licorice',
       'color': 'orange',
       'opacity': 0.5,
       'selection': `( ${memMapPayload.references[selectedLipid].indices} )`,
-    }];
+      'reference': selectedLipid,
+      'show': true,
+    };
+  }, [selectedLipid, memMapPayload]);
 
+  // Define representations when data changes
+  useEffect(() => {
+    if (!display || !orderParameters || !memMapPayload) return;
+
+    const reps = [baseLipidRep];
     if (xSelected !== null) {
       // Iterate through orderParameters[selectedLipid] dictionary keys
-      Object.keys(orderParameters).forEach((tail, index) => {
-        console.log('tail'.tail)
-        const atomName = orderParameters[tail].labels[xSelected];
+      Object.keys(orderParameters).forEach((tailName, index) => {
+        const atomName = orderParameters[tailName].labels[xSelected];
         if (!atomName) return;
         reps.push({
           'name': `${atomName}`,
@@ -128,12 +131,14 @@ const LipidOrder = () => {
           'opacity': 0.9,
           'selection': `( ${memMapPayload.references[selectedLipid].indices} ) and .${atomName}`,
           'other': { radius: 0.3 },
-          'show': display[tail],
+          'show': display[tailName],
+          'reference': `${selectedLipid} ${index}`,
+
         });
       });
     }
     setRepresentations(reps);
-  }, [selectedLipid, xSelected, display]);
+  }, [baseLipidRep, selectedLipid, xSelected, display, orderParameters, memMapPayload]);
 
   // Create marks for graph highlighting
   const marks = useMemo(() => {

@@ -246,7 +246,7 @@ const Thickness = () => {
             }]
             return [...keepRepresentations, ...distRepr];
         });
-    }, [components, defaultRepresentations]);
+    }, [components, defaultRepresentations, thicknessPayload, memMapPayload, thicknessData]);
 
     // Update the the representations according to selected or hovered pockets
     useEffect(() => {
