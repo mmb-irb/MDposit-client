@@ -102,6 +102,17 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
     const referenceDomains = [];
     proteinReferences && proteinReferences.forEach(proteinReference => {
       const referenceId = proteinReference.uniprot;
+      // Start by creating a domain for the whole reference
+      const wholeReferenceResidueIndices = topology.getReferenceResidueIndices(referenceId);
+      const wholeReferenceNglSelection = topology.residueIndices2Ngl(wholeReferenceResidueIndices);
+      const wholeReferenceDomain = {
+        name: proteinReference.name,
+        representations: [{
+          name: proteinReference.name,
+          selection: wholeReferenceNglSelection.rangedSelection
+        }],
+      };
+      referenceDomains.push(wholeReferenceDomain);
       // Collect all domains in protein reference data
       let referenceDataDomains = [];
       // Domains in the 'domains' filed are automatically mined from uniprot
@@ -123,6 +134,7 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
         // Discard the domain if its name matches the reference name
         // This is quite usual: some references have domains which are basically the whole thing
         // There may be a difference in the pole residues, but it is redundant anyway
+        // Note that we already add a domain for the whole reference
         if (proteinReference.name === domainName) return;
         const mappedDomain = {
           name: proteinReference.name + ' - ' + domainName,
