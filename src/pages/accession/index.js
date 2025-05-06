@@ -1,5 +1,5 @@
 // React logic
-import React, { lazy, Suspense, useContext, useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useContext, useEffect, useState } from 'react';
 import { Link, Routes, Route, useLocation, useParams, useNavigate } from 'react-router-dom';
 
 // Visual assets
@@ -106,23 +106,9 @@ const SummarySwitch = ({ subPage }) => {
   );
 };
 
-// Set a function to see if project data matches the one requested
-const checkProjectDataUpdated = (projectData, requestedAccession, requestedMdNumber) => {
-  // Check accesions match
-  if (!projectData) return false;
-  if (projectData.accession !== requestedAccession && projectData.identifier !== requestedAccession) return false;
-  // If the project has not mds at all the we are good
-  if (!projectData.mdNumber) return true;
-  // Otherwise we must check MD numbers match
-  const requiredMdNumber = requestedMdNumber !== null ? requestedMdNumber : projectData.mdref + 1;
-  if (projectData.mdNumber !== requiredMdNumber) return false;
-  return true;
-};
-
 const Accession = () => {
   const theme = useTheme();
   const primaryDarkColor = theme.palette.primary.dark;
-
   // Get the location and the history
   const location = useLocation();
   const history = useNavigate();
@@ -131,50 +117,42 @@ const Accession = () => {
   const { accession: accessionAndMdNumber, page } = useParams();
   const accessionSplits = accessionAndMdNumber.split('.');
   const accession = accessionSplits[0];
-  const mdNumber = accessionSplits.length > 1 ? +accessionSplits[1] : null;
   // Set a state to store the current project data
   const [project, setProject] = useState(null);
-  // Set the current project data according to the requested accession
-  let updatedProjectData = false;
-  // Check the if the state project data matches the current accession
-  // If so, set the state project data as the current project data
-  updatedProjectData = checkProjectDataUpdated(project, accession, mdNumber);
-  // In case we are still missing the current project data, check if we have some project data in the location state
-  // This may happen when we come from the browser: the selected project data is passed through the state
-  // This way we do not have to query again for it
-  // If the state project data matches the current accession then set it as the current project data
-  if (!updatedProjectData) {
-    const stateProjectData = location.state && location.state.projectData;
-    if (checkProjectDataUpdated(stateProjectData, accession, mdNumber)) {
-      // Save the current project data as the state project data and stop here
-      const newProject = new Project(stateProjectData);
-      setProject(newProject);
-    }
-  }
-  // If current project data is still missing then query the API for it
-  // Note that useAPI cannot be called conditionally since it is a hook
-  // Thus setting the url as null is a workaround to not perform the query
-  const projectURL = updatedProjectData
-    ? null
-    : `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/`;
-  const projectQuery = useAPI(projectURL);
-  // Make some modifications to the project data once loaded
-  useMemo(() => {
-    if (!project) return;
-    // If accession is missing then set the identifier as the accession
-    if (!project.accession) project.accession = project.identifier;
-    // Order chain indices by alphabetic number when we have new project data
-    if (project.chains) project.chains.sort();
-  }, [project]);
+  // Set a state to store any error when downloading the project
+  const [projectError, setProjectError] = useState(null);
+  // Get project data using the API
+  const projectURL = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/`;
+  const {
+    loading: projectQueryLoading,
+    payload: projectQueryPayload,
+    error: projectQueryError
+  } = useAPI(projectURL);
   // As soon as we receive API data set the new project data
   useEffect(()=> {
-    if (!projectQuery || !projectQuery.payload) return;
+    // Wait if we are stil
+    if (projectQueryLoading) return;
+    // If there was some problem then return the message
+    if (projectQueryError) {
+      setProjectError(projectQueryError.toString());
+      return;
+    }
     // If the requested MD was rmeoved then return an error message
-    if (projectQuery.payload.removed) return 'The requested MD has been removed';
+    if (!projectQueryPayload) {
+      setProjectError('Something went wrong with project data');
+      return;
+    }
+    // If the requested MD was rmeoved then return an error message
+    if (projectQueryPayload.removed) {
+      setProjectError('The requested MD has been removed');
+      return;
+    }
     // Save the current project data as the state project data
-    const newProject = new Project(projectQuery.payload);
+    const newProject = new Project(projectQueryPayload);
     setProject(newProject);
-  }, [projectQuery.payload]);
+  }, [projectQueryLoading, projectQueryPayload, projectQueryError]);
+  // If there was any problem with the project then stop here and report ir
+  if (projectError) return projectError;
   // This may happen in the first renders
   if (!project) return <Loading />;
   // Set the footer line for the help tooltip
