@@ -33,31 +33,60 @@ const getSum = values => {
   return rounded;
 };
 
+// DANI: Note that here coexit the old and the new energies data format
+// DANI: Old energies contained all interactions data in a single place
+// DANI: New energies has an index in the main analysis and the results for every interaction separated
 const Energies = () => {
   // Get the current project data
   const { accessionAndMdNumber, topology: topologyManager, interactions } = useContext(
     ProjectCtx,
   );
 
-  // Get the default representations
-  const defaultRepresentations = useDefaultRepresentations();
-
-  // Send a request to the API with the url of the energies analysis
-  const { loading, payload, error } = useAPI(
-    `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/energies/`,
-  );
+  // Send a request to the API with the url of the energies analyses index
+  const analysesUrlBase = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses`;
+  const indexUrl = `${analysesUrlBase}/energies`;
+  const { loading: indexLoading, payload: indexPayload, error: indexError } = useAPI(indexUrl);
 
   // The interaction to be displayed
   const [selectedInteraction, setSelectedInteraction] = useState(0);
 
+  // Set the target interaction name
+  const { interactionName, analysisName } = useMemo(() => {
+    if (!interactions || !indexPayload) return {};
+    // Get the selected interaction
+    const interaction = interactions[selectedInteraction];
+    // Check if the analysis is in the old or the new format
+    const isOld = indexPayload.data !== undefined;
+    // If so, there is no target analysis name, but the whole data is already in the payload
+    if (isOld) return { interactionName: interaction.name };
+    const targetEntry = indexPayload.find(entry => entry.name === interaction.name);
+    return { interactionName: interaction.name, analysisName: targetEntry.analysis }
+  }, [interactions, selectedInteraction, indexPayload]);
+
+  // Send a request to the API with the url of some specific energies analysis
+  const interactionAnalysisUrl = analysisName ? `${analysesUrlBase}/${analysisName}` : null;
+  const { loading, payload, error } = useAPI(interactionAnalysisUrl);
+
+  // Now set the actual dataset to be used
+  // Note that this is a compatibility layer between the old and the new energies system
+  const dataset = useMemo(() => {
+    // Wait for the download to finish
+    if (!indexPayload) return;
+    // Check if the analysis is in the old or the new format
+    const isOld = indexPayload.data !== undefined;
+    // If this is the new system then the dataset is the payload itself
+    if (!isOld) return payload;
+    // If this is the old system then the dataset is in the index payload
+    const interactionData = indexPayload.data.find(entry => entry.name === interactionName);
+    if (!interactionData) return { error: `Dataset for interaction "${interactionName}" not found` };
+    return interactionData;
+  }, [indexPayload, payload, interactionName]);
+
   // This is a toggle state for which agent data is shown
   const [selectedOrder, setSelectedOrder] = useState(true);
 
-  // Track when one point in the graph is selected
-  const [selected, setSelected] = useState(null);
-
-  // Set which data is displayed: all, start, end or any combination of them
-  const [display, setDisplay] = useState({ all: true, start: true, end: true });
+  // Get the default representations
+  const defaultRepresentations = useDefaultRepresentations();
 
   // Define the representations to be displayed in the viewer
   const [ representations, setRepresentations ] = useState(null);
@@ -71,29 +100,19 @@ const Energies = () => {
     bothData,
     xTooltip,
   } = useMemo(() => {
-    // Return if the payload is not ready
-    if (!payload || !topologyManager) return {};
-
-    let data;
-    let guestSelection;
-
+    // Return if the dataset is not ready yet
+    if (!dataset || !topologyManager) return {};
+    if (dataset.error) return {};
     // Get the selected interaction
     const interaction = interactions[selectedInteraction];
-
+    // Prepare data in a graph-friendly format
+    let data;
+    let guestSelection;
     const agent = selectedOrder ? 'agent1' : 'agent2';
-
-    // Get the data whose name matches the interaction name
-    const dataset = payload.data.find(dataset => {
-      return dataset.name === interaction.name;
-    });
     let dataError;
-    if (!dataset) {
-      dataError = `Dataset for the interaction "${interaction.name}" not found`;
-      return { data: null, dataError };
-    }
     data = dataset[agent];
     if (!data) {
-      dataError = `Data for the interaction "${interaction.name}" not found`;
+      dataError = `Data for ${agent} not found in the interaction "${dataset.name}"`;
       return { data: null, dataError };
     }
     // Set the guest NGL selection
@@ -190,23 +209,15 @@ const Energies = () => {
       xTooltip,
     };
   }, [
-    payload,
-    selectedInteraction,
+    dataset,
     selectedOrder,
     topologyManager,
     interactions,
     defaultRepresentations,
   ]);
 
-  // Memoize the marks
-  const marks = useMemo(() => {
-    if (selected === null) return strongBondMarks;
-    const selectedMark = {
-      x: selected,
-      attr: { fill: '#c8c8c8' },
-    };
-    return [selectedMark, ...strongBondMarks];
-  }, [selected, strongBondMarks]);
+  // Set which data is displayed: all, start, end or any combination of them
+  const [display, setDisplay] = useState({ all: true, start: true, end: true });
 
   // Memoize the display parameters for each graph
   const { esDisplay, vdwDisplay, bothDisplay } = useMemo(() => {
@@ -228,6 +239,19 @@ const Energies = () => {
     return { esDisplay, vdwDisplay, bothDisplay };
   }, [display]);
 
+  // Track when one point in the graph is selected
+  const [selected, setSelected] = useState(null);
+
+  // Memoize the marks
+  const marks = useMemo(() => {
+    if (selected === null) return strongBondMarks;
+    const selectedMark = {
+      x: selected,
+      attr: { fill: '#c8c8c8' },
+    };
+    return [selectedMark, ...strongBondMarks];
+  }, [selected, strongBondMarks]);
+
   // Set the selected residue indices (only one index with the current implmementation)
   const selectedResidueIndices = useMemo(() => {
     if (selected === null) return null;
@@ -241,9 +265,11 @@ const Energies = () => {
   }, [selected, interactions, selectedInteraction, selectedOrder]);
 
   // Render loading or error messages according with the API response
-  if (loading) return <Loading />;
+  if (indexLoading || loading) return <Loading />;
+  else if (indexError) return indexError.toString();
   else if (error) return error.toString();
-  else if (!payload) return 'Something bad happened';
+  else if (dataset && dataset.error) return dataset.error;
+  else if (!dataset) return 'Something bad happened';
 
   if (!topologyManager) return <Loading />;
 
