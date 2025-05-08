@@ -19,6 +19,8 @@ import useDefaultRepresentations from '../../../components/ngl-viewer/use-defaul
 import style from './style.module.css';
 // Import some auxiliar functions
 import { Version } from 'src/utils/auxiliar-functions';
+// Import a custom hook
+import useRemfo from 'src/hooks/use-remfo';
 
 const Graph = lazy(() =>
   import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
@@ -69,9 +71,9 @@ const Energies = () => {
 
   // Now set the actual dataset to be used
   // Note that this is a compatibility layer between the old and the new energies system
-  const dataset = useMemo(() => {
+  const dataset = useRemfo(previous => {
     // Wait for the download to finish
-    if (!indexPayload) return;
+    if (!indexPayload || !payload) return previous;
     // Check if the analysis is in the old or the new format
     const isOld = indexPayload.data !== undefined;
     // If this is the new system then the dataset is the payload itself
@@ -341,7 +343,11 @@ const Energies = () => {
       else return previous;
     }), []);
 
-  // Set some togglers
+  // Set some state setters
+  const handleSelectInteraction = useCallback(newValue => {
+    setSelectedInteraction(newValue);
+    setSelectedX(null);
+  }, []);
   const handleToggleOrder = useCallback(() => {
     setSelectedOrder(previous => !previous);
     setSelectedX(null);
@@ -351,12 +357,17 @@ const Energies = () => {
     setSelectedX(null);
   }, []);
 
+  // Check if anything is still beeing loaded
+  const anyLoading = indexLoading || loading
+
   // Render loading or error messages according with the API response
-  if (indexLoading || loading) return <Loading />;
-  else if (indexError) return indexError.toString();
-  else if (error) return error.toString();
-  else if (dataset && dataset.error) return dataset.error;
-  else if (!dataset) return 'Something bad happened';
+  if (indexError) return indexError.toString();
+  if (error) return error.toString();
+  if (dataset && dataset.error) return dataset.error;
+  if (!dataset) {
+    if (anyLoading) return <Loading />;
+    return 'Something bad happened';
+  }
 
   if (!topology) return <Loading />;
 
@@ -372,7 +383,7 @@ const Energies = () => {
           <InteractionSelector
             interactions={interactions}
             selectedInteraction={selectedInteraction}
-            setSelectedInteraction={setSelectedInteraction}
+            setSelectedInteraction={handleSelectInteraction}
             selectedOrder={selectedOrder}
             handleToggleOrder={handleToggleOrder}
             firstOrderLabel={'Host'}
@@ -382,139 +393,141 @@ const Energies = () => {
             toggleOrderTooltip={'Toggle interactors'}
           />
         </CardContent>
-        {dataError || !data ? null : (
-          <CardContent>
-            <legend className={style['margined-bottom']}>Overall energies summatory</legend>
-            <div>
-              <TextField
-                className={style['text-field']}
-                label="Electrostatic"
-                title="Sum electorstatic value along the whole trajectory"
-                value={getSum(data.es) + ' kcal/mol'}
+        <div className={anyLoading ? style.disabled : style.enabled}>
+          {dataError || !data ? null : (
+            <CardContent>
+              <legend className={style['margined-bottom']}>Overall energies summatory</legend>
+              <div>
+                <TextField
+                  className={style['text-field']}
+                  label="Electrostatic"
+                  title="Sum electorstatic value along the whole trajectory"
+                  value={getSum(data.es) + ' kcal/mol'}
+                />
+                <TextField
+                  className={style['text-field']}
+                  label="Electrostatic Initial"
+                  title="Sum electorstatic value along the first 20% trajectory frames"
+                  value={getSum(data.ies) + ' kcal/mol'}
+                />
+                <TextField
+                  className={style['text-field']}
+                  label="Electrostatic Final"
+                  title="Sum electorstatic value along the last 20% trajectory frames"
+                  value={getSum(data.fes) + ' kcal/mol'}
+                />
+              </div>
+              <div>
+                <TextField
+                  className={style['text-field']}
+                  label="Van der Waals"
+                  title="Sum Van der Waals value along the whole trajectory"
+                  value={getSum(data.vdw) + ' kcal/mol'}
+                />
+                <TextField
+                  className={style['text-field']}
+                  label="Van der Waals Initial"
+                  title="Sum Van der Waals value along the first 20% trajectory frames"
+                  value={getSum(data.ivdw) + ' kcal/mol'}
+                />
+                <TextField
+                  className={style['text-field']}
+                  label="Van der Waals Final"
+                  title="Sum Van der Waals value along the last 20% trajectory frames"
+                  value={getSum(data.fvdw) + ' kcal/mol'}
+                />
+              </div>
+              <div>
+                <TextField
+                  className={style['text-field']}
+                  label="Electrostatic + Van der Waals"
+                  title="Sum electorstatic + Van der Waals value along the whole trajectory"
+                  value={getSum(data.both) + ' kcal/mol'}
+                />
+                <TextField
+                  className={style['text-field']}
+                  label="Electrostatic + Van der Waals Initial"
+                  title="Sum electorstatic + Van der Waals value along the first 20% trajectory frames"
+                  value={getSum(data.iboth) + ' kcal/mol'}
+                />
+                <TextField
+                  className={style['text-field']}
+                  label="Electrostatic + Van der Waals Final"
+                  title="Sum electorstatic + Van der Waals value along the last 20% trajectory frames"
+                  value={getSum(data.fboth) + ' kcal/mol'}
+                />
+              </div>
+            </CardContent>
+          )}
+          {!isDataPerResidue && <DoubleSideSwitch
+            firstLabel={'Residues'}
+            secondLabel={'Atoms'}
+            isFirst={perResidue}
+            onChange={handleTogglePerResidue}
+          />}
+          {dataError || singleValue ? (
+            <CardContent>
+              <Typography variant="h6">
+                {dataError ? dataError : `The host has only 1 ${perResidue ? 'residue' : 'atom'}`}
+              </Typography>
+            </CardContent>
+          ) : (
+            <CardContent>
+              <Graph
+                yData={esData}
+                xAxisValues={data.xTags}
+                xTooltip={xTooltip}
+                title={'Electrostatic'}
+                xScaleFactor={0.001}
+                yAxisLabel={'Interaction energy (kcal/mol)'}
+                onSelect={setSelectedX}
+                dataDisplay={esDisplay}
+                fullPrecision
+                marks={marks}
               />
-              <TextField
-                className={style['text-field']}
-                label="Electrostatic Initial"
-                title="Sum electorstatic value along the first 20% trajectory frames"
-                value={getSum(data.ies) + ' kcal/mol'}
+              <Graph
+                yData={vdwData}
+                title={'Van der Waals'}
+                xAxisValues={data.xTags}
+                xTooltip={xTooltip}
+                yAxisLabel={'Interaction energy (kcal/mol)'}
+                onSelect={setSelectedX}
+                dataDisplay={vdwDisplay}
+                fullPrecision
+                marks={marks}
               />
-              <TextField
-                className={style['text-field']}
-                label="Electrostatic Final"
-                title="Sum electorstatic value along the last 20% trajectory frames"
-                value={getSum(data.fes) + ' kcal/mol'}
+              <Graph
+                yData={bothData}
+                title={'Electrostatic + Van der Waals'}
+                xAxisLabel={perResidue ? 'Residue' : 'Atom'}
+                xAxisValues={data.xTags}
+                xTooltip={xTooltip}
+                yAxisLabel={'Interaction energy (kcal/mol)'}
+                onSelect={setSelectedX}
+                dataDisplay={bothDisplay}
+                fullPrecision
+                marks={marks}
               />
-            </div>
-            <div>
-              <TextField
-                className={style['text-field']}
-                label="Van der Waals"
-                title="Sum Van der Waals value along the whole trajectory"
-                value={getSum(data.vdw) + ' kcal/mol'}
+              <Legend
+                entries={[
+                  { name: 'all', color: 'black', check: display.all },
+                  { name: 'start', color: 'red', check: display.start },
+                  { name: 'end', color: 'blue', check: display.end },
+                ]}
+                onChange={result =>
+                  setDisplay(previous => {
+                    // WARNING: Do not return the previous object modified
+                    // It won't trigger the re-render since it is the same object
+                    const newDisplay = { ...previous };
+                    newDisplay[result] = !newDisplay[result];
+                    return newDisplay;
+                  })
+                }
               />
-              <TextField
-                className={style['text-field']}
-                label="Van der Waals Initial"
-                title="Sum Van der Waals value along the first 20% trajectory frames"
-                value={getSum(data.ivdw) + ' kcal/mol'}
-              />
-              <TextField
-                className={style['text-field']}
-                label="Van der Waals Final"
-                title="Sum Van der Waals value along the last 20% trajectory frames"
-                value={getSum(data.fvdw) + ' kcal/mol'}
-              />
-            </div>
-            <div>
-              <TextField
-                className={style['text-field']}
-                label="Electrostatic + Van der Waals"
-                title="Sum electorstatic + Van der Waals value along the whole trajectory"
-                value={getSum(data.both) + ' kcal/mol'}
-              />
-              <TextField
-                className={style['text-field']}
-                label="Electrostatic + Van der Waals Initial"
-                title="Sum electorstatic + Van der Waals value along the first 20% trajectory frames"
-                value={getSum(data.iboth) + ' kcal/mol'}
-              />
-              <TextField
-                className={style['text-field']}
-                label="Electrostatic + Van der Waals Final"
-                title="Sum electorstatic + Van der Waals value along the last 20% trajectory frames"
-                value={getSum(data.fboth) + ' kcal/mol'}
-              />
-            </div>
-          </CardContent>
-        )}
-        {!isDataPerResidue && <DoubleSideSwitch
-          firstLabel={'Residues'}
-          secondLabel={'Atoms'}
-          isFirst={perResidue}
-          onChange={handleTogglePerResidue}
-        />}
-        {dataError || singleValue ? (
-          <CardContent>
-            <Typography variant="h6">
-              {dataError ? dataError : `The host has only 1 ${perResidue ? 'residue' : 'atom'}`}
-            </Typography>
-          </CardContent>
-        ) : (
-          <CardContent>
-            <Graph
-              yData={esData}
-              xAxisValues={data.xTags}
-              xTooltip={xTooltip}
-              title={'Electrostatic'}
-              xScaleFactor={0.001}
-              yAxisLabel={'Interaction energy (kcal/mol)'}
-              onSelect={setSelectedX}
-              dataDisplay={esDisplay}
-              fullPrecision
-              marks={marks}
-            />
-            <Graph
-              yData={vdwData}
-              title={'Van der Waals'}
-              xAxisValues={data.xTags}
-              xTooltip={xTooltip}
-              yAxisLabel={'Interaction energy (kcal/mol)'}
-              onSelect={setSelectedX}
-              dataDisplay={vdwDisplay}
-              fullPrecision
-              marks={marks}
-            />
-            <Graph
-              yData={bothData}
-              title={'Electrostatic + Van der Waals'}
-              xAxisLabel={perResidue ? 'Residue' : 'Atom'}
-              xAxisValues={data.xTags}
-              xTooltip={xTooltip}
-              yAxisLabel={'Interaction energy (kcal/mol)'}
-              onSelect={setSelectedX}
-              dataDisplay={bothDisplay}
-              fullPrecision
-              marks={marks}
-            />
-            <Legend
-              entries={[
-                { name: 'all', color: 'black', check: display.all },
-                { name: 'start', color: 'red', check: display.start },
-                { name: 'end', color: 'blue', check: display.end },
-              ]}
-              onChange={result =>
-                setDisplay(previous => {
-                  // WARNING: Do not return the previous object modified
-                  // It won't trigger the re-render since it is the same object
-                  const newDisplay = { ...previous };
-                  newDisplay[result] = !newDisplay[result];
-                  return newDisplay;
-                })
-              }
-            />
-            
-          </CardContent>
-        )}
+              
+            </CardContent>
+          )}
+        </div>
       </Card>
       <ViewerSpawner
         // Set the new viewer or null if there is not a proper "selectedResidueIndices" value

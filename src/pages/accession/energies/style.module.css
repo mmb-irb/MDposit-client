@@ -16,3 +16,10 @@
 .margined-bottom {
   margin-bottom: 1em;
 }
+
+.disabled {
+  pointer-events: none;
+  opacity: 0.3;
+  transition-property: opacity;
+  transition-duration: 1s;
+}
