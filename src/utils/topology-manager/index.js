@@ -12,7 +12,12 @@ import {
   DUMMY_ATOM_ELEMENT,
   CG_ATOM_ELEMENT
 } from './residues-library';
-import { countElement, parsedSelectionRanger } from 'src/utils/auxiliar-functions';
+// Import some auxiliar functions
+import {
+  countElement,
+  parsedSelectionRanger,
+  unique
+} from 'src/utils/auxiliar-functions';
 
 // Topology manager
 // Many functions to handle atom/residue/chain numeration conversions and more
@@ -39,6 +44,10 @@ class Atom {
   // Atom name
   get name () {
     return this.topology.atomNames[this.index];
+  }
+  // Standard label
+  get label () {
+    return `${this.residue.standardLabel}.${this.name}`;
   }
   // Index of the residue this atom belongs to
   get residueIndex () {
@@ -557,6 +566,23 @@ export class Topology {
   // OTHER
   // --------------------------------------------------------------------
 
+  // Given a list of residue indices, convert it to atom indices
+  residue2atomIndices = residueIndices => {
+    let atomIndices = [];
+    for (const residueIndex of residueIndices) {
+      const residue = this.getResidueByIndex(residueIndex);
+      atomIndices = atomIndices.concat(residue.atomIndices);
+    }
+    return atomIndices;
+  }
+
+  // Given a list of atom indices, convert it to residue indices
+  atom2residueIndices = atomIndices => {
+    const residueIndices = unique(atomIndices.map(index => this.atomResidueIndices[index]));
+    residueIndices.sort((a, b) => a - b);
+    return residueIndices;
+  }
+
   // This function returns residue indices for every residue which belongs to a reference
   // The reference must be specified with the topology reference id (i.e. uniprot id)
   // Optionally, you may request only specific residue numbers according to reference numeration
@@ -600,6 +626,12 @@ export class Topology {
     // Join all ranged selections
     const rangedSelection = rangedSelections.join(' or ');
     return { rangedSelection, small };
+  };
+
+  // Set an NGL selection from a list of atom indices
+  // Note that atom selection in NGL does not support ranges
+  atomIndices2Ngl = atomIndices => {
+    return '@' + atomIndices.join(',');
   };
 
   // Given a list of residues indices, separate them by chain and return an object where keys are chain names

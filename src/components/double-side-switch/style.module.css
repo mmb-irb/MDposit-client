@@ -1,0 +1,7 @@
+.horizontal {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  margin: 0em 1em;
+}

@@ -4,17 +4,19 @@ import { range } from 'lodash-es';
 // Createa a copy from an object thus not conserving any pointer to the original object contents
 export const copyObject = object => JSON.parse(JSON.stringify(object));
 
+// Add values
+export const add = values => values.reduce((acc, curr) => acc + curr, 0);
 // Get the average from a list of values
-export const caluclateAverage = values => {
-    const addition = values.reduce((acc, curr) => acc + curr, 0);
-    return addition / values.length;
-}
+export const caluclateAverage = values => add(values) / values.length;
 
 // Round a number to its neares cent
 export const round2cents = number => Math.round(number * 100) / 100;
 
 // Count the number of specific elements in an array
 export const countElement = (array, target) => array.reduce((total, value) => value == target ? total + 1: total, 0);
+
+// Get unique values in an array
+export const unique = array => Array.from(new Set(array));
 
 // Create palettes of random spaced colors
 export const createPalette = colorCount => {

@@ -123,12 +123,30 @@ export class Project {
 
     // Interactions getter
     get interactions () {
+        // Ask the API for the interactions analysis
         const response = this._apiQuery('interactions', this.hasInteractions);
+        // We will need the topology to make some corretions in old interactions
+        const topology = this.topology;
+        // Once we have interactions data, in case it is in the old format, adapt it to the new format
+        const interactions = useMemo(() => {
+            if (!response.payload || !topology) return;
+            // Iterate interactions in the payload
+            for (const interaction of response.payload) {
+                // If the interaction already has atom indices then there is nothing to do here
+                if (interaction.atom_indices_1) continue;
+                // If this is an old version then add atom indices
+                interaction.atom_indices_1 = topology.residue2atomIndices(interaction.residue_indices_1);
+                interaction.atom_indices_2 = topology.residue2atomIndices(interaction.residue_indices_2);
+                interaction.interface_atom_indices_1 = topology.residue2atomIndices(interaction.interface_indices_1);
+                interaction.interface_atom_indices_2 = topology.residue2atomIndices(interaction.interface_indices_1);
+            }
+            return response.payload;
+        }, [response.payload, topology])
         if (response === undefined) return undefined;
         if (response.loading) return undefined;
         if (response.error) throw new Error('Error when downloading project interactions: ' + response.error.message);
         if (!response.payload) throw new Error('Something went wrong with project interactions');
-        return response.payload;
+        return interactions;
     }
 
     // References getter
