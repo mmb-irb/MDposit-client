@@ -73,11 +73,14 @@ const Energies = () => {
   // Note that this is a compatibility layer between the old and the new energies system
   const dataset = useRemfo(previous => {
     // Wait for the download to finish
-    if (!indexPayload || !payload) return previous;
+    if (!indexPayload) return previous;
     // Check if the analysis is in the old or the new format
     const isOld = indexPayload.data !== undefined;
     // If this is the new system then the dataset is the payload itself
-    if (!isOld) return payload;
+    if (!isOld) {
+      if (!payload) return previous;
+      return payload;
+    }
     // If this is the old system then the dataset is in the index payload
     const interactionData = indexPayload.data.find(entry => entry.name === interactionName);
     if (!interactionData) return { error: `Dataset for interaction "${interactionName}" not found` };
