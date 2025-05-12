@@ -765,7 +765,7 @@ const Overview = React.memo(() => {
                       <Button
                         component={'a'}
                         variant="contained"
-                        href={`https://3dbionotes-ws.cnb.csic.es/?queryId=${pdbId}`}
+                        href={`https://3dbionotes.cnb.csic.es/?queryId=${pdbId}`}
                         size="small"
                         sx={{
                           backgroundColor: secondaryColor.dark,
