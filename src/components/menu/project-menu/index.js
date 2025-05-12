@@ -65,6 +65,7 @@ const tabs = [
       },
       {
         name: 'Membranes',
+        hideIfEmpty: true, // Hide this tab if there are no membrane analyses
         analyses: [
           'apl',
           'density',
@@ -217,6 +218,7 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
                           // Discard analyses whose direction is not even declared since they are not to be shown
                           const displayableAnalyses = drop.analyses.filter(analysis => directions[analysis] !== undefined);
                           if (displayableAnalyses.length === 0) return;
+                            if (drop.hideIfEmpty && displayableAnalyses.every(analysis => directions[analysis] === false)) return;
                           return <div key={d}>
                             <Typography variant="h6">{drop.name}</Typography>
                             <MenuList

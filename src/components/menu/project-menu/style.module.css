@@ -17,16 +17,10 @@
   background-color: #f1f1f1;
 }
 
-/* DANI: El flex no funciona bien en ningun navegador al hacer wrap en columna y no tiene solución.
-DANI: Por eso asigno el ancho a mano con un valor que he comprovado experimentalmente que funciona bien
-DANI: Y dado que al ancho es fijo también asigno la altura fija para ahorrarme problemas
-https://stackoverflow.com/questions/23408539/how-can-i-make-a-displayflex-container-expand-horizontally-with-its-wrapped-con/41209186#41209186 */
 .analyses {
   display: flex;
   flex-flow: column wrap;
-  /*max-height: 75vh;*/
-  max-height: 400px;
-  width: 650px;
+  height: 400px;
 }
 
 .disabled {
