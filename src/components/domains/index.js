@@ -19,7 +19,7 @@ import style from './style.module.css';
 
 import Loading from '../loading';
 
-import { rangedSelectionParser } from '../../utils/topology-manager';
+import { rangedSelectionParser } from '../../utils/auxiliar-functions';
 
 // Show floatting bubles with domain names
 // When a bubble is selected the domain is represented
@@ -102,6 +102,17 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
     const referenceDomains = [];
     proteinReferences && proteinReferences.forEach(proteinReference => {
       const referenceId = proteinReference.uniprot;
+      // Start by creating a domain for the whole reference
+      const wholeReferenceResidueIndices = topology.getReferenceResidueIndices(referenceId);
+      const wholeReferenceNglSelection = topology.residueIndices2Ngl(wholeReferenceResidueIndices);
+      const wholeReferenceDomain = {
+        name: proteinReference.name,
+        representations: [{
+          name: proteinReference.name,
+          selection: wholeReferenceNglSelection.rangedSelection
+        }],
+      };
+      referenceDomains.push(wholeReferenceDomain);
       // Collect all domains in protein reference data
       let referenceDataDomains = [];
       // Domains in the 'domains' filed are automatically mined from uniprot
@@ -123,6 +134,7 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
         // Discard the domain if its name matches the reference name
         // This is quite usual: some references have domains which are basically the whole thing
         // There may be a difference in the pole residues, but it is redundant anyway
+        // Note that we already add a domain for the whole reference
         if (proteinReference.name === domainName) return;
         const mappedDomain = {
           name: proteinReference.name + ' - ' + domainName,
@@ -141,7 +153,7 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
           const { rangedSelection: nglSelection, small } = topology.residueIndices2Ngl(mappedSelection);
           const newRepresentation = { ...representation };
           newRepresentation.selection = nglSelection;
-          // parsedSelectionRanger returns 'small' = true when there are series of 3 residues or less
+          // residueIndices2Ngl returns 'small' = true when there are series of 3 residues or less
           // These small residue selections will be not represented in cartoon due to an NGL bug
           // https://github.com/nglviewer/ngl/issues/223
           if (small) newRepresentation.type = 'licorice';

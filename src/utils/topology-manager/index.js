@@ -1,9 +1,9 @@
-import { range } from 'lodash-es';
 import {
   RESIDUE_NAME_LETTERS,
   PROTEIN_RESIDUE_NAME_LETTERS,
   DNA_RESIDUE_NAME_LETTERS,
   RNA_RESIDUE_NAME_LETTERS,
+  NUCLEIC_RESIDUE_NAME_LETTERS,
   FATTY_RESIDUE_NAMES,
   STEROID_RESIDUE_NAMES,
   STANDARD_SOLVENT_RESIDUE_NAMES,
@@ -12,149 +12,17 @@ import {
   DUMMY_ATOM_ELEMENT,
   CG_ATOM_ELEMENT
 } from './residues-library';
-import { countElement } from 'src/utils/auxiliar-functions';
-const ngl = require('ngl');
+// Import some auxiliar functions
+import {
+  countElement,
+  parsedSelectionRanger,
+  unique
+} from 'src/utils/auxiliar-functions';
 
 // Topology manager
 // Many functions to handle atom/residue/chain numeration conversions and more
 // All these functions which need the topology are able to read the context topology
 // However, it may be better to pass them the topology as an argument since the context may be null
-
-// There are 4 different residue numeration types in the client:
-// - Residue indices: From 0 to 'n'
-//   Used in some internal managments
-// - Residue numbers: Source numbers in the original topology file
-//   Residue numbers may be repeated, have gaps or do not start at 0 or 1. May include icodes.
-// - Residue reference numbers (protein residues only): The number according to uniprot reference sequence
-//   Reference numbers are displayed in the viewer or analysis results when available
-
-// This function transforms a range selection string into a numeric array
-// It handles abbreviated selection syntax to literal selection syntax
-// e.g. "1, 3, 5-8" => [1, 3, 5, 6, 7, 8]
-const rangedSyntax = /^([0-9]*)-([0-9]*)$/;
-export const rangedSelectionParser = selection => {
-  // Filter data
-  const units = selection.split(', ');
-  const parsedSelection = [];
-  for (const u of units) {
-    // If the ranged syntax is found, get all numbers in between
-    if (u.match(rangedSyntax)) {
-      const matches = rangedSyntax.exec(u);
-      const rangedUnits = range(+matches[1], +matches[2] + 1);
-      parsedSelection.push(...rangedUnits);
-    } else parsedSelection.push(+u);
-  }
-  return parsedSelection;
-};
-
-// Do the opposite that the previous function
-// e.g. [1, 3, 5, 6, 7, 8] => "1, 3, 5-8"
-// In addition track the minimum serie length
-// Return 'small' = true when there are series of 3 residues or less
-// These small residue selections will be not represented in cartoon due to an NGL bug
-// https://github.com/nglviewer/ngl/issues/223
-export const parsedSelectionRanger = (selection, addWhiteSpaces = true) => {
-  const separator = addWhiteSpaces ? ', ' : ',';
-  let rangedSelection = '';
-  let minimumSerieLength = Number.POSITIVE_INFINITY;
-  selection.sort((a, b) => a - b); // Sort numbers numerically
-  const selectionLength = selection.length;
-  // When the selection is a single value
-  if (selectionLength === 1) {
-    return { rangedSelection: selection[0].toString(), small: true };
-  }
-  for (let i = 0; i < selectionLength; i++) {
-    const num = selection[i];
-    rangedSelection += separator + num;
-    for (let j = i + 1; j < selectionLength; j++) {
-      const nextNum = selection[j];
-      let length = j - i; // The serie length
-      if (nextNum - num !== length) {
-        // End of the serie
-        // The length here is the length which broke the serie
-        // i.e. if the length here is 2 the actual serie length is 1
-        length -= 1;
-        minimumSerieLength = Math.min(length, minimumSerieLength);
-        // If the length of the serie is <= 1 then no worth making a range here
-        if (length > 1) {
-          const prevNum = selection[j - 1];
-          rangedSelection += '-' + prevNum;
-          i = j - 1;
-        }
-        break;
-      }
-      if (j === selectionLength - 1) {
-        // End of the selection
-        minimumSerieLength = Math.min(length, minimumSerieLength);
-        if (length > 1) {
-          rangedSelection += '-' + nextNum;
-          i = j;
-        }
-      }
-    }
-  }
-  const small = minimumSerieLength <= 3;
-  rangedSelection = rangedSelection.substring(separator.length); // Remove the first separator
-  return { rangedSelection, small };
-};
-
-// Harvest from a '[residue_type]residue:chain' string the chain letter and the residue number values
-const nglFormat = /^\[[0-9a-zA-Z_]*\]([0-9]*)([A-Z]?):([A-Z])$/;
-export const nglNumerationParser = numeration => {
-  const result = nglFormat.exec(numeration);
-  if (!result) throw new Error('No matched NGL numeration value: ' + numeration);
-  const chain = result[3];
-  const residue = result[1];
-  const icode = result[2] || ''; // DANI: El icode es de mi huerto. Falta chequear
-  // Formated selection to select this specific residue in NGL
-  const nglSelection = ':' + chain + ' and ' + residue;
-  // Complex numeration
-  const complex = chain + ':' + residue + icode;
-  return { chain, residue: +residue, icode, nglSelection, complex };
-};
-
-// Check if an NGL residues is cartoon supported or not
-// e.g. check if it is recognized by NGL as a protein, RNA or DNA residue
-export const isCartoonSupported = nglResidue => {
-  return nglResidue.isProtein() || nglResidue.isRna() || nglResidue.isDna();
-};
-
-// Convert a ngl selection string into an array of residue indices
-// If the 'onlyCartoonSupported' parameter is passed then it will return only cartoon supported residues
-export const nglSelection2residueIndices = (
-  nglSelection,
-  onlyCartoonSupported = false,
-  viewerTopology,
-) => {
-  const residueIndices = [];
-  // Save the selection in ngl format (structureComponent)
-  const selection = new ngl.Selection(nglSelection);
-  // Save the data from structure which corresponds to the selection atoms
-  const view = viewerTopology.getView(selection);
-  if (onlyCartoonSupported) {
-    view.eachResidue(residue => {
-      if (isCartoonSupported(residue)) residueIndices.push(residue.index);
-    });
-  } else {
-    view.eachResidue(residue => {
-      residueIndices.push(residue.index);
-    });
-  }
-  return residueIndices;
-};
-
-// Check if a NGL selection contains any atom
-export const nglSelectionExists = (
-  nglSelection,
-  viewerTopology,
-) => {
-  // Save the selection in ngl format (structureComponent)
-  const selection = new ngl.Selection(nglSelection);
-  // Save the data from structure which corresponds to the selection atoms
-  const view = viewerTopology.getView(selection);
-  if (view.atomCount === 0) return false;
-  return true;
-};
 
 // Set the element colors for displaying
 const ELEMENT_COLORS = {
@@ -176,6 +44,10 @@ class Atom {
   // Atom name
   get name () {
     return this.topology.atomNames[this.index];
+  }
+  // Standard label
+  get label () {
+    return `${this.residue.standardLabel}.${this.name}`;
   }
   // Index of the residue this atom belongs to
   get residueIndex () {
@@ -238,16 +110,13 @@ class Residue {
     return selection;
   }
   // Residue name
-  get type () {
-    return this.topology.residueNames[this.index];
-  }
   get name () {
-    return this.type;
+    return this.topology.residueNames[this.index];
   }
   // Residue standard letter (e.g. ARG -> R)
   get letter () {
-    if (!this.type) return;
-    const letter = RESIDUE_NAME_LETTERS[this.type];
+    if (!this.name) return;
+    const letter = RESIDUE_NAME_LETTERS[this.name];
     if (letter) return letter;
     return 'X';
   }
@@ -286,7 +155,7 @@ class Residue {
     // ----- Solvent -----------------------------------------------
     // Solvent is water molecules
     // First rely on the residue name
-    if (this.type in STANDARD_SOLVENT_RESIDUE_NAMES) {
+    if (this.name in STANDARD_SOLVENT_RESIDUE_NAMES) {
       this._classification = 'solvent'
       return this._classification
     }
@@ -305,11 +174,11 @@ class Residue {
     // Protein definition according to vmd:
     // a residue with atoms named C, N, CA, and O
     // In our case we accept OC1 and OC2 or OT1 and OT2 instead of O for terminal residues
-    const atomNames = new Set(this.atoms.map(atom => atom.type));
-    if (['C', 'N', 'CA'].every(element => atomNames.includes(element)) && (
-      'O' in atomNames ||
-      ['OC1', 'OC2'].every(element => atomNames.includes(element)) ||
-      ['OT1', 'OT2'].every(element => atomNames.includes(element))
+    const atomNames = new Set(this.atoms.map(atom => atom.name));
+    if (['C', 'N', 'CA'].every(name => atomNames.has(name)) && (
+      atomNames.has('O') ||
+      ['OC1', 'OC2'].every(name => atomNames.has(name)) ||
+      ['OT1', 'OT2'].every(name => atomNames.has(name))
     )) {
       this._classification = 'protein'
       return this._classification
@@ -318,11 +187,11 @@ class Residue {
     // Nucleic acids definition according to vmd:
     // a residue with atoms named P, O1P, O2P and either O3’, C3’, C4’, C5’, O5’ or O3*, C3*, C4*, C5*, O5*
     // Apparently it has been fixed so now a residue does not need to be phosphorylated to be considered nucleic
-    if (["O3'", "C3'", "C4'", "C5'", "O5'"].every(element => atomNames.includes(element))
-    || ["O3*", "C3*", "C4*", "C5*", "O5*"].every(element => atomNames.includes(element))) {
+    if (["O3'", "C3'", "C4'", "C5'", "O5'"].every(name => atomNames.has(name))
+    || ["O3*", "C3*", "C4*", "C5*", "O5*"].every(name => atomNames.has(name))) {
       // At this point we know it is nucleic
       // We must tell the difference between DNA and RNA
-      if (atomNames.includes("O2'") || atomNames.includes("O2*")) this._classification = 'rna'
+      if (atomNames.has("O2'") || atomNames.has("O2*")) this._classification = 'rna'
       else this._classification = 'dna'
       return this._classification
     }
@@ -333,22 +202,23 @@ class Residue {
       return this._classification
     }
     // ----- Others -----------------------------------------------
-    // If the residue does not fall in any of the previous conditions then we do not know what it is
-    return 'unknown'
+    // If the residue does not fall in any of the previous conditions then try it with the residue name
+    this._classification = this.classificationByName;
+    return this._classification;
   }
   // Set an alternative function to "try" to classify the residues according only to its name
   // This is useful for corase grain residues whose atoms may not reflect the real atoms
   // WARNING: This logic is very limited and may return "unknown"
   // WARNING: This logic relies in atom names, which may be not standard
   get classificationByName () {
-    if (this.type in PROTEIN_RESIDUE_NAME_LETTERS) return 'protein';
-    if (this.type in DNA_RESIDUE_NAME_LETTERS) return 'dna';
-    if (this.type in RNA_RESIDUE_NAME_LETTERS) return 'rna';
-    if (this.type in NUCLEIC_RESIDUE_NAME_LETTERS) return 'nucleic';
-    if (this.type in FATTY_RESIDUE_NAMES) return 'fatty';
-    if (this.type in STEROID_RESIDUE_NAMES) return 'steroid';
-    if (this.type in STANDARD_COUNTER_ION_ATOM_NAMES) return 'ion';
-    if (this.type in STANDARD_SOLVENT_RESIDUE_NAMES) return 'solvent';
+    if (this.name in PROTEIN_RESIDUE_NAME_LETTERS) return 'protein';
+    if (this.name in DNA_RESIDUE_NAME_LETTERS) return 'dna';
+    if (this.name in RNA_RESIDUE_NAME_LETTERS) return 'rna';
+    if (this.name in NUCLEIC_RESIDUE_NAME_LETTERS) return 'nucleic';
+    if (FATTY_RESIDUE_NAMES.has(this.name)) return 'fatty';
+    if (STEROID_RESIDUE_NAMES.has(this.name)) return 'steroid';
+    if (STANDARD_COUNTER_ION_ATOM_NAMES.has(this.name)) return 'ion';
+    if (STANDARD_SOLVENT_RESIDUE_NAMES.has(this.name)) return 'solvent';
     // If we do not know what it is
     return 'unknown'
   }
@@ -427,7 +297,7 @@ class Residue {
     let labelIcode = this.icode;
     if (!labelIcode) labelIcode = '';
     // Get the residue name
-    const labelType = `(${this.type})`;
+    const labelType = `(${this.name})`;
     // Finally return the label
     return labelChain + labelNumber + labelIcode + labelType;
   }
@@ -447,14 +317,13 @@ class Residue {
   }
   // Iterate residue atoms
   * iteratoms () {
-    for (const atomIndex of this.atomIndices) 
-      yield this.topology.getAtomByIndex(atomIndex);
+    for (const atomIndex of this.atomIndices)
+      yield new Atom(this.topology, atomIndex);
   }
-
+  // Get all atoms already parsed
   get atoms () {
-    return [...this.iteratoms()]
+    return [...this.iteratoms()];
   }
-
 };
 
 // Set a chain handler
@@ -488,13 +357,18 @@ class Chain {
   get residueNumbers () {
     return this.topology.chainResidueNumbers[this.index];
   }
-  // Get residue handlers
-  get residues () {
-    return this.residueIndices.map(residueIndex => new Residue(residueIndex));
-  }
   // Get the residue sequence
   get sequence () {
     return this.sequences[this.index];
+  }
+  // Iterate chain residues
+  * iterresidues () {
+    for (const residueIndex of this.residueIndices)
+      yield new Residue(this.topology, residueIndex);
+  }
+  // Get all residues already parsed
+  get residues () {
+    return [...this.iterresidues()];
   }
 }
 
@@ -595,6 +469,10 @@ export class Topology {
     return this.residueNumbers.length;
   }
 
+  get chainCount () {
+    return this.chainNames.length;
+  }
+
   // --------------------------------------------------------------------
   // Atom getters
   // --------------------------------------------------------------------
@@ -663,8 +541,47 @@ export class Topology {
   }
 
   // --------------------------------------------------------------------
+  // ITERATORS
+  // --------------------------------------------------------------------
+
+  // Iterate topology atoms
+  * iteratoms () {
+    for (let atomIndex = 0; atomIndex < this.atomCount; atomIndex++) 
+      yield new Atom(this, atomIndex);
+  }
+
+  // Iterate topology residues
+  * iterresidues () {
+    for (let residueIndex = 0; residueIndex < this.residueCount; residueIndex++) 
+      yield new Residue(this, residueIndex);
+  }
+
+  // Iterate topology chains
+  * iterchains () {
+    for (let chainIndex = 0; chainIndex < this.chainCount; chainIndex++) 
+      yield new Chain(this, chainIndex);
+  }
+
+  // --------------------------------------------------------------------
   // OTHER
   // --------------------------------------------------------------------
+
+  // Given a list of residue indices, convert it to atom indices
+  residue2atomIndices = residueIndices => {
+    let atomIndices = [];
+    for (const residueIndex of residueIndices) {
+      const residue = this.getResidueByIndex(residueIndex);
+      atomIndices = atomIndices.concat(residue.atomIndices);
+    }
+    return atomIndices;
+  }
+
+  // Given a list of atom indices, convert it to residue indices
+  atom2residueIndices = atomIndices => {
+    const residueIndices = unique(atomIndices.map(index => this.atomResidueIndices[index]));
+    residueIndices.sort((a, b) => a - b);
+    return residueIndices;
+  }
 
   // This function returns residue indices for every residue which belongs to a reference
   // The reference must be specified with the topology reference id (i.e. uniprot id)
@@ -711,6 +628,12 @@ export class Topology {
     return { rangedSelection, small };
   };
 
+  // Set an NGL selection from a list of atom indices
+  // Note that atom selection in NGL does not support ranges
+  atomIndices2Ngl = atomIndices => {
+    return '@' + atomIndices.join(',');
+  };
+
   // Given a list of residues indices, separate them by chain and return an object where keys are chain names
   // e.g. [ 1, 2, 3, 17 ] -> { 'A': [1,2,3], 'B': [17] }
   byChains = residuesIndices => {
@@ -725,7 +648,7 @@ export class Topology {
   };
 
   // Get all atom colors according to their elements
-  getAtomELEMENT_COLORS = () => {
+  getAtomElementColors = () => {
     return this.atomElements.map(element => {
       const color = ELEMENT_COLORS[element];
       if (!color) return 'black';

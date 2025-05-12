@@ -54,6 +54,10 @@ const availableDrawingMethods = [
     label: 'Backbone',
     value: 'backbone',
   },
+  {
+    label: 'Nucleic bases',
+    value: 'base',
+  },
 ];
 
 // Check if a value exists inside the available values

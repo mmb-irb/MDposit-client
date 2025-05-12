@@ -1,23 +1,26 @@
-import React, { lazy, Suspense, useState, useContext, useMemo } from 'react';
-
+import React, { lazy, Suspense, useState, useContext, useMemo, useEffect, useCallback } from 'react';
+// Import tools to retrieve data using the API
+import { BASE_PATH_PROJECTS } from '../../../utils/constants';
+import useAPI from '../../../hooks/use-api';
+// Import project data
+import { ProjectCtx } from '../../../contexts';
+// Import MUI components
 import { CardContent, Typography, TextField } from '@mui/material';
-
+// Import some custom components
 import Card from '../../../components/animated-card';
 import ViewerSpawner from '../../../components/viewer-spawner';
-import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 import Loading from '../../../components/loading';
-
-import useAPI from '../../../hooks/use-api';
-
-import { ProjectCtx } from '../../../contexts';
-
-import { BASE_PATH_PROJECTS } from '../../../utils/constants';
-
-import Legend from '../../../components/legend';
-
 import InteractionSelector from '../../../components/interaction-selector';
-
+import DoubleSideSwitch from 'src/components/double-side-switch';
+import Legend from '../../../components/legend';
+// Import NGL default representations
+import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
+// Import CSS style
 import style from './style.module.css';
+// Import some auxiliar functions
+import { Version } from 'src/utils/auxiliar-functions';
+// Import a custom hook
+import useRemfo from 'src/hooks/use-remfo';
 
 const Graph = lazy(() =>
   import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
@@ -33,95 +36,106 @@ const getSum = values => {
   return rounded;
 };
 
+// DANI: Note that here coexit the old and the new energies data format
+// DANI: Old energies contained all interactions data in a single place
+// DANI: New energies has an index in the main analysis and the results for every interaction separated
 const Energies = () => {
   // Get the current project data
-  const { accessionAndMdNumber, topology: topologyManager, interactions } = useContext(
-    ProjectCtx,
-  );
+  const { accessionAndMdNumber, topology, interactions } = useContext(ProjectCtx);
 
-  // Get the default representations
-  const defaultRepresentations = useDefaultRepresentations();
-
-  // Send a request to the API with the url of the energies analysis
-  const { loading, payload, error } = useAPI(
-    `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/energies/`,
-  );
+  // Send a request to the API with the url of the energies analyses index
+  const analysesUrlBase = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses`;
+  const indexUrl = `${analysesUrlBase}/energies`;
+  const { loading: indexLoading, payload: indexPayload, error: indexError } = useAPI(indexUrl);
 
   // The interaction to be displayed
   const [selectedInteraction, setSelectedInteraction] = useState(0);
 
+  // Set the target interaction name
+  const { interactionName, analysisName } = useMemo(() => {
+    // Wait for main data to be downloaded
+    if (!interactions || !indexPayload) return {};
+    // Get the selected interaction
+    const interaction = interactions[selectedInteraction];
+    // Check if the analysis is in the old or the new format
+    const isOld = indexPayload.data !== undefined;
+    // If so, there is no target analysis name, but the whole data is already in the payload
+    if (isOld) return { interactionName: interaction.name };
+    const targetEntry = indexPayload.find(entry => entry.name === interaction.name);
+    return { interactionName: interaction.name, analysisName: targetEntry.analysis }
+  }, [interactions, selectedInteraction, indexPayload]);
+
+  // Send a request to the API with the url of some specific energies analysis
+  const interactionAnalysisUrl = analysisName ? `${analysesUrlBase}/${analysisName}` : null;
+  const { loading, payload, error } = useAPI(interactionAnalysisUrl);
+
+  // Now set the actual dataset to be used
+  // Note that this is a compatibility layer between the old and the new energies system
+  const dataset = useRemfo(previous => {
+    // Wait for the download to finish
+    if (!indexPayload) return previous;
+    // Check if the analysis is in the old or the new format
+    const isOld = indexPayload.data !== undefined;
+    // If this is the new system then the dataset is the payload itself
+    if (!isOld) {
+      if (!payload) return previous;
+      return payload;
+    }
+    // If this is the old system then the dataset is in the index payload
+    const interactionData = indexPayload.data.find(entry => entry.name === interactionName);
+    if (!interactionData) return { error: `Dataset for interaction "${interactionName}" not found` };
+    return interactionData;
+  }, [indexPayload, payload, interactionName]);
+
   // This is a toggle state for which agent data is shown
   const [selectedOrder, setSelectedOrder] = useState(true);
 
-  // Track when one point in the graph is selected
-  const [selected, setSelected] = useState(null);
+  // Mine data from the selected interaction
+  // Set some required host and gues atom/residue selections
+  const {
+    hostAtomIndices,
+    hostResidueIndices,
+    guestInterfaceAtomIndices,
+    strongBonds
+  } = useMemo(() => {
+    // Wait for main data to be downloaded
+    if (!topology || !interactions) return {}
+    // Get the selected interaction
+    const interaction = interactions[selectedInteraction];
+    // Get host atom indices
+    const hostAtomIndices = selectedOrder
+      ? interaction.atom_indices_1
+      : interaction.atom_indices_2;
+    // Convert atom indices to residue indices
+    const hostResidueIndices = topology.atom2residueIndices(hostAtomIndices);
+    // Get the guest interface atom indcies
+    const guestInterfaceAtomIndices = selectedOrder
+      ? interaction.interface_atom_indices_2
+      : interaction.interface_atom_indices_1;
+    // Get atom indices from covalent bonds between both interacting agents
+    const strongBonds = interaction['strong_bonds'];
+    return { hostAtomIndices, hostResidueIndices, guestInterfaceAtomIndices, strongBonds };
+  }, [topology, interactions, selectedInteraction, selectedOrder]);
 
-  // Set which data is displayed: all, start, end or any combination of them
-  const [display, setDisplay] = useState({ all: true, start: true, end: true });
+  // Get the default representations
+  const defaultRepresentations = useDefaultRepresentations();
 
   // Define the representations to be displayed in the viewer
   const [ representations, setRepresentations ] = useState(null);
 
-  const {
-    data,
-    dataError,
-    strongBondMarks,
-    esData,
-    vdwData,
-    bothData,
-    xTooltip,
-  } = useMemo(() => {
-    // Return if the payload is not ready
-    if (!payload || !topologyManager) return {};
-
-    let data;
-    let guestSelection;
-
-    // Get the selected interaction
-    const interaction = interactions[selectedInteraction];
-
-    const agent = selectedOrder ? 'agent1' : 'agent2';
-
-    // Get the data whose name matches the interaction name
-    const dataset = payload.data.find(dataset => {
-      return dataset.name === interaction.name;
-    });
-    let dataError;
-    if (!dataset) {
-      dataError = `Dataset for the interaction "${interaction.name}" not found`;
-      return { data: null, dataError };
-    }
-    data = dataset[agent];
-    if (!data) {
-      dataError = `Data for the interaction "${interaction.name}" not found`;
-      return { data: null, dataError };
-    }
-    // Set the guest NGL selection
-    const guestInterfaceResidues = selectedOrder
-      ? interaction.interface_indices_2
-      : interaction.interface_indices_1;
-    const {
-      rangedSelection: rangedInterfaceResiduesSelection,
-    } = topologyManager.residueIndices2Ngl(guestInterfaceResidues);
-    guestSelection = rangedInterfaceResiduesSelection;
-
-    // Set the tags to be displayed on each graph x axis
-    data.xTags = [];
-    const hostResidues = selectedOrder
-      ? interaction.residue_indices_1
-      : interaction.residue_indices_2;
-    hostResidues.forEach(residueIndex => {
-      const residue = topologyManager.getResidueByIndex(residueIndex);
-      data.xTags.push(residue.standardLabel);
-    });
-
+  // Set the representations
+  useEffect(() => {
+    // Wait for main data to be downloaded
+    if (!topology || !defaultRepresentations || !guestInterfaceAtomIndices) return;
+    // Set the host NGL selection
+    const guestNglSelection = topology.atomIndices2Ngl(guestInterfaceAtomIndices);
     // Set the viewer representations
     setRepresentations(previousRepresentations => {
       // If this is the first render then set the default values
       if (previousRepresentations === null) return [
         ...defaultRepresentations,
         {
-          selection: guestSelection,
+          selection: guestNglSelection,
           name: 'Guest elements',
           type: 'ball+stick',
           color: 'element',
@@ -132,19 +146,76 @@ const Energies = () => {
       ];
       // Otherwise just update the guest representation
       const previousGuest = previousRepresentations.find(rep => rep.reference === GUEST_REFERENCE);
-      previousGuest.selection = guestSelection;
+      previousGuest.selection = guestNglSelection;
       return [...previousRepresentations];
     });
+  }, [topology, defaultRepresentations, guestInterfaceAtomIndices]);
+
+  // This is a toggle state for when data is displayed per atom or per residue
+  const [perResidue, setPerResidue] = useState(true);
+
+  // Reformat data se we can input it to the graph
+  const {
+    data,
+    dataError,
+    isDataPerResidue,
+    strongBondMarks,
+    esData,
+    vdwData,
+    bothData,
+    xTooltip,
+  } = useMemo(() => {
+    // Return if the dataset is not ready yet
+    if (!dataset || !topology) return {};
+    if (dataset.error) return {};
+    // Get the dataset version
+    const datasetVersion = new Version(dataset.version);
+    // Old versions of energies have only residue data, not atom data
+    const isDataPerResidue = datasetVersion.major < 1;
+    // Prepare data in a graph-friendly format
+    let data;
+    // Set the agent whose data will be displayed in the graph
+    const hostAgent = selectedOrder ? 'agent1' : 'agent2';
+    // Get the corresponding agent data
+    data = dataset[hostAgent];
+    // Data should exist at this point
+    if (!data) return {
+      data: null,
+      dataError: `Data for ${hostAgent} not found in the interaction "${dataset.name}"`
+    };
+
+    // Set the tags to be displayed on each graph x axis
+    // If data is represented per residue then we need the corresponding residue labels
+    if (perResidue) {
+      // Convert residue indices to their correspondong labels
+      const hostResiduesLabels = hostResidueIndices.map(
+        residueIndex => topology.getResidueByIndex(residueIndex).standardLabel
+      );
+      // Add this to the output formatted data
+      data.xTags = hostResiduesLabels;
+    }
+    // If data is represented per atom then we need the corresponding atom labels
+    else {
+      // Convert atom indices to atom labels
+      const hostAtomLabels = hostAtomIndices.map(
+        index => topology.getAtomByIndex(index).label
+      )
+      // Add this to the output formatted data
+      data.xTags = hostAtomLabels;
+    }
 
     // In case of strong bonds, find the implicated residues and their position in the x axis
     // They will be marked in the graph
-    const strongBonds = interaction['strong_bonds'];
     const strongBondAtoms = [].concat.apply([], strongBonds);
-    const strongBondResidues = strongBondAtoms.map(atomIndex =>
-      topologyManager.getAtomByIndex(atomIndex).residue.standardLabel,
-    );
+    const strongBondLabels = perResidue
+      ? strongBondAtoms.map(atomIndex =>
+        topology.getAtomByIndex(atomIndex).residue.standardLabel,
+      )
+      : strongBondAtoms.map(atomIndex =>
+        topology.getAtomByIndex(atomIndex).label,
+      );
     const strongBondMarks = [];
-    strongBondResidues.forEach(residue => {
+    strongBondLabels.forEach(residue => {
       const xPosition = data.xTags.indexOf(residue);
       if (xPosition !== -1)
         strongBondMarks.push({
@@ -156,33 +227,43 @@ const Energies = () => {
         });
     });
 
+    // Group data by residue IF data is to be represented by residue
+    const grouper = perResidue && !isDataPerResidue
+      ? values => {
+        const residueValues = {};
+        values.forEach((value, v) => {
+          const atomIndex = hostAtomIndices[v];
+          const residueIndex = topology.getAtomByIndex(atomIndex).residueIndex;
+          residueValues[residueIndex] = (residueValues[residueIndex] || 0) + value
+        });
+        return hostResidueIndices.map(residueIndex => residueValues[residueIndex]);
+      }
+      : values => values;
+
     // Set the dataset for each graph
     const esData = {
-      esi: { data: data.ies, color: 'red' },
-      esf: { data: data.fes, color: 'blue' },
-      es: { data: data.es, color: 'black' },
+      esi: { data: grouper(data.ies), color: 'red' },
+      esf: { data: grouper(data.fes), color: 'blue' },
+      es: { data: grouper(data.es), color: 'black' },
     };
     const vdwData = {
-      vdwi: { data: data.ivdw, color: 'red' },
-      vdwf: { data: data.fvdw, color: 'blue' },
-      vdw: { data: data.vdw, color: 'black' },
+      vdwi: { data: grouper(data.ivdw), color: 'red' },
+      vdwf: { data: grouper(data.fvdw), color: 'blue' },
+      vdw: { data: grouper(data.vdw), color: 'black' },
     };
     const bothData = {
-      bothi: {
-        data: data.iboth,
-        color: 'red',
-      },
-      bothf: { data: data.fboth, color: 'blue' },
-      both: { data: data.both, color: 'black' },
+      bothi: { data: grouper(data.iboth), color: 'red' },
+      bothf: { data: grouper(data.fboth), color: 'blue' },
+      both: { data: grouper(data.both), color: 'black' },
     };
 
     // Set the tooltip generator for the graph hover
     const xTooltip = (_, xIndex) =>
-      'residue ' + ((data.xTags && data.xTags[xIndex]) || xIndex);
+      `${perResidue ? 'residue' : 'atom'} ${(data.xTags && data.xTags[xIndex]) || xIndex}`;
 
     return {
       data,
-      dataError,
+      isDataPerResidue,
       strongBondMarks,
       esData,
       vdwData,
@@ -190,23 +271,17 @@ const Energies = () => {
       xTooltip,
     };
   }, [
-    payload,
-    selectedInteraction,
+    dataset,
     selectedOrder,
-    topologyManager,
-    interactions,
-    defaultRepresentations,
+    perResidue,
+    topology,
+    hostAtomIndices,
+    hostResidueIndices,
+    strongBonds,
   ]);
 
-  // Memoize the marks
-  const marks = useMemo(() => {
-    if (selected === null) return strongBondMarks;
-    const selectedMark = {
-      x: selected,
-      attr: { fill: '#c8c8c8' },
-    };
-    return [selectedMark, ...strongBondMarks];
-  }, [selected, strongBondMarks]);
+  // Set which data is displayed: all, start, end or any combination of them
+  const [display, setDisplay] = useState({ all: true, start: true, end: true });
 
   // Memoize the display parameters for each graph
   const { esDisplay, vdwDisplay, bothDisplay } = useMemo(() => {
@@ -228,36 +303,79 @@ const Energies = () => {
     return { esDisplay, vdwDisplay, bothDisplay };
   }, [display]);
 
+  // Track when one point in the graph is selected
+  const [selectedX, setSelectedX] = useState(null);
+
+  // Memoize the marks
+  const marks = useMemo(() => {
+    if (selectedX === null) return strongBondMarks;
+    const selectedMark = {
+      x: selectedX,
+      attr: { fill: '#c8c8c8' },
+    };
+    return [selectedMark, ...strongBondMarks];
+  }, [selectedX, strongBondMarks]);
+
   // Set the selected residue indices (only one index with the current implmementation)
   const selectedResidueIndices = useMemo(() => {
-    if (selected === null) return null;
-    // Get the selected interaction
-    const interaction = interactions[selectedInteraction];
-    const hostResidues = selectedOrder
-      ? interaction.residue_indices_1
-      : interaction.residue_indices_2;
-    const index = hostResidues[selected];
-    return [index];
-  }, [selected, interactions, selectedInteraction, selectedOrder]);
+    // If there is nothing selected then exit
+    if (selectedX === null) return null;
+    // If we are representing data by atom, not by residue, then exit
+    if (!perResidue) return null;
+    // Get the selected residue index
+    const residueIndex = hostResidueIndices[selectedX];
+    return [residueIndex];
+  }, [hostResidueIndices, perResidue, selectedX]);
+
+  // Set the selected residue indices (only one index with the current implmementation)
+  const selectedAtomIndices = useMemo(() => {
+    // If there is nothing selected then exit
+    if (selectedX === null) return null;
+    // If we are representing data by residue, not by atom, then exit
+    if (perResidue) return null;
+    // Get the selected residue index
+    const atomIndex = hostAtomIndices[selectedX];
+    return [atomIndex];
+  }, [hostAtomIndices, perResidue, selectedX]);
+
+  // Set a callback to reset the X selection whenever the viewer is closed or nail
+  const resetX = useCallback(viewer =>
+    setSelectedX(previous => {
+      if (viewer && viewer.selectedX === previous)
+        return null;
+      else return previous;
+    }), []);
+
+  // Set some state setters
+  const handleSelectInteraction = useCallback(newValue => {
+    setSelectedInteraction(newValue);
+    setSelectedX(null);
+  }, []);
+  const handleToggleOrder = useCallback(() => {
+    setSelectedOrder(previous => !previous);
+    setSelectedX(null);
+  }, []);
+  const handleTogglePerResidue = useCallback(() => {
+    setPerResidue(previous => !previous);
+    setSelectedX(null);
+  }, []);
+
+  // Check if anything is still beeing loaded
+  const anyLoading = indexLoading || loading
 
   // Render loading or error messages according with the API response
-  if (loading) return <Loading />;
-  else if (error) return error.toString();
-  else if (!payload) return 'Something bad happened';
+  if (indexError) return indexError.toString();
+  if (error) return error.toString();
+  if (dataset && dataset.error) return dataset.error;
+  if (!dataset) {
+    if (anyLoading) return <Loading />;
+    return 'Something bad happened';
+  }
 
-  if (!topologyManager) return <Loading />;
+  if (!topology) return <Loading />;
 
   // Check if there is only 1 residue
-  const singleResidue = data && data.es.length === 1;
-
-  const handleResidueSelection = xIndex => {
-    setSelected(xIndex);
-  };
-
-  const handleToggleOrder = () => {
-    setSelectedOrder(previous => !previous);
-    setSelected(null);
-  };
+  const singleValue = esData && esData.es.data.length === 1;
 
   // Render
   return (
@@ -268,165 +386,167 @@ const Energies = () => {
           <InteractionSelector
             interactions={interactions}
             selectedInteraction={selectedInteraction}
-            setSelectedInteraction={setSelectedInteraction}
+            setSelectedInteraction={handleSelectInteraction}
             selectedOrder={selectedOrder}
             handleToggleOrder={handleToggleOrder}
-            firstOrderLabel={'Guest'}
+            firstOrderLabel={'Host'}
             firstOrderTooltip={'Interactor whose energies are to be shown'}
-            secondOrderLabel={'Host'}
+            secondOrderLabel={'Guest'}
             secondOrderTooltip={'Interactor with the opposite energies'}
             toggleOrderTooltip={'Toggle interactors'}
           />
         </CardContent>
-        {dataError || !data ? null : (
-          <CardContent>
-            <legend className={style['margined-bottom']}>Overall energies summatory</legend>
-            <div>
-              <TextField
-                className={style['text-field']}
-                label="Electrostatic"
-                title="Sum electorstatic value along the whole trajectory"
-                value={getSum(data.es) + ' kcal/mol'}
+        <div className={anyLoading ? style.disabled : style.enabled}>
+          {dataError || !data ? null : (
+            <CardContent>
+              <legend className={style['margined-bottom']}>Overall energies summatory</legend>
+              <div>
+                <TextField
+                  className={style['text-field']}
+                  label="Electrostatic"
+                  title="Sum electorstatic value along the whole trajectory"
+                  value={getSum(data.es) + ' kcal/mol'}
+                />
+                <TextField
+                  className={style['text-field']}
+                  label="Electrostatic Initial"
+                  title="Sum electorstatic value along the first 20% trajectory frames"
+                  value={getSum(data.ies) + ' kcal/mol'}
+                />
+                <TextField
+                  className={style['text-field']}
+                  label="Electrostatic Final"
+                  title="Sum electorstatic value along the last 20% trajectory frames"
+                  value={getSum(data.fes) + ' kcal/mol'}
+                />
+              </div>
+              <div>
+                <TextField
+                  className={style['text-field']}
+                  label="Van der Waals"
+                  title="Sum Van der Waals value along the whole trajectory"
+                  value={getSum(data.vdw) + ' kcal/mol'}
+                />
+                <TextField
+                  className={style['text-field']}
+                  label="Van der Waals Initial"
+                  title="Sum Van der Waals value along the first 20% trajectory frames"
+                  value={getSum(data.ivdw) + ' kcal/mol'}
+                />
+                <TextField
+                  className={style['text-field']}
+                  label="Van der Waals Final"
+                  title="Sum Van der Waals value along the last 20% trajectory frames"
+                  value={getSum(data.fvdw) + ' kcal/mol'}
+                />
+              </div>
+              <div>
+                <TextField
+                  className={style['text-field']}
+                  label="Electrostatic + Van der Waals"
+                  title="Sum electorstatic + Van der Waals value along the whole trajectory"
+                  value={getSum(data.both) + ' kcal/mol'}
+                />
+                <TextField
+                  className={style['text-field']}
+                  label="Electrostatic + Van der Waals Initial"
+                  title="Sum electorstatic + Van der Waals value along the first 20% trajectory frames"
+                  value={getSum(data.iboth) + ' kcal/mol'}
+                />
+                <TextField
+                  className={style['text-field']}
+                  label="Electrostatic + Van der Waals Final"
+                  title="Sum electorstatic + Van der Waals value along the last 20% trajectory frames"
+                  value={getSum(data.fboth) + ' kcal/mol'}
+                />
+              </div>
+            </CardContent>
+          )}
+          {!isDataPerResidue && <DoubleSideSwitch
+            firstLabel={'Residues'}
+            secondLabel={'Atoms'}
+            isFirst={perResidue}
+            onChange={handleTogglePerResidue}
+          />}
+          {dataError || singleValue ? (
+            <CardContent>
+              <Typography variant="h6">
+                {dataError ? dataError : `The host has only 1 ${perResidue ? 'residue' : 'atom'}`}
+              </Typography>
+            </CardContent>
+          ) : (
+            <CardContent>
+              <Graph
+                yData={esData}
+                xAxisValues={data.xTags}
+                xTooltip={xTooltip}
+                title={'Electrostatic'}
+                xScaleFactor={0.001}
+                yAxisLabel={'Interaction energy (kcal/mol)'}
+                onSelect={setSelectedX}
+                dataDisplay={esDisplay}
+                fullPrecision
+                marks={marks}
               />
-              <TextField
-                className={style['text-field']}
-                label="Electrostatic Initial"
-                title="Sum electorstatic value along the first 20% trajectory frames"
-                value={getSum(data.ies) + ' kcal/mol'}
+              <Graph
+                yData={vdwData}
+                title={'Van der Waals'}
+                xAxisValues={data.xTags}
+                xTooltip={xTooltip}
+                yAxisLabel={'Interaction energy (kcal/mol)'}
+                onSelect={setSelectedX}
+                dataDisplay={vdwDisplay}
+                fullPrecision
+                marks={marks}
               />
-              <TextField
-                className={style['text-field']}
-                label="Electrostatic Final"
-                title="Sum electorstatic value along the last 20% trajectory frames"
-                value={getSum(data.fes) + ' kcal/mol'}
+              <Graph
+                yData={bothData}
+                title={'Electrostatic + Van der Waals'}
+                xAxisLabel={perResidue ? 'Residue' : 'Atom'}
+                xAxisValues={data.xTags}
+                xTooltip={xTooltip}
+                yAxisLabel={'Interaction energy (kcal/mol)'}
+                onSelect={setSelectedX}
+                dataDisplay={bothDisplay}
+                fullPrecision
+                marks={marks}
               />
-            </div>
-            <div>
-              <TextField
-                className={style['text-field']}
-                label="Van der Waals"
-                title="Sum Van der Waals value along the whole trajectory"
-                value={getSum(data.vdw) + ' kcal/mol'}
+              <Legend
+                entries={[
+                  { name: 'all', color: 'black', check: display.all },
+                  { name: 'start', color: 'red', check: display.start },
+                  { name: 'end', color: 'blue', check: display.end },
+                ]}
+                onChange={result =>
+                  setDisplay(previous => {
+                    // WARNING: Do not return the previous object modified
+                    // It won't trigger the re-render since it is the same object
+                    const newDisplay = { ...previous };
+                    newDisplay[result] = !newDisplay[result];
+                    return newDisplay;
+                  })
+                }
               />
-              <TextField
-                className={style['text-field']}
-                label="Van der Waals Initial"
-                title="Sum Van der Waals value along the first 20% trajectory frames"
-                value={getSum(data.ivdw) + ' kcal/mol'}
-              />
-              <TextField
-                className={style['text-field']}
-                label="Van der Waals Final"
-                title="Sum Van der Waals value along the last 20% trajectory frames"
-                value={getSum(data.fvdw) + ' kcal/mol'}
-              />
-            </div>
-            <div>
-              <TextField
-                className={style['text-field']}
-                label="Electrostatic + Van der Waals"
-                title="Sum electorstatic + Van der Waals value along the whole trajectory"
-                value={getSum(data.both) + ' kcal/mol'}
-              />
-              <TextField
-                className={style['text-field']}
-                label="Electrostatic + Van der Waals Initial"
-                title="Sum electorstatic + Van der Waals value along the first 20% trajectory frames"
-                value={getSum(data.iboth) + ' kcal/mol'}
-              />
-              <TextField
-                className={style['text-field']}
-                label="Electrostatic + Van der Waals Final"
-                title="Sum electorstatic + Van der Waals value along the last 20% trajectory frames"
-                value={getSum(data.fboth) + ' kcal/mol'}
-              />
-            </div>
-          </CardContent>
-        )}
-        {dataError || singleResidue ? (
-          <CardContent>
-            <Typography variant="h6">
-              {dataError ? dataError : 'The host has only 1 residue'}
-            </Typography>
-          </CardContent>
-        ) : (
-          <CardContent>
-            <Graph
-              yData={esData}
-              xAxisValues={data.xTags}
-              xTooltip={xTooltip}
-              title={'Electrostatic'}
-              xScaleFactor={0.001}
-              yAxisLabel={'Interaction energy (kcal/mol)'}
-              onSelect={handleResidueSelection}
-              dataDisplay={esDisplay}
-              fullPrecision
-              marks={marks}
-            />
-            <Graph
-              yData={vdwData}
-              title={'Van der Waals'}
-              xAxisValues={data.xTags}
-              xTooltip={xTooltip}
-              yAxisLabel={'Interaction energy (kcal/mol)'}
-              onSelect={handleResidueSelection}
-              dataDisplay={vdwDisplay}
-              fullPrecision
-              marks={marks}
-            />
-            <Graph
-              yData={bothData}
-              title={'Electrostatic + Van der Waals'}
-              xAxisLabel={'Residue'}
-              xAxisValues={data.xTags}
-              xTooltip={xTooltip}
-              yAxisLabel={'Interaction energy (kcal/mol)'}
-              onSelect={handleResidueSelection}
-              dataDisplay={bothDisplay}
-              fullPrecision
-              marks={marks}
-            />
-            <Legend
-              entries={[
-                { name: 'all', color: 'black', check: display.all },
-                { name: 'start', color: 'red', check: display.start },
-                { name: 'end', color: 'blue', check: display.end },
-              ]}
-              onChange={result =>
-                setDisplay(previous => {
-                  // WARNING: Do not return the previous object modified
-                  // It won't trigger the re-render since it is the same object
-                  const newDisplay = { ...previous };
-                  newDisplay[result] = !newDisplay[result];
-                  return newDisplay;
-                })
-              }
-            />
-          </CardContent>
-        )}
+              
+            </CardContent>
+          )}
+        </div>
       </Card>
       <ViewerSpawner
         // Set the new viewer or null if there is not a proper "selectedResidueIndices" value
-        newViewer={selectedResidueIndices
+        newViewer={selectedResidueIndices || selectedAtomIndices
           ? {
               selectedResidueIndices: selectedResidueIndices,
-              representationsState: [ representations, setRepresentations ]
+              selectedAtoms: selectedAtomIndices,
+              representationsState: [ representations, setRepresentations ],
+              // Just for further reference
+              selectedX
             }
           : null
         }
-        // If the nailed/closed viewer is the current viewer then reset the 'selected'
-        onNail={viewer =>
-          setSelected(previous => {
-            if (viewer.selectedResidueIndices === selectedResidueIndices) return null;
-            else return previous;
-          })
-        }
-        onClose={viewer =>
-          setSelected(previous => {
-            if (viewer.selectedResidueIndices === selectedResidueIndices) return null;
-            else return previous;
-          })
-        }
+        // If the nailed/closed viewer is the current viewer then reset the 'selectedX'
+        onNail={resetX}
+        onClose={resetX}
       />
     </Suspense>
   );
