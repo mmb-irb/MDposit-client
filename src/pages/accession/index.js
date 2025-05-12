@@ -134,15 +134,15 @@ const Accession = () => {
     if (projectQueryLoading) return;
     // If there was some problem then return the message
     if (projectQueryError) {
-      setProjectError(projectQueryError.toString());
+      setProjectError(`${projectQueryError.toString()}: ${projectQueryError.response.data}`);
       return;
     }
-    // If the requested MD was rmeoved then return an error message
+    // If the requested MD was removed then return an error message
     if (!projectQueryPayload) {
       setProjectError('Something went wrong with project data');
       return;
     }
-    // If the requested MD was rmeoved then return an error message
+    // If the requested MD was removed then return an error message
     if (projectQueryPayload.removed) {
       setProjectError('The requested MD has been removed');
       return;
