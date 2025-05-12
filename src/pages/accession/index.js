@@ -55,7 +55,7 @@ const SummarySwitch = ({ subPage }) => {
 
   useEffect(() => {
     const previousTitle = document.title;
-    document.title = project.mdCount > 1 ? project.accessionAndMdNumber : project;
+    document.title = project.mdCount > 1 ? project.accessionAndMdNumber : project.accession;
     // Return a cleanup function that will run when the component unmounts
     return () => {
       document.title = previousTitle;
