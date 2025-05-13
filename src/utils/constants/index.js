@@ -49,6 +49,7 @@ export const NICE_NAMES = new Map([
     ['apl', 'Area per lipid'],
     ['lipid-order', 'Lipid order'],
     ['lipid-inter', 'Lipid interactions'],
+    ['dihenergies', 'Dihedral energies'],
 ]);
 
 // Set manually which references have entropies or epitopes

@@ -64,6 +64,7 @@ const ENDPOINTS = {
   populations: [`files/populations.json`],
   'ligand-descriptors': ['references'],
   ligands: ['analyses/ligands'],
+  dihenergies: ['analyses/dihenergies'],
 }
 
 // Set a flag for the subpages that are not implemented yet

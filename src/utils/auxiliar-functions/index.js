@@ -18,6 +18,14 @@ export const countElement = (array, target) => array.reduce((total, value) => va
 // Get unique values in an array
 export const unique = array => Array.from(new Set(array));
 
+// Find the maximum value in a list
+// Using the reduce function we can handle very large arrays, while Math.max can not
+export const max = array => array.reduce((cv, nv) => Math.max(cv, nv), -Infinity);
+
+// Find the minimum value in a list
+// Using the reduce function we can handle very large arrays, while Math.min can not
+export const min = array => array.reduce((cv, nv) => Math.min(cv, nv), Infinity);
+
 // Create palettes of random spaced colors
 export const createPalette = colorCount => {
     const colors = [];
