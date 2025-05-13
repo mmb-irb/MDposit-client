@@ -247,12 +247,14 @@ const Clusters = () => {
 
   return (
     <>
-      <Selector
-        label={'Clusters analysis'}
-        options={availableAnalyses}
-        selection={selectedAnalysis}
-        setter={setSelectedAnalysis}
-      />
+      <Card className={style['vertical-margin']}>
+        <Selector
+          label={'Clusters analysis'}
+          options={availableAnalyses}
+          selection={selectedAnalysis}
+          setter={setSelectedAnalysis}
+        />
+      </Card>
       <Card>
         <div className={clustersAnalysis.loading ? style.disabled : style.enabled}>
           <MarkovGraph
