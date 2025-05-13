@@ -78,12 +78,18 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
       interactions.forEach(interaction => {
         if (interaction.failed) return;
         // Add a new domain for each new agent and skip repeated agents
-        const agent1 = { name: interaction.agent_1, residues: interaction.residue_indices_1 };
-        const agent2 = { name: interaction.agent_2, residues: interaction.residue_indices_2 };
+        const agent1 = {
+          name: interaction.agent_1,
+          atoms: interaction.atom_indices_1,
+        };
+        const agent2 = {
+          name: interaction.agent_2,
+          atoms: interaction.atom_indices_2,
+        };
         [agent1, agent2].forEach(agent => {
           const current = interactionDomains.find(domain => domain.name === agent.name);
           if (current) return;
-          const { rangedSelection: nglSelection } = topology.residueIndices2Ngl(agent.residues);
+          const nglSelection = topology.atomIndices2Ngl(agent.atoms);
           interactionDomains.push({
             name: agent.name,
             representations: [
