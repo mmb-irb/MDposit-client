@@ -49,6 +49,7 @@ const tabs = [
       },
       {
         name: 'Interactions',
+        hideIfEmpty: true,
         analyses: [
           'dist-perres',
           'electrostatic',

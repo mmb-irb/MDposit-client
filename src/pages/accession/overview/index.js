@@ -144,10 +144,20 @@ const LigandTable = ({ ligandReference }) => {
 };
 
 const Overview = React.memo(() => {
-  const { accession, identifier, published, metadata, ligandReferences, proteinReferences, mdCount, node, creationDate, updateDate } = useContext(
-    ProjectCtx,
-  );
-
+  const {
+    accession,
+    identifier,
+    published,
+    metadata,
+    ligandReferences,
+    proteinReferences,
+    pdbReferences,
+    mdCount,
+    node,
+    creationDate,
+    updateDate
+  } = useContext(ProjectCtx);
+  
   // Define the state and the function to show the table or not for Mordred (ligands)
   const [showTable, setShowTable] = useState(new Set());
   const handleSeeMore = pubchemId => {
@@ -286,35 +296,8 @@ const Overview = React.memo(() => {
       .
     </>
   );
-  // Download pdb information for every pdb id in metadata from our custom API
-  const pdbIds = metadata.PDBIDS;
-  const [pdbInfo, setPdbInfo] = useState({});
-  useEffect(() => {
-    if (!pdbIds) return;
-    // Store requests so we can abort them all in the useEffect cleanup function in case they were not completed on time
-    const requests = [];
-    pdbIds.forEach(pdbId => {
-      const url = `https://mdb-login.bsc.es/api/pdb/${pdbId}/entry`;
-      let body = '';
-      const request = https.get(url, response => {
-        response.on('data', chunk => {
-          body += chunk;
-        });
-        response.on('end', () => {
-          const data = JSON.parse(body);
-          setPdbInfo(previous => {
-            return { ...previous, [pdbId]: data };
-          });
-        });
-      });
-      requests.push(request);
-    });
-    // DANI: No he comprovado que esto funcione debidamente
-    return () => {
-      for (const request of requests) request.abort();
-    };
-  }, [pdbIds]);
 
+  const pdbIds = metadata.PDBIDS;
   // Ask the PDBBind for every PDB code to see if they have an entry for it
   const [pdbBindInfo, setPdbBindInfo] = useState({});
   useEffect(() => {
@@ -619,19 +602,17 @@ const Overview = React.memo(() => {
                 </CardContent>
               </div>
             ))}
-            {Object.entries(pdbInfo).map(([pdbId, pdbMetadata], i) => {
-              //const pdbId = pdb && pdb._id && pdb._id.toLowerCase();
-              if (!pdbMetadata) return 'PDB ' + pdbId + ' not found';
+            {pdbReferences.map((reference, i) => {
+              const pdbId = reference.id;
+              if (!reference) return 'PDB ' + pdbId + ' not found';
               // Mine pdb info
-              const title = pdbMetadata.compound;
-              const experimentalMethod = pdbMetadata.expClass.toLowerCase();
-              const publishDate = new Date(pdbMetadata.ascDate);
+              const title = reference.title;
+              const experimentalMethod = reference.method;
+              const publishDate = new Date(reference.date);
               const keywords = Array.from(
-                new Set((pdbMetadata.header || '').split(COMMA_SEPARATOR)),
+                new Set((reference.class || '').split(COMMA_SEPARATOR)),
               );
-              const organisms = Array.from(
-                new Set((pdbMetadata.sources || '').split(COMMA_SEPARATOR)),
-              ).filter(organism => organism); // Remove empty organism strings
+              const organisms = reference.organisms;
               // Set the url to get the pdb image
               const lowerPdb = pdbId.toLowerCase();
               const imgSrc = pdbId &&
@@ -653,18 +634,12 @@ const Overview = React.memo(() => {
                       <div className={style['summary-list']}>
                         <Typography variant="h6" sx={{ fontSize: '1.2rem' }}>{title}</Typography>
                         <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <div className={style['decorated-list-item__title']}>PDB Accession</div>
-                        <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                          {pdbId}
-                          {pdbMetadata.replaces &&
-                            ` (replaces ${pdbMetadata.replaces})`}
-                        </div>
-                        </div>
-                        <div>
-                          {pdbMetadata.status &&
-                            pdbMetadata.status !== 'CURRENT' &&
-                            `Status: ${pdbMetadata.status}`}
-                        </div>
+                          <div className={style['decorated-list-item__title']}>PDB Accession</div>
+                            <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
+                              {pdbId}
+                            </div>
+                          </div>
+
                         <div style={{ display: 'flex', alignItems: 'center' }}>
                           <div className={style['decorated-list-item__title']}>Experimental method</div>
                           <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
@@ -765,7 +740,7 @@ const Overview = React.memo(() => {
                       <Button
                         component={'a'}
                         variant="contained"
-                        href={`https://3dbionotes-ws.cnb.csic.es/?queryId=${pdbId}`}
+                        href={`https://3dbionotes.cnb.csic.es/?queryId=${pdbId}`}
                         size="small"
                         sx={{
                           backgroundColor: secondaryColor.dark,

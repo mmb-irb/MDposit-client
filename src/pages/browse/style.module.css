@@ -119,10 +119,3 @@ th.center {
   height: 100%;
 }
 
-
-@media (min-width: 1280px) {
-  main {
-    max-width: 1280px !important;
-  }
-}
-
