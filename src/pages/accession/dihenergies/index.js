@@ -139,10 +139,11 @@ const DihedralEnergies = () => {
         const selectedData = perResidue
             ? Object.values(groupedData).map(dihedralGroup => {
                 // Get the residue label from a sample dihedral from the group
-                const residueLabel = dihedralGroup[0].residue.standardLabel;
+                const residue = dihedralGroup[0].residue;
                 // Dihedrals must be joined by residue
                 return {
-                    label: residueLabel,
+                    residue: residue,
+                    label: residue.standardLabel,
                     torsion: add(dihedralGroup.map(dihedral => dihedral.torsion)),
                     normee: add(dihedralGroup.map(dihedral => dihedral.normee)),
                     normvdw: add(dihedralGroup.map(dihedral => dihedral.normvdw)),
@@ -195,21 +196,21 @@ const DihedralEnergies = () => {
     const [selectedX, setSelectedX] = useState(null);
 
     // Memoize the marks
-      const marks = useMemo(() => {
-        if (selectedX === null) return;
+    const marks = useMemo(() => {
+        if (selectedX === null) return [];
         const selectedMark = {
-          x: selectedX,
-          attr: { fill: '#c8c8c8' },
+            x: selectedX,
+            attr: { fill: '#c8c8c8' },
         };
         return [selectedMark];
-      }, [selectedX]);
+    }, [selectedX]);
 
     // Set a callback to reset the X selection whenever the viewer is closed or nail
-      const resetX = useCallback(viewer =>
+    const resetX = useCallback(viewer =>
         setSelectedX(previous => {
-          if (viewer && viewer.selectedX === previous)
+            if (viewer && viewer.selectedX === previous)
             return null;
-          else return previous;
+            else return previous;
         }), []);
     
 
