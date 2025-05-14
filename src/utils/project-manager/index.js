@@ -125,11 +125,12 @@ export class Project {
     get interactions () {
         // Ask the API for the interactions analysis
         const response = this._apiQuery('interactions', this.hasInteractions);
+        const payload = response && response.payload;
         // We will need the topology to make some corretions in old interactions
         const topology = this.topology;
         // Once we have interactions data, in case it is in the old format, adapt it to the new format
         const interactions = useMemo(() => {
-            if (!response.payload || !topology) return;
+            if (!payload || !topology) return;
             // Iterate interactions in the payload
             for (const interaction of response.payload) {
                 // If the interaction already has atom indices then there is nothing to do here
@@ -141,7 +142,7 @@ export class Project {
                 interaction.interface_atom_indices_2 = topology.residue2atomIndices(interaction.interface_indices_1);
             }
             return response.payload;
-        }, [response.payload, topology])
+        }, [payload, topology]);
         if (response === undefined) return undefined;
         if (response.loading) return undefined;
         if (response.error) throw new Error('Error when downloading project interactions: ' + response.error.message);
