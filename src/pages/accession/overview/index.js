@@ -612,7 +612,10 @@ const Overview = React.memo(() => {
               const keywords = Array.from(
                 new Set((reference.class || '').split(COMMA_SEPARATOR)),
               );
-              const organisms = reference.organisms;
+              // Get the organisms from the reference with reference.organism as old fallback
+              const organisms = reference.organisms ||  Array.from(
+                new Set((reference.organism || '').split(COMMA_SEPARATOR)),
+              ).filter(organism => organism); // Remove empty organism strings
               // Set the url to get the pdb image
               const lowerPdb = pdbId.toLowerCase();
               const imgSrc = pdbId &&
