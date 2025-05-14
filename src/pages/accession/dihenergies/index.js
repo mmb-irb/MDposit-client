@@ -6,6 +6,9 @@ import useAPI from '../../../hooks/use-api';
 import { ProjectCtx } from '../../../contexts';
 // Import MUI components
 import { CardContent, TextField } from '@mui/material';
+// Import tools to mae a custom color scheme
+import { ColormakerRegistry } from 'ngl';
+import { color as d3color, scaleLinear } from 'd3';
 // Import some custom components
 import Card from '../../../components/animated-card';
 import ViewerSpawner from '../../../components/viewer-spawner';
@@ -15,13 +18,17 @@ import DoubleSideSwitch from 'src/components/double-side-switch';
 // Import NGL default representations
 import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 // Import auxiliar function
-import { caluclateAverage, round2cents, add, unique } from 'src/utils/auxiliar-functions';
+import { caluclateAverage, round2cents, add, unique, min, max } from 'src/utils/auxiliar-functions';
 // Import CSS style
 import style from './style.module.css';
 
 const Graph = lazy(() =>
     import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
 );
+
+// Set the color of each residue in the NGL representation
+// WARNING: Grey looks better than white because the background may be white and residues are hard to see
+const nglColorPlan = ['grey', 'yellow', 'red'];
 
 // Set functions to group a list of object according to one of its properties
 const groupByDihedral = dihedrals => {
@@ -154,6 +161,7 @@ const DihedralEnergies = () => {
         totalData,
         xAxisValues,
         xTooltip,
+        colorScheme
     } = useMemo(() => {
         // Wait for data to be downloaded and processed
         if (!dihedralsData || selectedChain === null) return {};
@@ -204,8 +212,9 @@ const DihedralEnergies = () => {
         const vdwData = {
             vdw: { data: selectedData.map(dihedral => dihedral.normvdw), color: 'black' },
         };
+        const totalValues = selectedData.map(dihedral => dihedral.total);
         const totalData = {
-            total: { data: selectedData.map(dihedral => dihedral.total), color: 'black' },
+            total: { data: totalValues, color: 'black' },
         };
         // Set x axes values
         const xAxisValues = selectedData.map(dihedral => dihedral.label);
@@ -213,13 +222,94 @@ const DihedralEnergies = () => {
         const grouper = perResidue ? 'residue' : 'dihedral'
         const xTooltip = (_, xIndex) =>
             `${grouper} ${(xAxisValues[xIndex]) || xIndex}`;
-        return { selectedData, summaryData, torsionData, eeData, vdwData, totalData, xAxisValues, xTooltip };
+        // Save data per residue index so it is retrieved faster
+        // Note that selected data should never have more than one entry with the same residue index
+        // No matter if data is grouped by residue or by dihedral
+        const dataPerResidueIndex = {};
+        selectedData.forEach(data => dataPerResidueIndex[data.residue.index] = data.total);
+        // Set the color scale according to the maximum and minimum values
+        const minValue = min(totalValues);
+        const maxValue = max(totalValues);
+        const nglColorScale = scaleLinear()
+            .range(nglColorPlan)
+            .domain([minValue, (minValue + maxValue) / 2, maxValue]);
+        // Set each residue color in the ngl representation according to the color scale
+        // WARNING: Grey looks better than white because the background may be white
+        const colorScheme = ColormakerRegistry.addScheme(function(params) {
+            this.atomColor = atom => {
+            // Find the residue index and then the mean rmsd for this residue
+            const residueIndex = atom.residueIndex;
+            const value = dataPerResidueIndex[residueIndex];
+            // If there is no data for this residue then paint it white
+            if (value === undefined) return 16777215;
+            // Calculate the interpolated rgb for this value
+            // The interpolated color comes in rbg format
+            const hexColor = d3color(nglColorScale(value)).formatHex();
+            // The color interpolation returns a string like '#000000'
+            // We remove the first character ('#') and parse it to integer from hexadecimal
+            const color = parseInt(hexColor.substring(1), 16);
+            return color;
+            };
+        });
+        return {
+            selectedData,
+            summaryData,
+            torsionData,
+            eeData,
+            vdwData,
+            totalData,
+            xAxisValues,
+            xTooltip,
+            colorScheme
+        };
     }, [selectedChain, dihedralsData, selectedDihedral, perResidue]);
 
     // Get the default representations
-    //const defaultRepresentations = useDefaultRepresentations();
+    const defaultRepresentations = useDefaultRepresentations();
     // Define the representations to be displayed in the viewer
-    //const [ representations, setRepresentations ] = useState(null);
+    const [ representations, setRepresentations ] = useState(null);
+
+    // Set the representations for the viewer
+    // Set a custom color scheme painting residues by their accumulated dihedral energy
+    useEffect(() => {
+        // Wait for topology and default representations to be ready
+        if (!topology || !defaultRepresentations) return;
+        // Set the custom representation
+        const selectedChainName = topology.chainNames[selectedChain];
+        const nglChainSelection = ':' + selectedChainName;
+        const customRepresentations = [
+            {
+                name: 'Dihedral energies',
+                selection: nglChainSelection,
+                color: 'custom',
+                customScheme: colorScheme,
+                reference: 'dihen_color'
+            },
+            {
+                name: 'Reference',
+                selection: 'not ' + nglChainSelection,
+                type: 'licorice',
+                color: 'element',
+                opacity: 0.2,
+                reference: 'dihen_ref'
+            }
+        ]
+        // Setup every representation or update the already existing ones
+        setRepresentations(previousRepresentations => {
+            // Set the list of the rest of representations besides our custom one
+            const restingRepresentations = previousRepresentations === null
+                ? defaultRepresentations
+                : previousRepresentations.filter(rep => {
+                    rep.reference && rep.reference.substr(0,5) !== 'dihen'
+                });
+            // Return new representations
+            return [
+                ...customRepresentations,
+                ...restingRepresentations
+            ]
+        });
+        
+    }, [topology, defaultRepresentations, selectedChain, colorScheme])
 
     // Track when one point in the graph is selected
     const [selectedX, setSelectedX] = useState(null);
@@ -349,7 +439,7 @@ const DihedralEnergies = () => {
             newViewer={selectedX
             ? {
                 selectedResidueIndices: [ selectedData[selectedX].residue.index ],
-                //representationsState: [ representations, setRepresentations ],
+                representationsState: [ representations, setRepresentations ],
                 // Just for further reference
                 selectedX
                 }
