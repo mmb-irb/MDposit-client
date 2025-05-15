@@ -76,6 +76,7 @@
   "homepage": ".",
   "scripts": {
     "start": "npm run hostlink && react-scripts start",
+    "dev_build": "[ -f .env ] && npm run hostlink && GENERATE_SOURCEMAP=true react-scripts build && node style-embedder/index.js && node sw-build/index.js",
     "build": "[ -f .env ] && npm run hostlink && react-scripts build && node style-embedder/index.js && node sw-build/index.js",
     "typecheck": "tsc --project tsconfig.json",
     "test": "react-scripts test --transformIgnorePatterns='node_modules/(?!lodash-es)' --env=jest-environment-jsdom-fourteen",
