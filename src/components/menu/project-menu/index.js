@@ -1,4 +1,4 @@
-import React, { useState, useContext, useCallback } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 
 import {
   CardContent,
@@ -121,6 +121,10 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
     if (key === openMenu) {
       setOpenMenu(-1);
       setElement(null);
+      // Set the focus on the body so enable going back to the previous page with mouse
+      document.body.tabIndex = -1;
+      document.body.focus();
+      document.body.removeAttribute('tabIndex');
     }
   };
 
