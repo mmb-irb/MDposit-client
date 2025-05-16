@@ -388,6 +388,38 @@ const ViewerWithControls = forwardRef(
       }, [setProgress, onProgress, metadata.FRAMESTEP],
     );
 
+    // Patch to stop playback when URL changes
+    // LORE: this is a workaround to be able to change from the trajectory to other
+    // accesion pages when the player speed is high (ISSUE #24)
+    useEffect(() => {
+      // Save original history methods
+      const originalPushState = window.history.pushState;
+      const originalReplaceState = window.history.replaceState;
+      
+      // Override history methods to add our own handlers
+      window.history.pushState = function() {
+        // Call original method
+        originalPushState.apply(this, arguments);
+        // Stop playback if playing
+        if (playing) togglePlaying(false);
+      };
+      
+      window.history.replaceState = function() {
+        // Call original method
+        originalReplaceState.apply(this, arguments);
+        // Stop playback if playing
+        if (playing) togglePlaying(false);
+      };
+
+      // Clean up
+      return () => {
+        window.history.pushState = originalPushState;
+        window.history.replaceState = originalReplaceState;
+
+      };
+    }, [playing, togglePlaying]);
+    
+
     // Handle the trajectory load
     const handleLoad = useCallback(
       load => {
