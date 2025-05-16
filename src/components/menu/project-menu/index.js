@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useCallback } from 'react';
+import React, { useState, useContext, useCallback } from 'react';
 
 import {
   CardContent,
@@ -21,8 +21,6 @@ import { ProjectCtx } from '../../../contexts';
 
 import { NICE_NAMES } from '../../../utils/constants';
 import style from './style.module.css';
-
-import { HOST_CONFIG } from '../../../utils/constants';
 // Set the configuration of the tabs to be displayed in the menu
 // Each tab must have 'dir' or 'drops'. Never both, never none.
 // Tabs with 'dir' link the user directly on click

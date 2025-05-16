@@ -602,6 +602,12 @@ const Overview = React.memo(() => {
                 </CardContent>
               </div>
             ))}
+          </CardContent>
+        </Card>
+      )}
+      {pdbReferences && pdbReferences.length > 0 && (
+        <Card className={style.card}>
+          <CardContent className={style['horizontal-marginned']}>
             {pdbReferences.map((reference, i) => {
               const pdbId = reference.id;
               if (!reference) return 'PDB ' + pdbId + ' not found';
