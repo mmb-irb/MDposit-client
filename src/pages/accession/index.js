@@ -89,22 +89,22 @@ const AccessionHeader = ({ project, accession, accessionAndMdNumber, page, prima
             className={style.selector}
             >
             {project.mds
-              .slice()
-              .sort((a, b) => a.localeCompare(b))
-              .map((md, i) => (
-              <MenuItem key={i} value={i}>
+              .map((md, i) => ({ md, index: i }))
+              .sort((a, b) => a.md.localeCompare(b.md))
+              .map(({ md, index }) => (
+              <MenuItem key={index} value={index}>
                 {md}
               </MenuItem>
               ))}
             </Select>
-          }
-          {multipleMDs && <ChevronRightIcon fontSize='large' sx={{color: primaryDarkColor}}/>}
-          {`${NICE_NAMES.get(page) || page} page ${isData ? ' (data)' : ''}`}
-          {!isData && doc && doc.page && (
+            }
+            {multipleMDs && <ChevronRightIcon fontSize='large' sx={{color: primaryDarkColor}}/>}
+            {`${NICE_NAMES.get(page) || page} page ${isData ? ' (data)' : ''}`}
+            {!isData && doc && doc.page && (
             <Info tooltip={tooltip} className={style.info} sx={{color: primaryDarkColor}}/>
-          )}
-          </Typography>
-          {/* Render a button which links to the API */}
+            )}
+            </Typography>
+            {/* Render a button which links to the API */}
       {!isData && <Button
         component={Link}
         target="_blank"
