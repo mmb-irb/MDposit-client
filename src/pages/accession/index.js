@@ -70,7 +70,7 @@ const AccessionHeader = ({ project, accession, accessionAndMdNumber, page, prima
 
   // Check if there are multiple MDs
   const multipleMDs = project.mdCount > 1;
-  
+
   return (
     <span className={style.container}>
       {/* Render the accession */}
@@ -87,21 +87,24 @@ const AccessionHeader = ({ project, accession, accessionAndMdNumber, page, prima
               history(`/id/${accession}.${newMdNumber}/${page}`);
             }}
             className={style.selector}
-          >
-            {project.mds.map((md, i) => (
+            >
+            {project.mds
+              .slice()
+              .sort((a, b) => a.localeCompare(b))
+              .map((md, i) => (
               <MenuItem key={i} value={i}>
                 {md}
               </MenuItem>
-            ))}
-          </Select>
-        }
-        {multipleMDs && <ChevronRightIcon fontSize='large' sx={{color: primaryDarkColor}}/>}
-        {`${NICE_NAMES.get(page) || page} page ${isData ? ' (data)' : ''}`}
-        {!isData && doc && doc.page && (
-          <Info tooltip={tooltip} className={style.info} sx={{color: primaryDarkColor}}/>
-        )}
-      </Typography>
-      {/* Render a button which links to the API */}
+              ))}
+            </Select>
+          }
+          {multipleMDs && <ChevronRightIcon fontSize='large' sx={{color: primaryDarkColor}}/>}
+          {`${NICE_NAMES.get(page) || page} page ${isData ? ' (data)' : ''}`}
+          {!isData && doc && doc.page && (
+            <Info tooltip={tooltip} className={style.info} sx={{color: primaryDarkColor}}/>
+          )}
+          </Typography>
+          {/* Render a button which links to the API */}
       {!isData && <Button
         component={Link}
         target="_blank"
