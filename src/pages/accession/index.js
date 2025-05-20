@@ -32,17 +32,97 @@ import {
   NICE_NAMES,
 } from '../../utils/constants';
 
-// CSS styles
+// Styling
 import style from './style.module.css';
+import { useTheme } from '@mui/material/styles';
 
 // The menu used to change the subpage inside the project
 import ProjectMenu from '../../components/menu/project-menu';
 // Component used to visualize API data related to the current subpage
 import DataViewer from './data-viewer';
 
-import { useTheme } from '@mui/material/styles';
-// Render the accession summary
-const SummarySwitch = ({ subPage }) => {
+// The AccessionHeader component
+const AccessionHeader = ({ project, accession, accessionAndMdNumber, page, primaryDarkColor }) => {
+  // Get the location and the history
+  const history = useNavigate();
+  const location = useLocation();
+  // Find out if the user is requesting the raw data, and not the interface
+  const fullpath = location.pathname;
+  const isData = fullpath.substr(fullpath.length - 5) === '/data';
+  // Set the footer line for the help tooltip
+  const doc = docs.find(doc => doc.id === page); // doc may not exist
+  const tooltip = doc && doc.page && (
+    <>
+      {doc.page}
+      <br />
+      <br />
+      To learn more about this page and how data is obtained please{' '}
+      <a
+        href={`/#/help#${doc.id}`}
+        target="_blank"
+        rel="noreferrer noopener"
+      >
+        {'click here'}
+      </a>
+      .
+    </>
+  );
+
+  // Check if there are multiple MDs
+  const multipleMDs = project.mdCount > 1;
+
+  return (
+    <span className={style.container}>
+      {/* Render the accession */}
+      <Typography variant="h6" className={style.title}>
+        {`Project ${accession}`}
+        <ChevronRightIcon fontSize='large' sx={{color: primaryDarkColor}}/>
+        {/* MD selector */}
+        {multipleMDs &&
+          <Select
+            variant="standard"
+            value={project.mdIndex}
+            onChange={event => {
+              const newMdNumber = event.target.value + 1;
+              history(`/id/${accession}.${newMdNumber}/${page}`);
+            }}
+            className={style.selector}
+            >
+            {project.mds
+              .slice()
+              .sort((a, b) => a.localeCompare(b))
+              .map((md, i) => (
+              <MenuItem key={i} value={i}>
+                {md}
+              </MenuItem>
+              ))}
+            </Select>
+          }
+          {multipleMDs && <ChevronRightIcon fontSize='large' sx={{color: primaryDarkColor}}/>}
+          {`${NICE_NAMES.get(page) || page} page ${isData ? ' (data)' : ''}`}
+          {!isData && doc && doc.page && (
+            <Info tooltip={tooltip} className={style.info} sx={{color: primaryDarkColor}}/>
+          )}
+          </Typography>
+          {/* Render a button which links to the API */}
+      {!isData && <Button
+        component={Link}
+        target="_blank"
+        to={`/id/${accessionAndMdNumber}/${page}/data`}
+        className={style['link-to-api']}
+        sx={{
+          color: primaryDarkColor,
+        }}
+      >
+        <FontAwesomeIcon icon={faBook} />
+        &nbsp;&nbsp;data in this page
+      </Button>}
+    </span>
+  );
+};
+
+// Render the accession content: overview, trajectory, etc
+const ContentSwitch = ({ subPage }) => {
   // Load the project context
   const project = useContext(ProjectCtx);
   // Find the first valid structure filename found in the project
@@ -53,6 +133,7 @@ const SummarySwitch = ({ subPage }) => {
     { defaultRepresentation: false, ext: 'pdb' },
   );
 
+  // Change tab title according to the current project
   useEffect(() => {
     const previousTitle = document.title;
     document.title = project.mdCount > 1 ? project.accessionAndMdNumber : project.accession;
@@ -106,15 +187,13 @@ const SummarySwitch = ({ subPage }) => {
   );
 };
 
+// The main component
 const Accession = () => {
   const theme = useTheme();
   const primaryDarkColor = theme.palette.primary.dark;
-  // Get the location and the history
-  const location = useLocation();
-  const history = useNavigate();
   // Get the project accession according to the URL
-  // Get the actual page where the user is going according to the URL
   const { accession: accessionAndMdNumber, page } = useParams();
+  // Get the actual page where the user is going according to the URL
   const accessionSplits = accessionAndMdNumber.split('.');
   const accession = accessionSplits[0];
   // Set a state to store the current project data
@@ -155,79 +234,20 @@ const Accession = () => {
   if (projectError) return projectError;
   // This may happen in the first renders
   if (!project) return <Loading />;
-  // Set the footer line for the help tooltip
-  const doc = docs.find(doc => doc.id === page); // doc may not exist
-  const tooltip = doc && doc.page && (
-    <>
-      {doc.page}
-      <br />
-      <br />
-      To learn more about this page and how data is obtained please{' '}
-      <a
-        href={`/#/help#${doc.id}`}
-        target="_blank"
-        rel="noreferrer noopener"
-      >
-        {'click here'}
-      </a>
-      .
-    </>
-  );
-  // Find out if the user is requesting the raw data, and not the interface
-  const fullpath = location.pathname;
-  const isData = fullpath.substr(fullpath.length - 5) === '/data';
-  // Check if there are multiple MDs
-  const multipleMDs = project.mdCount > 1;
   // Return the accession routes
   return (
     // Set the project context, which is used by different scripts including this
     <ProjectCtx.Provider value={project}>
       <ProjectMenu accessionAndMdNumber={accessionAndMdNumber} subPage={page} />
-      <span className={style.container}>
-        {/* Render the accession */}
-        <Typography variant="h6" className={style.title}>
-          {`Project ${accession}`}
-          <ChevronRightIcon fontSize='large' sx={{color: primaryDarkColor}}/>
-          {/* MD selector */}
-          {multipleMDs &&
-            <Select
-              variant="standard"
-              value={project.mdIndex}
-              onChange={event => {
-                const newMdNumber = event.target.value + 1;
-                history(`/id/${accession}.${newMdNumber}/${page}`);
-              }}
-              className={style.selector}
-            >
-              {project.mds.map((md, i) => (
-                <MenuItem key={i} value={i}>
-                  {md}
-                </MenuItem>
-              ))}
-            </Select>
-          }
-          {multipleMDs && <ChevronRightIcon fontSize='large' sx={{color: primaryDarkColor}}/>}
-          {`${NICE_NAMES.get(page) || page} page ${isData ? ' (data)' : ''}`}
-          {!isData && doc && doc.page && (
-            <Info tooltip={tooltip} className={style.info} sx={{color: primaryDarkColor}}/>
-          )}
-        </Typography>
-        {/* Render a button which links to the API */}
-        {!isData && <Button
-          component={Link}
-          target="_blank"
-          to={`/id/${accessionAndMdNumber}/${page}/data`}
-          className={style['link-to-api']}
-          sx={{
-            color: primaryDarkColor,
-            }}
-        >
-          <FontAwesomeIcon icon={faBook} />
-          &nbsp;&nbsp;data in this page
-        </Button>}
-      </span>
+      <AccessionHeader 
+        project={project}
+        accession={accession}
+        accessionAndMdNumber={accessionAndMdNumber}
+        page={page}
+        primaryDarkColor={primaryDarkColor}
+      />
       {/* Load the main data summary */}
-      <SummarySwitch subPage={page} />
+      <ContentSwitch subPage={page} />
     </ProjectCtx.Provider>
   );
 };

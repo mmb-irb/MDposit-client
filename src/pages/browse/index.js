@@ -256,9 +256,12 @@ const Browse = () => {
     [search, sortState]
   );
 
-  // Scroll up when the page is changed
+  // Smoothly scroll up when the page is changed
   useEffect(() => {
-    window.scrollTo(0, 0);
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
   }, [search.page]);
 
   // Save the previous query payload

@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
 
 // This is like the JavaScript catch{} block but for React components
+// Error boundaries do not catch errors inside event handlers
 class ErrorBoundary extends Component {
   state = { hasError: false };
 

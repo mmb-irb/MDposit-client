@@ -47,6 +47,10 @@ const Pagination = ({
 								!search.limit || +search.limit === DEFAULT_LIMIT
 									? undefined
 									: +search.limit,
+							 // Preserve sort state
+							sort: search.sort,
+							sortField: search.sortField,
+							sortDirection: search.sortDirection,
 						}),
 					});
 				}}
@@ -60,6 +64,10 @@ const Pagination = ({
 							query: search.query,
 							option: search.option,
 							limit: +value === DEFAULT_LIMIT ? undefined : value,
+							// Preserve sort state
+							sort: search.sort,
+							sortField: search.sortField,
+							sortDirection: search.sortDirection,
 						}),
 					});
 				}}

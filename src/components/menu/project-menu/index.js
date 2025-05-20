@@ -21,8 +21,6 @@ import { ProjectCtx } from '../../../contexts';
 
 import { NICE_NAMES } from '../../../utils/constants';
 import style from './style.module.css';
-
-import { HOST_CONFIG } from '../../../utils/constants';
 // Set the configuration of the tabs to be displayed in the menu
 // Each tab must have 'dir' or 'drops'. Never both, never none.
 // Tabs with 'dir' link the user directly on click
@@ -121,6 +119,10 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
     if (key === openMenu) {
       setOpenMenu(-1);
       setElement(null);
+      // Set the focus on the body so enable going back to the previous page with mouse
+      document.body.tabIndex = -1;
+      document.body.focus();
+      document.body.removeAttribute('tabIndex');
     }
   };
 
@@ -220,7 +222,7 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
                           // Discard analyses whose direction is not even declared since they are not to be shown
                           const displayableAnalyses = drop.analyses.filter(analysis => directions[analysis] !== undefined);
                           if (displayableAnalyses.length === 0) return;
-                            if (drop.hideIfEmpty && displayableAnalyses.every(analysis => directions[analysis] === false)) return;
+                          if (drop.hideIfEmpty && displayableAnalyses.every(analysis => directions[analysis] === false)) return;
                           return <div key={d}>
                             <Typography variant="h6">{drop.name}</Typography>
                             <MenuList
