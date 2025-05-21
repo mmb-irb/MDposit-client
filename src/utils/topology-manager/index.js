@@ -34,6 +34,10 @@ const ELEMENT_COLORS = {
   P: 'orange',
 };
 
+// Set a flag which may be found in atom bonds to represent irremediably missing bonds
+// These como from coarse grain simulations with no topology
+const MISSING_BONDS_FLAG = 'MB';
+
 // Set an atom handler
 class Atom {
   // Constructor expects the topology this atom belongs to and the atom index
@@ -405,7 +409,10 @@ export class Topology {
     this.residueReferenceIndices = topology.residue_reference_indices;
     this.residueReferenceNumbers = topology.residue_reference_numbers;
     // Save atom bonds
-    this.atomBonds = topology.atom_bonds
+    // Replace missing bonds flags by empty arrays
+    this.atomBonds = topology.atom_bonds && topology.atom_bonds.map(bonds => 
+      bonds === MISSING_BONDS_FLAG ? [] : bonds
+    )
     // Save the PBC (Priodic Boundary Conditions) residues
     this.pbcResidues = topology.pbc_residues && new Set(topology.pbc_residues);
     // Data is stored in a down-top structure according to atom-residue-chain indices
