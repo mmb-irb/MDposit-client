@@ -146,6 +146,7 @@ const LigandTable = ({ ligandReference }) => {
 const Overview = React.memo(() => {
   const {
     accession,
+    internalId,
     identifier,
     published,
     metadata,
@@ -1075,7 +1076,7 @@ const Overview = React.memo(() => {
           <div style={{ display: 'flex', alignItems: 'center' }}>
              <div className={style['decorated-list-item__title']} style={{flexBasis: '16vw'}}>Internal project identifier:</div>
              <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}>
-              {identifier}
+              {internalId || identifier}
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center' }}>
