@@ -12,12 +12,15 @@ import style from './style.module.css';
 
 import { BASE_PATH } from '../../utils/constants';
 
+
+// Set the GitHub repository name
+const githubRepo = 'mmb-irb/MDDB-meta'
 // Set the URL to the github repo which sources the binder
-const githubRepoBaseUrl = 'https://github.com/bioexcel/bioexcel_covid19_workflows'
+const githubRepoBaseUrl = 'https://github.com/' + githubRepo
 // Set the URL to the github jupyer notebook viewer
 const githubJupyterViewer = githubRepoBaseUrl + '/blob/main/notebooks/';
 // Set the base URL to the repository where the binder enviornment and the workflows are stored
-const binderRepoBaseUrl = 'https://mybinder.org/v2/gh/bioexcel/bioexcel_covid19_workflows/HEAD?labpath=notebooks%2F';
+const binderRepoBaseUrl = `https://mybinder.org/v2/gh/${githubRepo}/HEAD?labpath=notebooks%2F`;
 
 // Set some markdown badges
 const githubBadge = '![GitHub repository](https://badgen.net/badge/icon/github?icon=github&label)';
@@ -113,7 +116,7 @@ const availableAnalyses = [
       <>
         In this example we intend to analyze simulations of ACE2 protein with different ligands (drugs).
         We aim to compare, for each ligand, how both electrostatic and Van de Waals energies change.
-        For this test we are using 78 atomistic MD trajectories from D. E. Shaw already loaded in the BioExcel-Covid19 database.
+        For this test we are using 78 atomistic MD trajectories from D. E. Shaw already loaded in the MDDB database.
       </>
     ),
     notebook: 'ace2_ligands_analysis.ipynb'
@@ -128,7 +131,7 @@ const availableAnalyses = [
         Van der Waals energies and hydrogen bonds change on this residue and its surrounding residues.
         <br />
         <br />
-        For this test we will use RBD-ACE2 atomistic MD trajectories already loaded in the BioExcel-Covid19 database. 
+        For this test we will use RBD-ACE2 atomistic MD trajectories already loaded in the MDDB database. 
         Specifically, we will use a group of simulations from Mary Hongying Cheng including different varaints of the virus.
       </>
     ),
@@ -144,7 +147,7 @@ const availableAnalyses = [
         which is carrying the interaction.
         <br />
         <br />
-        For this test we will use Polymerase atomistic MD trajectories already loaded in the BioExcel-Covid19 database from 
+        For this test we will use Polymerase atomistic MD trajectories already loaded in the MDDB database from 
         different groups.
       </>
     ),
