@@ -35,7 +35,10 @@ import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 // Import CSS style
 import style from './style.module.css';
 // Import auxiliar
-import { add, Version } from 'src/utils/auxiliar-functions';
+import { add, max, Version } from 'src/utils/auxiliar-functions';
+
+// Set the minimum hydrogen bond stability peak to filter which hydrogen bonds are shown
+const STABILITY_CUTOFF = 0.05;
 
 // Define non-changing props used by the table footer
 const rowsPerPageDefault = 25;
@@ -136,7 +139,14 @@ const Hbonds = () => {
       // Note that status will be a single float if this is an enseble
       // We make sure it is an array to keep the types coherent
       if (!Array.isArray(status)) status = [status];
-      const bond = { acceptor, donor, hydrogen, status };
+      // Find the maximum stability
+      // Use this value to filter which hydrogen bonds are shown
+      const maxStability = max(status);
+      if (maxStability < STABILITY_CUTOFF) continue;
+      // Define also the stability of the hydrogen bond by adding its status over time
+      // This value is then used to sort groups
+      const stability = add(status) / status.length;
+      const bond = { acceptor, donor, hydrogen, status, stability };
       // Add current bond to its corresponding acceptor group
       const acceptorGroup = acceptorGroups[acceptor];
       if (acceptorGroup) acceptorGroup.push(bond);
@@ -146,6 +156,8 @@ const Hbonds = () => {
       if (donorGroup) donorGroup.push(bond);
       else donorGroups[donor] = [bond];
     }
+
+    console.log(acceptorGroups);
 
     // Join all groups together discarding redundant groups
     const groups = [];
@@ -200,7 +212,10 @@ const Hbonds = () => {
       const uniqueHydrogens = new Set(hydrogens);
       if (uniqueHydrogens.size === 1) hydrogens = [hydrogens[0]];
       const status = group.map(bond => bond.status);
-      return { acceptors, donors, hydrogens, status };
+      // Set the group stability score adding the stability of their individual bonds
+      // This value is then used to sort groups
+      const stability = add(group.map(bond => bond.stability));
+      return { acceptors, donors, hydrogens, status, stability };
     });
 
     // Find out for each group which atoms (acceptors or donnors) belong to each interacting agent
@@ -237,12 +252,6 @@ const Hbonds = () => {
         group.agent1Labels = donorLabels;
         group.agent2Labels = acceptorLabels;
       }
-      // Set the group score according to the stability of all its bonds together
-      // This value is then used to sort groups
-      let reducer = (acc, cur) => acc + add(cur);
-      if (version.major < 1) reducer = (acc, cur) => acc + cur.filter(v => v === true).length;
-      const stability = group.status.reduce(reducer, 0);
-      group.stability = stability;
     });
 
     // Sort bond groups by status (all status added together)
