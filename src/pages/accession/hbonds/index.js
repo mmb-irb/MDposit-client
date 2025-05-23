@@ -157,8 +157,6 @@ const Hbonds = () => {
       else donorGroups[donor] = [bond];
     }
 
-    console.log(acceptorGroups);
-
     // Join all groups together discarding redundant groups
     const groups = [];
     const commons = [];
@@ -224,9 +222,8 @@ const Hbonds = () => {
       // Find out which agent does the acceptors belong to
       const acceptorIndex = group.acceptors[0];
       const acceptorAtom = topologyManager.getAtomByIndex(acceptorIndex);
-      const acceptorResidueIndex = acceptorAtom.residueIndex;
       const isAcceptorFromAgent1 =
-        interaction['interface_indices_1'].indexOf(acceptorResidueIndex) !== -1;
+        interaction['interface_atom_indices_1'].indexOf(acceptorAtom.index) !== -1;
       group.isAcceptorFromAgent1 = isAcceptorFromAgent1;
       // Set the acceptor, donor and hydrogen labels to be displayed in the table
       const [acceptorLabels, donorLabels] = [group.acceptors, group.donors].map(
@@ -313,7 +310,12 @@ const Hbonds = () => {
       selectedAngles: [[acceptor, hydrogen, donor]],
     });
   }, [displayedBondGroups]);
-  
+
+  // Handle when the user selects a different interaction
+  const handleChangeInteraction = useCallback(interaction => {
+    setSelectedInteraction(interaction);
+    setSelectedPage(0);
+  }, []);
 
   // Render loading or error messages according with the API response
   if (indexError) return indexError.toString();
@@ -339,10 +341,7 @@ const Hbonds = () => {
           <InteractionSelector
             interactions={interactions}
             selectedInteraction={selectedInteraction}
-            setSelectedInteraction={interaction => {
-              setSelectedInteraction(interaction);
-              setSelectedPage(0);
-            }}
+            setSelectedInteraction={handleChangeInteraction}
           />
         </CardContent>
       </Card>
