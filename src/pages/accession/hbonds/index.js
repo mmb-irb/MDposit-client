@@ -5,8 +5,9 @@ import React, {
   useMemo,
   Fragment,
   useRef,
+  useCallback,
 } from 'react';
-
+// Import material UI components
 import {
   CardContent,
   Table,
@@ -18,21 +19,23 @@ import {
   TableFooter,
   Typography,
 } from '@mui/material';
-
+// Import custom components
 import Card from '../../../components/animated-card';
 import Loading from '../../../components/loading';
-import BondStatus from './bond-status';
 import ViewerSpawner from '../../../components/viewer-spawner';
-
-import useAPI from '../../../hooks/use-api';
-
-import { ProjectCtx } from '../../../contexts';
-
-import { BASE_PATH_PROJECTS } from '../../../utils/constants';
-
 import InteractionSelector from '../../../components/interaction-selector';
-
+import BondStatus from './bond-status';
+// Import our custom hooks
+import useAPI from '../../../hooks/use-api';
+import useRemfo from 'src/hooks/use-remfo';
+// Import the project context
+import { ProjectCtx } from '../../../contexts';
+// Import some constants
+import { BASE_PATH_PROJECTS } from '../../../utils/constants';
+// Import CSS style
 import style from './style.module.css';
+// Import auxiliar
+import { add, Version } from 'src/utils/auxiliar-functions';
 
 // Define non-changing props used by the table footer
 const rowsPerPageDefault = 25;
@@ -51,6 +54,11 @@ const Hbonds = () => {
   // Set a reference to the table element so we can scroll to it
   const tableRef = useRef();
 
+  // Send a request to the API with the url of the energies analyses index
+  const analysesUrlBase = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses`;
+  const indexUrl = `${analysesUrlBase}/hbonds`;
+  const { loading: indexLoading, payload: indexPayload, error: indexError } = useAPI(indexUrl);
+
   // The interaction to be displayed
   const [selectedInteraction, setSelectedInteraction] = useState(0);
 
@@ -58,54 +66,76 @@ const Hbonds = () => {
   // The hbonds includes arrays of true and false per frame
   const interaction = interactions && interactions[selectedInteraction];
 
-  // Table pagination states
-  const [selectedPage, setSelectedPage] = useState(0);
-  const [selectedRowsPerPage, setSelectedRowsPerPage] = useState(
-    rowsPerPageDefault,
-  );
+  // Set the target interaction name
+  const { interactionName, analysisName } = useMemo(() => {
+    // Wait for main data to be downloaded
+    if (!interaction || !indexPayload) return {};
+    // Check if the analysis is in the old or the new format
+    const isOld = indexPayload.data !== undefined;
+    // If so, there is no target analysis name, but the whole data is already in the payload
+    if (isOld) return { interactionName: interaction.name };
+    const targetEntry = indexPayload.find(entry => entry.name === interaction.name);
+    return { interactionName: interaction.name, analysisName: targetEntry.analysis }
+  }, [interaction, indexPayload]);
 
-  // The hydrogen bond bar which the mouse has clicked
-  const [selectedHB, setSelectedHB] = useState(null);
+  // Send a request to the API with the url of some specific energies analysis
+  const interactionAnalysisUrl = analysisName ? `${analysesUrlBase}/${analysisName}` : null;
+  const { loading, payload, error } = useAPI(interactionAnalysisUrl);
 
-  // Set the API url for the heatmap data
-  const url = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/hbonds/`;
-
-  // Send a request to the API with the url of the specific analysis
-  const { loading, payload, error } = useAPI(url);
+  // Now set the actual dataset to be used
+  // Note that this is a compatibility layer between the old and the new energies system
+  const dataset = useRemfo(previous => {
+    // Wait for the download to finish
+    if (!indexPayload) return previous;
+    // Check if the analysis is in the old or the new format
+    const isOld = indexPayload.data !== undefined;
+    // If this is the new system then the dataset is the payload itself
+    if (!isOld) {
+      if (!payload) return previous;
+      return payload;
+    }
+    // If this is the old system then the dataset is in the index payload
+    const interactionData = indexPayload.data.find(entry => entry.name === interactionName);
+    if (!interactionData) return { error: `Dataset for interaction "${interactionName}" not found` };
+    return interactionData;
+  }, [indexPayload, payload, interactionName]);
 
   // Set the processed data which will be displayed
   const { processedData, weights } = useMemo(() => {
-    // Return here if there is no payload or topology
-    if (!payload || !topologyManager || (populations && populations.loading))
-      return {};
+    // Return here if we are still waiting for data
+    if (!dataset || !topologyManager || !metadata) return {};
+    if (populations && populations.loading) return {};
 
-    // Get the data whose name matches the interaction name
-    // The newest format has 4 fields: acceptors, donors, hydrogens and hbonds
-    // The hbonds includes arrays of true and false per frame
-    const data = payload.data.find(dataset => {
-      return dataset.name === interaction.name;
-    });
-    if (!data)
-      return {
-        message: `Dataset for the interaction "${interaction.name}" not found`,
-      };
+    // If the dataset is empty it means no hydrogen bonds where found for this interaction
+    if (dataset.hbonds.length === 0) return {
+      message: 'No hydrogen bonds were found for this interaction'
+    };
 
-    // If data is empty it means no hydrogen bonds where found for this interaction
-    if (data.hbonds.length === 0)
-      return { message: 'No hydrogen bonds were found for this interaction' };
+    // Get the version of the analysis
+    const version = new Version(dataset.version);
+    let hbondsKey = 'hbonds_timed';
+    // If the simulation is not time related then there will be no timed hbonds
+    // We will use the overall hbonds instead
+    const noTimeRelated = metadata.TYPE === 'ensemble';
+    if (noTimeRelated) hbondsKey = 'hbonds';
+    // In the old version the timed hbonds were in a different key
+    if (version.major < 1) hbondsKey = 'hbonds';
 
     // Get the number of bonds
-    const bondCount = data.hbonds.length;
+    const bondCount = dataset.hbonds.length;
 
     // Group bonds with a common acceptor and then group bonds with a common donor
     const acceptorGroups = {};
     const donorGroups = {};
     for (let i = 0; i < bondCount; i++) {
       // Set the bond object
-      const acceptor = data.acceptors[i];
-      const donor = data.donors[i];
-      const hydrogen = data.hydrogens[i];
-      const status = data.hbonds[i];
+      const acceptor = dataset.acceptors[i];
+      const donor = dataset.donors[i];
+      const hydrogen = dataset.hydrogens[i];
+      let status = dataset[hbondsKey][i];
+      // Note that status will be a single float if this is an enseble
+      // We make sure it is an array to keep the types coherent
+      if (!Array.isArray(status)) status = [status];
       const bond = { acceptor, donor, hydrogen, status };
       // Add current bond to its corresponding acceptor group
       const acceptorGroup = acceptorGroups[acceptor];
@@ -209,10 +239,9 @@ const Hbonds = () => {
       }
       // Set the group score according to the stability of all its bonds together
       // This value is then used to sort groups
-      const stability = group.status.reduce(
-        (acc, cur) => (acc += cur.filter(v => v === true).length),
-        0,
-      );
+      let reducer = (acc, cur) => acc + add(cur);
+      if (version.major < 1) reducer = (acc, cur) => acc + cur.filter(v => v === true).length;
+      const stability = group.status.reduce(reducer, 0);
       group.stability = stability;
     });
 
@@ -220,11 +249,12 @@ const Hbonds = () => {
     processedData.sort((a, b) => b.stability - a.stability);
 
     // Calculate the frame step for recorded hydrogen bonds
-    const dataLength = data.hbonds[0].length;
+    const dataLength = dataset.hbonds[0].length;
     const frameStep = Math.round(metadata.mdFrames / (dataLength - 1));
     // Set the weigths in order to resize bonds bandwidth accordingly
+    // Note that this is for the old verion, in the new version values are already weighted
     let weights;
-    if (populations && populations.payload) {
+    if (populations && populations.payload && version.major < 1) {
       // Get the weights for each data value corresponding frame
       weights = [];
       for (let i = 0; i < populations.payload.length; i += frameStep) {
@@ -232,27 +262,18 @@ const Hbonds = () => {
       }
       // Check weights and data to match in the number of values
       const weigthCount = weights.length;
-      if (dataLength !== weigthCount)
-        throw new Error(
-          `Data values count (${dataLength}) does not match the weigths values count (${weigthCount})`,
-        );
-      // // Normalize weights
-      // // Find the minimum and maximum values in the weights array
-      // // NEVER FORGET: do not use Math.min and Math.max for long arrays
-      // const minimum = weights.reduce((cv, nv) => { return Math.min(cv, nv) }, Infinity);
-      // const maximum = weights.reduce((cv, nv) => { return Math.max(cv, nv) }, -Infinity);
-      // // Set the normalized minimum and maximum radius values
-      // // This in the graph is equivalent to 'times the default area'
-      // const normalizedMinimum = 1;
-      // const normalizedMaximum = 10;
-      // // Set a function to interpolate values
-      // const normalizer = (normalizedMaximum - normalizedMinimum) / (maximum - minimum)
-      // const interpolate = weight => normalizedMinimum + (weight - minimum) * normalizer;
-      // // Recalculate weights using the minimum values (equal to 1) as reference
-      // weights = weights.map(weight => interpolate(weight));
+      if (dataLength !== weigthCount) throw new Error(
+        `Data values count (${dataLength}) does not match the weigths values count (${weigthCount})`,
+      );
     }
     return { processedData, weights };
-  }, [payload, metadata, topologyManager, interaction, populations]);
+  }, [dataset, metadata, topologyManager, interaction, populations]);
+
+  // Table pagination states
+  const [selectedPage, setSelectedPage] = useState(0);
+  const [selectedRowsPerPage, setSelectedRowsPerPage] = useState(
+    rowsPerPageDefault,
+  );
 
   // Set all bonds to be displayed according to the current page and the number of bonds per page
   const displayedBondGroups = useMemo(() => {
@@ -262,15 +283,42 @@ const Hbonds = () => {
     return processedData.slice(firstBond, lastBond);
   }, [processedData, selectedPage, selectedRowsPerPage]);
 
-  // Render loading or error messages according with the API response
-  if (loading || (populations && populations.loading)) return <Loading />;
-  else if (error) return error.toString();
-  else if (populations && populations.error)
-    return populations.error.toString();
-  else if (!payload) return 'Something bad happened with the analysis data';
-  else if (populations && !populations.payload)
-    return 'Something bad happened with populations data';
+  // The hydrogen bond bar which the mouse has clicked
+  const [selectedHB, setSelectedHB] = useState(null);
 
+  // Handle when the user clicks in a bond status
+  const handleBondClick = useCallback(keyLabel => {
+    const [b,i] = keyLabel.split('-');
+    const bondGroup = displayedBondGroups[b];
+    const acceptor =
+      bondGroup.acceptors[i] ||
+      bondGroup.acceptors[0];
+    const donor =
+      bondGroup.donors[i] || bondGroup.donors[0];
+    const hydrogen =
+      bondGroup.hydrogens[i] ||
+      bondGroup.hydrogens[0];
+    setSelectedHB({
+      selectedAtoms: [acceptor, donor],
+      selectedDistances: [[acceptor, donor]],
+      selectedAngles: [[acceptor, hydrogen, donor]],
+    });
+  }, [displayedBondGroups]);
+  
+
+  // Render loading or error messages according with the API response
+  if (indexError) return indexError.toString();
+  if (error) return error.toString();
+  if (dataset && dataset.error) return dataset.error;
+  if (populations && populations.error) return populations.error.toString();
+  if (!dataset) {
+    if (indexLoading || loading) return <Loading />;
+    return 'Something bad happened with the analysis data';
+  }
+  if (populations && !populations.payload) {
+    if (populations.loading) return <Loading />;
+    return 'Something bad happened with populations data';
+  }
   if (!topologyManager) return <Loading />;
 
   // Render
@@ -316,7 +364,7 @@ const Hbonds = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {/* Create a row for each project in the payload*/}
+                {/* Create a row for each bond to be displayed*/}
                 {displayedBondGroups.map((bondGroup, b) => (
                   <Fragment key={b}>
                     {bondGroup.status.map((status, i) => (
@@ -360,23 +408,12 @@ const Hbonds = () => {
                         {/* bond status */}
                         <TableCell>
                           <BondStatus
-                            status={bondGroup.status[i]}
+                            status={status}
                             weights={weights}
-                            onClick={() => {
-                              const acceptor =
-                                bondGroup.acceptors[i] ||
-                                bondGroup.acceptors[0];
-                              const donor =
-                                bondGroup.donors[i] || bondGroup.donors[0];
-                              const hydrogen =
-                                bondGroup.hydrogens[i] ||
-                                bondGroup.hydrogens[0];
-                              setSelectedHB({
-                                selectedAtoms: [acceptor, donor],
-                                selectedDistances: [[acceptor, donor]],
-                                selectedAngles: [[acceptor, hydrogen, donor]],
-                              });
-                            }}
+                            // Bond group and bond index are passed to further know which bond it is
+                            // Thus the on click function already has dis data as input argument
+                            keyLabel={`${b}-${i}`}
+                            onClick={handleBondClick}
                             className={style.status}
                           />
                         </TableCell>

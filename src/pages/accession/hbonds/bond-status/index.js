@@ -1,14 +1,20 @@
 import React, { useRef, useEffect, useState, memo } from 'react';
 
-import { select, scaleBand, scaleOrdinal } from 'd3';
+import { select, scaleBand, scaleLinear, color as d3color } from 'd3';
 
 // Set status colors
-const activeBondColor = 'blue';
-const brokenBondColor = '#f0f0f0';
+const ACTIVE_BOND_COLOR = 'blue';
+const BROKEN_BOND_COLOR = '#f0f0f0';
+
+// Set the color scale according to the maximum and minimum means
+const COLOR_PLAN = [BROKEN_BOND_COLOR, ACTIVE_BOND_COLOR];
+const COLOR_SCALE = scaleLinear()
+  .range(COLOR_PLAN)
+  .domain([0, 1]);
 
 // Represent a single row of rects according to the status
 // The status is an array of true/false values
-const BondStatus = memo(({ status, weights, onClick, className }) => {
+const BondStatus = memo(({ status, weights, keyLabel, onClick, className }) => {
   // Set the reference to the element where the heatmap will be allocated
   const containerRef = useRef(null);
   // Save the previous chart reference so we can remove it before a new render
@@ -50,7 +56,7 @@ const BondStatus = memo(({ status, weights, onClick, className }) => {
       .style('cursor', onClick ? 'pointer' : undefined);
     const canvasContext = canvas
       .node()
-      .getContext('2d' /*, {desynchronized: true}*/);
+      .getContext('2d');
 
     // append the svg object to the body of the page
     const svg = select(container)
@@ -60,9 +66,6 @@ const BondStatus = memo(({ status, weights, onClick, className }) => {
 
     // Build X scales and axis:
     if (weights) {
-      // const x = scaleOrdinal(weights)
-      //     .domain(status.map((s,i) => i))
-      //     .range([0, width]);
 
       const x = scaleBand()
         .range([0, width])
@@ -86,7 +89,7 @@ const BondStatus = memo(({ status, weights, onClick, className }) => {
         // DANI: El * 2 en el cellWidth arregla el problema
         const cellWidth = weigth * proportion * 2;
         const xPosition = xOffset;
-        const color = stat ? activeBondColor : brokenBondColor;
+        const color = stat ? ACTIVE_BOND_COLOR : BROKEN_BOND_COLOR;
         canvasContext.fillStyle = color;
         canvasContext.fillRect(xPosition, 0, cellWidth, height);
         xOffset += cellWidth;
@@ -103,18 +106,30 @@ const BondStatus = memo(({ status, weights, onClick, className }) => {
       // Display heatmap cells using canvas
       status.forEach((stat, i) => {
         const xPosition = x(i);
-        const color = stat ? activeBondColor : brokenBondColor;
+        // Calculate the interpolated rgb for this value
+        // The interpolated color comes in rbg format
+        const color = d3color(COLOR_SCALE(stat)).formatHex();
         canvasContext.fillStyle = color;
         canvasContext.fillRect(xPosition, 0, cellWidth, height);
       });
+
+      // If there is only one status then add also the number
+      if (status.length === 1) {
+        const value = Math.round(status[0] * 1000) / 10;
+        const label = value + '%';
+        canvasContext.font = "14px arial";
+        canvasContext.fillStyle = 'black';
+        canvasContext.textAlign = "center";
+        canvasContext.textBaseline = "middle";
+        canvasContext.fillText(label, cellWidth / 2, height / 2);
+      }
     }
-    //console.log(x);
 
     // Handle when a cell is clicked
     if (onClick) {
       canvasElement.onmousedown = () => {
         // Call the on click function
-        onClick();
+        onClick(keyLabel);
       };
     }
 
