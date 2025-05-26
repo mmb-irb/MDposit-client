@@ -345,115 +345,117 @@ const Hbonds = () => {
           />
         </CardContent>
       </Card>
-      {typeof processedData === 'string' && (
-        <Card>
-          <CardContent>
-            <Typography variant="h6">{processedData}</Typography>
-          </CardContent>
-        </Card>
-      )}
-      {typeof processedData === 'object' && (
-        <Card className={style.margined}>
-          <CardContent>
-            <Table ref={tableRef}>
-              {/* Setting column widths explicitly is important for the bond status chart to adapt its width */}
-              <colgroup>
-                <col style={{ width: '12%' }} />
-                <col style={{ width: '12%' }} />
-                <col style={{ width: '12%' }} />
-                <col style={{ width: '64%' }} />
-              </colgroup>
-              <TableHead className={style['table-head']}>
-                <TableRow>
-                  <TableCell>{interaction.agent_1}</TableCell>
-                  <TableCell>Hydrogen</TableCell>
-                  <TableCell>{interaction.agent_2}</TableCell>
-                  <TableCell>Bond status along trajectory</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {/* Create a row for each bond to be displayed*/}
-                {displayedBondGroups.map((bondGroup, b) => (
-                  <Fragment key={b}>
-                    {bondGroup.status.map((status, i) => (
-                      <TableRow key={i}>
-                        {/* agent 1 atom/s */}
-                        {bondGroup.agent1Labels[i] && (
-                          <TableCell
-                            rowSpan={
-                              bondGroup.status.length /
-                              bondGroup.agent1Labels.length
-                            }
-                          >
-                            {bondGroup.agent1Labels[i]}
+      <div className={indexLoading || loading ? style.disabled : style.enabled}>
+        {typeof processedData === 'string' && (
+          <Card>
+            <CardContent>
+              <Typography variant="h6">{processedData}</Typography>
+            </CardContent>
+          </Card>
+        )}
+        {typeof processedData === 'object' && (
+          <Card className={style.margined}>
+            <CardContent>
+              <Table ref={tableRef}>
+                {/* Setting column widths explicitly is important for the bond status chart to adapt its width */}
+                <colgroup>
+                  <col style={{ width: '12%' }} />
+                  <col style={{ width: '12%' }} />
+                  <col style={{ width: '12%' }} />
+                  <col style={{ width: '64%' }} />
+                </colgroup>
+                <TableHead className={style['table-head']}>
+                  <TableRow>
+                    <TableCell>{interaction.agent_1}</TableCell>
+                    <TableCell>Hydrogen</TableCell>
+                    <TableCell>{interaction.agent_2}</TableCell>
+                    <TableCell>Bond status along trajectory</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {/* Create a row for each bond to be displayed*/}
+                  {displayedBondGroups.map((bondGroup, b) => (
+                    <Fragment key={b}>
+                      {bondGroup.status.map((status, i) => (
+                        <TableRow key={i}>
+                          {/* agent 1 atom/s */}
+                          {bondGroup.agent1Labels[i] && (
+                            <TableCell
+                              rowSpan={
+                                bondGroup.status.length /
+                                bondGroup.agent1Labels.length
+                              }
+                            >
+                              {bondGroup.agent1Labels[i]}
+                            </TableCell>
+                          )}
+                          {/* hydrogen */}
+                          {bondGroup.hydrogenLabels[i] && (
+                            <TableCell
+                              rowSpan={
+                                bondGroup.status.length /
+                                bondGroup.hydrogenLabels.length
+                              }
+                              align={
+                                bondGroup.isAcceptorFromAgent1 ? 'right' : 'left'
+                              }
+                            >
+                              {bondGroup.hydrogenLabels[i]}
+                            </TableCell>
+                          )}
+                          {/* agent 2 atom */}
+                          {bondGroup.agent2Labels[i] && (
+                            <TableCell
+                              rowSpan={
+                                bondGroup.status.length /
+                                bondGroup.agent2Labels.length
+                              }
+                            >
+                              {bondGroup.agent2Labels[i]}
+                            </TableCell>
+                          )}
+                          {/* bond status */}
+                          <TableCell>
+                            <BondStatus
+                              status={status}
+                              weights={weights}
+                              // Bond group and bond index are passed to further know which bond it is
+                              // Thus the on click function already has dis data as input argument
+                              keyLabel={`${b}-${i}`}
+                              onClick={handleBondClick}
+                              className={style.status}
+                            />
                           </TableCell>
-                        )}
-                        {/* hydrogen */}
-                        {bondGroup.hydrogenLabels[i] && (
-                          <TableCell
-                            rowSpan={
-                              bondGroup.status.length /
-                              bondGroup.hydrogenLabels.length
-                            }
-                            align={
-                              bondGroup.isAcceptorFromAgent1 ? 'right' : 'left'
-                            }
-                          >
-                            {bondGroup.hydrogenLabels[i]}
-                          </TableCell>
-                        )}
-                        {/* agent 2 atom */}
-                        {bondGroup.agent2Labels[i] && (
-                          <TableCell
-                            rowSpan={
-                              bondGroup.status.length /
-                              bondGroup.agent2Labels.length
-                            }
-                          >
-                            {bondGroup.agent2Labels[i]}
-                          </TableCell>
-                        )}
-                        {/* bond status */}
-                        <TableCell>
-                          <BondStatus
-                            status={status}
-                            weights={weights}
-                            // Bond group and bond index are passed to further know which bond it is
-                            // Thus the on click function already has dis data as input argument
-                            keyLabel={`${b}-${i}`}
-                            onClick={handleBondClick}
-                            className={style.status}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </Fragment>
-                ))}
-              </TableBody>
-              <TableFooter>
-                <TableRow>
-                  <TablePagination
-                    rowsPerPageOptions={rowsPerPageOptions} // Optional numbers of rows displayed in each page. It can be modified by the user.
-                    colSpan={4} // Set the anchor of columns which is taken as a reference for the horizontal position of the footer
-                    count={processedData.length} // Total number of rows
-                    rowsPerPage={selectedRowsPerPage} // The actual number of rows displayed
-                    page={selectedPage} // The actual page
-                    onPageChange={(_, page) => {
-                      setSelectedPage(page);
-                      // Scroll to the top of the table
-                      tableRef.current.scrollIntoView();
-                    }}
-                    onRowsPerPageChange={({ target: { value } }) => {
-                      setSelectedRowsPerPage(value);
-                      setSelectedPage(0);
-                    }}
-                  />
-                </TableRow>
-              </TableFooter>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
+                        </TableRow>
+                      ))}
+                    </Fragment>
+                  ))}
+                </TableBody>
+                <TableFooter>
+                  <TableRow>
+                    <TablePagination
+                      rowsPerPageOptions={rowsPerPageOptions} // Optional numbers of rows displayed in each page. It can be modified by the user.
+                      colSpan={4} // Set the anchor of columns which is taken as a reference for the horizontal position of the footer
+                      count={processedData.length} // Total number of rows
+                      rowsPerPage={selectedRowsPerPage} // The actual number of rows displayed
+                      page={selectedPage} // The actual page
+                      onPageChange={(_, page) => {
+                        setSelectedPage(page);
+                        // Scroll to the top of the table
+                        tableRef.current.scrollIntoView();
+                      }}
+                      onRowsPerPageChange={({ target: { value } }) => {
+                        setSelectedRowsPerPage(value);
+                        setSelectedPage(0);
+                      }}
+                    />
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+      </div>
       <ViewerSpawner
         // Set the new viewer or null if there is not a proper "selected" value
         newViewer={
