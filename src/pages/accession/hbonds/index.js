@@ -57,7 +57,7 @@ const Hbonds = () => {
   // Set a reference to the table element so we can scroll to it
   const tableRef = useRef();
 
-  // Send a request to the API with the url of the energies analyses index
+  // Send a request to the API with the url of the hbonds analyses index
   const analysesUrlBase = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses`;
   const indexUrl = `${analysesUrlBase}/hbonds`;
   const { loading: indexLoading, payload: indexPayload, error: indexError } = useAPI(indexUrl);
@@ -81,12 +81,12 @@ const Hbonds = () => {
     return { interactionName: interaction.name, analysisName: targetEntry.analysis }
   }, [interaction, indexPayload]);
 
-  // Send a request to the API with the url of some specific energies analysis
+  // Send a request to the API with the url of some specific hbonds analysis
   const interactionAnalysisUrl = analysisName ? `${analysesUrlBase}/${analysisName}` : null;
   const { loading, payload, error } = useAPI(interactionAnalysisUrl);
 
   // Now set the actual dataset to be used
-  // Note that this is a compatibility layer between the old and the new energies system
+  // Note that this is a compatibility layer between the old and the new hbonds system
   const dataset = useRemfo(previous => {
     // Wait for the download to finish
     if (!indexPayload) return previous;
