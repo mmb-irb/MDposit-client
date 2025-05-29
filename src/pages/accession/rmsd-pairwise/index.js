@@ -9,6 +9,8 @@ import Card from '../../../components/animated-card';
 import Loading from '../../../components/loading';
 import ViewerSpawner from '../../../components/viewer-spawner';
 import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 
 import { ProjectCtx } from '../../../contexts';
 
@@ -72,7 +74,7 @@ const RmsdPairwise = () => {
 
   // Get analysis data from the API
   // Set the target interaction name
-  const { interactionName, analysisName } = useMemo(() => {
+  const { interactionName, analysisName, analysisNote } = useMemo(() => {
     // Wait for main data to be downloaded
     if (!interaction || !indexPayload) return {};
     // Check if the analysis is in the old or the new format
@@ -80,7 +82,12 @@ const RmsdPairwise = () => {
     // If so, there is no target analysis name, but the whole data is already in the payload
     if (isOld) return { interactionName: interaction.name };
     const targetEntry = indexPayload.find(entry => entry.name === interaction.name);
-    return { interactionName: interaction.name, analysisName: targetEntry.analysis }
+    return {
+      interactionName: interaction.name,
+      analysisName: targetEntry.analysis,
+      // Notes are very exceptional, but some analyses may have
+      analysisNote: targetEntry.note
+    };
   }, [interaction, indexPayload]);
 
   // Send a request to the API with the url of some specific analysis
@@ -347,6 +354,14 @@ const RmsdPairwise = () => {
           )}
         </CardContent>
       </Card>
+      {analysisNote && <Card className={style.margined}>
+        <CardContent>
+          <div style={{ fontWeight: 'bold' }}>
+            <FontAwesomeIcon icon={faExclamationTriangle} size={'lg'} />
+            {' ' + analysisNote}
+          </div>
+        </CardContent>
+      </Card>}
       <div className={indexLoading || loading ? style.disabled : style.enabled}>
         <Card className={style.margined} id="heatmap">
           <CardContent>
