@@ -114,8 +114,10 @@ const Sasa = () => {
     // Excluded residues (e.g. membrane residues) have null in all its values
     const data = { saspf: [], means: [], stdvs: [] };
     for (let r = 0; r < residueCount; r++) {
-      const atomCount = topologyManager.getResidueByIndex(r).atomCount;
-      if (atomCount === 1) {
+      //const atomCount = topologyManager.getResidueByIndex(r).atomCount;
+      //if (atomCount === 1) {
+      const residueClassification = topologyManager.getResidueByIndex(r).classification;
+      if (residueClassification === 'ion') {
         data.saspf[r] = null;
         data.means[r] = null;
         data.stdvs[r] = null;
@@ -160,9 +162,9 @@ const Sasa = () => {
       this.atomColor = atom => {
         // Find the residue index and then the entropy for this residue
         const residueIndex = atom.residueIndex;
-        const residueAtomsCount = topologyManager.getResidueByIndex(residueIndex).atomCount;
+        const residueClassification = topologyManager.getResidueByIndex(residueIndex).classification;
         // Single atom residues (i.e. ions) are discarded since they may raise the maximum SAS a lot
-        if (residueAtomsCount === 1) return 16777215;
+        if (residueClassification === 'ion') return 16777215;
         const mean = means[residueIndex];
         if (mean === null) return 16777215;
         // Calculate the interpolated rgb for this value
@@ -195,9 +197,9 @@ const Sasa = () => {
       representations.push(newRepresentation);
     });
 
-    // Get the number of frames in the analysis from the first residue data
-    const firstResidueData = data.saspf[0];
-    const framesNumber = firstResidueData.length;
+    // Get the number of frames in the analysis from the a sample residue data
+    const sampleResidueData = data.saspf.find(residueData => residueData !== null);
+    const framesNumber = sampleResidueData.length;
 
     // Get the total time length
     const timeLength = metadata.timeLength;

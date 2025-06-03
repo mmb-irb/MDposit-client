@@ -1,21 +1,20 @@
 import React, { useContext, useState, useMemo, useCallback } from 'react';
-
+// Import Material UI components
 import { CardContent, Tabs, Tab, Typography } from '@mui/material';
-
+// Import custom hooks
 import useAPI from '../../../hooks/use-api';
-
+import useRemfo from 'src/hooks/use-remfo';
+// Import custom components
 import Card from '../../../components/animated-card';
 import Loading from '../../../components/loading';
-import ViewerSpawner from '../../../components/viewer-spawner';
-
-import { ProjectCtx } from '../../../contexts';
-
-import { BASE_PATH_PROJECTS } from '../../../utils/constants';
-
-//import Selector from '../../../components/selector';
 import InteractionSelector from '../../../components/interaction-selector';
 import Heatmap from '../../../components/heatmap';
-
+import ViewerSpawner from '../../../components/viewer-spawner';
+// Load context data
+import { ProjectCtx } from '../../../contexts';
+// Load some constants
+import { BASE_PATH_PROJECTS } from '../../../utils/constants';
+// Load CSS style
 import style from './style.module.css';
 
 // Set the heatmap minimum and maximum colors
@@ -27,23 +26,59 @@ const DistPerres = () => {
   // Get the current project data
   const { accessionAndMdNumber, topology, interactions } = useContext(ProjectCtx);
 
+  // Send a request to the API with the url of the analyses index
+  const analysesUrlBase = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses`;
+  const indexUrl = `${analysesUrlBase}/dist-perres`;
+  const { loading: indexLoading, payload: indexPayload, error: indexError } = useAPI(indexUrl);
+
   // The interaction to be displayed
   const [selectedInteraction, setSelectedInteraction] = useState(0);
+
+  // The newest format has 4 fields: acceptors, donors, hydrogens and hbonds
+  // The hbonds includes arrays of true and false per frame
+  const interaction = interactions && interactions[selectedInteraction];
+
+  // Get analysis data from the API
+  // Set the target interaction name
+  const { interactionName, analysisName } = useMemo(() => {
+    // Wait for main data to be downloaded
+    if (!interaction || !indexPayload) return {};
+    // Check if the analysis is in the old or the new format
+    const isOld = indexPayload.data !== undefined;
+    // If so, there is no target analysis name, but the whole data is already in the payload
+    if (isOld) return { interactionName: interaction.name };
+    const targetEntry = indexPayload.find(entry => entry.name === interaction.name);
+    return { interactionName: interaction.name, analysisName: targetEntry.analysis }
+  }, [interaction, indexPayload]);
+
+  // Send a request to the API with the url of some specific analysis
+  const interactionAnalysisUrl = analysisName ? `${analysesUrlBase}/${analysisName}` : null;
+  const { loading, payload, error } = useAPI(interactionAnalysisUrl);
+
+  // Now set the actual dataset to be used
+  // Note that this is a compatibility layer between the old and the new system
+  const dataset = useRemfo(previous => {
+    // Wait for the download to finish
+    if (!indexPayload) return previous;
+    // Check if the analysis is in the old or the new format
+    const isOld = indexPayload.data !== undefined;
+    // If this is the new system then the dataset is the payload itself
+    if (!isOld) {
+      if (!payload) return previous;
+      return payload;
+    }
+    // If this is the old system then the dataset is in the index payload
+    const interactionData = indexPayload.data.find(entry => entry.name === interactionName);
+    if (!interactionData) return { error: `Dataset for interaction "${interactionName}" not found` };
+    return interactionData;
+  }, [indexPayload, payload, interactionName]);
 
   // The interaction residues to be displayed
   // May be all 'residue_indices' or only the 'interface_indices'
   const [selectedResidues, setSelectedResidues] = useState('interface_indices');
 
-  // The selected heatmap residues
-  const [selected, setSelected] = useState(null);
-
   // The graphic to be displayed ('mean' or 'stdv')
   const [display, setDisplay] = useState('mean');
-
-  // Set the API url for the heatmap data
-  const url = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/dist-perres/`;
-
-  const { loading, payload, error } = useAPI(url);
 
   // Filter data by selected residues
   const {
@@ -54,19 +89,11 @@ const DistPerres = () => {
     yTitle,
     isReduced,
   } = useMemo(() => {
-    // Return if the payload is not ready
-    if (loading || error || !payload || !topology || !interactions) return {};
-
-    // Get the selected interaction
-    const interaction = interactions[selectedInteraction];
-
-    // Get the data whose name matches the interaction name
-    const data = payload.data.find(dataset => {
-      return dataset.name === interaction.name;
-    });
+    // Return if the dataset is not ready
+    if (!dataset || !topology) return {};
 
     // Set the data to be displayed
-    const displayedData = display === 'mean' ? data.means : data.stdvs;
+    const displayedData = display === 'mean' ? dataset.means : dataset.stdvs;
 
     // Find out if the analysis contains data for all residues or just the interface residues
     // It may happen in large interactions that only interface residues are saved in order to reduce data size
@@ -85,10 +112,9 @@ const DistPerres = () => {
       xDim === interaction['interface_indices_1'].length
     )
       isReduced = true;
-    else
-      throw new Error(
-        `The numbers of values in data does not match any number of residues in the interaction (neither all or interface)`,
-      );
+    else throw new Error(
+      `The numbers of values in data does not match any number of residues in the interaction (neither all or interface)`,
+    );
 
     // Select the interaction residues whosa data is to be represented in the heatmap
     const residuesX = interaction[selectedResidues + '_1'];
@@ -176,12 +202,8 @@ const DistPerres = () => {
       isReduced,
     };
   }, [
-    loading,
-    error,
-    payload,
+    dataset,
     topology,
-    interactions,
-    selectedInteraction,
     selectedResidues,
     display,
   ]);
@@ -204,6 +226,9 @@ const DistPerres = () => {
     },
     [topology],
   );
+
+  // The selected heatmap residues
+  const [selected, setSelected] = useState(null);
 
   // Memoize heatmap handler functions
   const handleHeatmapTooltip = useCallback(
@@ -231,10 +256,13 @@ const DistPerres = () => {
   );
 
   // Render loading or error messages according with the API response
-  if (loading) return <Loading />;
-  else if (error) return error.toString();
-  else if (!payload) return 'Something bad happened';
-
+  if (indexError) return indexError.toString();
+  if (error) return error.toString();
+  if (dataset && dataset.error) return dataset.error;
+  if (!dataset) {
+    if (indexLoading || loading) return <Loading />;
+    return 'Something bad happened with the analysis data';
+  }
   if (!topology || !interactions) return <Loading />;
 
   // Handles when the tabs are switched
@@ -258,41 +286,44 @@ const DistPerres = () => {
           />
         </CardContent>
       </Card>
-      <Card className={style.margined} id="heatmap">
-        <CardContent>
-          <Tabs
-            value={display}
-            variant="fullWidth"
-            indicatorColor="primary"
-            textColor="primary"
-            onChange={handleTabs}
-            className={style['margined-bottom']}
-          >
-            <Tab
-              value={'mean'}
-              label="Residues distance averages"
-              //className={style['disabled-tab']}
+      <div className={indexLoading || loading ? style.disabled : style.enabled}>
+        <Card className={style.margined} id="heatmap">
+          <CardContent>
+            <Tabs
+              value={display}
+              variant="fullWidth"
+              indicatorColor="primary"
+              textColor="primary"
+              onChange={handleTabs}
+              className={style['margined-bottom']}
+            >
+              <Tab
+                value={'mean'}
+                label="Residues distance averages"
+                //className={style['disabled-tab']}
+              />
+              <Tab value={'stdv'} label="Residues distance standard deviations" />
+            </Tabs>
+            <Heatmap
+              inputData={heatmapData}
+              onTooltip={handleHeatmapTooltip}
+              onClick={handleHeatmapClick}
+              legendTitle={
+                display === 'mean'
+                  ? 'Distance average (Å)'
+                  : 'Distance standard deviation (Å)'
+              }
+              // Invert colors here, since minimum values belong to closer residues
+              maxValueColor={heatmapMinimumColor}
+              minValueColor={heatmapMaximumColor}
+              totalHeight={heatmapData.yLabels.length === 1 ? 30 : undefined}
+              xTitle={xTitle}
+              yTitle={yTitle}
             />
-            <Tab value={'stdv'} label="Residues distance standard deviations" />
-          </Tabs>
-          <Heatmap
-            inputData={heatmapData}
-            onTooltip={handleHeatmapTooltip}
-            onClick={handleHeatmapClick}
-            legendTitle={
-              display === 'mean'
-                ? 'Distance average (Å)'
-                : 'Distance standard deviation (Å)'
-            }
-            // Invert colors here, since minimum values belong to closer residues
-            maxValueColor={heatmapMinimumColor}
-            minValueColor={heatmapMaximumColor}
-            totalHeight={heatmapData.yLabels.length === 1 ? 30 : undefined}
-            xTitle={xTitle}
-            yTitle={yTitle}
-          />
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
+      
       <ViewerSpawner
         // Set the new viewer or null if there is not a proper "selected" value
         newViewer={

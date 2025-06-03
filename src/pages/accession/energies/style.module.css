@@ -17,6 +17,12 @@
   margin-bottom: 1em;
 }
 
+.enabled {
+  opacity: 1;
+  transition-property: opacity;
+  transition-duration: 1s;
+}
+
 .disabled {
   pointer-events: none;
   opacity: 0.3;

@@ -3,11 +3,14 @@ import React, { useContext, useState, useMemo, useRef } from 'react';
 import { CardContent, Chip, Typography } from '@mui/material';
 
 import useAPI from '../../../hooks/use-api';
+import useRemfo from 'src/hooks/use-remfo';
 
 import Card from '../../../components/animated-card';
 import Loading from '../../../components/loading';
 import ViewerSpawner from '../../../components/viewer-spawner';
 import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 
 import { ProjectCtx } from '../../../contexts';
 
@@ -44,16 +47,9 @@ const RmsdPairwise = () => {
 
   // Set a ref to the ngl which allows access to the ngl viewer exposed methods
   const viewerRef = useRef(null);
-  // Get the default representations
-  const defaultRepresentations = useDefaultRepresentations();
-  // The selected frames
-  const [selectedFramePair, setSelectedFramePair] = useState(null);
-  // The interaction to be displayed
-  const [selectedInteraction, setSelectedInteraction] = useState(0);
-  // Get analysis data from the API
-  const url = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/rmsd-pairwise/`;
-  const { loading, payload, error } = useAPI(url);
+
   // Set the available interactions
+  // Add the 'overall' option at the beginning, as a 'no interaction' option
   const interactions = useMemo(() => {
     if (!defaultInteractions) return [{ name: 'Overall' }];
     // Label all metadata interactions with the 'interface residues' ending
@@ -63,31 +59,82 @@ const RmsdPairwise = () => {
     const interactions = [{ name: 'Overall' }, ...defaultInteractions];
     return interactions;
   }, [defaultInteractions]);
+
+  // Send a request to the API with the url of the analyses index
+  const analysesUrlBase = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses`;
+  const indexUrl = `${analysesUrlBase}/rmsd-pairwise`;
+  const { loading: indexLoading, payload: indexPayload, error: indexError } = useAPI(indexUrl);
+
+  // The interaction to be displayed
+  const [selectedInteraction, setSelectedInteraction] = useState(0);
+
+  // The newest format has 4 fields: acceptors, donors, hydrogens and hbonds
+  // The hbonds includes arrays of true and false per frame
+  const interaction = interactions && interactions[selectedInteraction];
+
+  // Get analysis data from the API
+  // Set the target interaction name
+  const { interactionName, analysisName, analysisNote } = useMemo(() => {
+    // Wait for main data to be downloaded
+    if (!interaction || !indexPayload) return {};
+    // Check if the analysis is in the old or the new format
+    const isOld = indexPayload.data !== undefined;
+    // If so, there is no target analysis name, but the whole data is already in the payload
+    if (isOld) return { interactionName: interaction.name };
+    const targetEntry = indexPayload.find(entry => entry.name === interaction.name);
+    return {
+      interactionName: interaction.name,
+      analysisName: targetEntry.analysis,
+      // Notes are very exceptional, but some analyses may have
+      analysisNote: targetEntry.note
+    };
+  }, [interaction, indexPayload]);
+
+  // Send a request to the API with the url of some specific analysis
+  const interactionAnalysisUrl = analysisName ? `${analysesUrlBase}/${analysisName}` : null;
+  const { loading, payload, error } = useAPI(interactionAnalysisUrl);
+
+  // Now set the actual dataset to be used
+  // Note that this is a compatibility layer between the old and the new system
+  const dataset = useRemfo(previous => {
+    // Wait for the download to finish
+    if (!indexPayload) return previous;
+    // Check if the analysis is in the old or the new format
+    const isOld = indexPayload.data !== undefined;
+    // If this is the new system then the dataset is the payload itself
+    if (!isOld) {
+      if (!payload) return previous;
+      return payload;
+    }
+    // If this is the old system then the dataset is in the index payload
+    const interactionData = indexPayload.data.find(entry => entry.name === interactionName);
+    if (!interactionData) return { error: `Dataset for interaction "${interactionName}" not found` };
+    return interactionData;
+  }, [indexPayload, payload, interactionName]);
+
   // Process analysis data for the heatmap
   const { rmsds, AxesValues } = useMemo(() => {
-    // Return if the payload is not ready
-    if (!payload) return {};
-    // Get the selected interaction
-    const interaction = interactions[selectedInteraction];
-    // Get the data whose name matches the interaction name
-    const data = payload.data.find(dataset => dataset.name === interaction.name);
-    if (!data) throw new Error(`Dataset for interaction "${interaction.name}" not found`);
+    // Return if the dataset is not ready
+    if (!dataset) return {};
     // Get the rmsds values
-    const rmsds = data.rmsds;
+    const rmsds = dataset.rmsds;
     // Calculate the step
     // DANI: Esto no es del todo correcto pero hace que los números de frames siempre cuadren
     const dataLength = rmsds.length;
     const AxesStep = Math.floor(metadata.mdFrames / (dataLength - 1));
     // DANI: Esto es lo correcto
     // DANI: En algunos análisis antiguos las frames no cuadran y hay que rehacerlos
-    //const xAxesStep = payload.step;
+    //const xAxesStep = dataset.step;
     // Calculate the frames labels
     // These values are used for BOTH axes
     const AxesValues = Array(dataLength)
       .fill(undefined)
       .map((v, i) => i * AxesStep);
     return { rmsds, AxesValues };
-  }, [payload, metadata, interactions, selectedInteraction]);
+  }, [dataset, metadata]);
+
+  // The selected frames
+  const [selectedFramePair, setSelectedFramePair] = useState(null);
 
   // Set the component state
   const [components, setComponents] = useState(null);
@@ -114,6 +161,9 @@ const RmsdPairwise = () => {
       return [...previousComponents];
     });
   }, [selectedFramePair]);
+
+  // Get the default representations
+  const defaultRepresentations = useDefaultRepresentations();
 
   // Set the component state
   const [representations, setRepresentations] = useState(null);
@@ -248,9 +298,15 @@ const RmsdPairwise = () => {
   ]);
 
   // Render loading or error messages according with the API response
-  if (loading) return <Loading />;
-  else if (error) return error.toString();
-  else if (!payload) return 'Something bad happened';
+  // Render loading or error messages according with the API response
+  if (indexError) return indexError.toString();
+  if (error) return error.toString();
+  if (dataset && dataset.error) return dataset.error;
+  if (!dataset) {
+    if (indexLoading || loading) return <Loading />;
+    return 'Something bad happened with the analysis data';
+  }
+  if (!topologyManager) return <Loading />;
 
   // Render
   return (
@@ -298,28 +354,38 @@ const RmsdPairwise = () => {
           )}
         </CardContent>
       </Card>
-      <Card className={style.margined} id="heatmap">
+      {analysisNote && <Card className={style.margined}>
         <CardContent>
-          <Heatmap
-            inputData={{
-              data: rmsds,
-              xLabels: AxesValues,
-              yLabels: AxesValues,
-            }}
-            onTooltip={({ value, xAxisValue, yAxisValue }) =>
-              `${xAxisValue} - ${yAxisValue}\n${Math.round(value * 100) / 100} Å`
-            }
-            onClick={({ xAxisValue, yAxisValue }) =>
-              setSelectedFramePair([xAxisValue, yAxisValue])
-            }
-            legendTitle={'RMSD (Å)'}
-            maxColor={'red'}
-            minColor={'blue'}
-            xTitle={'Frames'}
-            yTitle={'Frames'}
-          />
+          <div style={{ fontWeight: 'bold' }}>
+            <FontAwesomeIcon icon={faExclamationTriangle} size={'lg'} />
+            {' ' + analysisNote}
+          </div>
         </CardContent>
-      </Card>
+      </Card>}
+      <div className={indexLoading || loading ? style.disabled : style.enabled}>
+        <Card className={style.margined} id="heatmap">
+          <CardContent>
+            <Heatmap
+              inputData={{
+                data: rmsds,
+                xLabels: AxesValues,
+                yLabels: AxesValues,
+              }}
+              onTooltip={({ value, xAxisValue, yAxisValue }) =>
+                `${xAxisValue} - ${yAxisValue}\n${Math.round(value * 100) / 100} Å`
+              }
+              onClick={({ xAxisValue, yAxisValue }) =>
+                setSelectedFramePair([xAxisValue, yAxisValue])
+              }
+              legendTitle={'RMSD (Å)'}
+              maxColor={'red'}
+              minColor={'blue'}
+              xTitle={'Frames'}
+              yTitle={'Frames'}
+            />
+          </CardContent>
+        </Card>
+      </div>
       <ViewerSpawner
         // Set a viewer if there is selected frames
         newViewer={components

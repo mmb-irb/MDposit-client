@@ -22,7 +22,7 @@ export class Project {
         Object.entries(projectPayload).forEach(([key, value]) => {
             this[key] = value;
         });
-        // If the project is si wrong we do not even have metadata then stop here
+        // If the project is wrong we do not even have metadata then stop here
         if (!this.metadata) return;
         // Calculate any additional metadata
         if (!this.metadata.mdFrames) this.metadata.mdFrames = this.metadata.SNAPSHOTS;
@@ -131,6 +131,7 @@ export class Project {
         // Once we have interactions data, in case it is in the old format, adapt it to the new format
         const interactions = useMemo(() => {
             if (!payload || !topology) return;
+            // Fix old interaction by adding atom indices
             // Iterate interactions in the payload
             for (const interaction of response.payload) {
                 // If the interaction already has atom indices then there is nothing to do here
@@ -140,6 +141,17 @@ export class Project {
                 interaction.atom_indices_2 = topology.residue2atomIndices(interaction.residue_indices_2);
                 interaction.interface_atom_indices_1 = topology.residue2atomIndices(interaction.interface_indices_1);
                 interaction.interface_atom_indices_2 = topology.residue2atomIndices(interaction.interface_indices_1);
+            }
+            // Fill new interactions by adding residue indices
+            // Iterate interactions in the payload again
+            for (const interaction of response.payload) {
+                // If the interaction already has atom indices then there is nothing to do here
+                if (interaction.residue_indices_1) continue;
+                // If this is an old version then add atom indices
+                interaction.residue_indices_1 = topology.atom2residueIndices(interaction.atom_indices_1);
+                interaction.residue_indices_2 = topology.atom2residueIndices(interaction.atom_indices_2);
+                interaction.interface_indices_1 = topology.atom2residueIndices(interaction.interface_atom_indices_1);
+                interaction.interface_indices_2 = topology.atom2residueIndices(interaction.interface_atom_indices_2);
             }
             return response.payload;
         }, [payload, topology]);

@@ -11,3 +11,16 @@
   flex-direction: row;
   justify-content: flex-start;
 }
+
+.enabled {
+  opacity: 1;
+  transition-property: opacity;
+  transition-duration: 1s;
+}
+
+.disabled {
+  pointer-events: none;
+  opacity: 0.3;
+  transition-property: opacity;
+  transition-duration: 1s;
+}

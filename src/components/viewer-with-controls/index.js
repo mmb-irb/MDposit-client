@@ -74,7 +74,7 @@ import reducedMotion from '../../utils/reduced-motion';
 import style from './style.module.css';
 
 import { ProjectCtx } from '../../contexts';
-import { copyObject } from 'src/utils/auxiliar-functions';
+import { copyObject, round2cents } from 'src/utils/auxiliar-functions';
 
 // Decide that the default should be to play the trajectory only on "big enough"
 // screens (as a proxy for performance and low-end device detection)
@@ -758,7 +758,7 @@ const ViewerWithControls = forwardRef(
                   </div>
                   {metadata.FRAMESTEP && (
                     <div className={cn(style.timeInfo, { [style.dark]: darkBackground })}>
-                      Time: {currentFrameInfo.time} / {metadata.timeLength} ns 
+                      Time: {currentFrameInfo.time} / {round2cents(metadata.timeLength)} ns 
                     </div>
                   )}
                 </div>)

@@ -288,6 +288,40 @@ export default {
             "checkbox" : true
         } 
     ],
+    "Topology": [
+        {
+            "name": "Chain names",
+            "path": "topology.chain_names",
+            "type": "string",
+            "example": "M",
+            "options": true,
+            "checkbox" : false
+        },
+        {
+            "name": "Residue names",
+            "path": "topology.residue_names",
+            "type": "string",
+            "example": "NME",
+            "options": true,
+            "checkbox" : false
+        },
+        {
+            "name": "Atom names",
+            "path": "topology.atom_names",
+            "type": "string",
+            "example": "OT1",
+            "options": false, // Asking for options would make de request way slower
+            "checkbox" : false
+        },
+        {
+            "name": "Atom elements",
+            "path": "topology.atom_elements",
+            "type": "string",
+            "example": "Zn",
+            "options": false, // Asking for options would make de request way slower
+            "checkbox" : false
+        },
+    ],
     "Other": [
         {
             "name": "Available MD analyses",
