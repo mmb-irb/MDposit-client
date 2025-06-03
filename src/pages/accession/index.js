@@ -88,7 +88,8 @@ const AccessionHeader = ({ project, accession, accessionAndMdNumber, page, prima
             }}
             className={style.selector}
             >
-            {project.mds
+            { // Sort MDs by name while using the index from the API
+            project.mds
               .map((md, i) => ({ md, index: i }))
               .sort((a, b) => a.md.localeCompare(b.md))
               .map(({ md, index }) => (
