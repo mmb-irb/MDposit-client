@@ -162,11 +162,9 @@ const Electrostatic = () => {
     selectedOrder
   ]);
 
-  // If data is loaded but there are no interactions
-  if (!interactions || interactions.length === 0)
-  return 'There are no interactions';
-
-  if (!topology || !interactions) return <Loading />;
+  // If there are no interactions or topology
+  if (!interactions) return 'There are no interactions';
+  if (!topology) return 'There is no topology';
 
   const handleToggleOrder = () => {
     setSelectedOrder(previous => !previous);

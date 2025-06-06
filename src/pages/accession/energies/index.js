@@ -369,10 +369,10 @@ const Energies = () => {
   if (dataset && dataset.error) return dataset.error;
   if (!dataset) {
     if (anyLoading) return <Loading />;
+    if (!interactions) return 'There are no interactions';
+    if (!topology) return 'There is no topology';
     return 'Something bad happened';
   }
-
-  if (!topology) return <Loading />;
 
   // Check if there is only 1 residue
   const singleValue = esData && esData.es.data.length === 1;
