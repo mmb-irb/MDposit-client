@@ -51,8 +51,8 @@ const Pointer = () => {
             <div className={style['horizontal-expanded']}>
               <Typography variant="h6">{project.id}</Typography>
               <Typography variant="subtitle2">
-                <a href={project.url} target="_blank" rel="noopener noreferrer" >
-                  {project.url}
+                <a href={project.web} target="_blank" rel="noopener noreferrer" >
+                  {project.web}
                 </a>
               </Typography>
             </div>
