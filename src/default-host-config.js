@@ -419,13 +419,14 @@ const HOST_CONFIGURATIONS = {
     // Nostrum
     '3.144.224.102': {
         api: `http://3.144.224.102/api/rest/`,
-        primaryColor: '#00cfbf', // Golden
+        primaryColor: '#00cfbf', // Light blue
         logo: 'logo-nostrum',
         name:'XNA Hub'
     },
 };
 
 // Set the current host configuration
+if (!(HOST in HOST_CONFIGURATIONS)) console.error(`Unknown host "${HOST}". Using default configuration.`)
 const HOST_CONFIG = HOST_CONFIGURATIONS[HOST] || HOST_CONFIGURATIONS['localhost'];
 //const HOST_CONFIG = HOST_CONFIGURATIONS['mdposit-dev.mddbr.eu'];
 
