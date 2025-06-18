@@ -416,6 +416,13 @@ const HOST_CONFIGURATIONS = {
         logoLabel: 'Podman node',
         name:'MDposit Podman'
     },
+    // Nostrum
+    '3.144.224.102': {
+        api: `http://3.144.224.102/api/rest/`,
+        primaryColor: '#00cfbf', // Golden
+        logo: 'logo-nostrum',
+        name:'XNA Hub'
+    },
 };
 
 // Set the current host configuration
