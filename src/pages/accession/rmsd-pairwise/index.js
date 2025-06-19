@@ -8,7 +8,6 @@ import useRemfo from 'src/hooks/use-remfo';
 import Card from '../../../components/animated-card';
 import Loading from '../../../components/loading';
 import ViewerSpawner from '../../../components/viewer-spawner';
-import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 
@@ -163,7 +162,7 @@ const RmsdPairwise = () => {
   }, [selectedFramePair]);
 
   // Get the default representations
-  const defaultRepresentations = useDefaultRepresentations();
+  const defaultRepresentations = topology && topology.defaultRepresentations;
 
   // Set the component state
   const [representations, setRepresentations] = useState(null);

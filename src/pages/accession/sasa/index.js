@@ -14,7 +14,6 @@ import { color as d3color, scaleLinear } from 'd3';
 
 import Card from '../../../components/animated-card';
 import ViewerWithControls from '../../../components/viewer-with-controls';
-import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 import Loading from '../../../components/loading';
 
 import useAPI from '../../../hooks/use-api';
@@ -59,14 +58,14 @@ const Sasa = () => {
   const {
     accessionAndMdNumber,
     metadata,
-    topology: topologyManager,
+    topology,
     // Use populations to calculate mean SAS values
     // Frames which represent a higher populated state have a stronger weight in the calculation
     populations,
   } = useContext(ProjectCtx);
 
   // Get the default representations
-  const defaultRepresentations = useDefaultRepresentations();
+  const defaultRepresentations = topology && topology.defaultRepresentations;
 
   // Set a ref to the ngl which allows access to its exposed methods
   const viewerRef = useRef(null);
@@ -94,12 +93,12 @@ const Sasa = () => {
     data,
   } = useMemo(() => {
     // If we are sting waiting for data to load then stop here
-    if (!topologyManager || !metadata || !payload || (populations && populations.loading))
+    if (!topology || !metadata || !payload || (populations && populations.loading))
       return {};
 
     // Check data to be coherent
     // Note that sasa analysis must always have the same number of residues that the topology
-    const residueCount = topologyManager.residueCount;
+    const residueCount = topology.residueCount;
     if (residueCount !== payload.saspf.length) throw new Error(
       `Number of residues in the analysis (${
         payload.saspf.length
@@ -114,9 +113,9 @@ const Sasa = () => {
     // Excluded residues (e.g. membrane residues) have null in all its values
     const data = { saspf: [], means: [], stdvs: [] };
     for (let r = 0; r < residueCount; r++) {
-      //const atomCount = topologyManager.getResidueByIndex(r).atomCount;
+      //const atomCount = topology.getResidueByIndex(r).atomCount;
       //if (atomCount === 1) {
-      const residueClassification = topologyManager.getResidueByIndex(r).classification;
+      const residueClassification = topology.getResidueByIndex(r).classification;
       if (residueClassification === 'ion') {
         data.saspf[r] = null;
         data.means[r] = null;
@@ -162,7 +161,7 @@ const Sasa = () => {
       this.atomColor = atom => {
         // Find the residue index and then the entropy for this residue
         const residueIndex = atom.residueIndex;
-        const residueClassification = topologyManager.getResidueByIndex(residueIndex).classification;
+        const residueClassification = topology.getResidueByIndex(residueIndex).classification;
         // Single atom residues (i.e. ions) are discarded since they may raise the maximum SAS a lot
         if (residueClassification === 'ion') return 16777215;
         const mean = means[residueIndex];
@@ -241,7 +240,7 @@ const Sasa = () => {
     };
   }, [
     payload,
-    topologyManager,
+    topology,
     metadata,
     accessionAndMdNumber,
     defaultRepresentations,
@@ -334,12 +333,12 @@ const Sasa = () => {
   else if (populations && !populations.payload)
     return 'Something bad happened with populations';
 
-  if (!topologyManager || !metadata) return <Loading />;
+  if (!topology || !metadata) return <Loading />;
 
   // Render
   return (
     <Suspense fallback={<Loading />}>
-      {topologyManager.residueCount > 1 && <Card>
+      {topology.residueCount > 1 && <Card>
         <ResidueSelector
           residueValues={data.means}
           legendTitle={'Average Relative SAS (Å²)'}

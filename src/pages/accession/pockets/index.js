@@ -22,7 +22,6 @@ import {
 
 import Card from '../../../components/animated-card';
 import ViewerWithControls from '../../../components/viewer-with-controls';
-import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 
 import style from './style.module.css';
 
@@ -65,7 +64,7 @@ const Pockets = () => {
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
 
   // Get the current project metadata
-  const { accessionAndMdNumber, metadata } = useContext(ProjectCtx);
+  const { accessionAndMdNumber, metadata, topology } = useContext(ProjectCtx);
   // Get the current topology, including the residue names
   const pdbData = useContext(PdbCtx);
 
@@ -131,7 +130,7 @@ const Pockets = () => {
 
   // Use this hook to get the memoized NGL default representations
   // We need to access the default representations from here to know the number of representations
-  const defaultRepresentations = useDefaultRepresentations();
+  const defaultRepresentations = topology && topology.defaultRepresentations;
 
   // Define the representations to be displayed in the viewer
   const [ representations, setRepresentations ] = useState(null);

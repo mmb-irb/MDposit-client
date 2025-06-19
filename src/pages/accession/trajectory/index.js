@@ -29,7 +29,8 @@ const Trajectory = () => {
   const [nightingaleRef, isNightingaleVisible] = useInView(useInViewOptions);
 
   // Set the representations to be displayed in the viewer
-  const [ representations, setRepresentations ] = useState(null);
+  const representationsState = useState(null);
+  const [ representations, setRepresentations ] = representationsState;
 
   // Set the viewer initial focus
   const [ initialFocus, setInitialFocus ] = useState(null);
@@ -42,7 +43,7 @@ const Trajectory = () => {
         {isNglVisible ? (
           <ViewerWithControls
             className={style.container}
-            representationsState={[ representations, setRepresentations ]}
+            representationsState={representationsState}
             initialFocus={initialFocus}
           />
         ) : (

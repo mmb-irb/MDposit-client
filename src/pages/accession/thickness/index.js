@@ -20,7 +20,6 @@ import { ProjectCtx } from '../../../contexts';
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 import { getMean } from '../../../utils/statistics';
 import style from './style.module.css';
-import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 import ColorLegend from '../../../components/color-legend';
 import { ColormakerRegistry } from 'ngl';
 
@@ -66,7 +65,7 @@ const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
 
 const Thickness = () => {
     // Get the metadata
-    const { accessionAndMdNumber, metadata, chains } = useContext(ProjectCtx);
+    const { accessionAndMdNumber, metadata, chains, topology } = useContext(ProjectCtx);
 
     // Send a request to the API with the url of the specific analysis
     const {
@@ -87,7 +86,7 @@ const Thickness = () => {
     const [nglRef, isNglVisible] = useInView(useInViewOptions);
     const viewerRef = useRef(null);
     // Use default representations hook
-    const defaultRepresentations = useDefaultRepresentations();
+    const defaultRepresentations = topology && topology.defaultRepresentations;
     // Define the representations to be displayed in the viewer
     const [representations, setRepresentations] = useState(null);
     // Initialize an empty dictionary for the schemes

@@ -13,8 +13,6 @@ import Loading from '../../../components/loading';
 import InteractionSelector from '../../../components/interaction-selector';
 import DoubleSideSwitch from 'src/components/double-side-switch';
 import Legend from '../../../components/legend';
-// Import NGL default representations
-import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 // Import CSS style
 import style from './style.module.css';
 // Import some auxiliar functions
@@ -118,7 +116,7 @@ const Energies = () => {
   }, [topology, interactions, selectedInteraction, selectedOrder]);
 
   // Get the default representations
-  const defaultRepresentations = useDefaultRepresentations();
+  const defaultRepresentations = topology && topology.defaultRepresentations;;
 
   // Define the representations to be displayed in the viewer
   const [ representations, setRepresentations ] = useState(null);

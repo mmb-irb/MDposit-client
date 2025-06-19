@@ -24,7 +24,6 @@ import ColorLegend from '../../../components/color-legend';
 import useAPI from '../../../hooks/use-api';
 import { ProjectCtx } from '../../../contexts';
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
-import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 
 import style from './style.module.css';
 import { ColormakerRegistry } from 'ngl';
@@ -37,7 +36,7 @@ const LipidInteractions = () => {
   const viewerRef = useRef(null);
 
   // Get the default representations
-  const defaultRepresentations = useDefaultRepresentations();
+  const defaultRepresentations = topology && topology.defaultRepresentations;
 
   // Send a request to the API with the url of the specific analysis
   const {

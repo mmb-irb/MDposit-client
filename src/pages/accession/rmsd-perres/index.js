@@ -14,7 +14,6 @@ import { color as d3color, scaleLinear } from 'd3';
 
 import Card from '../../../components/animated-card';
 import ViewerWithControls from '../../../components/viewer-with-controls';
-import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 import Loading from '../../../components/loading';
 
 import useAPI from '../../../hooks/use-api';
@@ -59,12 +58,12 @@ const RmsdPerres = () => {
   const {
     accessionAndMdNumber,
     metadata,
-    topology: topologyManager,
+    topology,
     populations,
   } = useContext(ProjectCtx);
 
   // Get the default representations
-  const defaultRepresentations = useDefaultRepresentations();
+  const defaultRepresentations = topology && topology.defaultRepresentations;
 
   // Set a ref to the ngl which allows access to its exposed methods
   const viewerRef = useRef(null);
@@ -92,7 +91,7 @@ const RmsdPerres = () => {
     xWeights,
   } = useMemo(() => {
     if (
-      !topologyManager ||
+      !topology ||
       !metadata ||
       !payload ||
       (populations && populations.loading)
@@ -218,7 +217,7 @@ const RmsdPerres = () => {
     };
   }, [
     payload,
-    topologyManager,
+    topology,
     metadata,
     accessionAndMdNumber,
     defaultRepresentations,
@@ -309,7 +308,7 @@ const RmsdPerres = () => {
   else if (populations && !populations.payload)
     return 'Something bad happened with populations';
 
-  if (!topologyManager) return <Loading />;
+  if (!topology) return <Loading />;
 
   // Render
   return (

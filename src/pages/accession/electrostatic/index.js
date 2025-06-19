@@ -15,8 +15,6 @@ import Loading from '../../../components/loading';
 
 import InteractionSelector from '../../../components/interaction-selector';
 
-import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
-
 import { ColormakerRegistry } from 'ngl';
 import { color as d3color, scaleLinear } from 'd3';
 
@@ -50,7 +48,7 @@ const Electrostatic = () => {
   const [ representations, setRepresentations ] = useState(null);
 
   // Get the default representations
-  const defaultRepresentations = useDefaultRepresentations();
+  const defaultRepresentations = topology && topology.defaultRepresentations;;
 
   // In case there are charges, use them to create a color scale to pain the surface area
   const chargesColorScheme = useMemo(() => {

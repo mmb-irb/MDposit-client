@@ -1,0 +1,48 @@
+// Get NGL predefined representations for the epitopes page
+const getEpitopesRepresentations = topology => {
+    if (!topology) return;
+    // Check that at least one of the protein references has epitopes
+    const anyReferenceEpitopes = topology.proteinReferences.some(
+        reference => !!reference.epitopes,
+    );
+    if (!anyReferenceEpitopes) return;
+    // Get the residues on each reference epitopes in the current topology numeration
+    const mappedResiduesPerReference = topology.proteinReferences.map(reference => {
+        // Get the reference name and epitopes
+        const referenceId = reference.uniprot;
+        const referenceEpitopes = reference.epitopes;
+        if (!referenceEpitopes) return [];
+        // Save all epitope residues together and eliminate duplicates
+        const epitopeResidues = Object.values(referenceEpitopes).map(
+            epitope => epitope.residues,
+        );
+        const allResidues = [].concat.apply([], epitopeResidues);
+        const uniqueResidues = Array.from(new Set(allResidues));
+        const mappedResidues = topology.getReferenceResidueIndices(
+            referenceId,
+            uniqueResidues,
+        );
+        if (!mappedResidues) return [];
+        return mappedResidues;
+    });
+    // Join all previous mapped residues together
+    const allMappedResidues = [].concat.apply(
+        [],
+        Object.values(mappedResiduesPerReference),
+    );
+    // Transform mapped residues indices to an NGL selection
+    const { rangedSelection, small } = topology.residueIndices2Ngl(
+        allMappedResidues,
+    );
+    const reps = [
+        {
+            name: 'Epitopes',
+            selection: rangedSelection || 'none',
+            type: small ? 'licorice' : 'cartoon',
+            color: 'purple',
+        },
+    ];
+    return reps;
+};
+
+export default getEpitopesRepresentations;

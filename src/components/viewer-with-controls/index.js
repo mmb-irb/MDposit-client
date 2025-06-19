@@ -58,7 +58,6 @@ import { BASE_PATH_PROJECTS } from '../../utils/constants';
 // The main component of the viewer itself
 import MolstarViewer from '../molstar-viewer';
 import NGLViewer from '../ngl-viewer';
-import useDefaultRepresentations from '../ngl-viewer/use-default-representations';
 
 // Hooks
 import useToggleState from '../../hooks/use-toggle-state';
@@ -303,7 +302,7 @@ const ViewerWithControls = forwardRef(
       representationsState || useState(fixedStartingRepresentations);
 
     // Use this hook to get the memoized NGL default representations
-    const defaultRepresentations = useDefaultRepresentations();
+    const defaultRepresentations = topology && topology.defaultRepresentations;;
 
     // Set the missing value completer for representations including the main component name
     // Return true if there was any change
