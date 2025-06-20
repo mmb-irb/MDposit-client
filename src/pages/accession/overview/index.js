@@ -464,7 +464,13 @@ const Overview = React.memo(() => {
                 </div>
               </div>}
               {/* Node will exist only in the global API, and the global client has nodes as options */}
-              {HOST_CONFIG.global && node && <div>Node: {HOST_CONFIG.optionsNiceNames[node] || node}</div>}
+              {HOST_CONFIG.global && node && 
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div className={style['decorated-list-item__title']}>Node</div>
+                <div className={style['decorated-list-item__content']} style={{ wordBreak: 'break-word', borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
+                  {HOST_CONFIG.optionsNiceNames[node] || node}
+                </div>
+              </div>}
               {metadata.CONTACT && metadata.CONTACT.length > 0 &&
                <div style={{ display: 'flex', alignItems: 'center' }}>
                 <div className={style['decorated-list-item__title']}>Contact</div>
