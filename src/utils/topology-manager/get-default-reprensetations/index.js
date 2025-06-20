@@ -143,7 +143,7 @@ const getDefaultRepresentations = topology => {
             reps.push({
                 name: `${chainLabel} - ions`,
                 selection: nglSelection,
-                type: 'spacefill',
+                type: 'ball+stick',
                 color: 'element',
             });
         }
