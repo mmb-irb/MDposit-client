@@ -1227,6 +1227,10 @@ const NGLViewer = memo(
               {(() => {
                 // If there is not reference at all it means it is not even a protein
                 if (!referenceId) return;
+                // If the reference is missing in the database then show a disclaimer
+                if (residue.referenceData === null) return (
+                  <div style={{ color: 'red' }}>{`Missing data for ${referenceId}`}</div>
+                );
                 // No referable flag is for proteins which are not to be referenced
                 // e.g. antibodies, synthetic constructs, etc.
                 if (referenceId === 'noref') return (

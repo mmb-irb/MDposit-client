@@ -259,12 +259,20 @@ class Residue {
     // Otherwise get the corresponding reference data
     if (this.referenceType === 'protein') {
       const reference = this.topology.proteinReferences.find(ref => ref.uniprot === this.referenceId);
-      if (!reference) throw new Error(`Reference id ${this.referenceId} is not found among protein references`);
+      // If reference is not found then it means it is missing in the database
+      if (!reference) {
+        console.error(`Reference id ${this.referenceId} is not found among protein references`);
+        return null;
+      }
       return reference;
     }
     if (this.referenceType === 'ligand') {
       const reference = this.topology.ligandReferences.find(ref => ref.pubchem === this.referenceId);
-      if (!reference) throw new Error(`Reference id ${this.referenceId} is not found among ligand references`);
+      // If reference is not found then it means it is missing in the database
+      if (!reference) {
+        console.error(`Reference id ${this.referenceId} is not found among ligand references`);
+        return null;
+      }
       return reference;
     }
     throw new Error(`Not supported reference type ${this.referenceType}`);
