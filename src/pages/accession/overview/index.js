@@ -531,7 +531,7 @@ const Overview = React.memo(() => {
                   key={index} 
                   className={style['card-background']}
                 >
-                <Typography variant="h6" style={{ marginBottom: '5px', marginTop: '10px', fontSize: 'inherit' }}>Sequence {index + 1}:</Typography>
+                <Typography variant="h6" style={{ marginBottom: '5px', marginTop: '10px', fontSize: 'inherit' }}>Sequence {index + 1} (5' -&gt; 3'):</Typography>
                   <textarea
                     readOnly
                     value={seq}
