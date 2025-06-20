@@ -93,6 +93,10 @@ const NODE_OPTIONS = {
         'pklr': 'BSC - Pyruvate Kinase',
         'oxf': 'Oxford University',
         'cin': 'Cineca',
+        'inr': 'Inria',
+        'rpbs': 'RPBS',
+        'jsc': 'JSC',
+        'ufl': 'University of Florida'
     }
 };
 
