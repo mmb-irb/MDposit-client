@@ -48,6 +48,9 @@ const Contact = lazy(() =>
 const Accession = lazy(() =>
   import(/* webpackChunkName: 'accession' */ '../pages/accession'),
 );
+const Pointer = lazy(() =>
+  import(/* webpackChunkName: 'pointer' */ '../pages/pointer'),
+);
 
 // Set a custom Navigate which is smart enought to replace params in the 'to' path
 const SmartNavigate = props => {
@@ -160,6 +163,14 @@ const Base = () => {
             <Route
               path="/browse/:accession/:page"
               element={<SmartNavigate to="/id/:accession/:page" replace />}
+            />
+            <Route
+              path="pointer"
+              element={
+                <Suspense fallback={null}>
+                  <Pointer />
+                </Suspense>
+              }
             />
             {/*<Route path={['/:page', '/']} component={HomeFAB} />*/}
           </Routes>

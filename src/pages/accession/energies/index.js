@@ -13,8 +13,6 @@ import Loading from '../../../components/loading';
 import InteractionSelector from '../../../components/interaction-selector';
 import DoubleSideSwitch from 'src/components/double-side-switch';
 import Legend from '../../../components/legend';
-// Import NGL default representations
-import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 // Import CSS style
 import style from './style.module.css';
 // Import some auxiliar functions
@@ -118,7 +116,7 @@ const Energies = () => {
   }, [topology, interactions, selectedInteraction, selectedOrder]);
 
   // Get the default representations
-  const defaultRepresentations = useDefaultRepresentations();
+  const defaultRepresentations = topology && topology.defaultRepresentations;;
 
   // Define the representations to be displayed in the viewer
   const [ representations, setRepresentations ] = useState(null);
@@ -369,10 +367,10 @@ const Energies = () => {
   if (dataset && dataset.error) return dataset.error;
   if (!dataset) {
     if (anyLoading) return <Loading />;
+    if (!interactions) return 'There are no interactions';
+    if (!topology) return 'There is no topology';
     return 'Something bad happened';
   }
-
-  if (!topology) return <Loading />;
 
   // Check if there is only 1 residue
   const singleValue = esData && esData.es.data.length === 1;

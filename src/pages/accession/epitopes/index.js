@@ -24,7 +24,6 @@ import {
 
 import Card from '../../../components/animated-card';
 import ViewerWithControls from '../../../components/viewer-with-controls';
-import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 
 import style from './style.module.css';
 
@@ -37,8 +36,6 @@ import useAPI from '../../../hooks/use-api';
 import useColors from '../../../hooks/use-colors';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
-
-import useEpitopesRepresentations from '../../../components/ngl-viewer/use-epitopes-representations';
 
 const pdbUrlBase = 'https://www.rcsb.org/structure/';
 
@@ -85,7 +82,7 @@ const Epitopes = () => {
     accessionAndMdNumber,
     metadata,
     proteinReferences,
-    topology: topologyManager,
+    topology,
   } = useContext(ProjectCtx);
 
   // Get the references data
@@ -149,7 +146,7 @@ const Epitopes = () => {
     xTooltip,
   } = useMemo(() => {
     // Wait for data and metadata to be ready
-    if (!payload || !metadata || !topologyManager || epitopes.length === 0) return {};
+    if (!payload || !metadata || !topology || epitopes.length === 0) return {};
     // Get the main data
     const data = payload.saspf;
     // Calculate the frames step of the first residue SAS analysis
@@ -162,20 +159,20 @@ const Epitopes = () => {
     epitopes.forEach(
       ([referenceId, epitopeName, epitopeResidues, epitopeSurface]) => {
         // Parse the reference residues list to a mapped NGL selection string
-        const mappedResidues = topologyManager.getReferenceResidueIndices(
+        const mappedResidues = topology.getReferenceResidueIndices(
           referenceId,
           epitopeResidues,
         );
         // In case the epitope is not found in the current structure we do not push it
         if (mappedResidues.length === 0) return {};
-        const chainedResidues = topologyManager.byChains(mappedResidues);
+        const chainedResidues = topology.byChains(mappedResidues);
         const chains = Object.keys(chainedResidues);
         // Get the SAS values for each residue in each chain
         const chainedResiduesData = {};
         Object.entries(chainedResidues).forEach(([chain, residues]) => {
           const residuesData = residues.map(residueIndex => {
             const residueData = { saspf: data[residueIndex] };
-            residueData.atoms = topologyManager.getResidueByIndex(residueIndex).atomCount;
+            residueData.atoms = topology.getResidueByIndex(residueIndex).atomCount;
             return residueData;
           });
           chainedResiduesData[chain] = residuesData;
@@ -220,7 +217,7 @@ const Epitopes = () => {
         const {
           rangedSelection,
           small,
-        } = topologyManager.residueIndices2Ngl(mappedResidues);
+        } = topology.residueIndices2Ngl(mappedResidues);
         epitopesData.push({
           name: epitopeName,
           data: chainedFramedData,
@@ -239,12 +236,12 @@ const Epitopes = () => {
     const xTooltip = xValue => 'frame ' + xValue;
 
     return { data, epitopesData, frameStep, frameCount, xTooltip };
-  }, [payload, metadata, topologyManager, epitopes]);
+  }, [payload, metadata, topology, epitopes]);
 
   // Use this hook to get the memoized NGL default representations
-  const defaultRepresentations = useDefaultRepresentations();
+  const defaultRepresentations = topology && topology.defaultRepresentations;
   // Use this hook to get the memoized NGL epitopes representations
-  const allEpitopesRepresentations = useEpitopesRepresentations();
+  const allEpitopesRepresentations = topology && topology.epitopesRepresentations;
 
   // Set the component to be passed to the viewer
   const components = useMemo(() => {
@@ -404,7 +401,7 @@ const Epitopes = () => {
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
 
-  if (!topologyManager || !proteinReferences) return <Loading />;
+  if (!topology || !proteinReferences) return <Loading />;
 
   // This data was added manually to the spike reference
   // If this is missing you may be not in the covid database or the reference has been overwritten

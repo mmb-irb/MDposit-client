@@ -91,6 +91,7 @@ const AccessionHeader = ({ project, accession, accessionAndMdNumber, page, prima
             { // Sort MDs by name while using the index from the API
             project.mds
               .map((md, i) => ({ md, index: i }))
+              .filter(({ md }) => !md.endsWith('(removed)'))
               .sort((a, b) => a.md.localeCompare(b.md))
               .map(({ md, index }) => (
               <MenuItem key={index} value={index}>

@@ -18,6 +18,10 @@ import {
   parsedSelectionRanger,
   unique
 } from 'src/utils/auxiliar-functions';
+// Functions te setup some predefined viewer representations
+import getDefaultRepresentations from './get-default-reprensetations';
+import getEpitopesRepresentations from './get-epitopes-representations';
+import getMutationsRepresentations from './get-mutations-representations';
 
 // Topology manager
 // Many functions to handle atom/residue/chain numeration conversions and more
@@ -462,6 +466,10 @@ export class Topology {
       if (chainReference.chain_indices.length === 0)
         console.error('Unmatched chain reference ' + chainReference.sequence);
     }
+    // Set internal values
+    this._defaultRepresentations = undefined;
+    this._epitopeRepresentations = undefined;
+    this._mutationRepresentations = undefined;
   }
 
   // --------------------------------------------------------------------
@@ -662,4 +670,26 @@ export class Topology {
       return color;
     });
   };
+
+  // --------------------------------------------------------------------
+  // VIEWER PREDEFINED REPRESENTATIONS
+  // --------------------------------------------------------------------
+
+  get defaultRepresentations () {
+    if (this._defaultRepresentations !== undefined) return this._defaultRepresentations;
+    this._defaultRepresentations = getDefaultRepresentations(this);
+    return this._defaultRepresentations;
+  }
+
+  get epitopesRepresentations () {
+    if (this._epitopeRepresentations !== undefined) return this._epitopeRepresentations;
+    this._epitopeRepresentations = getEpitopesRepresentations(this);
+    return this._epitopeRepresentations;
+  }
+
+  get mutationsRepresentations () {
+    if (this._mutationRepresentations !== undefined) return this._mutationRepresentations;
+    this._mutationRepresentations = getMutationsRepresentations(this);
+    return this._mutationRepresentations;
+  }
 }

@@ -15,7 +15,6 @@ import {
 } from '@mui/material';
 */
 import ViewerWithControls from '../../../components/viewer-with-controls';
-import useMutationsRepresentations from '../../../components/ngl-viewer/use-mutations-representations';
 
 import style from './style.module.css';
 
@@ -36,22 +35,22 @@ const Mutations = () => {
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
 
   // Get the current project data
-  const { topology: topologyManager } = useContext(ProjectCtx);
+  const { topology } = useContext(ProjectCtx);
 
   const residueEntropies = useMemo(() => {
-    if (!topologyManager) return;
+    if (!topology) return;
     // Determine if this project has entropies
     // Otherwise stop here
-    const validReferences = topologyManager.proteinReferences.filter(
+    const validReferences = topology.proteinReferences.filter(
       ref => REFERENCES_WITH_ENTROPIES.includes(ref.uniprot) && ref.entropies
     );
     if (validReferences.length === 0) return;
     // Iterate over all residues in the topology to find their corresponding entropy
-    const residuesCount = topologyManager.residueCount;
+    const residuesCount = topology.residueCount;
     const residueEntropies = new Array(residuesCount).fill(null);
     // Iterate over all residues in the topology to find their corresponding entropy
     for (let i = 0; i < residuesCount; i++) {
-      const residue = topologyManager.getResidueByIndex(i);
+      const residue = topology.getResidueByIndex(i);
       const referenceId = residue.referenceId;
       if (!referenceId) continue;
       // We substract 1 from the residue index since it counts from 1 to n as references do
@@ -66,7 +65,7 @@ const Mutations = () => {
       residueEntropies[i] = logarithmicEntropy;
     }
     return residueEntropies;
-  }, [topologyManager]);
+  }, [topology]);
 
   // Set when one point in the graph is selected
   const [selectedResidues, setSelectedResidues] = useState([]);
@@ -76,7 +75,7 @@ const Mutations = () => {
   );
 
   // Set the representations for the NGL viewer
-  const representations = useMutationsRepresentations();
+  const representations = topology && topology.mutationsRepresentations;
 
   // When a residue is selected
   const handleSelect = useCallback(
@@ -108,7 +107,7 @@ const Mutations = () => {
 
   // This data was added manually to the spike reference
   // If this is missing you may be not in the covid database or the reference has been overwritten
-  if (topologyManager && !residueEntropies) return 'Missing entropies data';
+  if (topology && !residueEntropies) return 'Missing entropies data';
   if (!representations) return <Loading />;
 
   return (

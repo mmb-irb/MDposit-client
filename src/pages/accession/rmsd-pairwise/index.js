@@ -8,7 +8,6 @@ import useRemfo from 'src/hooks/use-remfo';
 import Card from '../../../components/animated-card';
 import Loading from '../../../components/loading';
 import ViewerSpawner from '../../../components/viewer-spawner';
-import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 
@@ -42,7 +41,7 @@ const RmsdPairwise = () => {
     accessionAndMdNumber,
     metadata,
     interactions: defaultInteractions,
-    topology: topologyManager,
+    topology,
   } = useContext(ProjectCtx);
 
   // Set a ref to the ngl which allows access to the ngl viewer exposed methods
@@ -163,7 +162,7 @@ const RmsdPairwise = () => {
   }, [selectedFramePair]);
 
   // Get the default representations
-  const defaultRepresentations = useDefaultRepresentations();
+  const defaultRepresentations = topology && topology.defaultRepresentations;
 
   // Set the component state
   const [representations, setRepresentations] = useState(null);
@@ -245,7 +244,7 @@ const RmsdPairwise = () => {
             agents.forEach((agent, agentIndex) => {
               // Get the interaction interface, if it exists, in NGL format
               // The default interaction (Overall) has no interface
-              const selection = agent.interface && topologyManager.residueIndices2Ngl(agent.interface);
+              const selection = agent.interface && topology.residueIndices2Ngl(agent.interface);
               // Set the new representation
               newRepresentations.push({
                 name: `${component.name} - ${agent.name} interface`,
@@ -264,7 +263,7 @@ const RmsdPairwise = () => {
             agents.forEach(agent => {
               // Get the interaction interface, if it exists, in NGL format
               // The default interaction (Overall) has no interface
-              const selection = agent.interface && topologyManager.residueIndices2Ngl(agent.interface);
+              const selection = agent.interface && topology.residueIndices2Ngl(agent.interface);
               // Find the previous representation for interface 1
               const reference = `${REPRESENTATION_REFERENCES.interface[index]} - ${agent.name}`;
               const previousRepresentation = previousRepresentations.find(
@@ -291,7 +290,7 @@ const RmsdPairwise = () => {
     });
   }, [
     components,
-    topologyManager,
+    topology,
     interactions,
     selectedInteraction,
     defaultRepresentations,
@@ -304,9 +303,10 @@ const RmsdPairwise = () => {
   if (dataset && dataset.error) return dataset.error;
   if (!dataset) {
     if (indexLoading || loading) return <Loading />;
+    // If there are no interactions or topology
+    if (!topology) return 'There is no topology';
     return 'Something bad happened with the analysis data';
   }
-  if (!topologyManager) return <Loading />;
 
   // Render
   return (

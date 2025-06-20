@@ -1,0 +1,17 @@
+.card {
+  margin: 1em 0;
+}
+
+.horizontal-expanded {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.horizontal {
+  display: flex;
+  flex-direction: row;
+  column-gap: 2em;
+  align-items: center;
+}

@@ -4,8 +4,9 @@ import hostConfig from "./host-config";
 export const HOST_CONFIG = hostConfig;
 
 export const BASE_PATH = HOST_CONFIG.api;
+export const BASE_VERSIONED_PATH = HOST_CONFIG.api + 'current';
 
-export const BASE_PATH_PROJECTS = BASE_PATH + 'current/projects';
+export const BASE_PATH_PROJECTS = BASE_VERSIONED_PATH + '/projects';
 
 export const MAIN_STRUCTURE_FILENAME = 'structure.pdb';
 

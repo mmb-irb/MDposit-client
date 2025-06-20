@@ -49,7 +49,7 @@ const Hbonds = () => {
   const {
     accessionAndMdNumber,
     metadata,
-    topology: topologyManager,
+    topology,
     interactions,
     populations,
   } = useContext(ProjectCtx);
@@ -106,7 +106,7 @@ const Hbonds = () => {
   // Set the processed data which will be displayed
   const { processedData, weights } = useMemo(() => {
     // Return here if we are still waiting for data
-    if (!dataset || !topologyManager || !metadata) return {};
+    if (!dataset || !topology || !metadata) return {};
     if (populations && populations.loading) return {};
 
     // If the dataset is empty it means no hydrogen bonds where found for this interaction
@@ -221,7 +221,7 @@ const Hbonds = () => {
     processedData.forEach(group => {
       // Find out which agent does the acceptors belong to
       const acceptorIndex = group.acceptors[0];
-      const acceptorAtom = topologyManager.getAtomByIndex(acceptorIndex);
+      const acceptorAtom = topology.getAtomByIndex(acceptorIndex);
       const isAcceptorFromAgent1 =
         interaction['interface_atom_indices_1'].indexOf(acceptorAtom.index) !== -1;
       group.isAcceptorFromAgent1 = isAcceptorFromAgent1;
@@ -229,12 +229,12 @@ const Hbonds = () => {
       const [acceptorLabels, donorLabels] = [group.acceptors, group.donors].map(
         atoms =>
           atoms.map(atomIndex => {
-            const atom = topologyManager.getAtomByIndex(atomIndex);
+            const atom = topology.getAtomByIndex(atomIndex);
             return `${atom.residue.standardLabel}.${atom.name}`;
           }),
       );
       const hydrogenLabels = group.hydrogens.map(atomIndex => {
-        const atom = topologyManager.getAtomByIndex(atomIndex);
+        const atom = topology.getAtomByIndex(atomIndex);
         let atomName = atom.name;
         if (isAcceptorFromAgent1) atomName = atomName + ' —';
         else atomName = '— ' + atomName;
@@ -273,7 +273,7 @@ const Hbonds = () => {
       );
     }
     return { processedData, weights };
-  }, [dataset, metadata, topologyManager, interaction, populations]);
+  }, [dataset, metadata, topology, interaction, populations]);
 
   // Table pagination states
   const [selectedPage, setSelectedPage] = useState(0);
@@ -324,13 +324,15 @@ const Hbonds = () => {
   if (populations && populations.error) return populations.error.toString();
   if (!dataset) {
     if (indexLoading || loading) return <Loading />;
+    // If there are no interactions or topology
+    if (!interactions) return 'There are no interactions';
+    if (!topology) return 'There is no topology';
     return 'Something bad happened with the analysis data';
   }
   if (populations && !populations.payload) {
     if (populations.loading) return <Loading />;
     return 'Something bad happened with populations data';
   }
-  if (!topologyManager) return <Loading />;
 
   // Render
   return (

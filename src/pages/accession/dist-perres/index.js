@@ -261,9 +261,10 @@ const DistPerres = () => {
   if (dataset && dataset.error) return dataset.error;
   if (!dataset) {
     if (indexLoading || loading) return <Loading />;
+    if (!interactions) return 'There are no interactions';
+    if (!topology) return 'There is no topology';
     return 'Something bad happened with the analysis data';
   }
-  if (!topology || !interactions) return <Loading />;
 
   // Handles when the tabs are switched
   const handleTabs = (event, newValue) => {

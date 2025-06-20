@@ -232,7 +232,8 @@ const NGLViewer = memo(
 
       // Handle the upper left corner viewer logs
       const viewerLogs = useMemo(() => {
-        if (!mainComponent) return `Loading structure`;
+        if (!topologyManager) return 'Waiting for the main topology';
+        if (!mainComponent) return `Waiting for the main component`;
         if (!trajectories.length && !noTrajectory)
           return `No trajectory available`;
         if (runningTasks > 0) return `Rendering...`;

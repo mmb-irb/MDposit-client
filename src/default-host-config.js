@@ -377,7 +377,6 @@ const HOST_CONFIGURATIONS = {
     // JSC
     'jsc.mddbr.eu': {
         production: true,
-        api: 'https://jsc.mddbr.eu/api/rest/', // be aware that the URL must be the same as the one in the server (no relative paths allowed)))
         primaryColor: '#c5b96b', // Golden,
         logoLabel: 'JSC node',
         name:'MDposit JSC'
@@ -385,7 +384,6 @@ const HOST_CONFIGURATIONS = {
     // BSC
     'bsc.mddbr.eu': {
         production: true,
-        api: 'https://bsc.mddbr.eu/api/rest/', // be aware that the URL must be the same as the one in the server (no relative paths allowed)))
         primaryColor: '#a8cdf3', // Golden,
         logoLabel: 'PKLR node',
         name:'PKLR@MDDB'
@@ -393,7 +391,6 @@ const HOST_CONFIGURATIONS = {
     // FLORIDA DEV
     'devmddb.rc.ufl.edu': {
         production: false,
-        api: 'https://devmddb.rc.ufl.edu/api/rest/', // be aware that the URL must be the same as the one in the server (no relative paths allowed)))
         primaryColor: '#eb94d3', // pink,
         logoLabel: 'florida node',
         name:'MDposit florida'
@@ -401,7 +398,6 @@ const HOST_CONFIGURATIONS = {
     // INRIA
     'inria.mddbr.eu': {
         production: true,
-        api: 'https://inria.mddbr.eu/api/rest/', // be aware that the URL must be the same as the one in the server (no relative paths allowed)))
         primaryColor: '#5e8568', // green,
         logoLabel: 'inria node',
         name:'MDposit inria'
@@ -409,22 +405,28 @@ const HOST_CONFIGURATIONS = {
     // RPBS
     'rpbs.mddbr.eu': {
         production: true,
-        api: 'https://rpbs.mddbr.eu/api/rest/', // be aware that the URL must be the same as the one in the server (no relative paths allowed)))
         primaryColor: '#6bc5b8', // Turquoise,
         logoLabel: 'RPBS node',
         name:'MDposit RPBS'
     },
     // PODMAN DEV
-    '10.4.96.40': {
+    'devmddb.rc.ufl.edu': {
         production: false,
-        api: 'https://10.4.96.40/api/rest/', // be aware that the URL must be the same as the one in the server (no relative paths allowed)))
         primaryColor: '#ff0000', // Golden,
         logoLabel: 'Podman node',
         name:'MDposit Podman'
     },
+    // Nostrum
+    '3.144.224.102': {
+        api: `http://3.144.224.102/api/rest/`,
+        primaryColor: '#00cfbf', // Light blue
+        logo: 'logo-nostrum',
+        name:'XNA Hub'
+    },
 };
 
 // Set the current host configuration
+if (!(HOST in HOST_CONFIGURATIONS)) console.error(`Unknown host "${HOST}". Using default configuration.`)
 const HOST_CONFIG = HOST_CONFIGURATIONS[HOST] || HOST_CONFIGURATIONS['localhost'];
 //const HOST_CONFIG = HOST_CONFIGURATIONS['mdposit-dev.mddbr.eu'];
 

@@ -11,10 +11,6 @@ import { CardContent, Chip } from '@mui/material';
 
 import { ProjectCtx } from '../../contexts';
 
-import useDefaultRepresentations from '../ngl-viewer/use-default-representations';
-import useMutationsRepresentations from '../ngl-viewer/use-mutations-representations';
-import useEpitopesRepresentations from '../ngl-viewer/use-epitopes-representations';
-
 import style from './style.module.css';
 
 import Loading from '../loading';
@@ -38,9 +34,9 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
   const [overlapedDomain, setOverlapedDomain] = useState(null);
 
   // Get pre-build representations
-  const defaultRepresentations = useDefaultRepresentations();
-  const mutationsRepresentation = useMutationsRepresentations();
-  const epitopesRepresentation = useEpitopesRepresentations();
+  const defaultRepresentations = topology && topology.defaultRepresentations;
+  const mutationsRepresentation = topology && topology.mutationsRepresentations;
+  const epitopesRepresentation = topology && topology.epitopesRepresentations;
 
   // The domains strucutre is:
   // domains: [

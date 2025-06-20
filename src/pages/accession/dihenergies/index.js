@@ -15,8 +15,6 @@ import ViewerSpawner from '../../../components/viewer-spawner';
 import Loading from '../../../components/loading';
 import Selector from 'src/components/selector';
 import DoubleSideSwitch from 'src/components/double-side-switch';
-// Import NGL default representations
-import useDefaultRepresentations from '../../../components/ngl-viewer/use-default-representations';
 // Import auxiliar function
 import { caluclateAverage, round2cents, add, unique, min, max } from 'src/utils/auxiliar-functions';
 // Import CSS style
@@ -265,7 +263,7 @@ const DihedralEnergies = () => {
     }, [selectedChain, dihedralsData, selectedDihedral, perResidue]);
 
     // Get the default representations
-    const defaultRepresentations = useDefaultRepresentations();
+    const defaultRepresentations = topology && topology.defaultRepresentations;;
     // Define the representations to be displayed in the viewer
     const [ representations, setRepresentations ] = useState(null);
 
