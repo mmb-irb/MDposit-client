@@ -10,8 +10,9 @@
 }
 
 .horizontal {
+  margin-top: 0.4em;
   display: flex;
   flex-direction: row;
-  column-gap: 2em;
   align-items: center;
+  column-gap: 0.5em;
 }
