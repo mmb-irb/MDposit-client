@@ -54,7 +54,7 @@ const DEFAUL_HOST_CONFIGURATION = {
     optionsLabel: 'Options',
     optionsNiceNames: {},
     queryFields: defaultQueryFields,
-    options: []
+    flags: []
 };
 
 // Set the configuration for the collections option
@@ -363,7 +363,7 @@ const HOST_CONFIGURATIONS = {
         secondaryColor: '#76FF03', // Light green
         ...UNIT_OPTIONS,
         queryFields: queryFieldsWithCovid,
-        options: ['covid'] // Enable covid specific analyses
+        flags: ['covid'] // Enable covid specific analyses
     },
     // BioExcel covid19 production
     'bioexcel-cv19.mddbr.eu': {
@@ -376,7 +376,7 @@ const HOST_CONFIGURATIONS = {
         secondaryColor: '#76FF03', // Light green
         ...UNIT_OPTIONS,
         queryFields: queryFieldsWithCovid,
-        options: ['covid'] // Enable covid specific analyses
+        flags: ['covid'] // Enable covid specific analyses
     },
     // JSC
     'jsc.mddbr.eu': {
