@@ -19,10 +19,12 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faGhost, faUmbrella } from '@fortawesome/free-solid-svg-icons';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import Loading from 'src/components/loading';
+import LazyImg from 'src/components/lazy-img';
+// Import auxiliar functions
+import { round2cents } from 'src/utils/auxiliar-functions';
 // CSS style
 import style from './style.module.css';
-import Loading from 'src/components/loading';
-import { round2cents } from 'src/utils/auxiliar-functions';
 
 // Set some definitions
 const PRESENCE_DEF = 'Resdiues in the system which belong to the reference';
@@ -82,17 +84,32 @@ const Pointer = () => {
         {`Entries including ${referenceId} ${ID_NAMES[reference]} (${payload.length} results)`}
       </Typography>
       {Object.entries(groupedData).map(([group, projects]) => {
+        const hasLogo = Boolean(HOST_CONFIG.optionsData && HOST_CONFIG.optionsData.logo);
+        const pngImage = hasLogo && require(`src/images/${HOST_CONFIG.optionsData.logo[group]}.png`);
+        const webpImage = hasLogo && require(`src/images/${HOST_CONFIG.optionsData.logo[group]}.png`);
+        const hasDescription = Boolean(HOST_CONFIG.optionsData && HOST_CONFIG.optionsData.description);
         return (
           <Accordion key={group} slotProps={{ transition: { timeout: 500 } }} defaultExpanded={true}>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="h5">
-                {HOST_CONFIG.optionsNiceNames[group] || group}
-                {`  (${projects.length} result${projects.length === 1 ? '' : 's'})`}
-              </Typography>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon />}
+              title={hasDescription && HOST_CONFIG.optionsData.description[group]}
+            >
+              <div className={style['horizontal-expanded']}>
+                <div>
+                  <Typography variant="h5">
+                    {HOST_CONFIG.optionsNiceNames[group] || group}
+                  </Typography>
+                  <div>{`${projects.length} result${projects.length === 1 ? '' : 's'}`}</div>
+                </div>
+                {hasLogo && <picture style={{ marginRight: '1em' }}>
+                  <source type="image/webp" src={webpImage} />
+                  <LazyImg height="50px" src={pngImage} loading="lazy" />
+                </picture>}
+              </div>
             </AccordionSummary>
             <AccordionDetails>
               {projects.map(project => {
-                return (<div>
+                return (<div key={project.id}>
                   <hr style={{ color: 'lightGrey', margin: '0' }} />
                   <div style={{ margin: '0.5em' }} >
                     <div className={style['horizontal-expanded']}>

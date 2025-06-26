@@ -26,11 +26,17 @@ import defaultQueryFields from "src/utils/constants/query-fields";
 // optionsLabel - Name of the options in the browse selector and the data summary
 // optionsNiceNames - Nice names for every possible value in the options field
 //                    Non-matching values will remain as they are
+// optionsData - Additional data related to options
 // queryFields - Fields to be queried in the search and advanced search pages and their configurations
 // options - Additional flags which may be used by the cliente
 
 // Get the requesting URL domain
-const HOST = window.location.hostname;
+//const HOST = window.location.hostname;
+const HOST = 'mdposit-dev.mddbr.eu';
+//const HOST = 'rpbs.mddbr.eu';
+//const HOST = 'irb-dev.mddbr.eu';
+//const HOST = 'cineca.mddbr.eu';
+//const HOST = '3.144.224.102';
 
 // Set default values for every host config fields
 // These values are used to fill missing values
@@ -53,6 +59,7 @@ const DEFAUL_HOST_CONFIGURATION = {
     optionsField: undefined, // No browser selector and no data summary pie chart by default
     optionsLabel: 'Options',
     optionsNiceNames: {},
+    optionsData: {},
     queryFields: defaultQueryFields,
     flags: []
 };
@@ -89,7 +96,6 @@ const NODE_OPTIONS = {
     optionsLabel: 'Node',
     optionsNiceNames: {
         'mmb': 'IRB Barcelona, MMB',
-        'abc': 'IRB Barcelona, ABC',
         'pklr': 'BSC - Pyruvate Kinase',
         'oxf': 'Oxford University',
         'cin': 'Cineca',
@@ -97,6 +103,38 @@ const NODE_OPTIONS = {
         'rpbs': 'RPBS',
         'jsc': 'JSC',
         'ufl': 'University of Florida'
+    },
+    optionsData: {
+        description: {
+            'mmb': 'This node is maintained by the Molecular Modeling and Bioinformatics (MMB)'
+                + ' group in IRB Barcelona. This was the first node and therefore has simulations'
+                + ' of multiple authors and all sorts thus not being topic-specific.',
+            'pklr': 'This node is maintained by the Life Sciences Department in the Barcelona'
+                + ' Supercomputing Center (BSC). At the moment, this node is hosting a Pyruvate Kinase'
+                + ' specific dataset, including different mutations and ligands.',
+            'oxf': 'This node is maintained by the Department of Biochemistry in the University of'
+                + ' Oxford. This node is focused in membrane proteins, both atomistic and coarse grained'
+                + ', since one of its goals is to integrate MemProtMD.',
+            'cin': 'This node is maintained by the High Performance Computing department of Cineca.'
+                + ' It is mainlfy focused in protein-ligand systems as it was originally intended to'
+                + ' store and make publicly available the Ligate dataset.',
+            'inr': 'This node is mantained by the Inria center at the Lorraine University.'
+                + 'It was originally intended to store and make publicly available the DynaRepo dataset.',
+            'rpbs': 'This node is maintained under the Ressource Parisienne en Bioinformatique'
+                + ' Structurale framework.',
+            'jsc': 'This node is maintained by the Jülich Supercomputing Center.',
+            'ufl': 'This node is maintained by the Department of Chemistry in the University of Florida.',
+        },
+        logo: {
+            'mmb': 'logo-irb',
+            'pklr': 'logo-bsc',
+            'oxf': 'oxf-node-logo',
+            'cin': 'cin-node-logo',
+            'inr': 'inr-node-logo',
+            'rpbs': 'rpbs-node-logo',
+            'jsc': 'jsc-node-logo',
+            'ufl': 'ufl-node-logo',
+        }
     }
 };
 
