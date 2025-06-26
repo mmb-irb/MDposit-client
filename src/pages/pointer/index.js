@@ -45,7 +45,7 @@ const Pointer = () => {
   const args = parse(argsString);
   // Make sure the arguments were passed
   const reference = args.ref;
-  const referenceId = args.id;
+  const referenceId = args.id.toUpperCase();
   if (!reference) return 'Missing reference';
   if (!referenceId) return 'Missing reference id';
   // Set project metadata values to retrieve from the pointers endpoint
@@ -109,6 +109,12 @@ const Pointer = () => {
             </AccordionSummary>
             <AccordionDetails>
               {projects.map(project => {
+                const name = project[projection.name] || 'Unnamed';
+                const description = project[projection.description];
+                let authors = project[projection.authors];
+                if (authors && typeof authors === 'string') authors = [authors];
+                let groups = project[projection.authors];
+                if (groups && typeof groups === 'string') groups = [groups];
                 return (<div key={project.id}>
                   <hr style={{ color: 'lightGrey', margin: '0' }} />
                   <div style={{ margin: '0.5em' }} >
@@ -121,9 +127,9 @@ const Pointer = () => {
                       </Typography>
                     </div>
                     <div>{`Name: ${project[projection.name]}`}</div>
-                    <div>{`Description: ${project[projection.description]}`}</div>
-                    <div>{`Authors: ${project[projection.authors].join(', ')}`}</div>
-                    <div>{`Groups: ${project[projection.groups].join(', ')}`}</div>
+                    <div>{description && `Description: ${description}`}</div>
+                    <div>{authors && `Authors: ${authors.join(', ')}`}</div>
+                    <div>{groups && `Groups: ${groups.join(', ')}`}</div>
                     <div className={style.horizontal}>
                       {project.presence && <div title={PRESENCE_DEF}>
                         <Chip
