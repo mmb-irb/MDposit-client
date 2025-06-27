@@ -89,7 +89,7 @@ const Pointer = () => {
         const webpImage = hasLogo && require(`src/images/${HOST_CONFIG.optionsData.logo[group]}.png`);
         const hasDescription = Boolean(HOST_CONFIG.optionsData && HOST_CONFIG.optionsData.description);
         return (
-          <Accordion key={group} slotProps={{ transition: { timeout: 500 } }} defaultExpanded={true}>
+          <Accordion key={group} slotProps={{ transition: { timeout: 500 } }} defaultExpanded={false}>
             <AccordionSummary
               expandIcon={<ExpandMoreIcon />}
               title={hasDescription && HOST_CONFIG.optionsData.description[group]}
