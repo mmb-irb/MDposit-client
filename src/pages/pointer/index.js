@@ -27,7 +27,7 @@ import { round2cents } from 'src/utils/auxiliar-functions';
 import style from './style.module.css';
 
 // Set some definitions
-const PRESENCE_DEF = 'Resdiues in the system which belong to the reference';
+const PRESENCE_DEF = 'Residues in the system which belong to the reference';
 const COVERAGE_DEF = 'Residues in the reference which exist in the system';
 
 // Set ID names for the different references
