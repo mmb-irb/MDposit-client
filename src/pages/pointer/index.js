@@ -113,7 +113,7 @@ const Pointer = () => {
                 const description = project[projection.description];
                 let authors = project[projection.authors];
                 if (authors && typeof authors === 'string') authors = [authors];
-                let groups = project[projection.authors];
+                let groups = project[projection.groups];
                 if (groups && typeof groups === 'string') groups = [groups];
                 return (<div key={project.id}>
                   <hr style={{ color: 'lightGrey', margin: '0' }} />
@@ -126,7 +126,7 @@ const Pointer = () => {
                         </a>
                       </Typography>
                     </div>
-                    <div>{`Name: ${project[projection.name]}`}</div>
+                    <div>{`Name: ${name}`}</div>
                     <div>{description && `Description: ${description}`}</div>
                     <div>{authors && `Authors: ${authors.join(', ')}`}</div>
                     <div>{groups && `Groups: ${groups.join(', ')}`}</div>
