@@ -1,7 +1,6 @@
 // React
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { debounce } from 'lodash-es';
 import { parse } from 'qs';
 
 // Additional components
@@ -25,7 +24,7 @@ import style from './style.module.css';
 
 // Constants
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
-const DEBOUNCE_DELAY = 500; // Half a second delay, same as in search component
+const SEARCH_DELAY = 500; // Half a second delay, same as in search component
 
 // Hooks
 import useAPI from '../../../hooks/use-api'; // API acces
@@ -234,9 +233,6 @@ const parseQuery = (currentQuery, currentLocation) => {
 // Set the tag to be shown for null and undefined values
 const NA_TAG = 'Not defined';
 
-// Store queries per location id, since I am not able to make the location remember a bloody state
-const storedQueries = {};
-
 // Advanced search page
 const CustomSearch = () => {
 
@@ -254,7 +250,6 @@ const CustomSearch = () => {
   const initialQuery = urlQuery ? parseUrlQuery(urlQuery) : {};
   // Use URL search params as a dependency for state
   const [query, setQuery] = useState(initialQuery);
-  const [queryUpdated, setQueryUpdated] = useState(false);
   // Track whether search was triggered by user action or URL change
   const isUserInitiatedSearchRef = useRef(false);
 
@@ -276,12 +271,11 @@ const CustomSearch = () => {
     history(browseURL);
   };
 
-  // Create a debounced version of the parseAndSearch function
-  const debouncedParseAndSearch = debounce(parseAndSearch, DEBOUNCE_DELAY);
-  // Cleanup the debounced function when component unmounts
+  // Call the parse and search function after a delay time with no chnages in the query
   useEffect(() => {
-    return () => debouncedParseAndSearch.cancel();
-  }, []);
+    const timeout = setTimeout(parseAndSearch, SEARCH_DELAY);
+    return () => clearTimeout(timeout);
+  }, [query]);
 
   // Query all the available fields using the 'options' endpoint
   const projectionStrings = availableFields.filter(field => field.options).map(field => 'projection=' + field.path);
@@ -398,8 +392,7 @@ const CustomSearch = () => {
     }
     
     // Trigger state update and search
-    setQueryUpdated(prev => !prev);
-    debouncedParseAndSearch();
+    setQuery({ ...query });
   };
 
   // Here is where queries are built by the user
