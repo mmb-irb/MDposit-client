@@ -85,6 +85,7 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
             components.forEach(comp => {
                 const url = comp.topologyURL || null;
                 const selection = comp.atomSelection || null;
+                const atomIndices = comp.atomIndices || null;
                 // Check if the url is new
                 // Else, skip this url since it has been requested already
                 const allRequestedTopologies = [
@@ -108,6 +109,7 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
                     newRequestedTopologies.push({
                         url: url,
                         selection: selection,
+                        atomindices: atomIndices,
                         loading: true,
                         requested: false,
                         error: null,
@@ -149,7 +151,10 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
             else {
                 requestedTopology.requested = true;
                 // Create the POST body
-                const postData = JSON.stringify({ selection : requestedTopology.selection });
+                const postData = JSON.stringify({
+                    selection : requestedTopology.selection,
+                    atomindices: requestedTopology.atomindices,
+                });
                 // Request the API
                 // http exception is added for local testing in http://localhost
                 const protocol = url.substring(0, 5) === 'https' ? https : http;

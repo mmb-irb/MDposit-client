@@ -107,6 +107,7 @@ const DEFAULT_COMPONENT_PARAMETERS = {
   topologyURL: 'auto', // This is assigned further
   trajectoryURLs: 'auto', // This is assigned further
   atomSelection: null,
+  atomIndices: null,
   frame: null,
   onlyTopology: false
 }
@@ -157,7 +158,8 @@ const ViewerWithControls = forwardRef(
       //    name: name of the component used to link representations with it
       //    topologyURL: string, (used in pockets analysis)
       //    trajectoryURLs: [ string ], (used in pca)
-      //    atomSelection: string, (used in pca)
+      //    atomSelection: string, (not used anymore but still supported)
+      //    atomIndices: [ int ], (used in pca)
       //    frame: int, (used in rmsd pairwise analysis)
       //    onlyTopology: bool, (used in pockets analysis)
       //  }

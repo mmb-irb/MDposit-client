@@ -87,8 +87,7 @@ const PCA = () => {
     const components = [
       {
         topologyURL: topologyURL,
-        // WARNING: NGL does not support ranged syntax with atom indices (e.g. @0-2,13-15)
-        atomSelection: '@' + data.atoms.join(','),
+        atomIndices: data.atoms,
         trajectoryURLs: trajectoryURLs,
       },
     ];
