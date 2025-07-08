@@ -489,13 +489,31 @@ const ViewerWithControls = forwardRef(
     }, []);
 
     // Find out if there are residues under PBC (Periodic Boundary Conditions) in the topology
+    // In case we have atom selections in all components, check if at least one is under PBC
+    // Otherwise we consider there are no PBC since all represented atoms are not in PBC
+    // This is useful in PCA projections
     // If there are PBC residues then stop the smooth to prevent misleading artifacts
     const hasPbcResidues = useMemo(() => {
       if (!topology || !topology.pbcResidues) return;
-      const _hasPbcResidues = topology.pbcResidues.size > 0;
-      if (_hasPbcResidues) setSmooth(false);
-      return _hasPbcResidues;
-    }, [topology]);
+      if (!finalComponents) return;
+      // Check if there is at least one residue in PBC
+      const anyPbcResidues = topology.pbcResidues.size > 0;
+      if (anyPbcResidues === false) return false;
+      // If there is at least one PBC residue...
+      // Check if we have atom indices in all components
+      const haveAllAtomIndices = finalComponents.every(comp => comp.atomIndices);
+      if (haveAllAtomIndices) {
+        // Check if any atom index is included among PBC residues
+        const allAtomIndices = finalComponents.reduce((acc, comp) => acc.concat(comp.atomIndices), []);
+        const anyPbcAtom = allAtomIndices.some(atomIndex => {
+          const atom = topology.getAtomByIndex(atomIndex);
+          return topology.pbcResidues.has(atom.residueIndex);
+        });
+        if (anyPbcAtom === false) return false;
+      }
+      setSmooth(false);
+      return true;
+    }, [topology, finalComponents]);
 
     // This allows parent components to interact with this component
     useImperativeHandle(ref,
