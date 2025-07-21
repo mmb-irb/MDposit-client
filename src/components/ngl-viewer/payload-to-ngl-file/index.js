@@ -151,7 +151,7 @@ const payloadToNGLCoordinatesAlternative = (
   else
     console.error(
       `Number of atoms does not match any defined atoms selection
-      Number of atoms: ${trajectoryAtoms}
+      Number of atoms in trajectory: ${trajectoryAtoms}
       Expected backbone atoms: ${backboneAtoms}
       Expected heavy atoms: ${heavyAtoms}`,
     );

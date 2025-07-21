@@ -950,7 +950,11 @@ const NGLViewer = memo(
             totalFrames === trajectoryFinalExpectedFrames;
 
           // Get the atom indices whom the trajectory coordinates belong to, in case it is passed
-          const trajectoryAtomIndices = comp.trajectoryAtomIndices;
+          const trajectoryAtomIndices = comp.atomIndices;
+
+          // Make sure the number of atoms is as expected
+          if (trajectoryAtomIndices && trajectoryAtomIndices.length !== trajectoryAtoms)
+            throw new Error('Unexpected number of trajectory atoms');
 
           // Get the current NGL loaded trajectories
           const compTrajectories = stageComp.trajList;
