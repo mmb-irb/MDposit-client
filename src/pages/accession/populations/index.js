@@ -15,7 +15,7 @@ import ViewerWithControls from '../../../components/viewer-with-controls';
 
 import style from './style.module.css';
 
-import { ProjectCtx, PdbCtx } from '../../../contexts';
+import { ProjectCtx } from '../../../contexts';
 
 import Loading from '../../../components/loading';
 
@@ -40,8 +40,6 @@ const Populations = () => {
 
   // Get the current project metadata
   const { metadata, populations } = useContext(ProjectCtx);
-  // Get the current topology, including the residue names
-  const pdbData = useContext(PdbCtx);
 
   // Set a ref to the ngl which allows access to the ngl viewer exposed methods
   const viewerRef = useRef(null);
@@ -75,7 +73,7 @@ const Populations = () => {
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
 
-  if (!metadata || !pdbData.file) return <Loading />;
+  if (!metadata) return <Loading />;
 
   return (
     <>

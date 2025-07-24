@@ -10,7 +10,6 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 // Hooks
 import useAPI from '../../hooks/use-api'; // API acces
-import useNGLFile from '../../hooks/use-ngl-file';
 
 // Additional components
 import ErrorBoundary from '../../components/error-boundary'; // Catch errors in React components
@@ -20,7 +19,7 @@ import Info from '../../components/info';
 import { docs } from '../help/documentation';
 
 // Load the 3 contexts
-import { ProjectCtx, PdbCtx } from '../../contexts';
+import { ProjectCtx } from '../../contexts';
 
 // Load the project class
 import { Project } from '../../utils/project-manager';
@@ -28,7 +27,6 @@ import { Project } from '../../utils/project-manager';
 // Constants
 import {
   BASE_PATH_PROJECTS,
-  MAIN_STRUCTURE_FILENAME,
   NICE_NAMES,
 } from '../../utils/constants';
 
@@ -127,13 +125,6 @@ const AccessionHeader = ({ project, accession, accessionAndMdNumber, page, prima
 const ContentSwitch = ({ subPage }) => {
   // Load the project context
   const project = useContext(ProjectCtx);
-  // Find the first valid structure filename found in the project
-  // Load the structure data from the API
-  const pdbData = useNGLFile(
-    `${BASE_PATH_PROJECTS}/${project.accessionAndMdNumber}/files/${MAIN_STRUCTURE_FILENAME}`,
-    // This attribute was included before: defaultRepresentation: false
-    { defaultRepresentation: false, ext: 'pdb' },
-  );
 
   // Change tab title according to the current project
   useEffect(() => {
@@ -144,10 +135,6 @@ const ContentSwitch = ({ subPage }) => {
       document.title = previousTitle;
   };
   }, [project.accessionAndMdNumber]);
-  // Wait for the pdbData to arrive
-  if (pdbData.loading) return <Loading />;
-  else if (pdbData.error) return pdbData.error.toString() + ' (in pdbData)';
-  else if (!pdbData.file) return 'Something bad happened with the pdb data';
 
   // Make sure the requested subpage exists among the available directions
   if (project.directions[subPage] === undefined) return `Subpage "${subPage}" is not recognized`;
@@ -160,31 +147,29 @@ const ContentSwitch = ({ subPage }) => {
   return (
     <ErrorBoundary>
       {' '}
-      <PdbCtx.Provider value={pdbData}>
-        <Routes>
-          <Route
-            path={`/`}
-            element={PageComponent ?
-              <Suspense fallback={<Loading />}>
-                <PageComponent />
-              </Suspense>
-              : <>{`Subpage "${subPage}" not known`}</>
-            }
-          />
-          <Route
-            path={`/data`}
-            element={
-              <Suspense fallback={<Loading />}>
-                <DataViewer accessionAndMdNumber={project.accessionAndMdNumber} subPage={subPage} />
-              </Suspense>
-            }
-          />
-          <Route
-            path="*"
-            element={'This route is not defined in the client accession'}
-          />
-        </Routes>
-      </PdbCtx.Provider>
+      <Routes>
+        <Route
+          path={`/`}
+          element={PageComponent ?
+            <Suspense fallback={<Loading />}>
+              <PageComponent />
+            </Suspense>
+            : <>{`Subpage "${subPage}" not known`}</>
+          }
+        />
+        <Route
+          path={`/data`}
+          element={
+            <Suspense fallback={<Loading />}>
+              <DataViewer accessionAndMdNumber={project.accessionAndMdNumber} subPage={subPage} />
+            </Suspense>
+          }
+        />
+        <Route
+          path="*"
+          element={'This route is not defined in the client accession'}
+        />
+      </Routes>
     </ErrorBoundary>
   );
 };

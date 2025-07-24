@@ -5,7 +5,7 @@ import useNGLFile from '../../hooks/use-ngl-file';
 
 import ErrorBoundary from '../../components/error-boundary';
 
-import { ProjectCtx, PdbCtx } from '../../contexts';
+import { ProjectCtx } from '../../contexts';
 
 import Card from '../../components/animated-card';
 import ViewerWithControls from '../../components/viewer-with-controls';
@@ -26,13 +26,6 @@ const Embed = () => {
   // Get project data from the API if the current context data is wrong. 'payload' contains the main data.
   const projectRequest = useAPI(`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/`);
 
-  // Load the structure data form the API
-  const pdbData = useNGLFile(
-    `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/${MAIN_STRUCTURE_FILENAME}`,
-    // This attribute was included before: defaultRepresentation: false
-    { defaultRepresentation: false, ext: 'pdb' },
-  );
-
   // While loading
   if (projectRequest.loading) return <Loading />;
   if (projectRequest.error) return projectRequest.error.toString();
@@ -46,10 +39,6 @@ const Embed = () => {
     return;
   }
 
-  if (pdbData.loading) return <Loading />;
-  else if (pdbData.error) return pdbData.error.toString();
-  else if (!pdbData.file) return 'Something bad happened with the pdb data';
-
   // Make some modifications to the project data once loaded
   // If accession is missing then set the identifier as the accession
   if (!project.accession) project.accession = project.identifier;
@@ -59,11 +48,9 @@ const Embed = () => {
   return (
     <ErrorBoundary>
       <ProjectCtx.Provider value={project}>
-        <PdbCtx.Provider value={pdbData}>
-          <Card className={style['ngl-card']}>
-            <ViewerWithControls className={style.container} />
-          </Card>
-        </PdbCtx.Provider>
+        <Card className={style['ngl-card']}>
+          <ViewerWithControls className={style.container} />
+        </Card>
       </ProjectCtx.Provider>
     </ErrorBoundary>
   );

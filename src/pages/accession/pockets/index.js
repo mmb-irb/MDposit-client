@@ -25,7 +25,7 @@ import ViewerWithControls from '../../../components/viewer-with-controls';
 
 import style from './style.module.css';
 
-import { ProjectCtx, PdbCtx } from '../../../contexts';
+import { ProjectCtx } from '../../../contexts';
 
 import Loading from '../../../components/loading';
 
@@ -65,8 +65,6 @@ const Pockets = () => {
 
   // Get the current project metadata
   const { accessionAndMdNumber, metadata, topology } = useContext(ProjectCtx);
-  // Get the current topology, including the residue names
-  const pdbData = useContext(PdbCtx);
 
   // This blockRef is a workaround to avoid selecting a pocket row when clicking on the checkbox
   const blockRef = useRef(null);
@@ -264,7 +262,7 @@ const Pockets = () => {
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened';
 
-  if (!metadata || !pdbData.file) return <Loading />;
+  if (!metadata) return <Loading />;
 
   return (
     <>
