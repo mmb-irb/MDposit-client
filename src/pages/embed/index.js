@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 
 import useAPI from '../../hooks/use-api';
-import useNGLFile from '../../hooks/use-ngl-file';
 
 import ErrorBoundary from '../../components/error-boundary';
 
