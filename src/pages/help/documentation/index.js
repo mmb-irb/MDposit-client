@@ -657,6 +657,7 @@ export const documentation = [
             (protein), heavy atoms (protein-h), backbone and alpha carbon
             (c-alpha). The RMSD value of the structure is stored for up to 5000
             frames along the trajectory.
+            Only atoms not in periodic boundary conditions (PBC) are measured in this analysis.
             <br />
             <br />
             This analysis is powered by <TextLink name={'Gromacs'} id={'gromacs'} />
@@ -673,6 +674,7 @@ export const documentation = [
             average structure of the whole trajectory. TM score analyses are run
             over alpha carbon atoms. The TM score value of the structure is
             stored on up to 100 frames along the trajectory.
+            Only atoms not in periodic boundary conditions (PBC) are measured in this analysis.
             <br />
             <br />
             This analysis is powered by the{' '}
@@ -700,6 +702,7 @@ export const documentation = [
             trajectory. Membrane residues are excluded from this analysis since
             they are prone to jump across boundaries thus having high RMSD
             values.
+            Only atoms not in periodic boundary conditions (PBC) are measured in this analysis.
             <br />
             <br />
             This analysis is powered by <TextLink name={'PyTraj'} id={'pytraj'} />.
@@ -759,6 +762,7 @@ export const documentation = [
             is done for the whole structure and for the interface residues in
             each interaction. Note that this analysis is performed only with
             alpha carbon atoms for performance reasons.
+            Only atoms not in periodic boundary conditions (PBC) are measured in this analysis.
             <br />
             <br />
             This analysis is powered by <TextLink name={'PyTraj'} id={'pytraj'} />.
@@ -804,8 +808,9 @@ export const documentation = [
           <>
             The radius of gyration analysis computes the radius of gyration of a
             molecule and the radii of gyration about the x-, y- and z-axes, as a
-            function of time. The atoms are explicitly mass weighted. This
-            analysis is performed over up to 5000 frames along the trajectory.
+            function of time. The atoms are explicitly mass weighted.
+            Only atoms not in periodic boundary conditions (PBC) are measured in this analysis.
+            This analysis is performed over up to 5000 frames along the trajectory.
             <br />
             <br />
             This analysis is powered by <TextLink name={'Gromacs'} id={'gromacs'} />
@@ -854,6 +859,7 @@ export const documentation = [
             The fluctuation analysis computes the RMSF (Root Mean Square
             Fluctuation, i.e. standard deviation) of atomic positions along the
             whole trajectory after fitting to the first frame.
+            Only atoms not in periodic boundary conditions (PBC) are measured in this analysis.
             <br />
             <br />
             This analysis is powered by <TextLink name={'Gromacs'} id={'gromacs'} />
@@ -907,6 +913,7 @@ export const documentation = [
             1 and Principal Component 2) for the relevant eigenvectors (the ones 
             with explained variance greater than 1%). Note that PCA analysis 
             is performed only with backbone atoms for performance reasons.
+            Only atoms not in periodic boundary conditions (PBC) are measured in this analysis.
             <br />
             <br />
             This analysis is powered by <TextLink name={'scikit-learn'} id={'sklearn'} />.<br/>
@@ -965,6 +972,7 @@ export const documentation = [
             contact between the solvent and each residue for up to 200 frames
             along the trajectory. Then values are divided by the number of atoms
             on each residue in order to get the SAS per atom per residue values.
+            Only atoms not in periodic boundary conditions (PBC) are measured in this analysis.
             <br />
             <br />
             This analysis is powered by <TextLink name={'Gromacs'} id={'gromacs'} />
@@ -1022,8 +1030,8 @@ export const documentation = [
           <>
             The distance per residue analysis computes distance between each
             pair of residues in each interaction interface for up to 200 frames
-            along the trajectory. Distance average and standard deviation are
-            calculated.
+            along the trajectory. Distance is calculated using the geometric center
+            of every residue. Distance average and standard deviation are calculated.
             <br />
             <br />
             This analysis is powered by <TextLink name={'PyTraj'} id={'pytraj'} />.
@@ -1262,6 +1270,8 @@ export const documentation = [
             dimensions. Finally, the first 10 biggest pockets are analyzed
             individually by computing their volume for up to 100 frames along
             the trajectory. Atoms surrounding each cavitiy are also found.
+            This analysis is not run in systems with periodic boundary conditions (PBC)
+            provisionally for technical reasons.
             <br />
             <br />
             This analysis is powered by{' '}
