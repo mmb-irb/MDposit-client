@@ -31,7 +31,7 @@ import { ColormakerRegistry } from 'ngl';
 const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
 
 const LipidInteractions = () => {
-  const { accessionAndMdNumber, metadata, chains  } = useContext(ProjectCtx);
+  const { accessionAndMdNumber, metadata, chains, topology  } = useContext(ProjectCtx);
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
   const viewerRef = useRef(null);
 
@@ -125,14 +125,13 @@ const LipidInteractions = () => {
     
     const customScheme = getSchemeForLipid(selectedLipid);
     defaultRepresentations.forEach(rep => {
-
-        if (chains.indexOf(rep.selection.slice(1,2)) !== -1 || rep.name === 'Protein') { 
+        if (rep.type === 'cartoon') { 
             rep.color = 'custom';
             rep.type = 'spacefill';
             rep.customScheme = customScheme;
-        } else if (rep.name === 'Membrane' || rep.name === 'M') {
-            rep.color = 'orange';
-            rep.opacity = 0.0;
+        } else if (rep.name.toLowerCase().includes('lipid')) {
+            rep.color = 'grey';
+            rep.opacity = 0.1;
         }
         
     });
