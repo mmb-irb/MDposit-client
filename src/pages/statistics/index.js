@@ -110,8 +110,9 @@ export default () => {
     // If snapshots data is not yet downloaded then show an empty plot
     const frameCounts = useMemo(() => {
         // Merge both the new and the old format frame counts
-        const frameCounts = snapshotsPayload && oldSnapshotsPayload && { ...snapshotsPayload['mds.frames'] };
-        if (snapshotsPayload && oldSnapshotsPayload) {
+        let frameCounts = {};
+        if (snapshotsPayload) frameCounts = { ...snapshotsPayload['mds.frames'] };
+        if (oldSnapshotsPayload) {
             Object.entries(oldSnapshotsPayload['metadata.SNAPSHOTS']).forEach(([frameCount, amount]) => {
                 let currentAmount = frameCounts[frameCount] || 0;
                 currentAmount += amount;
