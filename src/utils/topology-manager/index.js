@@ -275,6 +275,15 @@ class Residue {
       }
       return reference;
     }
+    if (this.referenceType === 'inchikey') {
+      const reference = this.topology.inchikeyReferences.find(ref => ref.inchikey === this.referenceId);
+      // If reference is not found then it means it is missing in the database
+      if (!reference) {
+        console.error(`Reference id ${this.referenceId} is not found among inchikey references`);
+        return null;
+      }
+      return reference;
+    }
     throw new Error(`Not supported reference type ${this.referenceType}`);
   }
   // Reference name
@@ -457,6 +466,7 @@ export class Topology {
     this.proteinReferences = references.proteins;
     this.ligandReferences = references.ligands;
     this.chainReferences = references.chains;
+    this.inchikeyReferences = references.inchikeys;
     // Assign the chain name and index to every chain reference
     // Match every chain reference with its chain relying on sequence
     for (const chainReference of this.chainReferences) {
@@ -618,7 +628,7 @@ export class Topology {
     const residueIndices = [];
     this.residueReferenceIndices.forEach((refIndex, residueIndex) => {
       if (refIndex !== referenceIndex) return;
-      // If no residue number were specified then simply return all residue indcies
+      // If no residue number were specified then simply return all residue indices
       if (residueNumbers === null) return residueIndices.push(residueIndex);
       // Otherwise we must check
       const residueNumber = this.residueReferenceNumbers[residueIndex];

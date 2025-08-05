@@ -32,19 +32,13 @@ const Graph = lazy(() =>
 const colors = ['black', 'red', 'orange', 'yellow', 'green', 'blue', 'purple'];
 
 const LipidOrder = () => {
-  const { accession, accessionAndMdNumber} = useContext(ProjectCtx);
+  const { accession, accessionAndMdNumber, topology, inchikeyReferences } = useContext(ProjectCtx);
   // Send a request to the API with the url of the specific analysis
   const {
     loading,
     payload,
     error,
   } = useAPI(`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/lipid-order/`);
-  // Get the membrane map
-  const {
-    loading: memMapLoading,
-    payload: memMapPayload,
-    error: memMapError,
-} = useAPI(`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/mem-map/`);
 
   // Add state for selected lipid type
   const [selectedLipid, setSelectedLipid] = useState(null);
@@ -54,28 +48,54 @@ const LipidOrder = () => {
   const [flipY, setFlipY] = useState(false);
   const [showStdDev, setShowStdDev] = useState(true);
 
-  // Get available lipid types for tabs
+  // Get available lipid (inchikey) types for tabs
   const lipidTypes = useMemo(() => {
     if (!payload) return [];
     return Object.keys(payload.data);
   }, [payload]);
 
   // Set initial selected lipid when data loads
-  useMemo(() => {
+  useEffect(() => {
     if (lipidTypes.length && !selectedLipid) {
       setSelectedLipid(lipidTypes[0]);
     }
-  }, [lipidTypes, selectedLipid]);
+  }, [lipidTypes]);
 
+  // Get the names and synonyms from the references
+  const lipidNames = useMemo(() => {
+    if (!lipidTypes.length || !inchikeyReferences) return {};
+    return lipidTypes.reduce((acc, lipid) => {
+      const ref = inchikeyReferences.find(ref => ref.inchikey === lipid);
+      let synonyms = ref.lipidmaps?.synonyms.split('; ') || [];
+      synonyms = synonyms.sort((a, b) => a.length - b.length);
+      acc[lipid] = {
+        name: ref ? ref.lipidmaps.name : 'Unknown Lipid',
+        synonym: synonyms[0] || 'Lipid',
+        entity_name: ref ? ref.lipidmaps.sys_name : 'Unknown Entity',
+      };
+      return acc;
+    }, {});
+  }, [lipidTypes, inchikeyReferences]);
+
+  // Get the lipid residue selection for the SpawnViewer
+  const lipidSelection = useMemo(() => {
+    if (!lipidTypes.length || !topology) return {};
+    return lipidTypes.reduce((acc, lipid) => {
+      const resIndices = topology.getReferenceResidueIndices(lipid);
+      const atomsSelection = `( @${topology.residue2atomIndices(resIndices).join(',')} )`;
+      acc[lipid] = atomsSelection;
+      return acc;
+    }, {});
+  }, [lipidTypes, topology]);
+
+  // Select the data for the graph
   const orderParameters = useMemo(() => {
-    if (!payload || !selectedLipid || !memMapPayload || !memMapPayload.references) return {};
-    
+    if (!payload || !selectedLipid) return {};
     const orderParams = {};
     const defaultDisplay = {};
-
     const chains = payload.data[selectedLipid];
     Object.entries(chains).forEach(([chainId, chainData]) => {
-      const tailName = `${memMapPayload.references[selectedLipid].resname} tail ${parseInt(chainId) + 1}`;
+      const tailName = `Tail ${parseInt(chainId) + 1}`;
       const dataset = {
         data: chainData.avg.map(v => flipY ? -v : v),
         areaStdDev: chainData.std,
@@ -90,8 +110,9 @@ const LipidOrder = () => {
     });
     setDisplay(defaultDisplay);
     return orderParams;
-  }, [payload, selectedLipid, flipY, memMapPayload]);
+  }, [payload, selectedLipid, flipY, topology]);
 
+  // Calculate maximum standard deviation to kwon the y-axis padding
   const maxStd = useMemo(() => {
     if (!orderParameters || !display) return 0;
     return Math.max(
@@ -101,23 +122,23 @@ const LipidOrder = () => {
     );
   }, [orderParameters, display]);
 
+  // Set the representation for the lipid
   const baseLipidRep = useMemo(() => {
-    if (!display || !orderParameters || !memMapPayload) return;
+    if (!lipidNames[selectedLipid] || !lipidSelection[selectedLipid]) return;
     return {
-      'name': memMapPayload.references[selectedLipid].resname,
+      'name': lipidNames[selectedLipid].synonym,
       'type': 'licorice',
       'color': 'orange',
       'opacity': 0.5,
-      'selection': `( ${memMapPayload.references[selectedLipid].indices} )`,
+      'selection': lipidSelection[selectedLipid],
       'reference': selectedLipid,
       'show': true,
     };
-  }, [selectedLipid, memMapPayload]);
+  }, [selectedLipid, topology]);
 
   // Define representations when data changes
   useEffect(() => {
-    if (!display || !orderParameters || !memMapPayload) return;
-
+    if (!display || !orderParameters) return;
     const reps = [baseLipidRep];
     if (xSelected !== null) {
       // Iterate through orderParameters[selectedLipid] dictionary keys
@@ -129,7 +150,7 @@ const LipidOrder = () => {
           'type': 'ball+stick',
           'color': colors[index % colors.length],
           'opacity': 0.9,
-          'selection': `( ${memMapPayload.references[selectedLipid].indices} ) and .${atomName}`,
+          'selection': `${lipidSelection[selectedLipid]} and .${atomName}`,
           'other': { radius: 0.3 },
           'show': display[tailName],
           'reference': `${selectedLipid} ${index}`,
@@ -138,7 +159,7 @@ const LipidOrder = () => {
       });
     }
     setRepresentations(reps);
-  }, [baseLipidRep, selectedLipid, xSelected, display, orderParameters, memMapPayload]);
+  }, [baseLipidRep, selectedLipid, xSelected, display, orderParameters]);
 
   // Create marks for graph highlighting
   const marks = useMemo(() => {
@@ -150,7 +171,7 @@ const LipidOrder = () => {
 
   if (loading) return <Loading />;
   if (error) return error.toString();
-  if (!payload || !memMapPayload) return 'Something bad happened with Lipid Order analysis';
+  if (!payload) return 'Something bad happened with Lipid Order analysis';
 
   const cents = num => Math.round(num * 100) / 100;
 
@@ -174,14 +195,16 @@ const LipidOrder = () => {
                 value={lipid}
                 label={
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <span >
-                      {memMapPayload?.references?.[lipid]?.resname || lipid}
+                    <span title={`${lipidNames[lipid].entity_name}`}>
+                      {lipidNames[lipid].name}
                     </span>
-                    <Typography variant="caption" color="text.secondary">
-                      {/* Add your subtitle here */}
-                      {memMapPayload?.references?.[lipid]?.lipidmaps.name || 'Lipid'}
-                    </Typography>
+                    {lipidNames[lipid].synonym !== lipidNames[lipid].name && (
+                      <Typography variant="caption" color="text.secondary" title={`${lipidNames[lipid].entity_name}`}>
+                        {lipidNames[lipid].synonym || 'Lipid'}
+                      </Typography>
+                    )}
                   </div>
+
                 }
               />
             ))}
@@ -220,44 +243,44 @@ const LipidOrder = () => {
               ))}
             </TableBody>
           </Table>
-          
+
         </CardContent>
       </Card>
       <Card className={style.card}>
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={flipY}
-            onChange={(e) => setFlipY(e.target.checked)}
-          />
-        }
-        label="Invert Y-axis values"
-      />
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={showStdDev}
-            onChange={(e) => setShowStdDev(e.target.checked)}
-          />
-        }
-        label="Show standard deviation"
-      />
-      <CardContent>
-        <Graph
-          yData={orderParameters}
-          xAxisLabel="Carbon Position"
-          yAxisLabel="Order Parameter"
-          type="line"
-          selfLegend={false}
-          dataDisplay={display}
-          labelsOnHover={true}
-          xTooltip={(_, xIndex) => `Position ${xIndex + 1}`}
-          onSelect={setXSelected}
-          marks={marks}
-          areaStdDev={showStdDev}
-          yPadding={showStdDev ? maxStd : 0}
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={showStdDev}
+              onChange={(e) => setShowStdDev(e.target.checked)}
+            />
+          }
+          label="Show standard deviation"
         />
-      </CardContent>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={flipY}
+              onChange={(e) => setFlipY(e.target.checked)}
+            />
+          }
+          label="Invert Y-axis values"
+        />
+        <CardContent>
+          <Graph
+            yData={orderParameters}
+            xAxisLabel="Carbon Position"
+            yAxisLabel="Order Parameter"
+            type="line"
+            selfLegend={false}
+            dataDisplay={display}
+            labelsOnHover={true}
+            xTooltip={(_, xIndex) => `Position ${xIndex + 1}`}
+            onSelect={setXSelected}
+            marks={marks}
+            areaStdDev={showStdDev}
+            yPadding={showStdDev ? maxStd : 0}
+          />
+        </CardContent>
       </Card>
       <ViewerSpawner
         newViewer={

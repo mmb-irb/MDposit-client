@@ -187,6 +187,10 @@ export class Project {
         const references = this.references;
         return useMemo(() => references && references.filter(ref => ref.ref_type === 'chains'), [references]);
     }
+    get inchikeyReferences () {
+        const references = this.references;
+        return useMemo(() => references && references.filter(ref => ref.ref_type === 'inchikeys'), [references]);
+    }
 
     // Topology getter
     get topology () {
@@ -197,7 +201,8 @@ export class Project {
         const topologyManagerReferences = {
             proteins: this.proteinReferences,
             ligands: this.ligandReferences,
-            chains: this.chainReferences
+            chains: this.chainReferences,
+            inchikeys: this.inchikeyReferences
         };
         // Request topology data
         const response = this._apiQuery('topology');
