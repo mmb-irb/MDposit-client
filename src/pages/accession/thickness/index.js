@@ -216,7 +216,7 @@ const Thickness = () => {
     useMemo(() => {
         if (!components || !thicknessPayload.data || !memMapPayload) return;
         if (!defaultRepresentations || defaultRepresentations.length === 0) return;
-        const keepRepresentations = defaultRepresentations.filter(rep => (rep.name !== 'M' && rep.name !== 'Membrane'));
+        const keepRepresentations = defaultRepresentations.filter(rep => (!rep.name.toLowerCase().includes('lipid')));
         setRepresentations(previous => {
             if (previous !== null) return previous;
             keepRepresentations.forEach(rep => {
