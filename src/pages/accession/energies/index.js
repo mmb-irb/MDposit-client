@@ -16,7 +16,7 @@ import Legend from '../../../components/legend';
 // Import CSS style
 import style from './style.module.css';
 // Import some auxiliar functions
-import { Version } from 'src/utils/auxiliar-functions';
+import Version from 'src/utils/version';
 // Import a custom hook
 import useRemfo from 'src/hooks/use-remfo';
 

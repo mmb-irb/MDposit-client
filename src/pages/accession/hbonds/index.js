@@ -34,8 +34,9 @@ import { ProjectCtx } from '../../../contexts';
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 // Import CSS style
 import style from './style.module.css';
-// Import auxiliar
-import { add, max, Version } from 'src/utils/auxiliar-functions';
+// Import auxiliar functions
+import { add, max } from 'src/utils/auxiliar-functions';
+import Version from 'src/utils/version';
 
 // Set the minimum hydrogen bond stability peak to filter which hydrogen bonds are shown
 const STABILITY_CUTOFF = 0.05;

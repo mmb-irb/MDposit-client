@@ -16,7 +16,7 @@ import Loading from '../../../components/loading';
 import Selector from '../../../components/selector';
 // Viewer pop-up windows
 import ViewerSpawner from '../../../components/viewer-spawner';
-import { Version } from 'src/utils/auxiliar-functions';
+import Version from 'src/utils/version';
 
 const MarkovGraph = lazy(() =>
   import(/* webpackChunkName: 'graph-msm' */ '../../../components/graph-msm'),
