@@ -182,7 +182,7 @@ const LipidInteractions = () => {
             className={style.tabs}
           >
             {lipidTypes.map((lipid) => (
-              <Tab
+              lipidNames[lipid] && <Tab
                 key={lipid}
                 value={lipid}
                 label={
