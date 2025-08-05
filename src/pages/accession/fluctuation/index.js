@@ -23,6 +23,7 @@ import useAPI from '../../../hooks/use-api';
 import { ProjectCtx } from '../../../contexts';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
+import Version from 'src/utils/version';
 
 import style from './style.module.css';
 
@@ -39,9 +40,15 @@ const FluctuationAnalysis = () => {
     `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/fluctuation/`,
   );
 
-  // Fluctuation analysis comes in nanometers (nm) and we want it in Ångstroms
+  // In the original version these values were is nanometers (nm)
+  // Thus they had to be multiplied by 10 since we want values in Ångstroms (Å)
+  // However in the version 0.1 and beyond values are in Ångstroms already
   useMemo(() => {
     if (!payload) return;
+    // If we have a version 0.1 or grater then do nothing
+    const version = new Version(payload.version);
+    if (version >= '0.1') return;
+    // If this is an old version then multiply all values by 10
     const rmsf = payload.y['rmsf'];
     rmsf.data = rmsf.data.map(v => v * 10);
     rmsf.average = rmsf.average * 10;
