@@ -7,23 +7,12 @@ import React, {
 } from 'react';
 // A hook to track whenever some element is on screen
 import { useInView } from 'react-intersection-observer';
-
 import Card from '../../../components/animated-card';
-/*
-import {
-  CardContent,
-} from '@mui/material';
-*/
 import ViewerWithControls from '../../../components/viewer-with-controls';
-
 import style from './style.module.css';
-
 import Loading from '../../../components/loading';
-
 import { REFERENCES_WITH_ENTROPIES } from '../../../utils/constants';
-
 import { ProjectCtx } from '../../../contexts';
-
 import ResidueSelector from '../../../components/residue-selector';
 
 // Define permanent options for the "useInView"

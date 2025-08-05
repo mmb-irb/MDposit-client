@@ -1,23 +1,46 @@
-
 import React, { useContext } from 'react';
-
 // Project metadata saved in this context by the accession component
 import { ProjectCtx } from '../../../../contexts';
-
 // Visual components
-import {
-    TextField,
-    InputAdornment,
-} from '@mui/material';
-
+import { TextField, InputAdornment, } from '@mui/material';
 // Import a function to round to cents
 import { round2cents } from 'src/utils/auxiliar-functions';
-
 // CSS style
 import style from './style.module.css';
 
 // Label to be shown when a metadata field is not available
 const NA = 'Not available';
+
+// Helper component for rendering metadata text fields
+const MetadataTextField = ({ label, title, value, unit, transform }) => {
+    const displayValue =
+        value === null || value === undefined
+            ? NA
+            : transform
+            ? transform(value)
+            : value;
+
+    const inputProps = unit
+        ? {
+            endAdornment: (
+                <InputAdornment variant="filled" position="end">
+                    {unit}
+                </InputAdornment>
+            ),
+        }
+        : undefined;
+
+    return (
+        <TextField
+            className={style['text-field']}
+            label={label}
+            title={title}
+            value={displayValue}
+            disabled={value === null || value === undefined}
+            InputProps={inputProps}
+        />
+    );
+};
 
 // This component displays the trajectory metadata
 const TrajectoryMetadata = () => {
@@ -31,242 +54,139 @@ const TrajectoryMetadata = () => {
     return (<>
         <fieldset>
             <legend>Counts</legend>
-            <TextField
-                className={style['text-field']}
+            <MetadataTextField
                 label="System atoms"
                 title="Total number of atoms in the system"
-                value={metadata.SYSTATS === null ? NA : metadata.SYSTATS}
-                disabled={metadata.SYSTATS === null}
+                value={metadata.SYSTATS}
             />
-            <TextField
-                className={style['text-field']}
+            <MetadataTextField
                 label="Proteins atoms"
                 title="Number of protein atoms in the system"
-                value={metadata.PROTATS === null ? NA : metadata.PROTATS}
-                disabled={metadata.PROTATS === null}
+                value={metadata.PROTATS}
             />
-            <TextField
-                className={style['text-field']}
+            <MetadataTextField
                 label="Proteins residues"
                 title="Number of protein residues in the system"
-                value={metadata.PROT === null ? NA : metadata.PROT}
-                disabled={metadata.PROT === null}
+                value={metadata.PROT}
             />
-            <TextField
-                className={style['text-field']}
+            <MetadataTextField
                 label="Solvent molecules"
                 title="Number of solvent molecules in the system"
-                value={metadata.SOL === null ? NA : metadata.SOL}
-                disabled={metadata.SOL === null}
+                value={metadata.SOL}
             />
-            <TextField
-                className={style['text-field']}
+            <MetadataTextField
                 label="Positive ions"
                 title="Number of positively charged ions in the system"
-                value={metadata.NA === null ? NA : metadata.NA}
-                disabled={metadata.NA === null}
+                value={metadata.NA}
             />
-            <TextField
-                className={style['text-field']}
+            <MetadataTextField
                 label="Negative ions"
                 title="Number of negatively charged ions in the system"
-                value={metadata.CL === null ? NA : metadata.CL}
-                disabled={metadata.CL === null}
+                value={metadata.CL}
             />
         </fieldset>
         <fieldset>
             <legend>System box</legend>
-            <TextField
-                className={style['text-field']}
+            <MetadataTextField
                 label="Type"
                 title="Box type"
-                value={metadata.BOXTYPE === null ? NA : metadata.BOXTYPE}
-                disabled={metadata.BOXTYPE === null}
+                value={metadata.BOXTYPE}
             />
-            <TextField
-                className={style['text-field']}
+            <MetadataTextField
                 label="Size X"
                 title="Simulated system box X dimension"
-                value={
-                    metadata.BOXSIZEX === null
-                    ? NA
-                    : round2cents(metadata.BOXSIZEX)
-                }
-                disabled={metadata.BOXSIZEX === null}
-                InputProps={{
-                    endAdornment: (
-                    <InputAdornment variant="filled" position="end">
-                        nm
-                    </InputAdornment>
-                    ),
-                }}
+                value={metadata.BOXSIZEX}
+                transform={round2cents}
+                unit="nm"
             />
-            <TextField
-                className={style['text-field']}
+            <MetadataTextField
                 label="Size Y"
                 title="Simulated system box Y dimension"
-                value={
-                    metadata.BOXSIZEY === null
-                    ? NA
-                    : round2cents(metadata.BOXSIZEY)
-                }
-                disabled={metadata.BOXSIZEY === null}
-                InputProps={{
-                    endAdornment: (
-                    <InputAdornment variant="filled" position="end">
-                        nm
-                    </InputAdornment>
-                    ),
-                }}
+                value={metadata.BOXSIZEY}
+                transform={round2cents}
+                unit="nm"
             />
-            <TextField
-                className={style['text-field']}
+            <MetadataTextField
                 label="Size Z"
                 title="Simulated system box Z dimension"
-                value={
-                    metadata.BOXSIZEZ === null
-                    ? NA
-                    : round2cents(metadata.BOXSIZEZ)
-                }
-                disabled={metadata.BOXSIZEZ === null}
-                InputProps={{
-                    endAdornment: (
-                    <InputAdornment variant="filled" position="end">
-                        nm
-                    </InputAdornment>
-                    ),
-                }}
+                value={metadata.BOXSIZEZ}
+                transform={round2cents}
+                unit="nm"
             />
-            <TextField
-                className={style['text-field']}
+            <MetadataTextField
                 label="Volume"
                 title="Simulated system box volume"
                 value={
                     metadata.BOXSIZEX === null ||
-                    metadata.BOXSIZEY === null ||
-                    metadata.BOXSIZEZ === null
-                    ? NA
-                    : round2cents(
-                        metadata.BOXSIZEX * metadata.BOXSIZEY * metadata.BOXSIZEZ,
-                        )
+                        metadata.BOXSIZEY === null ||
+                        metadata.BOXSIZEZ === null
+                        ? null
+                        : metadata.BOXSIZEX * metadata.BOXSIZEY * metadata.BOXSIZEZ
                 }
-                disabled={
-                    !(metadata.BOXSIZEX && metadata.BOXSIZEY && metadata.BOXSIZEZ)
-                }
-                InputProps={{
-                    endAdornment: (
-                    <InputAdornment variant="filled" position="end">
-                        nm³
-                    </InputAdornment>
-                    ),
-                }}
+                transform={round2cents}
+                unit="nm³"
             />
         </fieldset>
         <fieldset>
             <legend>Simulation</legend>
-            <TextField
-                className={style['text-field']}
+            <MetadataTextField
                 label="Length"
                 title="Simulation length"
-                value={metadata.timeLength === null ? NA : round2cents(metadata.timeLength)}
-                disabled={metadata.timeLength === null}
-                InputProps={{
-                    endAdornment: (
-                    <InputAdornment variant="filled" position="end">
-                        ns
-                    </InputAdornment>
-                    ),
-                }}
+                value={metadata.timeLength}
+                transform={round2cents}
+                unit="ns"
             />
-            <TextField
-                className={style['text-field']}
+            <MetadataTextField
                 label="Timestep"
                 title="Simulation timestep"
-                value={metadata.TIMESTEP === null ? NA : metadata.TIMESTEP}
-                disabled={metadata.TIMESTEP === null}
-                InputProps={{
-                    endAdornment: (
-                    <InputAdornment variant="filled" position="end">
-                        fs
-                    </InputAdornment>
-                    ),
-                }}
+                value={metadata.TIMESTEP}
+                unit="fs"
             />
-            <TextField
-                className={style['text-field']}
+            <MetadataTextField
                 label="Snapshots"
                 title="Number of snapshots"
-                value={metadata.mdFrames === null ? NA : metadata.mdFrames}
-                disabled={metadata.mdFrames === null}
+                value={metadata.mdFrames}
             />
-            <TextField
-                className={style['text-field']}
+            <MetadataTextField
                 label="Frequency"
                 title="Frequency of snapshots"
-                value={
-                    frequency === null
-                    ? NA
-                    : frequency
-                }
-                disabled={frequency === null}
-                InputProps={{
-                    endAdornment: (
-                    <InputAdornment variant="filled" position="end">
-                        ps
-                    </InputAdornment>
-                    ),
-                }}
+                value={frequency}
+                unit="ps"
             />
-            <TextField
-                className={style['text-field']}
+            <MetadataTextField
                 label="Force fields"
                 title="Force fields"
-                value={metadata.FF === null ? NA : metadata.FF.join(', ')}
-                disabled={metadata.FF === null}
+                value={metadata.FF}
+                transform={(v) => v.join(', ')}
             />
-            <TextField
-                className={style['text-field']}
+            <MetadataTextField
                 label="Temperature"
                 title="Temperature"
-                value={metadata.TEMP === null ? NA : metadata.TEMP}
-                disabled={metadata.TEMP === null}
-                InputProps={{
-                    endAdornment: (
-                    <InputAdornment variant="filled" position="end">
-                        K
-                    </InputAdornment>
-                    ),
-                }}
+                value={metadata.TEMP}
+                unit="K"
             />
-            <TextField
-                className={style['text-field']}
+            <MetadataTextField
                 label="Water type"
                 title="Water type"
-                value={metadata.WAT === null ? NA : metadata.WAT}
-                disabled={metadata.WAT === null}
+                value={metadata.WAT}
             />
-            <TextField
-                className={style['text-field']}
+            <MetadataTextField
                 label="Ensemble"
                 title="Simulation ensemble"
-                value={metadata.ENSEMBLE === null ? NA : metadata.ENSEMBLE}
-                disabled={metadata.ENSEMBLE === null}
+                value={metadata.ENSEMBLE}
             />
             {/*
-            <TextField
-                className={style['text-field']}
+            <MetadataTextField
                 label="Pressure coupling"
                 title="Pressure coupling method"
-                value={metadata.PCOUPLING === null ? NA : metadata.PCOUPLING}
-                disabled={metadata.PCOUPLING === null}
+                value={metadata.PCOUPLING}
             />
-            <TextField
-                className={style['text-field']}
+            <MetadataTextField
                 label="Membrane"
                 title="Membrane type"
-                value={metadata.MEMBRANE === null ? NA : metadata.MEMBRANE}
-                disabled={metadata.MEMBRANE === null}
-            />*/}
+                value={metadata.MEMBRANE}
+            /> 
+            */}
         </fieldset>
     </>);
 };

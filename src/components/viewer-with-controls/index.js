@@ -321,7 +321,7 @@ const ViewerWithControls = forwardRef(
     //   To locate the bad setState() call inside `ForwardRef`, follow the stack trace as described in 
     //   https://reactjs.org/link/setstate-in-render
     useEffect(() => {
-      // If we still have no default refereferences then stop here
+      // If we still have no default references then stop here
       if (!defaultRepresentations || defaultRepresentations.length === 0) return;
       // If there are no representations then set a default configuration
       if (!finalRepresentations) {
