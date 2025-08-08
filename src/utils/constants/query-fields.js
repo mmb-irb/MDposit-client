@@ -150,13 +150,6 @@ export default {
             "options": true,
         },
         {
-            "name": "InChI swiss lipid",
-            "path": "references.inchikeys.swisslipids.entity_name",
-            "type": "string",
-            "example": "kinetics of human carbonic anhydrase",
-            "options": true,
-        },
-        {
             "name": "Uniprot id",
             "path": "metadata.REFERENCES",
             "type": "string",

@@ -35,7 +35,8 @@ const tabs = [
 ];
 
 let colors=[];
-const colorDict = {A: 'blue', B: 'purple', G: 'green', M: 'orange', polar: 'red', L: 'yellow'};
+const colorDict = {A: 'blue', B: 'purple', C: 'green', D: 'cyan', 
+  E: 'grey', F: 'yellow', G: 'green', L: 'yellow', M: 'orange', polar: 'red'};
 
 const Density = () => {
   // Get the metadata
@@ -95,10 +96,10 @@ const Density = () => {
           'selection': '@' + comp.selection.join(','),
           'other': {radius: 0.3},
         })
-      } else if (chains.indexOf(name) !== -1) {
+      } else if (chains?.indexOf(name) !== -1) {
         reps.push ({
           'name': name,
-          'type': 'cartoon',
+          'type': 'licorice',
           'color': dataset.color,
           'selection': ':'+ name,
         })

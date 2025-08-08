@@ -77,13 +77,17 @@ const LipidInteractions = () => {
     if (!lipidTypes.length || !inchikeyReferences) return {};
     return lipidTypes.reduce((acc, lipid) => {
       const ref = inchikeyReferences.find(ref => ref.inchikey === lipid);
-      let synonyms = ref?.lipidmaps?.synonyms.split('; ') || [];
-      synonyms = synonyms.sort((a, b) => a.length - b.length);
-      acc[lipid] = {
-        name: ref ? ref.lipidmaps.name : 'Unknown Lipid',
-        synonym: synonyms[0] || 'Lipid',
-        entity_name: ref ? ref.lipidmaps.sys_name : 'Unknown Entity',
-      };
+      let name, shortName, longName;
+      if (ref.lipidmaps.synonyms) {
+        name = ref.lipidmaps.name;
+        shortName = ref.lipidmaps.synonyms.split('; ').sort((a, b) => a.length - b.length)[0];
+        longName = ref.lipidmaps.sys_name;
+      } else if (ref.swisslipids.synonyms) {
+        name = shortName = ref.swisslipids.synonyms.find(item => item.type === 'abbreviation').name;
+        longName = ref.swisslipids.entity_name;
+      }
+      console.log('lipid', lipid, 'name', name, 'shortName', shortName, 'longName', longName);
+      acc[lipid] = { name, shortName, longName };
       return acc;
     }, {});
   }, [lipidTypes, inchikeyReferences]);
@@ -187,15 +191,16 @@ const LipidInteractions = () => {
                 value={lipid}
                 label={
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <span title={`${lipidNames[lipid].entity_name}`}>
+                    <span title={`${lipidNames[lipid].longName}`}>
                       {lipidNames[lipid].name}
                     </span>
-                    {lipidNames[lipid].synonym !== lipidNames[lipid].name && (
-                      <Typography variant="caption" color="text.secondary" title={`${lipidNames[lipid].entity_name}`}>
-                        {lipidNames[lipid].synonym || 'Lipid'}
+                    {lipidNames[lipid].shortName !== lipidNames[lipid].name && (
+                      <Typography variant="caption" color="text.secondary" title={`${lipidNames[lipid].longName}`}>
+                        {lipidNames[lipid].shortName}
                       </Typography>
                     )}
                   </div>
+
                 }
               />
             ))}
