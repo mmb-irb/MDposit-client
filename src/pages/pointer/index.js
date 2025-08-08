@@ -45,7 +45,7 @@ const Pointer = () => {
   const args = parse(argsString);
   // Make sure the arguments were passed
   const reference = args.ref;
-  const referenceId = args.id.toUpperCase();
+  const referenceId = args.id && args.id.toUpperCase();
   if (!reference) return 'Missing reference';
   if (!referenceId) return 'Missing reference id';
   // Set project metadata values to retrieve from the pointers endpoint
