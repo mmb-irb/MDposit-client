@@ -2,8 +2,8 @@ name: Build and Deploy Client
 
 on:
   push:
-    # tags:
-    #   - '*'
+    tags:
+      - '*'
 
 jobs:
   build-and-deploy:
