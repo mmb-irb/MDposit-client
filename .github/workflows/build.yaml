@@ -2,24 +2,24 @@ name: Build and Deploy Client
 
 on:
   push:
-    branches: [ master ]
-    # TODO: CHANGE BY TAG
+    tags:
+      - '*'
 
 jobs:
-  build_and_deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout private repo
         uses: actions/checkout@v4
 
+      - name: Verify directory structure
+        run: |
+          ls -la ./ 
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '16.19.1'
-
-      - name: Verify directory structure
-        run: |
-          ls -la ./ 
 
       - name: Copy host config
         run: cp ./src/default-host-config.js ./src/host-config.js
@@ -52,6 +52,29 @@ jobs:
           cp -r ../build ./
           cp ../build.zip ./
 
+          new_tag="${{ github.ref_name }}"
           git add build build.zip
-          git commit -m "Deploy new build ${{ github.ref_name }} from mdposit-client"
+          git commit -m "Deploy new build $new_tag from MDposit client"
           git push
+          git tag -a "$new_tag" -m "Deploy new build $new_tag from MDposit client"
+          git push origin "$new_tag"
+  
+  slack_notification:
+    runs-on: ubuntu-latest
+    needs: [ build-and-deploy ] # Wait for all main jobs to finish
+    if: always() # Run even if one of the jobs fails
+    steps:
+      - name: Send Slack message
+        run: |
+          STATUS="${{ needs.build-and-deploy.result }}"
+          MESSAGE="Workflow *${{ github.workflow }}* in repo *<https://github.com/${{ github.repository }}|${{ github.repository }}>* completed with status: ${STATUS}
+
+          New build *${{ github.ref_name }}* is now available in the public repository: <https://github.com/mmb-irb/MDposit-client-build/releases/tag/${{ github.ref_name }}>
+
+          For deploying the new version of MDDB client in an existing MDDB node, run the following command: 
+          \`python3 scripts/rebuild.py -s client -t my_stack\`"
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"${MESSAGE}\"}" \
+            "$SLACK_WEBHOOK_URL"
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
