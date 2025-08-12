@@ -2,8 +2,8 @@ name: Build and Deploy Client
 
 on:
   push:
-    tags:
-      - '*'
+    # tags:
+    #   - '*'
 
 jobs:
   build-and-deploy:
@@ -67,12 +67,16 @@ jobs:
       - name: Send Slack message
         run: |
           STATUS="${{ needs.build-and-deploy.result }}"
-          MESSAGE="Workflow *${{ github.workflow }}* in repo *<https://github.com/${{ github.repository }}|${{ github.repository }}>* completed with status: ${STATUS}
+          MESSAGE="Workflow *${{ github.workflow }}* in repo *<https://github.com/${{ github.repository }}|${{ github.repository }}>* completed with status: ${STATUS}"
+          
+          if [ "$STATUS" = "success" ]; then
+            MESSAGE="${MESSAGE}
 
           New build *${{ github.ref_name }}* is now available in the public repository: <https://github.com/mmb-irb/MDposit-client-build/releases/tag/${{ github.ref_name }}>
 
-          For deploying the new version of MDDB client in an existing MDDB node, run the following command: 
+          For deploying the new version of *MDDB client* in an existing *MDDB node*, run the following command: 
           \`python3 scripts/rebuild.py -s client -t my_stack\`"
+          fi
           curl -X POST -H 'Content-type: application/json' \
             --data "{\"text\":\"${MESSAGE}\"}" \
             "$SLACK_WEBHOOK_URL"
