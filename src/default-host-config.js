@@ -292,7 +292,7 @@ const HOST_CONFIGURATIONS = {
     },
     // IRB node development
     'irb-dev.mddbr.eu': {
-        logoLabel: 'IRB nodev',
+        logoLabel: 'IRB node',
         palette: {
             primary: {
             main: '#cf05ca', // R207 G5 B202
