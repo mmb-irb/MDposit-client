@@ -37,7 +37,7 @@ const ID_NAMES = {
   pdbs: 'PDB code'
 };
 
-// Expose a link to get in touch with the IRB group
+// Display projects associated with external references
 const Pointer = () => {
   // Get the URL arguments
   const location = useLocation();
