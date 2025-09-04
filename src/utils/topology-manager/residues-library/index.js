@@ -134,15 +134,30 @@ export const RESIDUE_NAME_LETTERS = {
 };
 
 // Lipid common residue names
+// https://github.com/molstar/molstar/blob/master/src/mol-model/structure/model/types/lipids.ts
 // Source: https://github.com/NMRLipids/Databank/blob/main/Scripts/DatabankLib/settings/molecules.py#L10
 // Meanings: https://github.com/NMRLipids/Databank/blob/48fdf2c4149d0db8900ce08b0e74dc1836dcfab3/Scripts/BuildDatabank/docs/source/moleculesAndMapping.md?plain=1#L50
 export const FATTY_RESIDUE_NAMES = new Set([
-    "POPC", "POPG", "POPS", "POPE", "PYPC", "PAzePCprot", "PAzePCdeprot", "DMPC", 
-    "DPPC", "DPPE", "DPPG", "DEPC", "DRPC", "DYPC", "DLPC", "DLIPC", "DOG", "DOPC", 
-    "DOPE", "DDOPC", "DOPS", "DSPC", "DAPC", "DMTAP", "SDG", "SDPE", "SOPC", "POPI", 
-    "SAPI", "SAPI24", "SAPI25", "SLPI", "CER", "CER180", "DHMDMAB", "SLiPC", "SM16",
-    "SM18", "TOCL", "TLCL_0H", "TMCL", "GM1", "DPPGK", "GB3", "BOG"
-]);
+    'ANE5', 'APC', 'BNSM', 'BOG', 'CER', 'CER180', 'CER1', 'CER2', 'CPC', 'DAPA', 'DAPC', 'DAPE',
+    'DAPG', 'DAPS', 'DBPA', 'DBPC', 'DBPE', 'DBPG', 'DBPS', 'DBSM', 'DDOPC',
+    'DEPC', 'DFPA', 'DFPC', 'DFPE', 'DFPG', 'DFPS', 'DGPA', 'DGPC', 'DGPE',
+    'DGPG', 'DGPS', 'DHMDMAB', 'DIPA', 'DIPC', 'DIPE', 'DIPG', 'DIPS', 'DLIPC',
+    'DLPA', 'DLPC', 'DLPE', 'DLPG', 'DLPS', 'DMPC', 'DMTAP', 'DNPA', 'DNPC',
+    'DNPE', 'DNPG', 'DNPS', 'DOG', 'DOPA', 'DOPC', 'DOPE', 'DOPG', 'DOPS',
+    'DPCE', 'DPP', 'DPPA', 'DPPC', 'DPPE', 'DPPG', 'DPPGK', 'DPPI', 'DPPS',
+    'DPSM', 'DRPA', 'DRPC', 'DRPE', 'DRPG', 'DRPS', 'DSPC', 'DTPA', 'DTPC',
+    'DTPE', 'DTPG', 'DTPS', 'DUPE', 'DUPS', 'DVPA', 'DVPC', 'DVPE', 'DVPG',
+    'DVPS', 'DXCE', 'DXPA', 'DXPC', 'DXPE', 'DXPG', 'DXPS', 'DXSM', 'DYPA',
+    'DYPC', 'DYPE', 'DYPG', 'DYPS', 'GB3', 'GM1', 'IPC', 'LPC', 'LLPE', 'LPPA', 'LPPC',
+    'LPPE', 'LPPG', 'LPPS', 'NSM', 'OPC', 'PADG', 'PAPA', 'PAPC', 'PAPE', 'PAPG',
+    'PAPI', 'PAPS', 'PAzePCdeprot', 'PAzePCprot', 'PEPC', 'PGPA', 'PGPC',
+    'PGPE', 'PGPG', 'PGPS', 'PGSM', 'PIDG', 'PIPA', 'PIPC', 'PIPE', 'PIPG',
+    'PIPI', 'PIPS', 'PLPS', 'PNCE', 'PNSM', 'PODG', 'POP', 'POPA', 'POPC', 'POPE',
+    'POPG', 'POPI', 'POPS', 'POSM', 'PPC', 'PQPE', 'PQPS', 'PRPA', 'PRPC',
+    'PRPE', 'PRPG', 'PRPS', 'PUDG', 'PUPA', 'PUPC', 'PUPE', 'PUPI', 'PUPS',
+    'PVDG', 'PVP', 'PVPI', 'PVSM', 'PYPC', 'SAPI', 'SAPI24', 'SAPI25', 'SDG',
+    'SDPE', 'SLPI', 'SLiPC', 'SM16', 'SM18', 'SOPC', 'SSM', 'TLCL_0H', 'TMCL', 'TOCL',
+    'TPC', 'UPC', 'VPC', 'XNCE', 'XNSM']);
 export const STEROID_RESIDUE_NAMES = new Set([ "CHL", "CHL1", "CHOL", "DCHOL" ]);
 
 // Set typical residue names to guess what residues are
