@@ -238,6 +238,26 @@ const covidDescription = <>
     download from an associated programmatic access API.
 </>;
 
+// Set inria configuration, which is to be repeated for 4 different URLs
+const inriaConfig = {
+    production: true,
+    primaryColor: '#5e8568', // green,
+    logoLabel: 'inria node',
+    name:'MDposit inria',
+    searchExample: 'e.g. Inria',
+    contactUrls: [],
+    contactMails: [
+        {
+            mail: 'yasaman.karami@inria.fr',
+            label: 'Yasaman Karami'
+        },
+        {
+            mail: 'frederic.beck@inria.fr',
+            label: 'Frederic Beck'
+        }
+    ],
+}
+
 // Set every host configuration
 const HOST_CONFIGURATIONS = {
     // Testing
@@ -447,41 +467,10 @@ const HOST_CONFIGURATIONS = {
         name:'MDposit florida'
     },
     // INRIA
-    'inria.mddbr.eu': {
-        production: true,
-        primaryColor: '#5e8568', // green,
-        logoLabel: 'inria node',
-        name:'MDposit inria',
-        contactUrls: [],
-        contactMails: [
-            {
-                mail: 'yasaman.karami@inria.fr',
-                label: 'Yasaman Karami'
-            },
-            {
-                mail: 'frederic.beck@inria.fr',
-                label: 'Frederic Beck'
-            }
-        ],
-    },
-     'dynarepo.lhs.loria.fr': {
-        production: true,
-        primaryColor: '#5e8568', // green,
-        logoLabel: 'inria node',
-        name:'MDposit inria'
-    },
-    'dynarepo.lhs.inria.fr': {
-        production: true,
-        primaryColor: '#5e8568', // green,
-        logoLabel: 'inria node',
-        name:'MDposit inria'
-    },
-    'dynarepo.inria.fr': {
-        production: true,
-        primaryColor: '#5e8568', // green,
-        logoLabel: 'inria node',
-        name:'MDposit inria'
-    },
+    'inria.mddbr.eu': inriaConfig,
+    'dynarepo.lhs.loria.fr': inriaConfig,
+    'dynarepo.lhs.inria.fr': inriaConfig,
+    'dynarepo.inria.fr': inriaConfig,
     // RPBS
     'rpbs.mddbr.eu': {
         production: true,
