@@ -11,14 +11,17 @@
   max-width: 50%;
 }
 
-.with-background {
-  border-left: 1ch solid lightblue;
-  background: lightcyan;
-  padding-left: 1ch;
+.margined-horizontal {
+  margin-left: 0.3em;
+  margin-right: 1em;
 }
 
-.browse-fab {
-  position: fixed !important;
-  bottom: 6vh;
-  right: 6vw;
+.margined-bottom {
+  margin-bottom: 1em;
+}
+
+.horizontal {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
 }

@@ -21,6 +21,8 @@ import defaultQueryFields from "src/utils/constants/query-fields";
 // primaryColor - Color of the header and additional regions along the whole web page
 // secondaryColor - Color of non-primary regions along the whole web page
 // searchExample - Search example: This is shown in search bars as placeholder when they are empty
+// contactUrls - List of URLs to be displayed in the contact page
+// contactMails - List of mails to be displayed in the conact page
 // optionsField - Field in projects metadata to be used as options in the browse selector and the data summary
 //                If no options field is passed then ignore the options label and options nice names
 // optionsLabel - Name of the options in the browse selector and the data summary
@@ -31,7 +33,8 @@ import defaultQueryFields from "src/utils/constants/query-fields";
 // options - Additional flags which may be used by the cliente
 
 // Get the requesting URL domain
-const HOST = window.location.hostname;
+//const HOST = window.location.hostname;
+const HOST = 'irb-dev.mddbr.eu';
 
 // Set default values for every host config fields
 // These values are used to fill missing values
@@ -51,6 +54,18 @@ const DEFAUL_HOST_CONFIGURATION = {
     primaryColor: '#808080', // Grey
     secondaryColor: '#fafafa', // Light grey
     searchExample: 'e.g. Orozco lab',
+    contactUrls: [
+        {
+            url: 'http://mmb.irbbarcelona.org/www/locationmap',
+            label: 'IRB Molecular Modeling and Bioinformatics group website'
+        }
+    ],
+    contactMails: [
+        {
+            mail: 'daniel.beltran@irbbarcelona.org',
+            label: 'Dani Beltrán'
+        }
+    ],
     optionsField: undefined, // No browser selector and no data summary pie chart by default
     optionsLabel: 'Options',
     optionsNiceNames: {},
@@ -437,7 +452,18 @@ const HOST_CONFIGURATIONS = {
         production: true,
         primaryColor: '#5e8568', // green,
         logoLabel: 'inria node',
-        name:'MDposit inria'
+        name:'MDposit inria',
+        contactUrls: [],
+        contactMails: [
+            {
+                mail: 'yasaman.karami@inria.fr',
+                label: 'Yasaman Karami'
+            },
+            {
+                mail: 'frederic.beck@inria.fr',
+                label: 'Frederic Beck'
+            }
+        ],
     },
     // RPBS
     'rpbs.mddbr.eu': {
