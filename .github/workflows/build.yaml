@@ -1,0 +1,84 @@
+name: Build and Deploy Client
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout private repo
+        uses: actions/checkout@v4
+
+      - name: Verify directory structure
+        run: |
+          ls -la ./ 
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '16.19.1'
+
+      - name: Copy host config
+        run: cp ./src/default-host-config.js ./src/host-config.js
+
+      - name: Install dependencies
+        run: |
+          touch .env
+          npm install
+
+      - name: Build application
+        run: npm run build
+
+      - name: Archive build artifacts
+        run: |
+          zip -r build.zip build
+
+      - name: Push build artifacts to public repo
+        env:
+          PUBLIC_REPO_PAT: ${{ secrets.PUBLIC_REPO_PAT }}
+        run: |
+          git config --global user.email "ci@example.com"
+          git config --global user.name "GitHub Actions CI"
+          git clone https://x-access-token:${PUBLIC_REPO_PAT}@github.com/mmb-irb/MDposit-client-build.git public-repo
+          cd public-repo
+
+          # Clean up previous build
+          rm -rf build build.zip
+
+          # Copy new build artifacts
+          cp -r ../build ./
+          cp ../build.zip ./
+
+          new_tag="${{ github.ref_name }}"
+          git add build build.zip
+          git commit -m "Deploy new build $new_tag from MDposit client"
+          git push
+          git tag -a "$new_tag" -m "Deploy new build $new_tag from MDposit client"
+          git push origin "$new_tag"
+  
+  slack_notification:
+    runs-on: ubuntu-latest
+    needs: [ build-and-deploy ] # Wait for all main jobs to finish
+    if: always() # Run even if one of the jobs fails
+    steps:
+      - name: Send Slack message
+        run: |
+          STATUS="${{ needs.build-and-deploy.result }}"
+          MESSAGE="Workflow *${{ github.workflow }}* in repo *<https://github.com/${{ github.repository }}|${{ github.repository }}>* completed with status: ${STATUS}"
+          
+          if [ "$STATUS" = "success" ]; then
+            MESSAGE="${MESSAGE}
+
+          New build *${{ github.ref_name }}* is now available in the public repository: <https://github.com/mmb-irb/MDposit-client-build/releases/tag/${{ github.ref_name }}>
+
+          For deploying the new version of *MDDB client* in an existing *MDDB node*, run the following command: 
+          \`python3 scripts/rebuild.py -s client -t my_stack\`"
+          fi
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"${MESSAGE}\"}" \
+            "$SLACK_WEBHOOK_URL"
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
