@@ -24,6 +24,7 @@ workbox.routing.registerNavigationRoute(
       /\/[^\/]+\.[^\/]+$/,
       /\/api\//, // avoid responding to /api, because it should be outside of the scope of that service worker
       /\/optimade\//, // avoid responding to /optimade, because it should be outside of the scope of that service worker
+      /\/vre_lite\//, /\/vre\//, // exclude the VRE from the scope of the service worker
     ],
   },
 );
