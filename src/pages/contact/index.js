@@ -16,6 +16,11 @@ const Contact = () => (
             <Typography variant="h4" className={style['margined-bottom']}>
                 Get in touch
             </Typography>
+            {HOST_CONFIG.contactText && <div>
+                {HOST_CONFIG.contactText}
+                <br />
+                <br />
+            </div>}
             {HOST_CONFIG.contactUrls.length > 0 && 'Visit our website:'}
             {HOST_CONFIG.contactUrls.map((urlConfig, i) =>
                 <Card key={i} className={style.card}>

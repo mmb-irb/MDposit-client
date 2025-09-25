@@ -21,6 +21,7 @@ import defaultQueryFields from "src/utils/constants/query-fields";
 // primaryColor - Color of the header and additional regions along the whole web page
 // secondaryColor - Color of non-primary regions along the whole web page
 // searchExample - Search example: This is shown in search bars as placeholder when they are empty
+// contactText - Text to be displayed in the contact page
 // contactUrls - List of URLs to be displayed in the contact page
 // contactMails - List of mails to be displayed in the conact page
 // optionsField - Field in projects metadata to be used as options in the browse selector and the data summary
@@ -53,6 +54,7 @@ const DEFAUL_HOST_CONFIGURATION = {
     primaryColor: '#808080', // Grey
     secondaryColor: '#fafafa', // Light grey
     searchExample: 'e.g. Orozco lab',
+    contactText: 'If you find any error or have any doubt regarding this webpage please reach out.',
     contactUrls: [
         {
             url: 'http://mmb.irbbarcelona.org/www/locationmap',
@@ -128,7 +130,7 @@ const NODE_OPTIONS = {
                 + ' It is mainlfy focused in protein-ligand systems as it was originally intended to'
                 + ' store and make publicly available the Ligate dataset.',
             'inr': 'This node is mantained by the Inria center at the Lorraine University.'
-                + 'It was originally intended to store and make publicly available the DynaRepo dataset.',
+                + ' It was originally intended to store and make publicly available the DynaRepo dataset.',
             'rpbs': 'This node is maintained under the Ressource Parisienne en Bioinformatique'
                 + ' Structurale framework.',
             'jsc': 'This node is maintained by the Jülich Supercomputing Center.',
@@ -245,6 +247,13 @@ const inriaConfig = {
     logoLabel: 'inria node',
     name:'MDposit inria',
     searchExample: 'e.g. Inria',
+    contactText: 'DynaRepo welcomes external contributions. To submit your data, '
+        + 'please contact us with details of your MD trajectories and a public key. '
+        + 'We will provide submission requirements (e.g., trajectory alignment) and '
+        + 'grant you access to our secure upload server. After upload, the DynaRepo '
+        + 'team supported by the Inria Center, will perform quality control and '
+        + 'standardized post-simulation analyses. The processed data and metadata will '
+        + 'then be added to the DynaRepo server for public access.',
     contactUrls: [],
     contactMails: [
         {
