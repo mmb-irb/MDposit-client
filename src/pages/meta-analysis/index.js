@@ -105,6 +105,31 @@ const availableAnalyses = [
     notebook: 'rgyr_analysis.ipynb'
   },
   {
+    id: 'single',
+    title: 'Single trajectory analyses',
+    isSection : true,
+  },
+  {
+    id: 'clustering',
+    title: 'Clustering analysis',
+    docs:(
+      <>
+        Here we show an example of an alternative methodology for clustering.
+      </>
+    ),
+    notebook: 'clustering.ipynb'
+  },
+  {
+    id: 'dccm',
+    title: 'Dynamic Cross-Correlation Matrix',
+    docs:(
+      <>
+        Here is an additionaly analysis which is not pre-calculated by defualt but it may be run by users: the Dynamic Cross-Correlation Matrix.
+      </>
+    ),
+    notebook: 'dccm.ipynb'
+  },
+  {
     id: 'usecases',
     title: 'Meta-analysis use cases',
     isSection : true,
