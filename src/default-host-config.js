@@ -246,7 +246,7 @@ const inriaConfig = {
     primaryColor: '#5e8568', // green,
     logoLabel: 'inria node',
     name:'MDposit inria',
-    searchExample: 'e.g. Inria',
+    searchExample: 'e.g. DynaRepo',
     contactText: 'DynaRepo welcomes external contributions. To submit your data, '
         + 'please contact us with details of your MD trajectories and a public key. '
         + 'We will provide submission requirements (e.g., trajectory alignment) and '
