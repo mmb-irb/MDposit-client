@@ -24,7 +24,7 @@ import defaultQueryFields from "src/utils/constants/query-fields";
 // contactText - Text to be displayed in the contact page
 // contactUrls - List of URLs to be displayed in the contact page
 // contactMails - List of mails to be displayed in the conact page
-// metaGithub - Repository in github where the meta-dynamics notebooks are hosted
+// metaURL - GitHub or GitLab repository where the meta-dynamics notebooks are hosted
 // optionsField - Field in projects metadata to be used as options in the browse selector and the data summary
 //                If no options field is passed then ignore the options label and options nice names
 // optionsLabel - Name of the options in the browse selector and the data summary
@@ -68,7 +68,7 @@ const DEFAUL_HOST_CONFIGURATION = {
             label: 'Dani Beltrán'
         }
     ],
-    metaGithub: 'mmb-irb/MDDB-meta',
+    metaURL: 'github.com/mmb-irb/MDDB-meta',
     optionsField: undefined, // No browser selector and no data summary pie chart by default
     optionsLabel: 'Options',
     optionsNiceNames: {},
@@ -267,6 +267,7 @@ const inriaConfig = {
             label: 'Frederic Beck'
         }
     ],
+    metaURL: 'github.com/Dynarepo/dynarepo-MDDB-meta',
 }
 
 // Set every host configuration

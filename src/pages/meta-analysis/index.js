@@ -15,21 +15,48 @@ import { HOST_CONFIG, BASE_PATH } from 'src/utils/constants';
 
 import YAML from 'yaml';
 
-// Set the GitHub repository name
-const githubRepo = HOST_CONFIG.metaGithub;
-// Set the URL to the github repo which sources the binder
-const githubRepoBaseUrl = 'https://github.com/' + githubRepo
-// Set the URL to the index file including display instructions for this page
-const githubRepoIndexUrl = `https://raw.githubusercontent.com/${githubRepo}/refs/heads/main/index.yaml`;
-// Set the URL to the github jupyer notebook viewer
-const githubJupyterViewer = githubRepoBaseUrl + '/blob/main/notebooks/';
-// Set the base URL to the repository where the binder enviornment and the workflows are stored
-const binderRepoBaseUrl = `https://mybinder.org/v2/gh/${githubRepo}/HEAD?labpath=notebooks%2F`;
-
 // Set some markdown badges
+// Gallery -> https://ileriayo.github.io/markdown-badges/
 const githubBadge = '![GitHub repository](https://badgen.net/badge/icon/github?icon=github&label)';
+const gitlabBadge = '![GitLab repository](https://img.shields.io/badge/gitlab-%23181717.svg?style=for-the-badge&logo=gitlab&logoColor=white)';
 const jupyterBadge = '![Jupyter Notebook](https://img.shields.io/badge/jupyter-%23FA0F00.svg?style=for-the-badge&logo=jupyter&logoColor=white)';
 const binderBadge = '![Binder](https://mybinder.org/badge_logo.svg)';
+
+// Fet the GitHub or GitLab repository URL from the host configuration
+const repoBaseURL = HOST_CONFIG.metaURL;
+// Set the GitHub repository base name
+const pathSplits = repoBaseURL.split('/');
+const repoOwner = pathSplits[pathSplits.length-2];
+const repoName = pathSplits[pathSplits.length-1];
+const repoBase = `${repoOwner}/${repoName}`;
+// Find out if it is github or gitlab
+// Set the URLs accordingly
+let badge;
+let indexUrl;
+let jupyterUrl;
+let binderUrl;
+if (repoBaseURL.includes('github')) {
+  // Get the proper badge to be used in the repository link
+  badge = githubBadge;
+  // Set the URL to the index file including display instructions for this page
+  indexUrl = `https://raw.githubusercontent.com/${repoBase}/refs/heads/main/index.yaml`;
+  // Set the URL to the github jupyer notebook viewer
+  jupyterUrl = `https://${repoBaseURL}/blob/main/notebooks/`;
+  // Set the base URL to the repository where the binder enviornment and the workflows are stored
+  binderUrl = `https://mybinder.org/v2/gh/${repoBase}/HEAD?labpath=notebooks%2F`;
+}
+else if (repoBaseURL.includes('gitlab')) {
+  // Get the proper badge to be used in the repository link
+  badge = gitlabBadge;
+  // Set the URL to the index file including display instructions for this page
+  // DANI: Here I had problems with 'Cross-Origin Request Blocked'
+  indexUrl = `https://${repoBaseURL}/raw/main/index.yaml`;
+  // Set the URL to the github jupyer notebook viewer
+  jupyterUrl = `https://${repoBaseURL}/-/blob/main/notebooks/`;
+  // Set the base URL to the repository where the binder enviornment and the workflows are stored
+  binderUrl = `https://mybinder.org/v2/git/${repoBaseURL}/main?urlpath=lab/tree/`;
+}
+else throw new Error(`Only GitHub and GitLab repositories are supported, not ${repoBaseURL}`);
 
 // Set a simpler TextLink component
 const TextLink = ({ name, url }) => (
@@ -54,6 +81,7 @@ const MetaAnalysis = () => {
   // Scroll down to the asked reference
   useEffect(() => {
     if (displayIndex === null) return;
+    if (displayIndex.error) return;
     const container = containerRefs.current;
     const refId = location.hash.slice(1);
     const linkRef = linkRefs.current[refId];
@@ -63,7 +91,7 @@ const MetaAnalysis = () => {
   // Fetch data just once
   useEffect(() => {
     // Request the GitHub index file which has the display instructions for this page
-    fetch(githubRepoIndexUrl)
+    fetch(indexUrl)
       .then(async response => {
         const actualResponse = await response.text();
         const parsedResponse = YAML.parse(actualResponse);
@@ -71,12 +99,15 @@ const MetaAnalysis = () => {
       })
       .catch(error => {
         console.error(error);
-        console.error(`Failed to download ${githubRepoIndexUrl}`);
+        console.error(`Failed to download ${indexUrl}`);
+        setDisplayIndex({ error })
       });
   }, []);
 
   // Wait for data to be available
   if (displayIndex === null) return <Loading />
+  if (displayIndex.error)
+    return 'Something went wrong when downloading the page configuration. Look at the console.';
 
   return (
     <div className={style.horizontal}>
@@ -117,7 +148,7 @@ const MetaAnalysis = () => {
         <br />
         Original notebooks and the environment setup to run the examples are available here:
         <ReactMarkdown
-          children={`[${githubBadge}](${githubRepoBaseUrl})`}
+          children={`[${badge}](https://${repoBaseURL})`}
           linkTarget="_blank"
         />
         <hr className={style.hr} />
@@ -141,11 +172,11 @@ const MetaAnalysis = () => {
                 </Typography>
                 {notebook.docs && <div key={'text'}>{notebook.docs}</div>}
                 <ReactMarkdown
-                  children={`[${jupyterBadge}](${githubJupyterViewer}${notebook.notebook})`}
+                  children={`[${jupyterBadge}](${jupyterUrl}${notebook.notebook})`}
                   linkTarget="_blank"
                 />
                 <ReactMarkdown
-                  children={`[${binderBadge}](${binderRepoBaseUrl}${notebook.notebook})`}
+                  children={`[${binderBadge}](${binderUrl}${notebook.notebook})`}
                   linkTarget="_blank"
                 />
                 <hr className={style.hr} />
