@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect, useRef, useMemo } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -833,20 +833,22 @@ const Overview = React.memo(() => {
                     </a>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <div className={style["decorated-list-item__title"]}>Molecular Formula</div>
-                    <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                      {ligandReference && ligandReference.formula.toString().split('').map((char, index) => {
-                        if (char.match(/[A-Z]/)) {
-                          return <span key={index} style={{ fontSize: '1.1em' }}>{char}</span>;
-                        } else if (char.match(/[0-9]/)) {
-                          return <sub key={index} style={{ fontSize: '0.9em' }}>{char}</sub>;
-                        } else {
-                          return char;
-                        }
-                      })}
+                  {ligandReference && ligandReference.formula &&
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <div className={style["decorated-list-item__title"]}>Molecular Formula</div>
+                      <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
+                        {ligandReference.formula.toString().split('').map((char, index) => {
+                          if (char.match(/[A-Z]/)) {
+                            return <span key={index} style={{ fontSize: '1.1em' }}>{char}</span>;
+                          } else if (char.match(/[0-9]/)) {
+                            return <sub key={index} style={{ fontSize: '0.9em' }}>{char}</sub>;
+                          } else {
+                            return char;
+                          }
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  }
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                     {ligandReference && ligandReference.smiles && <>
                       <div className={style["decorated-list-item__title"]}>SMILES</div>
