@@ -1360,6 +1360,31 @@ const NGLViewer = memo(
         ref,
         () => ({
           autoResize: handleResize,
+          drawMesh(position, color_offset, name = "test") {
+            const previousComponent = stageRef.current.compList.find(
+              (component) => component.name === name
+            );
+            if (previousComponent) {
+              stageRef.current.removeComponent(previousComponent);
+            }
+            if (!position || position.length === 0) return;
+            const shape = new Shape(name, { disableImpostor: true });
+            let colors = new Float32Array(position.length);
+            colors = colors.map((v, i) => {
+              if (i > color_offset[1] && i % 3 === 2) {
+                return 1.0;
+              } else if (i > color_offset[0] && i <= color_offset[1] && i % 3 === 1) {
+                return 1.0;
+              } else if (i <= (color_offset[0]) && i % 3 === 0) {
+                return 1.0;
+              } else {
+                return 0.0;
+              }
+            });
+            shape.addMesh(position, colors);
+            var shapeComp = stageRef.current.addComponentFromObject(shape, { name: name });
+            var rep = shapeComp.addRepresentation("buffer", { opacity: 0.8, roughness: 1 });
+          },
           // Output the current orientation/focus in console
           // Note: this is for the developer, not for the regular user
           displayFocus() {

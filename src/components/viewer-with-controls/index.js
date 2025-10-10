@@ -520,6 +520,7 @@ const ViewerWithControls = forwardRef(
       () => ({
         autoResize: viewerRef.current.autoResize,
         centerFocus: viewerRef.current.centerFocus,
+        drawMesh: viewerRef.current.drawMesh,
         get currentFrame() {
           return viewerRef.current.currentFrame;
         },

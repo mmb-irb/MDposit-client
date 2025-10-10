@@ -56,6 +56,7 @@ const ENDPOINTS = {
   density: ['analyses/density'],
   thickness: ['analyses/thickness'],
   apl: ['analyses/apl'],
+  channels: ['analyses/channels'],
   'lipid-order': ['analyses/lipid-order'],
   'lipid-inter': ['analyses/lipid-inter'],
   electrostatic: ['analyses/interactions'],

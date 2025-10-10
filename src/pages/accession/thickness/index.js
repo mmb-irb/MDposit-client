@@ -220,7 +220,7 @@ const Thickness = () => {
         setRepresentations(previous => {
             if (previous !== null) return previous;
             keepRepresentations.forEach(rep => {
-                if (rep.name == 'Protein' || chains.indexOf(rep.selection.slice(1,2)) !== -1) {
+                if (rep.name.toLowerCase().includes('protein') || chains?.indexOf(rep.selection.slice(1,2)) !== -1) {
                     rep.color = 'grey';
                 }
             });
