@@ -54,7 +54,7 @@ export class Project {
         // These analyses are always visible but not clickable when data is missing
         const genericAnalyses = [ 'rmsds', 'rgyr', 'fluctuation', 'pca', 'rmsd-perres',
             'rmsd-pairwise', 'dist-perres', 'hbonds', 'energies', 'pockets', 'sasa', 'clusters',
-             'density', 'thickness', 'apl', 'lipid-order', 'lipid-inter', 'dihenergies' ];
+             'density', 'thickness', 'apl', 'channels', 'lipid-order', 'lipid-inter', 'dihenergies' ];
         for (const analysis of genericAnalyses) {
             this.directions[analysis] = this.analyses.includes(analysis);
         }

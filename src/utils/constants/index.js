@@ -48,6 +48,7 @@ export const NICE_NAMES = new Map([
     ['density', 'Density'],
     ['thickness', 'Thickness'],
     ['apl', 'Area per lipid'],
+    ['channels', 'Channels'],
     ['lipid-order', 'Lipid order'],
     ['lipid-inter', 'Lipid interactions'],
     ['dihenergies', 'Dihedral energies'],

@@ -68,6 +68,7 @@ const tabs = [
         hideIfEmpty: true, // Hide this tab if there are no membrane analyses
         analyses: [
           'apl',
+          'channels',
           'density',
           'lipid-inter',
           'lipid-order',
