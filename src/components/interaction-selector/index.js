@@ -58,6 +58,8 @@ const InteractionSelector = ({
     handleToggleOrder();
   };
 
+  if (!interactions) return <Loading />
+
   const currentInteraction = interactions[selectedInteraction];
 
   // Render
