@@ -205,12 +205,11 @@ const Thickness = () => {
         // Wait for payload to be downloaded
         if (!thicknessData) return;
         // Load the required frames from the main trajectory
-        const trajectoryUrl = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/trajectory`;
-        const mainURL = `${trajectoryUrl}?frames=1:${metadata.mdFrames}:${frameStep}`;
+        const trajectoryUrl = `/trajectory?frames=1:${metadata.mdFrames}:${frameStep}`;
         // Set the main component, which includes everything but the pockets
-        const mainComponent = { trajectoryURLs: [mainURL] };
+        const mainComponent = { trajectoryURLs: [ trajectoryUrl ] };
         return [mainComponent];
-    }, [accessionAndMdNumber, metadata, frameStep]);
+    }, [metadata, frameStep]);
 
     // Set or update the representations state
     useMemo(() => {

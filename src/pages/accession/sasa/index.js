@@ -180,11 +180,10 @@ const Sasa = () => {
     const frameStep = payload['step'];
 
     // Load the required frames from the main trajectory
-    const trajectoryUrl = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/trajectory`;
-    const mainURL = `${trajectoryUrl}?frames=1:${metadata.mdFrames}:${frameStep}`;
+    const trajectoryUrl = `/files/trajectory?frames=1:${metadata.mdFrames}:${frameStep}`;
 
     // Set the components by setting a custom component with an extended trajectory
-    const components = [ { trajectoryURLs: [mainURL] } ];
+    const components = [ { trajectoryURLs: [ trajectoryUrl ] } ];
 
     // Set the representations by showing all default representations repainted
     const representations = [];
@@ -242,7 +241,6 @@ const Sasa = () => {
     payload,
     topology,
     metadata,
-    accessionAndMdNumber,
     defaultRepresentations,
     populations,
     setSelectedResidues

@@ -155,11 +155,10 @@ const RmsdPerres = () => {
     const frameStep = payload['step'];
 
     // Load the required frames from the main trajectory
-    const trajectoryUrl = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/trajectory`;
-    const mainURL = `${trajectoryUrl}?frames=1:${trajectoryFrameCount}:${frameStep}`;
+    const trajectoryUrl = `/trajectory?frames=1:${trajectoryFrameCount}:${frameStep}`;
 
     // Set the components by setting a custom component with an extended trajectory
-    const components = [ { trajectoryURLs: [mainURL] } ];
+    const components = [ { trajectoryURLs: [ trajectoryUrl ] } ];
 
     // Set the representations by showing all default representations repainted
     const representations = [];
@@ -219,7 +218,6 @@ const RmsdPerres = () => {
     payload,
     topology,
     metadata,
-    accessionAndMdNumber,
     defaultRepresentations,
     populations,
   ]);

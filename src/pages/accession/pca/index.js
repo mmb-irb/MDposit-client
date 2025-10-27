@@ -75,25 +75,20 @@ const PCA = () => {
     let trajectoryURLs;
     if (projections[0] !== undefined) {
       const projectionNumber = ('0' + (projections[0] + 1)).slice(-2);
-      const projectionURL = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/pca_trajectory_${projectionNumber}.bin`;
+      const projectionURL = `/files/pca_trajectory_${projectionNumber}.bin`;
       trajectoryURLs = [ projectionURL ];
     }
-
-    // Get the topology URL
-    // It has to be the main topology but with a specific selection of atoms
-    const topologyURL = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/structure`;
 
     // Set the NGL component
     const components = [
       {
-        topologyURL: topologyURL,
         atomIndices: data.atoms,
         trajectoryURLs: trajectoryURLs,
       },
     ];
 
     return [representations, components];
-  }, [data, files, projections, accessionAndMdNumber]);
+  }, [data, files, projections]);
 
   // Return the loading spin if we are still waiting for data
   if (loading) return <Loading />;

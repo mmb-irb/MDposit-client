@@ -338,23 +338,22 @@ const NGLViewer = memo(
       // Set the representations in each component
       useEffect(() => {
         if (!components || !representations || !topologyManager) return;
-
         components.forEach((comp, c) => {
           // Set the NGL component
           let stageComp = stageRef.current.compList.find(stc => stc.myName == comp.name);
           if (!stageComp) {
-            // Find the topology which matches the component url
-            // If a component has no url it will match a topology with no url: the default topology
-            const url = comp.topologyURL || null;
-            const topology = parsedTopologies.find(topology => topology.url === url);
+            // Find the topology which matches the component urlpath
+            // If a component has no urlpath it will match a topology with no urlpath: the default topology
+            const urlpath = comp.topologyURL || null;
+            const topology = parsedTopologies.find(topology => topology.urlpath === urlpath);
             // If the topology has not been loaded yet then we have a problem
             // DANI: Todas las topologías deben estar ya listas antes de cargarlas, lee los mensajes de arriba
             if (!topology) return;
             // Stop here if it is not downloaded yet
             if (topology.error)
-              throw new Error(`Topology from '${url}' returned error ${topology.error}`);
+              throw new Error(`Topology from '${urlpath}' returned error ${topology.error}`);
             if (!topology.file)
-              throw new Error(`Topology data from '${url}' is missing`);
+              throw new Error(`Topology data from '${urlpath}' is missing`);
             // Atom occupancy is a field which is not used anywhere but in the electrostatic representation
             // The electrostatic surface scheme color does not work if the occupancy is 0 (ngl code, not ours)
             // We set all occupancies to 1, since some topologies may have all occupancies as 0 by default
@@ -859,10 +858,10 @@ const NGLViewer = memo(
         // Check if trajectories are
         if (parsedTopologies.length === 0 || trajectories.length === 0 || !components) return;
         components.forEach((comp, c) => {
-          // Find the topology which matches the component url
-          // If a component has no url it will match a topology with no url: the default topology
-          const topologyURL = comp.topologyURL || null;
-          const topology = parsedTopologies.find(topology => topology.url === topologyURL);
+          // Find the topology which matches the component urlpath
+          // If a component has no urlpath it will match a topology with no urlpath: the default topology
+          const topologyUrlpath = comp.topologyURL || null;
+          const topology = parsedTopologies.find(topology => topology.urlpath === topologyUrlpath);
           if (!topology) return;
 
           // DANI: Aquí me he quedado
@@ -886,8 +885,8 @@ const NGLViewer = memo(
           let trajectoryAtoms;
           let trajectoryFinalExpectedFrames = 0;
           // Record also the frames for each trajectory and add them
-          for (const framedURL of comp.framedURLs) {
-            const trajectory = trajectories.find(trajectory => trajectory.url === framedURL);
+          for (const framedUrlpath of comp.framedURLs) {
+            const trajectory = trajectories.find(trajectory => trajectory.urlpath === framedUrlpath);
             // If the trajectory is not downloaded yet then exit
             if (!trajectory) return;
             // Get atom counts from different trajectories and check they match
@@ -903,7 +902,7 @@ const NGLViewer = memo(
             const fitLength = Math.floor(payload.byteLength / bytesPerFrame) * bytesPerFrame;
             const fitPayload = payload.slice(0, fitLength);
             trajectoryPayloads.push(fitPayload);
-            combinedURL += framedURL;
+            combinedURL += trajectory.url;
             combinedProgress += '/' + trajectory.progress;
           }
 

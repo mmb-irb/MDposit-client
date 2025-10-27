@@ -245,13 +245,11 @@ const Epitopes = () => {
 
   // Set the component to be passed to the viewer
   const components = useMemo(() => {
-    if (!accessionAndMdNumber) return;
     // Load the required frames from the main trajectory
-    const trajectoryUrl = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/trajectory`;
-    const mainURL = `${trajectoryUrl}?frames=1:${metadata.mdFrames}:${frameStep}`;
+    const trajectoryUrl = `/trajectory?frames=1:${metadata.mdFrames}:${frameStep}`;
     // Set the components by setting a custom component with an extended trajectory
-    return [ { trajectoryURLs: [mainURL] } ];
-  }, [accessionAndMdNumber, metadata, frameStep]);
+    return [ { trajectoryURLs: [ trajectoryUrl ] } ];
+  }, [metadata, frameStep]);
 
   // Define the representations to be displayed in the viewer
   const [ representations, setRepresentations ] = useState(null);

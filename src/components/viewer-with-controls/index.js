@@ -255,8 +255,8 @@ const ViewerWithControls = forwardRef(
     const completeComponentMissingFields = useCallback(targetObject => {
       if (!accessionAndMdNumber) return false;
       const defaults = {...DEFAULT_COMPONENT_PARAMETERS};
-      defaults.topologyURL = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/structure`;
-      defaults.trajectoryURLs = [ `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/trajectory` ];
+      defaults.topologyURL = `/structure`;
+      defaults.trajectoryURLs = [ `/trajectory` ];
       return completeMissingFields(targetObject, defaults);
     }, [accessionAndMdNumber]);
 

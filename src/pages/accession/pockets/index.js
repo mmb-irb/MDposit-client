@@ -112,19 +112,18 @@ const Pockets = () => {
     // Wait for payload to be downloaded
     if (!data) return;
     // Load the required frames from the main trajectory
-    const trajectoryUrl = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/trajectory`;
-    const mainURL = `${trajectoryUrl}?frames=1:${metadata.mdFrames}:${frameStep}`;
+    const trajectoryUrl = `/trajectory?frames=1:${metadata.mdFrames}:${frameStep}`;
     // Set the main component, which includes everything but the pockets
-    const mainComponent = { trajectoryURLs: [mainURL] };
+    const mainComponent = { trajectoryURLs: [ trajectoryUrl ] };
     // Set every pocket component
     const pocketComponents = data.map(pocket => ({
       name: pocket.name,
-      topologyURL: `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/${pocket.name}.pdb`,
+      topologyURL: `/files/${pocket.name}.pdb`,
       onlyTopology: true,
       //chainLabels: [pocket.name],
     }));
     return [mainComponent, ...pocketComponents];
-  }, [data, accessionAndMdNumber, metadata, frameStep]);
+  }, [data, metadata, frameStep]);
 
   // Use this hook to get the memoized NGL default representations
   // We need to access the default representations from here to know the number of representations
