@@ -1,5 +1,5 @@
 // Get the use memo hook
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 // Function to request data through the API
 import useAPI from '../../hooks/use-api';
 // Constants
@@ -80,13 +80,7 @@ export class Project {
             this.directions['markov'] = this.analyses.includes('markov');
         }
         // Set an internal object to save data requested through the API
-        this._apiResponses = {
-            topology: undefined,
-            interactions: undefined,
-            references: undefined,
-            fileDescriptors: undefined,
-            populations: undefined
-        };
+        this._apiResponses = {};
         // Save the topology manager apart so we do not have to re-instantiate the class every time
         this._topologyManager = null;
         // Set the project base URL to request the API
@@ -106,18 +100,27 @@ export class Project {
     }
     // Set a function to query the API and store the response for internal variables
     _apiQuery = (fieldname, available = true) => {
+        // Keep trak of if this is the first function in the render
+        const firstCall = useRef(null);
         // Set the request URL
         let url = this._apiBaseUrl + this._apiEndpoints[fieldname];
         // Request the value if it is available only
         if (!available) url = null;
-        // If data for the requested fieldname is already saved then set the url as null
-        // This makes the useAPI hook not to repeat the query
-        if (this._apiResponses[fieldname] && this._apiResponses[fieldname].payload) url = null;
+        // If data for the requested fieldname is already saved then it means we are not the first call
+        // Set the url as null to not repeat the query in the useAPI hook
+        // Note that this will make loose the URL also to the first call in the second render and forth
+        // However this is not a problem because the the first call has the URL saved in the useRef
+        if (this._apiResponses[fieldname]) url = null;
+        // Only the first render of the first function call will have a valid url at this point
+        // Any other call will have a null url
+        // If we are the first call (but not in the first render) we will have a URL stored in the useRef
+        if (url !== null) firstCall.current = url;
+        else if (firstCall.current !== null) url = firstCall.current;
         // Do the API query but save the result only if the url is not null
-        // Note that if url is null from the first render (i.e. there is not value at all) then its value will be null
+        // Otherwise the result of the useAPI hook will be null as well
         const query = useAPI(url);
         if (url !== null) this._apiResponses[fieldname] = query;
-        // If we are still loading then
+        // Return the content of the first called useAPI hook
         return this._apiResponses[fieldname];
     };
 
