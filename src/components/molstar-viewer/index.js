@@ -79,7 +79,7 @@ const BYTES_PER_COORDINATE = 4; // float 32
 const COORDINATES_PER_ATOM = 3; // x, y and z
 const BYTES_PER_ATOM = BYTES_PER_COORDINATE * COORDINATES_PER_ATOM;
 
-// Set the NGL player speed limits
+// Set the viewer player speed limits
 // The actual 'speed' input limits are 0-100
 // The speed set as the time to wait before moving to the next frame in miliseconds
 const minimumSpeed = 0;
@@ -118,7 +118,7 @@ const MolstarViewer = memo(
         selectedRepresentation, // String name of a representation to be painted in yellow color (only 1)
         snapRepresentations,
         noTrajectory, // True when only specific frames must be loaded
-        initialFocus, // The ngl selection to be focused by the camera initially
+        initialFocus, // The viewer selection to be focused by the camera initially
         darkBackground,
         perspective,
         speed,
@@ -246,7 +246,7 @@ const MolstarViewer = memo(
       }, [molstar, anyLoadingTopology, topologies]);
 
       // Load trajectories in molstar
-      // Once the trajectories are downloaded, load them in corresponding NGL representations
+      // Once the trajectories are downloaded, load them in corresponding viewer representations
       // Every time the trajectory payloads change this useEffect must be rerun
       useEffect(() => {
         // Wait for the molstar reference to be available
@@ -498,7 +498,7 @@ const MolstarViewer = memo(
         parentRef.current = node;
       };
 
-      // Finally, render the ngl window
+      // Finally, render the viewer window
       return (
         <>
           <div
@@ -509,7 +509,7 @@ const MolstarViewer = memo(
                 !noTrajectory && anyLoadingTrajectory,
               [style['light-theme']]: !darkBackground,
             })}
-            // Display loading status data in the upper left corner of the NGL window
+            // Display loading status data in the upper left corner of the viewer window
             data-loading={undefined}
           />
           <div ref={tooltipRef} className={style.tooltip}>
