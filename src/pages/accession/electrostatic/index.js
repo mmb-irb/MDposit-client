@@ -86,9 +86,9 @@ const Electrostatic = () => {
 
     // Parse the interface selections to the NGL format
     const [nglInterface1, nglInterface2] = [
-      interaction.interface_indices_1,
-      interaction.interface_indices_2,
-    ].map(interf => topology.residueIndices2Ngl(interf).rangedSelection);
+      interaction.interface_atom_indices_1,
+      interaction.interface_atom_indices_2,
+    ].map(interf => topology.atomIndices2Ngl(interf));
 
     // Set representation parameters for both the surfaced and the sticked interfaces
     const surfacedParameters = {
