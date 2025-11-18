@@ -390,6 +390,15 @@ const HOST_CONFIGURATIONS = {
             This node contains simulations from the Ascona B-DNA Consortium.
         </>
     },
+    // Oxford node hidden development
+    'roslin.bioch.ox.ac.uk': {
+        logoLabel: 'Oxford node',
+        primaryColor: '#66CC00', // Green as it is the Oxfrod landscape <3
+        description: <>
+            {DEFAUL_HOST_CONFIGURATION.description}<br/>
+            This node contains simulations from the Oxford University node.
+        </>
+    },
     // Oxford node development
     'oxford-dev.mddbr.eu': {
         logoLabel: 'Oxford node',
