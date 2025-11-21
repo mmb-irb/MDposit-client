@@ -407,18 +407,14 @@ const NGLViewer = memo(
 
             // Adapt a few representation values to the context
             const show = rep.show
-            const sele = rep.selection;
-            let type = rep.type
-            // DANI: When there is no bonds at all and we select 'all' or '*' there is a NGL bug
-            // DANI: Drawing methods with explicit bonds (licorice y balls+sticks) crash
-            // DANI: The logs are missleading an the error seems from the coloring method, but no
-            // DANI: The bug does not happen with other selections, even if they select all as well
-            // DANI: It is weird because with the cg_test_2 project the error does not happen
-            // DANI: Anyway, having one bond at least or not using licorice/Ball+stick avoids the crash
-            if ((sele === 'all' || sele === '*') &&
-              topologyManager.missingAllBonds &&
-              EXPLICIT_BONDING_NGL_DRAWING_METHODS.has(rep.type))
-              type = 'spacefill';
+            let sele = rep.selection;
+            // DANI: This solves a lot of silent and shaddy errors
+            // DANI: If you select 'all' or '*' you may see wrong bonding patterns
+            // DANI: If there are no bonds and you represent in licorice or ball+stick the NGL may crash
+            // DANI: However, if you type a wrong selection then everythin is represented properly
+            // DANI: And that is exactly the behaviour we want when we type all, so this is the solution
+            if (sele === 'all' || sele === '*') sele = 'patata';
+            const type = rep.type
             const color = rep.color;
             const opacity = show ? rep.opacity : 0;
 

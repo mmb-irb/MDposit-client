@@ -1,4 +1,4 @@
-import React, { memo, useContext } from 'react';
+import React, { memo } from 'react';
 
 import {
   Chip,
@@ -20,10 +20,8 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import Info from '../../info';
 import style from './style.module.css';
-import { ProjectCtx } from '../../../contexts';
 import {
   NGL_DRAWING_METHODS,
-  EXPLICIT_BONDING_NGL_DRAWING_METHODS,
   NGL_COLORING_METHODS,
   NGL_COLORS
 } from '../constants';
@@ -47,19 +45,6 @@ const RepresentationsManager = memo(
     representations, // Array with all representations
     setRepresentations, // Representations setter
   }) => {
-    // Get project data
-    const { topology: topologyManager } = useContext(ProjectCtx);
-    // Set available representations depending on if the topology is missing all atoms
-    // If this is the case then we forbid licoocie and ball+stick to avoid a NGL bug
-    let availableDrawingMethods = [ ...NGL_DRAWING_METHODS ];
-    if (topologyManager.missingAllBonds) {
-      availableDrawingMethods = availableDrawingMethods.filter(
-        method => !EXPLICIT_BONDING_NGL_DRAWING_METHODS.has(method.value), 
-      );
-    }
-    // Set also the default drawing method for new custom representations
-    // Same criteria: if all bonds are missing we must not default to licorice
-    const customDefaultDrawingMethod = topologyManager.missingAllBonds ? 'spacefill' : 'licroice';
     return (
       <>
         <Table
@@ -148,7 +133,7 @@ const RepresentationsManager = memo(
                         {representation.type}
                       </option>
                     )}
-                    {availableDrawingMethods.map((cm, i) => (
+                    {NGL_DRAWING_METHODS.map((cm, i) => (
                       <option key={i} value={cm.value}>
                         {cm.label}
                       </option>
@@ -213,7 +198,7 @@ const RepresentationsManager = memo(
                       // Set the default values for the custom representation
                       const newRepresentation = {
                         name: 'Custom', show: true,
-                        selection: 'None', type: customDefaultDrawingMethod,
+                        selection: 'None', type: 'licorice',
                         color: 'chainid', opacity: 1,
                         // Link the representation to the first (main) component
                         component: components[0] && components[0].name,

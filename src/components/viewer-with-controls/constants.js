@@ -37,9 +37,6 @@ export const NGL_DRAWING_METHODS = [
   },
 ];
 
-// List methods with explicit bonds
-export const EXPLICIT_BONDING_NGL_DRAWING_METHODS = new Set([ 'licorice', 'ball+stick' ]);
-
 export const NGL_COLORING_METHODS = [
   {
     label: 'By chain id',
