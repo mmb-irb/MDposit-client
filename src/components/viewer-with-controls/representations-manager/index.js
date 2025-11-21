@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useContext } from 'react';
 
 import {
   Chip,
@@ -20,105 +20,18 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import Info from '../../info';
 import style from './style.module.css';
-
-const availableDrawingMethods = [
-  {
-    label: 'Cartoon',
-    value: 'cartoon',
-  },
-  {
-    label: 'Licorice',
-    value: 'licorice',
-  },
-  {
-    label: 'Ball and stick',
-    value: 'ball+stick',
-  },
-  {
-    label: 'Surface',
-    value: 'surface',
-  },
-  {
-    label: 'Spacefill',
-    value: 'spacefill',
-  },
-  {
-    label: 'Tube',
-    value: 'tube',
-  },
-  {
-    label: 'Trace',
-    value: 'trace',
-  },
-  {
-    label: 'Backbone',
-    value: 'backbone',
-  },
-  {
-    label: 'Nucleic bases',
-    value: 'base',
-  },
-];
+import { ProjectCtx } from '../../../contexts';
+import {
+  NGL_DRAWING_METHODS,
+  EXPLICIT_BONDING_NGL_DRAWING_METHODS,
+  NGL_COLORING_METHODS,
+  NGL_COLORS
+} from '../constants';
 
 // Check if a value exists inside the available values
 const DrawingMethodExists = value => {
-  for (const opt of availableDrawingMethods) {
+  for (const opt of NGL_DRAWING_METHODS) {
     if (opt.value === value) return true;
-  }
-  return false;
-};
-
-const availableColoringMethods = [
-  {
-    label: 'By chain id',
-    value: 'chainid',
-  },
-  {
-    label: 'By residue',
-    value: 'resname',
-  },
-  {
-    label: 'By element',
-    value: 'element',
-  },
-  {
-    label: 'B factor',
-    value: 'bfactor',
-  },
-  {
-    label: 'Electrostatic',
-    value: 'electrostatic',
-  },
-  {
-    label: 'Secondary structure',
-    value: 'sstruc',
-  },
-  {
-    label: 'Uniform',
-    value: 'uniform',
-  },
-];
-
-const availableColors = [
-  'red',
-  'yellow',
-  'blue',
-  'green',
-  'orange',
-  'purple',
-  'white',
-  'grey',
-  'black',
-];
-
-// Check if a value exists inside the available values
-const coloringExists = value => {
-  if (value === 'custom') return true;
-  for (const opt of availableColoringMethods) {
-    if (opt.value === value) return true;
-  }
-  for (const opt of availableColors) {
-    if (opt === value) return true;
   }
   return false;
 };
@@ -134,6 +47,19 @@ const RepresentationsManager = memo(
     representations, // Array with all representations
     setRepresentations, // Representations setter
   }) => {
+    // Get project data
+    const { topology: topologyManager } = useContext(ProjectCtx);
+    // Set available representations depending on if the topology is missing all atoms
+    // If this is the case then we forbid licoocie and ball+stick to avoid a NGL bug
+    let availableDrawingMethods = [ ...NGL_DRAWING_METHODS ];
+    if (topologyManager.missingAllBonds) {
+      availableDrawingMethods = availableDrawingMethods.filter(
+        method => !EXPLICIT_BONDING_NGL_DRAWING_METHODS.has(method.value), 
+      );
+    }
+    // Set also the default drawing method for new custom representations
+    // Same criteria: if all bonds are missing we must not default to licorice
+    const customDefaultDrawingMethod = topologyManager.missingAllBonds ? 'spacefill' : 'licroice';
     return (
       <>
         <Table
@@ -247,12 +173,12 @@ const RepresentationsManager = memo(
                       <option value={'custom'}>{'Custom'}</option>
                     ) : null}
                     
-                    {availableColoringMethods.map((cm, i) => (
+                    {NGL_COLORING_METHODS.map((cm, i) => (
                       <option key={i} value={cm.value}>
                         {cm.label}
                       </option>
                     ))}
-                    {availableColors.map((color, i) => (
+                    {NGL_COLORS.map((color, i) => (
                       <option key={i} value={color}>
                         {firstLetterUpper(color)}
                       </option>
@@ -287,7 +213,7 @@ const RepresentationsManager = memo(
                       // Set the default values for the custom representation
                       const newRepresentation = {
                         name: 'Custom', show: true,
-                        selection: 'None', type: 'licorice',
+                        selection: 'None', type: customDefaultDrawingMethod,
                         color: 'chainid', opacity: 1,
                         // Link the representation to the first (main) component
                         component: components[0] && components[0].name,

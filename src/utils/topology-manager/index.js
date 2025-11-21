@@ -434,6 +434,11 @@ export class Topology {
     this.atomBonds = topology.atom_bonds && topology.atom_bonds.map(bonds => 
       bonds === MISSING_BONDS_FLAG ? [] : bonds
     )
+    // Set if all bonds are missing
+    // If there are no bonds at all this is false, but this is convinient
+    // In this case we let NGL guess the bonds, so there may be bonds later
+    this.missingAllBonds = this.atomBonds && this.atomBonds.reduce(
+      (acc, curr) => acc + curr.length, 0) === 0;
     // Save the PBC (Priodic Boundary Conditions) residues
     this.pbcResidues = topology.pbc_residues && new Set(topology.pbc_residues);
     // Data is stored in a down-top structure according to atom-residue-chain indices
