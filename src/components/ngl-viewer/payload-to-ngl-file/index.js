@@ -275,6 +275,15 @@ export const setNGLFile = (
   if (!coordinates)
     throw new Error(`Topology and trajectory data may not match`);
 
+  // If coordinates are all the same then stop here
+  // Representing many atoms in the same place may stress NGL a lot for some reason
+  // This can make the whole navigator crash if tried with many atoms
+  // Check only the first 10 coordinates to make it faster
+  const sampleFrame = coordinates[0];
+  const sampleCoordinates = new Set(sampleFrame.slice(0, 30))
+  if (sampleCoordinates.size <= 3)
+    throw new Error('Trajectory coordinates are repeated');
+
   // Finally build the NGL object and add the parsed coordinates
   const file = new Frames('Dynamically generated trajectory', '');
   file.coordinates = coordinates;
