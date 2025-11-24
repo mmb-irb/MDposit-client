@@ -160,7 +160,7 @@ const getDefaultRepresentations = topology => {
             reps.push({
                 name: `${chainLabel} - other`,
                 selection: nglSelection,
-                type: 'licorice',
+                type: 'spacefill',
                 color: 'purple',
                 opacity: 0.3,
             });
