@@ -209,6 +209,16 @@ class Residue {
       this._classification = 'ligand'
       return this._classification
     }
+    //console.log(this.topology.membraneMapping)
+    // ----- Inchikey ligands -----------------------------------------------
+    if (this.referenceType === 'inchikey') {
+      // Inchikey with lipidmaps or swisslipids data, or those which are not membrane lipids
+      if (!(this.referenceData.swisslipids || this.referenceData.lipidmaps) || 
+      (this.topology.membraneMapping && this.topology.membraneMapping.no_mem_lipid.includes(this.index))){
+        this._classification = 'ligand'
+        return this._classification
+      }
+    }
     // ----- Others -----------------------------------------------
     // If the residue does not fall in any of the previous conditions then try it with the residue name
     this._classification = this.classificationByName;
@@ -398,7 +408,7 @@ class Chain {
 }
 
 export class Topology {
-  constructor(topology, metadata, references) {
+  constructor(topology, metadata, references, membraneMapping = null) {
     // Save the topology data as it comes
     this.atomNames = topology.atom_names;
     this.atomElements = topology.atom_elements;
@@ -423,6 +433,7 @@ export class Topology {
     }
     this.residueChainIndices = topology.residue_chain_indices;
     this.chainNames = topology.chain_names;
+    this.membraneMapping = membraneMapping;
     this.references = topology.references;
     this.referenceTypes = topology.reference_types;
     // DANI: Esta linea es para mantener las topologías viejas que solo tienen referencias de proteínas

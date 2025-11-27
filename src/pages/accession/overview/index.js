@@ -152,6 +152,7 @@ const Overview = React.memo(() => {
     metadata,
     ligandReferences,
     proteinReferences,
+    inchikeyReferences,
     pdbReferences,
     mdCount,
     node,
@@ -343,10 +344,20 @@ const Overview = React.memo(() => {
   const pubchemIds = metadata.LIGANDS;
   const [pubchemInfo, setPubchemInfo] = useState({});
   useEffect(() => {
-    if (!pubchemIds) return;
+    if (!pubchemIds || !inchikeyReferences) return;
+    // Add pubchem IDs from inchikeyReferences to pubchemIds
+    const allPubchemIds = new Set(pubchemIds || []);
+    if (inchikeyReferences) {
+      inchikeyReferences.forEach(ref => {
+        if (ref.pubchem && ref.pubchem.pubchem) {
+          allPubchemIds.add(ref.pubchem.pubchem);
+        }
+      });
+    }
+    const combinedPubchemIds = Array.from(allPubchemIds);
     // Store requests so we can abort them all in the useEffect cleanup function in case they were not completed on time
     const requests = [];
-    pubchemIds.forEach(pubchemId => {
+    combinedPubchemIds.forEach(pubchemId => {
       if (typeof pubchemId !== 'string') return;
       const pubchemAPIurl = `https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/${pubchemId}/JSON/`;
       let body = '';
@@ -392,7 +403,7 @@ const Overview = React.memo(() => {
     return () => {
       for (const request of requests) request.abort();
     };
-  }, [pubchemIds]);
+  }, [pubchemIds, inchikeyReferences]);
 
   // Parse the citation text
   // i.e. add break lines, "elevated" text, etc.

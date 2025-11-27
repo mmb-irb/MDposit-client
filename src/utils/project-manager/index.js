@@ -94,6 +94,7 @@ export class Project {
         topology: `/topology`,
         structure: `/structure`,
         interactions: `/analyses/interactions`,
+        memmap: `/analyses/mem-map`,
         references: `/references`,
         fileDescriptors: `/filenotes`,
         populations: `/files/populations.json`,
@@ -180,7 +181,12 @@ export class Project {
     }
     get ligandReferences () {
         const references = this.references;
-        return useMemo(() => references && references.filter(ref => ref.ref_type === 'ligands'), [references]);
+        return useMemo(() => {
+            if (!references) return undefined;
+            const ligands = references.filter(ref => ref.ref_type === 'ligands');
+            const inchikeys = references.filter(ref => ref.ref_type === 'inchikeys');
+            return ligands.concat(inchikeys.map(ref => ref.pubchem).filter(Boolean));
+        }, [references]);
     }
     get pdbReferences () {
         const references = this.references;
@@ -194,6 +200,15 @@ export class Project {
         const references = this.references;
         return useMemo(() => references && references.filter(ref => ref.ref_type === 'inchikeys'), [references]);
     }
+
+    get membraneMapping () {
+        const response = this._apiQuery('memmap');
+        if (response.loading) return undefined;
+        // No membrane mapping found
+        if (response.error) return null;
+        if (!response.payload) throw new Error('Something went wrong with project membrane mapping');
+        return response.payload;
+        }
 
     // Topology getter
     get topology () {
@@ -209,6 +224,7 @@ export class Project {
         };
         // Request topology data
         const response = this._apiQuery('topology');
+        const membraneMapping = this.membraneMapping;
         // Make sure data is available
         if (response.loading) return undefined;
         if (response.error) throw new Error('Error when downloading project topology: ' + response.error.message);
@@ -217,7 +233,7 @@ export class Project {
         if (this._topologyManager) return this._topologyManager;
         // Make sure references are available
         if (references === undefined) return undefined;
-        this._topologyManager = new Topology(response.payload, this.metadata, topologyManagerReferences);
+        this._topologyManager = new Topology(response.payload, this.metadata, topologyManagerReferences, membraneMapping);
         return this._topologyManager;
     }
 

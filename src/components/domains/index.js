@@ -183,7 +183,7 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
       if (interactionDomains.find(domain => domain.name === domainName))
         return;
       // Get the NGL selection for ligand residues
-      const residueIndices = topology.getReferenceResidueIndices(ligandReference.pubchem);
+      const residueIndices = topology.getReferenceResidueIndices(ligandReference.pubchem) || topology.getReferenceResidueIndices(ligandReference.inchikey);
       if (!residueIndices) throw new Error(`Ligand reference "${ligandReference.pubchem}" not found in topology`);
       const { rangedSelection: nglSelection } = topology.residueIndices2Ngl(residueIndices);
       // Set the ligand domain
