@@ -654,6 +654,7 @@ export class Topology {
   // DANI: Esta función no sería necesaria si se pudiesen hacer selecciones en NGL con índices de residuos
   // DANI: De hecho no haría falta eliminar residuos duplicados si se pudiesen hacer selecciones en NGL con índices de residuos
   residueIndices2Ngl = residueIndices => {
+    if (!residueIndices || residueIndices.length === 0) throw new Error('Empty residues list');
     const rangedSelections = [];
     let small = false;
     // Parse each residue in complex notation

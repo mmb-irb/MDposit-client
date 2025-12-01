@@ -183,8 +183,12 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
       if (interactionDomains.find(domain => domain.name === domainName))
         return;
       // Get the NGL selection for ligand residues
-      const residueIndices = topology.getReferenceResidueIndices(ligandReference.pubchem) || topology.getReferenceResidueIndices(ligandReference.inchikey);
-      if (!residueIndices) throw new Error(`Ligand reference "${ligandReference.pubchem}" not found in topology`);
+      const residueIndices = topology.getReferenceResidueIndices(ligandReference.pubchem) ||
+        topology.getReferenceResidueIndices(ligandReference.inchikey);
+      if (!residueIndices || residueIndices.length === 0) {
+        console.error(`Ligand reference "${ligandReference.pubchem}" not found in topology`);
+        return;
+      }
       const { rangedSelection: nglSelection } = topology.residueIndices2Ngl(residueIndices);
       // Set the ligand domain
       const ligandDomain = {

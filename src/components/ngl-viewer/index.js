@@ -414,6 +414,10 @@ const NGLViewer = memo(
             // DANI: However, if you type a wrong selection then everythin is represented properly
             // DANI: And that is exactly the behaviour we want when we type all, so this is the solution
             if (sele === 'all' || sele === '*') sele = 'patata';
+            // In the other hand, if the selection is empty then all would be represented by default
+            // A selection should never be empty so if it happens then it is a bug
+            // To avoid showing everythin in a buggy representation we set an empty selection as None
+            if (sele === '' || sele == null) sele = 'None';
             const type = rep.type
             const color = rep.color;
             const opacity = show ? rep.opacity : 0;
