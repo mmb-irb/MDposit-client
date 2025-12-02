@@ -496,6 +496,7 @@ export class Topology {
         console.error('Unmatched chain reference ' + chainReference.sequence);
     }
     // Set internal values
+    this._pbcAtoms = undefined;
     this._defaultRepresentations = undefined;
     this._epitopeRepresentations = undefined;
     this._mutationRepresentations = undefined;
@@ -609,6 +610,13 @@ export class Topology {
   // --------------------------------------------------------------------
   // OTHER
   // --------------------------------------------------------------------
+
+  get pbcAtoms () {
+    if (this._pbcAtoms !== undefined) return this._pbcAtoms;
+    if (!this.pbcResidues) return null;
+    this._pbcAtoms = new Set(this.residue2atomIndices(this.pbcResidues));
+    return this._pbcAtoms;
+  }
 
   // Given a list of residue indices, convert it to atom indices
   residue2atomIndices = residueIndices => {

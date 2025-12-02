@@ -44,16 +44,21 @@ const FluctuationAnalysis = () => {
   // Thus they had to be multiplied by 10 since we want values in Ångstroms (Å)
   // However in the version 0.1 and beyond values are in Ångstroms already
   useMemo(() => {
-    if (!payload) return;
+    if (!payload || !topology) return;
+    const rmsf = payload.y['rmsf'];
     // If we have a version 0.1 or grater then do nothing
     const version = new Version(payload.version);
-    if (version >= '0.1') return;
-    // If this is an old version then multiply all values by 10
-    const rmsf = payload.y['rmsf'];
-    rmsf.data = rmsf.data.map(v => v * 10);
-    rmsf.average = rmsf.average * 10;
-    rmsf.stddev = rmsf.stddev * 10;
-  }, [payload]);
+    if (version < '0.1') {
+      // If this is an old version then multiply all values by 10
+      rmsf.data = rmsf.data.map(v => v * 10);
+      rmsf.average = rmsf.average * 10;
+      rmsf.stddev = rmsf.stddev * 10;
+    }
+    // If we have PBC atoms then filter their values out of the data
+    // They must be null anyway
+    const pbcAtoms = topology.pbcAtoms;
+    if (pbcAtoms) rmsf.data = rmsf.data.filter((v, i) => !pbcAtoms.has(i));
+  }, [payload, topology]);
 
   // React hooks
   // Set when the mouse is over the graph
