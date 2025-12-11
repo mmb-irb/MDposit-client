@@ -42,14 +42,22 @@ const Rgyr = () => {
     if (!payload) return;
     const rgyr = payload.y['rgyr'];
     rgyr.data = rgyr.data.map(v => v * 10);
+    rgyr.average = rgyr.average * 10;
+    rgyr.stddev = rgyr.stddev * 10;
     const rgyrx = payload.y['rgyrx'];
     rgyrx.data = rgyrx.data.map(v => v * 10);
+    rgyrx.average = rgyrx.average * 10;
+    rgyrx.stddev = rgyrx.stddev * 10;
     rgyrx.color = 'red';
     const rgyry = payload.y['rgyry'];
     rgyry.data = rgyry.data.map(v => v * 10);
+    rgyry.average = rgyry.average * 10;
+    rgyry.stddev = rgyry.stddev * 10;
     rgyry.color = 'green';
     const rgyrz = payload.y['rgyrz'];
     rgyrz.data = rgyrz.data.map(v => v * 10);
+    rgyrz.average = rgyrz.average * 10;
+    rgyrz.stddev = rgyrz.stddev * 10;
     rgyrz.color = 'blue';
   }, [payload]);
 
