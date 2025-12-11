@@ -42,6 +42,7 @@ const RmsdPairwise = () => {
     metadata,
     interactions: defaultInteractions,
     topology,
+    loading: isProjectLoading,
   } = useContext(ProjectCtx);
 
   // Set a ref to the ngl which allows access to the ngl viewer exposed methods
@@ -62,7 +63,7 @@ const RmsdPairwise = () => {
   // Send a request to the API with the url of the analyses index
   const analysesUrlBase = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses`;
   const indexUrl = `${analysesUrlBase}/rmsd-pairwise`;
-  const { loading: indexLoading, payload: indexPayload, error: indexError } = useAPI(indexUrl);
+  const { loading: isIndexLoading, payload: indexPayload, error: indexError } = useAPI(indexUrl);
 
   // The interaction to be displayed
   const [selectedInteraction, setSelectedInteraction] = useState(0);
@@ -91,7 +92,7 @@ const RmsdPairwise = () => {
 
   // Send a request to the API with the url of some specific analysis
   const interactionAnalysisUrl = analysisName ? `${analysesUrlBase}/${analysisName}` : null;
-  const { loading, payload, error } = useAPI(interactionAnalysisUrl);
+  const { loading: isAnalysisLoading, payload, error } = useAPI(interactionAnalysisUrl);
 
   // Now set the actual dataset to be used
   // Note that this is a compatibility layer between the old and the new system
@@ -296,13 +297,16 @@ const RmsdPairwise = () => {
     defaultRepresentations,
   ]);
 
+  // Check if anything is still beeing loaded
+  const anyLoading = isIndexLoading || isAnalysisLoading || isProjectLoading;
+
   // Render loading or error messages according with the API response
   // Render loading or error messages according with the API response
   if (indexError) return indexError.toString();
   if (error) return error.toString();
   if (dataset && dataset.error) return dataset.error;
   if (!dataset) {
-    if (indexLoading || loading) return <Loading />;
+    if (anyLoading) return <Loading />;
     // If there are no interactions or topology
     if (!topology) return 'There is no topology';
     return 'Something bad happened with the analysis data';
@@ -362,7 +366,7 @@ const RmsdPairwise = () => {
           </div>
         </CardContent>
       </Card>}
-      <div className={indexLoading || loading ? style.disabled : style.enabled}>
+      <div className={anyLoading ? style.disabled : style.enabled}>
         <Card className={style.margined} id="heatmap">
           <CardContent>
             <Heatmap

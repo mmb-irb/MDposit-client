@@ -39,12 +39,17 @@ const getSum = values => {
 // DANI: New energies has an index in the main analysis and the results for every interaction separated
 const Energies = () => {
   // Get the current project data
-  const { accessionAndMdNumber, topology, interactions } = useContext(ProjectCtx);
+  const {
+    accessionAndMdNumber,
+    topology,
+    interactions,
+    loading: isProjectLoading,
+  } = useContext(ProjectCtx);
 
   // Send a request to the API with the url of the energies analyses index
   const analysesUrlBase = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses`;
   const indexUrl = `${analysesUrlBase}/energies`;
-  const { loading: indexLoading, payload: indexPayload, error: indexError } = useAPI(indexUrl);
+  const { loading: isIndexLoading, payload: indexPayload, error: indexError } = useAPI(indexUrl);
 
   // The interaction to be displayed
   const [selectedInteraction, setSelectedInteraction] = useState(0);
@@ -65,7 +70,7 @@ const Energies = () => {
 
   // Send a request to the API with the url of some specific energies analysis
   const interactionAnalysisUrl = analysisName ? `${analysesUrlBase}/${analysisName}` : null;
-  const { loading, payload, error } = useAPI(interactionAnalysisUrl);
+  const { loading: isAnalysisLoading, payload, error } = useAPI(interactionAnalysisUrl);
 
   // Now set the actual dataset to be used
   // Note that this is a compatibility layer between the old and the new energies system
@@ -359,7 +364,7 @@ const Energies = () => {
   }, []);
 
   // Check if anything is still beeing loaded
-  const anyLoading = indexLoading || loading
+  const anyLoading = isIndexLoading || isAnalysisLoading || isProjectLoading;
 
   // Render loading or error messages according with the API response
   if (indexError) return indexError.toString();

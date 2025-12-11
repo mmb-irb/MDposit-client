@@ -208,7 +208,7 @@ export class Project {
         if (response.error) return null;
         if (!response.payload) throw new Error('Something went wrong with project membrane mapping');
         return response.payload;
-        }
+    }
 
     // Topology getter
     get topology () {
@@ -298,6 +298,14 @@ export class Project {
                 });
         }, [structureData])
         return nglStructure;
+    }
+
+    // Check if there is any loading query
+    get loading () {
+        for (const query of Object.values(this._apiResponses)) {
+            if (query.loading) return true;
+        }
+        return false;
     }
 }
   

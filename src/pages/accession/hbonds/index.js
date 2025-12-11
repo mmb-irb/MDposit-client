@@ -53,6 +53,7 @@ const Hbonds = () => {
     topology,
     interactions,
     populations,
+    loading: isProjectLoading,
   } = useContext(ProjectCtx);
 
   // Set a reference to the table element so we can scroll to it
@@ -61,7 +62,7 @@ const Hbonds = () => {
   // Send a request to the API with the url of the hbonds analyses index
   const analysesUrlBase = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses`;
   const indexUrl = `${analysesUrlBase}/hbonds`;
-  const { loading: indexLoading, payload: indexPayload, error: indexError } = useAPI(indexUrl);
+  const { loading: isIndexLoading, payload: indexPayload, error: indexError } = useAPI(indexUrl);
 
   // The interaction to be displayed
   const [selectedInteraction, setSelectedInteraction] = useState(0);
@@ -84,7 +85,7 @@ const Hbonds = () => {
 
   // Send a request to the API with the url of some specific hbonds analysis
   const interactionAnalysisUrl = analysisName ? `${analysesUrlBase}/${analysisName}` : null;
-  const { loading, payload, error } = useAPI(interactionAnalysisUrl);
+  const { loading: isAnalysisLoading, payload, error } = useAPI(interactionAnalysisUrl);
 
   // Now set the actual dataset to be used
   // Note that this is a compatibility layer between the old and the new hbonds system
@@ -318,13 +319,16 @@ const Hbonds = () => {
     setSelectedPage(0);
   }, []);
 
+  // Check if anything is still beeing loaded
+  const anyLoading = isIndexLoading || isAnalysisLoading || isProjectLoading;
+
   // Render loading or error messages according with the API response
   if (indexError) return indexError.toString();
   if (error) return error.toString();
   if (dataset && dataset.error) return dataset.error;
   if (populations && populations.error) return populations.error.toString();
   if (!dataset) {
-    if (indexLoading || loading) return <Loading />;
+    if (anyLoading) return <Loading />;
     // If there are no interactions or topology
     if (!interactions) return 'There are no interactions';
     if (!topology) return 'There is no topology';
@@ -348,7 +352,7 @@ const Hbonds = () => {
           />
         </CardContent>
       </Card>
-      <div className={indexLoading || loading ? style.disabled : style.enabled}>
+      <div className={anyLoading ? style.disabled : style.enabled}>
         {typeof processedData === 'string' && (
           <Card>
             <CardContent>

@@ -24,12 +24,17 @@ const heatmapMaximumColor = { r: 255, g: 0, b: 0 };
 // Distance per residue analysis
 const DistPerres = () => {
   // Get the current project data
-  const { accessionAndMdNumber, topology, interactions } = useContext(ProjectCtx);
+  const {
+    accessionAndMdNumber,
+    topology,
+    interactions,
+    loading: isProjectLoading,
+  } = useContext(ProjectCtx);
 
   // Send a request to the API with the url of the analyses index
   const analysesUrlBase = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses`;
   const indexUrl = `${analysesUrlBase}/dist-perres`;
-  const { loading: indexLoading, payload: indexPayload, error: indexError } = useAPI(indexUrl);
+  const { loading: isIndexLoading, payload: indexPayload, error: indexError } = useAPI(indexUrl);
 
   // The interaction to be displayed
   const [selectedInteraction, setSelectedInteraction] = useState(0);
@@ -53,7 +58,7 @@ const DistPerres = () => {
 
   // Send a request to the API with the url of some specific analysis
   const interactionAnalysisUrl = analysisName ? `${analysesUrlBase}/${analysisName}` : null;
-  const { loading, payload, error } = useAPI(interactionAnalysisUrl);
+  const { loading: isAnalysisLoading, payload, error } = useAPI(interactionAnalysisUrl);
 
   // Now set the actual dataset to be used
   // Note that this is a compatibility layer between the old and the new system
@@ -255,12 +260,15 @@ const DistPerres = () => {
     [residuesX, residuesY, parseResidue],
   );
 
+  // Check if anything is still beeing loaded
+  const anyLoading = isIndexLoading || isAnalysisLoading || isProjectLoading;
+
   // Render loading or error messages according with the API response
   if (indexError) return indexError.toString();
   if (error) return error.toString();
   if (dataset && dataset.error) return dataset.error;
   if (!dataset) {
-    if (indexLoading || loading) return <Loading />;
+    if (anyLoading) return <Loading />;
     if (!interactions) return 'There are no interactions';
     if (!topology) return 'There is no topology';
     return 'Something bad happened with the analysis data';
@@ -287,7 +295,7 @@ const DistPerres = () => {
           />
         </CardContent>
       </Card>
-      <div className={indexLoading || loading ? style.disabled : style.enabled}>
+      <div className={anyLoading ? style.disabled : style.enabled}>
         <Card className={style.margined} id="heatmap">
           <CardContent>
             <Tabs
