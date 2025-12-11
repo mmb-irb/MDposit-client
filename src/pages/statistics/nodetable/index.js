@@ -53,13 +53,15 @@ const NodeTable = ({ nodeData }) => {
     if (!pingResponses || pingResponses.length === 0) return;
     // Set table columns
     const columns = [
-        { field: 'node', headerName: 'Node name', flex: 0.4, align: 'center', headerAlign: 'center',
-        renderCell: params => renderHref(params.row.node, params.row.url) },
-        { field: 'flag', headerName: 'Country', flex: 0.15, align: 'center', headerAlign: 'center',
+        { field: 'node', headerName: 'Node', flex: 0.25, align: 'center', headerAlign: 'center',
+        renderCell: params => renderHref(params.row.node, params.row.client) },
+        { field: 'api', headerName: 'API', flex: 0.3, align: 'center', headerAlign: 'center',
+        renderCell: params => renderHref(params.row.url, params.row.url) },
+        { field: 'flag', headerName: 'Country', flex: 0.12, align: 'center', headerAlign: 'center',
             renderCell: params => params.value },
-        { field: 'status', headerName: 'Status', flex: 0.15, align: 'center', headerAlign: 'center',
+        { field: 'status', headerName: 'Status', flex: 0.12, align: 'center', headerAlign: 'center',
         renderCell: params => renderStatusSymbol(params.value) },
-        { field: 'ping', headerName: 'Response time', flex: 0.3, align: 'center', headerAlign: 'center' }
+        { field: 'ping', headerName: 'Response time', flex: 0.19, align: 'center', headerAlign: 'center' }
     ];
     // Set a table row for every node
     const rows = nodeData.map(node => {
@@ -74,12 +76,17 @@ const NodeTable = ({ nodeData }) => {
         const flag = <ReactCountryFlag countryCode={countryCode} svg
             style={{ width: "2.1em", height: "1.6em",
                 border: 'solid', borderWidth: "0.1em", borderColor: "black" }} />;
+        // Set the client URL
+        // HARDCODE: We technically do not know the cliente URL from the API
+        // HARDCODE: However the format in all nodes is similar enought nowadays
+        const clientURL = node.api_url.replace('/api/', '');
         // The 'id' field is not used but it is required by the data table
         return {
             id: node.alias,
             key: node.alias,
             node: node.name,
             url: node.api_url,
+            client: clientURL,
             status: status,
             ping: responseTime,
             flag: flag,
