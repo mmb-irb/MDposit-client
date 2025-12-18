@@ -14,3 +14,7 @@
 .button {
   margin-right: 0.5em;
 }
+
+.popper {
+  z-index: 9999;
+}

@@ -7,6 +7,7 @@ import ReactMarkdown from 'react-markdown'
 
 // Visual assets
 import Loading from 'src/components/loading';
+import TextLink from 'src/components/text-link';
 import { MenuList, MenuItem, Typography } from '@mui/material';
 
 import style from './style.module.css';
@@ -57,15 +58,6 @@ else if (repoBaseURL.includes('gitlab')) {
   binderUrl = `https://mybinder.org/v2/git/${repoBaseURL}/main?urlpath=lab/tree/`;
 }
 else throw new Error(`Only GitHub and GitLab repositories are supported, not ${repoBaseURL}`);
-
-// Set a simpler TextLink component
-const TextLink = ({ name, url }) => (
-  <>
-    <a href={url} target="_blank" rel="noreferrer noopener" >
-      {name}
-    </a>
-  </>
-);
 
 const MetaAnalysis = () => {
   // Get the location

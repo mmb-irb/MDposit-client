@@ -24,23 +24,16 @@ import {
 } from '@fortawesome/free-regular-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Icon } from '@mui/material';
+import TextLink from '../../../components/text-link';
 
-// Set a simpler TextLink component
-const TextLink = ({ name, id, page, url }) => {
-  // Set the targe URL depending on the different possible inputs
-  let finalUrl = url;
-  if (!finalUrl) finalUrl = page && `/#/${page}`;
-  if (!finalUrl) finalUrl = id && `/#/help#${id}`;
-  if (!finalUrl) throw new Error('Missing argument in TextLink component');
-  // Set the link component
-  return (<>
-    <a href={finalUrl} target="_blank" rel="noreferrer noopener" >
-      {name}
-    </a>
-  </>);
-}
+import { HOST_CONFIG } from '../../../utils/constants';
+
+// Check if this is the global cliente
+const isGlobal = HOST_CONFIG.global;
+const apiURL = HOST_CONFIG.api;
+
 // Set the name of the webpage
-const webpageName = 'MDposit';
+const WEBPAGE_NAME = 'MDposit';
 
 // All text to be displayed is set previously here
 export const documentation = [
@@ -49,10 +42,10 @@ export const documentation = [
     title: 'Introduction',
     body: (
       <>
-        Welcome to the {webpageName} documentation page.
+        Welcome to the {WEBPAGE_NAME} documentation page.
         <br />
         <br />
-        {webpageName} is an open platform designed to provide web access to
+        {WEBPAGE_NAME} is an open platform designed to provide web access to
         atomistic molecular dynamics (MD) simulations. The aim of this
         initiative is to ease and promote data sharing along the world-wide
         scientific community in order to contribute in research.
@@ -70,7 +63,7 @@ export const documentation = [
         header: 'Context',
         body: (
           <>
-            {webpageName} is part of the{' '}
+            {WEBPAGE_NAME} is part of the{' '}
             <TextLink name={'MDDB'} url={'https://mddbr.eu/'} /> project.
             The platform is being developed from the{' '}
             <TextLink
@@ -99,17 +92,29 @@ export const documentation = [
           </>
         ),
       },
+    ]
+  },
+  {
+    id: 'data',
+    title: 'Data',
+    body: (
+      <>
+        Here is summarized the data life cycle, since we receive raw data from the providers
+        until the final data is made available to the consumers.
+      </>
+    ),
+    children: [
       {
         id: 'source',
         header: 'Data source',
         body: (
           <>
-            Simulations in {webpageName} proceed from several different sources.
+            Simulations in {WEBPAGE_NAME} proceed from several different sources.
             Some simulations are downloaded from global repsoitories such as{' '}
             <TextLink name={'MolSSI'} url={'https://covid.molssi.org/'} />. In
             addition, the platform contains simulations sent from research
             groups. In case you want to share your simulations with{' '}
-            {webpageName} please{' '}
+            {WEBPAGE_NAME} please{' '}
             <TextLink
               name={'contact us'}
               url={'http://mmb.irbbarcelona.org/www/locationmap'}
@@ -123,15 +128,18 @@ export const documentation = [
         header: 'Data processing',
         body: (
           <>
-            Before a simulation is uploaded to the {webpageName} database, it is
+            Before a simulation is uploaded to the {WEBPAGE_NAME} database, it is
             processed through a workflow. This workflow standarizes data format
             and then analyzes the simulation in order to upload the analysis
             results also to the database. Some important aspects of this
             processing are detailed here.
             <br />
             <br />
-            <b>Interactions</b>
+            <b>Quality control</b><br />
+
             <br />
+            <br />
+            <b>Interactions</b><br />
             Interactions are set manually by the author or a technician. Each
             interaction is defined by a name and two "interacting agents". Each
             agent is defined by a name and an atom selection. After the
@@ -144,8 +152,7 @@ export const documentation = [
             hydrogen bonds).
             <br />
             <br />
-            <b>Mapping</b>
-            <br />
+            <b>Mapping</b><br />
             Protein aminoacid sequences are mapped against their corresponding
             reference sequences. (e.g. spike proteins are mapped against the{' '}
             <TextLink
@@ -165,24 +172,67 @@ export const documentation = [
         header: 'Data storage',
         body: (
           <>
-            Data is stored in a{' '}
+            {isGlobal
+              ? <>This is the global node</>
+              : <>This is a federated node</>
+            }
+            <br />
+            <br />
+            <b>The global node</b><br />
+            The global node stores an "index" of every simulation in every federated node.
+            It also stores all the relevant metadata to support queries along all nodes,
+            including reference data such as PDB or UniProt data. The global node does not
+            duplicate trajectory data or analysis results, but it redirects to the corresponding
+            federated node when asked for any of those.
+            <br />
+            <br />
+            <b>The federated nodes</b><br />
+            Federated nodes store the actual data, including the simulation metadata,
+            trajectory coordinates, analysis results and additional files. Data is stored in a{' '}
             <TextLink name={'MongoDB'} url={'https://www.mongodb.com/'} /> database.
             <br />
             <br />
-            <b>Trajectory data</b>
-            <br />
+            <b>Trajectory data</b><br />
             Atom positions along the trajectory are stored as files where each
             coordinate is a 32 bit float in Little Endian binary and there are
             no separators between coordinates, atoms or frames. The file has not
             headers or footers either. This format is size efficient and allows
             to retrieve specific frame and atom coordinates without the need of
             reading the file. The byte position of any range of coordinates may
-            be easily calculated beforehand.
+            be easily calculated beforehand. Data is stored through Mongo's GridFS.
             <br />
             <br />
-            <b>Metadata and analyses</b>
+            <b>Metadata and analyses</b><br />
+            Both metadata and analysis results are stored as plain Mongo documents.
             <br />
-            Metadata and analyses are stored as plain Mongo documents.
+            <br />
+            <b>Additional files</b><br />
+            Any other downloadable file is stored through the Mongo's GridFS.
+          </>
+        ),
+      },
+      {
+        id: 'available',
+        header: 'Data availability',
+        body: (
+          <>
+            <b>The federated nodes</b><br />
+            Federated nodes may upload or delete data at their discretion.
+            In addition, data may be hidden or made visible and every
+            simulations may be flagged as "published" or "not published".
+            Every simulation in the node will have its own identifier (ID).
+            Simulation IDs in a single federated node are garanteed to be unique.
+            However these IDs are not persistent and they may dissapear when data is deleted.
+            Fedrated IDs are not to follow a coherent format. They may be customized and diverse.
+            <br />
+            <br />
+            <b>The global node</b><br />
+            The global node feeds on all federated nodes periodically.
+            If a simulation has been flagged as "published" by its node then the global node will issue
+            a new persistent ID for it and the simulation will become available in production.
+            Persistent IDs will remain traceable even if data is removed from the source federated node.
+            Persistent IDs will always have the following format: MD-XXXXXX, where "X" are alphanumeric
+            upper characters.
           </>
         ),
       },
@@ -191,20 +241,23 @@ export const documentation = [
         header: 'Data retrieval',
         body: (
           <>
-            Data stored in the database is retrieved through a REST API.
+            Data in this node may be retrieved through a{' '}
+            <TextLink name={'REST API'} url={apiURL} />.
             <br />
             <br />
-            <b>Trajectory data</b>
-            <br />
+            <b>Trajectory data</b><br />
             Trajectory data may be retrieved in the source format or it may be
             exported to other formats. The API has a built in parser to mdcrd
             format. In order to export to other formats (xtc, trr) the API has
             implemented <TextLink name={'Chemfiles'} id={'chemfiles'} />.
             <br />
             <br />
-            <b>Metadata and analyses</b>
-            <br />
+            <b>Metadata and analyses</b><br />
             Metadata and analyses are retrieved in json format.
+            <br />
+            <br />
+            <b>Additional files</b><br />
+            Any other downloadable file is retrieved in it original format.
           </>
         ),
       },
@@ -220,379 +273,6 @@ export const documentation = [
       }
     ],
   },
-  {
-    id: 'features',
-    title: 'Features',
-    children: [
-      {
-        id: 'browser',
-        header: 'Browser',
-        body: (
-          <>
-            Browser is useful to search a specific simulation when you know what
-            you are looking for
-            <br />
-            <br />
-            Browser searches the database by any total or partial coincidence
-            with the accession number, simulation name, description, author or
-            group names.
-            <br />
-            <br />
-            In addition, internal accessions may be used to search a simulation.
-            In this case the id must be whole, not partial.
-          </>
-        ),
-        text:
-          'Use the browser to search a specific simulation by its accession number, name, description, author or group names. Any total or partial coincidence works.',
-      },
-      {
-        id: 'overview',
-        header: 'Overview page',
-        body: (
-          <>
-            Data in this page is mostly provided by the simulation authors.
-            Additional details about the original pdb structure are mined from
-            the <TextLink name={'PDB web page'} url={'https://www.rcsb.org/'} />.
-          </>
-        ),
-        page: (
-          <>
-            This is the overview page.
-            <br />
-            <br />
-            Data in this page may include the name and description of the
-            simulation, author and group names, type of simulation, program
-            which carried the simulation and its version, original structure PDB
-            data, ligand references to DrugBank and ChEMBL, contact details and
-            TextLinks to the simulation sources, license and citation.
-          </>
-        ),
-      },
-      {
-        id: 'mordred-descriptors',
-        header: 'Mordred descriptors',
-        body: (
-          <>
-            The Mordred descriptors provide detailed information about a molecule’s 
-            structure, properties, and behavior. They help translate chemical structures 
-            into numerical values, which are useful for tasks like drug discovery, 
-            property prediction, and machine learning in chemistry.
-          </>
-        ),
-        page: (
-          <>
-            <p>
-            The Mordred descriptors shown in the table represent numerical values that describe various 
-            structural and chemical features of the ligand molecules. These values are generated using 
-            different descriptor calculators, each capturing a specific aspect of molecular behavior.
-             </p>
-              <p>
-              The descriptors were calculated using <strong>RDKit</strong> in combination with the 
-              <strong> Mordred</strong> library.
-              </p>
-              <p>For this analysis, the following calculators were used:</p>
-              <ul>
-                <li><strong>ABCIndex</strong>: Measures the branching of the molecule’s structure.</li>
-                <li><strong>AcidicGroupCount</strong> (<code>nAcid</code>): Counts acidic functional groups.</li>
-                <li><strong>BasicGroupCount</strong> (<code>nBase</code>): Counts basic functional groups.</li>
-                <li><strong>RingCount</strong> (<code>nRing</code>, <code>n3Ring</code>, <code>n4Ring</code>): Detects rings and their sizes.</li>
-                <li><strong>Constitutional</strong>: Basic properties like atom count and molecular weight.</li>
-                <li><strong>TopologicalCharge</strong>: Shape, partial charges, and polarity indicators.</li>
-                <li><strong>HydrogenBond</strong>: Hydrogen bond donors and acceptors.</li>
-                <li><strong>Lipinski</strong>: Evaluates drug-likeness (Lipinski’s Rule of Five).</li>
-                <li><strong>FragmentComplexity</strong>: Analyzes complex molecular substructures.</li>
-                <li><strong>PathCount</strong>: Counts molecular paths of varying lengths.</li>
-              </ul>
-          </>
-        ),
-      },
-      {
-        id: 'morgan-fingerprint',
-        header: 'Morgan fingerprint',
-        body: (
-          <p>
-            The Morgan fingerprint is a type of molecular fingerprint that encodes the structure of a molecule into a binary vector. 
-            It enables mapping of specific structural patterns within a defined bond radius, and is commonly used to represent 
-            molecular features for similarity searching and machine learning applications.
-          </p>
-        ),
-        page: (
-          <>
-            <p>
-              The Morgan fingerprint is a widely used method to represent molecular structures as binary vectors, 
-              capturing circular atom environments within a certain radius. It is especially useful for tasks such as 
-              molecular similarity, clustering, and predictive modeling in cheminformatics.
-            </p>
-            <p>
-              In this project, the Morgan fingerprint was generated using <strong>RDKit</strong> with a radius of <code>2</code> and
-              vector sizes of <code>1024</code> and <code>2048</code> bits. The binary array encodes 
-              structural patterns around each atom, allowing for efficient comparison of molecular features.
-            </p>
-            <p>
-              In addition to generating the fingerprint vector, we also extracted atom-level information using RDKit’s 
-              <code>AdditionalOutput</code> methods, which include:
-            </p>
-            <ul>
-              <li><strong>AtomCounts</strong>: Tracks how often each atom contributes to the fingerprint.</li>
-              <li><strong>AtomToBits</strong>: Maps atoms to the fingerprint bits they influence.</li>
-              <li><strong>BitInfoMap</strong>: Stores which atoms and radii contributed to each bit.</li>
-            </ul>
-            <p>
-              This information is useful for visualizing and interpreting which parts of a ligand are responsible for specific features 
-              in the fingerprint, and can be used for highlighting relevant atoms in molecular diagrams.
-            </p>
-          </>
-        ),
-      },
-      {
-        id: 'trajectory',
-        header: 'Trajectory page',
-        body: (
-          <>
-            The trajectory displayed in the{' '}
-            <TextLink name={'viewer'} id={'ngl-viewer'} /> is a subset of frames
-            from the project main trajectory (25 frames by default). Loading all
-            frames is not allowed for performance reasons.
-            <br />
-            <br />
-            Predefined representation sets come from three different sources:
-            <br />- Documented domains in the reference sequence (manually
-            gathered from{' '}
-            <TextLink name={'Uniprot'} url={'https://www.uniprot.org/'} />)
-            <br />- Each defined interacting agent (see{' '}
-            <TextLink name={'data processing'} id={'processing'} />)
-            <br />
-            - Custom sets defined by the simulation authors
-            <br />
-            <br />
-            Some metadata values are mined from the topology and trajectory
-            files while others are supplied by the authors.
-            <br />
-            <br />
-            The protein functional analysis contains the families, domains, and
-            sites, that an <TextLink name={'InterProScan'} id={'interpro'} />{' '}
-            analysis revealed for each of the chain sequences. This is a
-            prediction that might be helpful to discover functions, or to find
-            similar structures for example.
-          </>
-        ),
-        page: (
-          <>
-            This is the trajectory page.
-            <br />
-            <br />
-            The{' '}
-            <a
-              href="/help#/help#ngl-viewer"
-              target="_blank"
-              rel="noreferrer noopener"
-            >
-              viewer
-            </a>{' '}
-            displays the main simulation dinamically and interactively. Use the
-            mouse inside the NGL window to move, rotate or zoom the camera. You
-            can get topology data of any atom by placing the mouse over it. Also
-            some controls are available under the NGL viewer in order to
-            play/pause the trajectory, go fullscreen or change the viewer
-            settings. Place the mouse over any button to show a summary title.
-            Note that this is not the whole trajectory, but a small subset of
-            frames picked along the trajectory. You can modify the number of
-            frames to be loaded from the settings menu.
-            <br />
-            <br />
-            Over the viewer there is a menu where each bubble will make the
-            viewer show a predefined set of representations on click. This tool
-            allows to highlight an important region in the structure (e.g. known
-            domains). You may hold Control/Cmd key while clicking on a bubble in
-            order to overlap up to 2 representation sets at the same time. Note
-            that the overlapped set will always appear with the fill
-            representation type and reduced opacity.
-            <br />
-            <br />
-            Below the viewer there is the trajectory metadata menu. Click in the
-            title to drop a table with metadata values. Hover any data field
-            with the mouse to show a brief title.
-            <br />
-            <br />
-            Below the metadata there is the protein functional analysis.
-            Recognized families, domains, and sites are displayed. You can
-            interact with this visualisation as such:
-            <br />
-            <strong>Hover over their representation</strong> to see that some of
-            them will have a corresponding page on the{' '}
-            <a
-              href="https://www.ebi.ac.uk/interpro/"
-              target="_blank"
-              rel="noreferrer noopener"
-            >
-              InterPro website
-            </a>{' '}
-            where you will be able to learn more about it.
-            <br />
-            <strong>Click on them</strong> to see the corresponding sequence
-            highlighted in the viewer above. Clicking on an other entity within
-            the same chain will change the highlight to that other entity.
-            <br />
-            <strong>Click on an empty space</strong> in this visualisation to
-            remove the highlight for that chain.
-            <br />
-            <strong>Scroll over the visualisation</strong> to zoom in or out of
-            the chain sequence. Alternatively, you can also interact with the
-            top navigation part (at the top of each visualisation) to zoom in
-            and out or to move within the sequence.
-          </>
-        ),
-      },
-      {
-        id: 'ngl-viewer',
-        header: 'NGL viewer',
-        body: (
-          <>
-            NGL Viewer is a collection of tools for web-based molecular
-            graphics.
-            <br />
-            <br />
-            The {webpageName} implementation of NGL viewer is a dynamic
-            component useful to represent molecular structures and trajectories
-            which the user can interact with.
-            <br />
-            <br />
-            This component may be integrated in the web page structure (e.g. in
-            the "trajectory" sheet) or an independent pop-up window which is
-            draggable and resizable. To do so, hold left click in the window
-            borders and drag.
-            <br />
-            <br />
-            Use the mouse inside the NGL window to move the camera (hold right
-            click), rotate the camera around its focus (hold left click) or zoom
-            the camera (mouse wheel). Hover any atom with the mouse to get extra
-            topology data (e.g. atom type, residue number or chain id) or left
-            click on any atom to make the camera focus on it.
-            <br />
-            <br />
-            Also some controls ara available under the NGL viewer in order to
-            change other parameters:
-            <br />
-            <Icon>
-              <FontAwesomeIcon icon={faTimes} />
-            </Icon>{' '}
-            (Only in pop-up) The "close" button is used to remove the whole NGL
-            viewer pop-up window.
-            <br />
-            <Icon>
-              <FontAwesomeIcon icon={faUnlock} />
-            </Icon>
-            {' / '}
-            <Icon color="disabled">
-              <FontAwesomeIcon icon={faLock} />
-            </Icon>{' '}
-            (Only in pop-up) The "lock" button is used to make the current NGL
-            viewer pop-up window stay as it is. So when a new selection is
-            requested a new NGL window is opened instead of updating the locked
-            window.
-            <br />
-            <Icon>
-              <FontAwesomeIcon icon={faStepBackward} />
-            </Icon>
-            {', '}
-            <Icon>
-              <FontAwesomeIcon icon={faStepForward} />
-            </Icon>{' '}
-            (Only with trajectory data) The "Previous frame" and "Next frame"
-            buttons respectively are used to move through trajectory frames one
-            by one.
-            <br />
-            <Icon>
-              <FontAwesomeIcon icon={faPlay} />
-            </Icon>
-            {' / '}
-            <Icon>
-              <FontAwesomeIcon icon={faPause} />
-            </Icon>{' '}
-            (Only with trajectory data) The "Play / Pause" button is used to
-            start or stop the trajectory animation.
-            <br />
-            <Icon>
-              <FontAwesomeIcon icon={faExpand} />
-            </Icon>
-            {' / '}
-            <Icon>
-              <FontAwesomeIcon icon={faCompress} />
-            </Icon>{' '}
-            The "Enter / Exit full screen" button is used to make the NGL window
-            expand to full screen or compress back to its normal size. User can
-            also press "Esc" key to exit the full screen mode.
-            <br />
-            <Icon>
-              <FontAwesomeIcon icon={faCog} />
-            </Icon>{' '}
-            The "Settings" button opens a new panel inside the viewer which
-            allows to change the display of the viewer and the representations
-            themselves. The right part of the panel includes a list with all
-            current representations. It is allowed to change the type, colour and
-            opacity of each representation as well as adding new representations
-            with custom atom selections. This panel includes some controls at
-            the left side:
-            <br />- The "Toggle spin" button{' '}
-            <Icon>
-              <FontAwesomeIcon icon={faSyncAlt} />
-            </Icon>{' '}
-            is used to make the camera slowly rotate around the y-axis.
-            <br /> - The "Center focus" button{' '}
-            <Icon>
-              <FontAwesomeIcon icon={faDotCircle} />
-            </Icon>{' '}
-            is used to make the camera return to its original focus.
-            <br />- (Only with trajectory data) The "Smooth interpolation"
-            button{' '}
-            <Icon>
-              <FontAwesomeIcon icon={faImages} />
-            </Icon>{' '}
-            /{' '}
-            <Icon>
-              <FontAwesomeIcon icon={faVideo} />
-            </Icon>{' '}
-            is used to smooth the jump between frames by adding extra frames
-            in-between where the atom positions are interpolated.
-            <br />- The "Invert background color" button{' '}
-            <Icon>
-              <FontAwesomeIcon icon={faAdjust} />
-            </Icon>{' '}
-            is used to switch background color between black and white.
-            <br />- The "Orthographic / Perspective" button{' '}
-            <Icon>
-              <FontAwesomeIcon icon={faSquare} />
-            </Icon>{' '}
-            /{' '}
-            <Icon>
-              <FontAwesomeIcon icon={faCube} />
-            </Icon>{' '}
-            is used to change the view mode between 2D projection (orthographic
-            or isometric) and 3D projection (perspective).
-            <br />
-            - The "Speed" bar is used to set how fast is the trajectory
-            animation.
-            <br />
-            - The "Frames" bar allows to set how many frames along the
-            trajectory are loaded in the viewer.
-            <br />
-            <br />
-            For more information about the original project, please check the
-            oficial{' '}
-            <a
-              href="http://nglviewer.org/"
-              target="_blank"
-              rel="noreferrer noopener"
-            >
-              NGL viewer web page
-            </a>
-            .
-          </>
-        ),
-      },
-    ],
-  },
-
   {
     id: 'analyses',
     title: 'Analyses',
@@ -1715,7 +1395,378 @@ export const documentation = [
       },
     ],
   },
-
+  {
+    id: 'features',
+    title: 'Features',
+    children: [
+      {
+        id: 'browser',
+        header: 'Browser',
+        body: (
+          <>
+            Browser is useful to search a specific simulation when you know what
+            you are looking for
+            <br />
+            <br />
+            Browser searches the database by any total or partial coincidence
+            with the accession number, simulation name, description, author or
+            group names.
+            <br />
+            <br />
+            In addition, internal accessions may be used to search a simulation.
+            In this case the id must be whole, not partial.
+          </>
+        ),
+        text:
+          'Use the browser to search a specific simulation by its accession number, name, description, author or group names. Any total or partial coincidence works.',
+      },
+      {
+        id: 'overview',
+        header: 'Overview page',
+        body: (
+          <>
+            Data in this page is mostly provided by the simulation authors.
+            Additional details about the original pdb structure are mined from
+            the <TextLink name={'PDB web page'} url={'https://www.rcsb.org/'} />.
+          </>
+        ),
+        page: (
+          <>
+            This is the overview page.
+            <br />
+            <br />
+            Data in this page may include the name and description of the
+            simulation, author and group names, type of simulation, program
+            which carried the simulation and its version, original structure PDB
+            data, ligand references to DrugBank and ChEMBL, contact details and
+            TextLinks to the simulation sources, license and citation.
+          </>
+        ),
+      },
+      {
+        id: 'mordred-descriptors',
+        header: 'Mordred descriptors',
+        body: (
+          <>
+            The Mordred descriptors provide detailed information about a molecule’s 
+            structure, properties, and behavior. They help translate chemical structures 
+            into numerical values, which are useful for tasks like drug discovery, 
+            property prediction, and machine learning in chemistry.
+          </>
+        ),
+        page: (
+          <>
+            <p>
+            The Mordred descriptors shown in the table represent numerical values that describe various 
+            structural and chemical features of the ligand molecules. These values are generated using 
+            different descriptor calculators, each capturing a specific aspect of molecular behavior.
+             </p>
+              <p>
+              The descriptors were calculated using <strong>RDKit</strong> in combination with the 
+              <strong> Mordred</strong> library.
+              </p>
+              <p>For this analysis, the following calculators were used:</p>
+              <ul>
+                <li><strong>ABCIndex</strong>: Measures the branching of the molecule’s structure.</li>
+                <li><strong>AcidicGroupCount</strong> (<code>nAcid</code>): Counts acidic functional groups.</li>
+                <li><strong>BasicGroupCount</strong> (<code>nBase</code>): Counts basic functional groups.</li>
+                <li><strong>RingCount</strong> (<code>nRing</code>, <code>n3Ring</code>, <code>n4Ring</code>): Detects rings and their sizes.</li>
+                <li><strong>Constitutional</strong>: Basic properties like atom count and molecular weight.</li>
+                <li><strong>TopologicalCharge</strong>: Shape, partial charges, and polarity indicators.</li>
+                <li><strong>HydrogenBond</strong>: Hydrogen bond donors and acceptors.</li>
+                <li><strong>Lipinski</strong>: Evaluates drug-likeness (Lipinski’s Rule of Five).</li>
+                <li><strong>FragmentComplexity</strong>: Analyzes complex molecular substructures.</li>
+                <li><strong>PathCount</strong>: Counts molecular paths of varying lengths.</li>
+              </ul>
+          </>
+        ),
+      },
+      {
+        id: 'morgan-fingerprint',
+        header: 'Morgan fingerprint',
+        body: (
+          <p>
+            The Morgan fingerprint is a type of molecular fingerprint that encodes the structure of a molecule into a binary vector. 
+            It enables mapping of specific structural patterns within a defined bond radius, and is commonly used to represent 
+            molecular features for similarity searching and machine learning applications.
+          </p>
+        ),
+        page: (
+          <>
+            <p>
+              The Morgan fingerprint is a widely used method to represent molecular structures as binary vectors, 
+              capturing circular atom environments within a certain radius. It is especially useful for tasks such as 
+              molecular similarity, clustering, and predictive modeling in cheminformatics.
+            </p>
+            <p>
+              In this project, the Morgan fingerprint was generated using <strong>RDKit</strong> with a radius of <code>2</code> and
+              vector sizes of <code>1024</code> and <code>2048</code> bits. The binary array encodes 
+              structural patterns around each atom, allowing for efficient comparison of molecular features.
+            </p>
+            <p>
+              In addition to generating the fingerprint vector, we also extracted atom-level information using RDKit’s 
+              <code>AdditionalOutput</code> methods, which include:
+            </p>
+            <ul>
+              <li><strong>AtomCounts</strong>: Tracks how often each atom contributes to the fingerprint.</li>
+              <li><strong>AtomToBits</strong>: Maps atoms to the fingerprint bits they influence.</li>
+              <li><strong>BitInfoMap</strong>: Stores which atoms and radii contributed to each bit.</li>
+            </ul>
+            <p>
+              This information is useful for visualizing and interpreting which parts of a ligand are responsible for specific features 
+              in the fingerprint, and can be used for highlighting relevant atoms in molecular diagrams.
+            </p>
+          </>
+        ),
+      },
+      {
+        id: 'trajectory',
+        header: 'Trajectory page',
+        body: (
+          <>
+            The trajectory displayed in the{' '}
+            <TextLink name={'viewer'} id={'ngl-viewer'} /> is a subset of frames
+            from the project main trajectory (25 frames by default). Loading all
+            frames is not allowed for performance reasons.
+            <br />
+            <br />
+            Predefined representation sets come from three different sources:
+            <br />- Documented domains in the reference sequence (manually
+            gathered from{' '}
+            <TextLink name={'Uniprot'} url={'https://www.uniprot.org/'} />)
+            <br />- Each defined interacting agent (see{' '}
+            <TextLink name={'data processing'} id={'processing'} />)
+            <br />
+            - Custom sets defined by the simulation authors
+            <br />
+            <br />
+            Some metadata values are mined from the topology and trajectory
+            files while others are supplied by the authors.
+            <br />
+            <br />
+            The protein functional analysis contains the families, domains, and
+            sites, that an <TextLink name={'InterProScan'} id={'interpro'} />{' '}
+            analysis revealed for each of the chain sequences. This is a
+            prediction that might be helpful to discover functions, or to find
+            similar structures for example.
+          </>
+        ),
+        page: (
+          <>
+            This is the trajectory page.
+            <br />
+            <br />
+            The{' '}
+            <a
+              href="/help#/help#ngl-viewer"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              viewer
+            </a>{' '}
+            displays the main simulation dinamically and interactively. Use the
+            mouse inside the NGL window to move, rotate or zoom the camera. You
+            can get topology data of any atom by placing the mouse over it. Also
+            some controls are available under the NGL viewer in order to
+            play/pause the trajectory, go fullscreen or change the viewer
+            settings. Place the mouse over any button to show a summary title.
+            Note that this is not the whole trajectory, but a small subset of
+            frames picked along the trajectory. You can modify the number of
+            frames to be loaded from the settings menu.
+            <br />
+            <br />
+            Over the viewer there is a menu where each bubble will make the
+            viewer show a predefined set of representations on click. This tool
+            allows to highlight an important region in the structure (e.g. known
+            domains). You may hold Control/Cmd key while clicking on a bubble in
+            order to overlap up to 2 representation sets at the same time. Note
+            that the overlapped set will always appear with the fill
+            representation type and reduced opacity.
+            <br />
+            <br />
+            Below the viewer there is the trajectory metadata menu. Click in the
+            title to drop a table with metadata values. Hover any data field
+            with the mouse to show a brief title.
+            <br />
+            <br />
+            Below the metadata there is the protein functional analysis.
+            Recognized families, domains, and sites are displayed. You can
+            interact with this visualisation as such:
+            <br />
+            <strong>Hover over their representation</strong> to see that some of
+            them will have a corresponding page on the{' '}
+            <a
+              href="https://www.ebi.ac.uk/interpro/"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              InterPro website
+            </a>{' '}
+            where you will be able to learn more about it.
+            <br />
+            <strong>Click on them</strong> to see the corresponding sequence
+            highlighted in the viewer above. Clicking on an other entity within
+            the same chain will change the highlight to that other entity.
+            <br />
+            <strong>Click on an empty space</strong> in this visualisation to
+            remove the highlight for that chain.
+            <br />
+            <strong>Scroll over the visualisation</strong> to zoom in or out of
+            the chain sequence. Alternatively, you can also interact with the
+            top navigation part (at the top of each visualisation) to zoom in
+            and out or to move within the sequence.
+          </>
+        ),
+      },
+      {
+        id: 'ngl-viewer',
+        header: 'NGL viewer',
+        body: (
+          <>
+            NGL Viewer is a collection of tools for web-based molecular
+            graphics.
+            <br />
+            <br />
+            The {WEBPAGE_NAME} implementation of NGL viewer is a dynamic
+            component useful to represent molecular structures and trajectories
+            which the user can interact with.
+            <br />
+            <br />
+            This component may be integrated in the web page structure (e.g. in
+            the "trajectory" sheet) or an independent pop-up window which is
+            draggable and resizable. To do so, hold left click in the window
+            borders and drag.
+            <br />
+            <br />
+            Use the mouse inside the NGL window to move the camera (hold right
+            click), rotate the camera around its focus (hold left click) or zoom
+            the camera (mouse wheel). Hover any atom with the mouse to get extra
+            topology data (e.g. atom type, residue number or chain id) or left
+            click on any atom to make the camera focus on it.
+            <br />
+            <br />
+            Also some controls ara available under the NGL viewer in order to
+            change other parameters:
+            <br />
+            <Icon>
+              <FontAwesomeIcon icon={faTimes} />
+            </Icon>{' '}
+            (Only in pop-up) The "close" button is used to remove the whole NGL
+            viewer pop-up window.
+            <br />
+            <Icon>
+              <FontAwesomeIcon icon={faUnlock} />
+            </Icon>
+            {' / '}
+            <Icon color="disabled">
+              <FontAwesomeIcon icon={faLock} />
+            </Icon>{' '}
+            (Only in pop-up) The "lock" button is used to make the current NGL
+            viewer pop-up window stay as it is. So when a new selection is
+            requested a new NGL window is opened instead of updating the locked
+            window.
+            <br />
+            <Icon>
+              <FontAwesomeIcon icon={faStepBackward} />
+            </Icon>
+            {', '}
+            <Icon>
+              <FontAwesomeIcon icon={faStepForward} />
+            </Icon>{' '}
+            (Only with trajectory data) The "Previous frame" and "Next frame"
+            buttons respectively are used to move through trajectory frames one
+            by one.
+            <br />
+            <Icon>
+              <FontAwesomeIcon icon={faPlay} />
+            </Icon>
+            {' / '}
+            <Icon>
+              <FontAwesomeIcon icon={faPause} />
+            </Icon>{' '}
+            (Only with trajectory data) The "Play / Pause" button is used to
+            start or stop the trajectory animation.
+            <br />
+            <Icon>
+              <FontAwesomeIcon icon={faExpand} />
+            </Icon>
+            {' / '}
+            <Icon>
+              <FontAwesomeIcon icon={faCompress} />
+            </Icon>{' '}
+            The "Enter / Exit full screen" button is used to make the NGL window
+            expand to full screen or compress back to its normal size. User can
+            also press "Esc" key to exit the full screen mode.
+            <br />
+            <Icon>
+              <FontAwesomeIcon icon={faCog} />
+            </Icon>{' '}
+            The "Settings" button opens a new panel inside the viewer which
+            allows to change the display of the viewer and the representations
+            themselves. The right part of the panel includes a list with all
+            current representations. It is allowed to change the type, colour and
+            opacity of each representation as well as adding new representations
+            with custom atom selections. This panel includes some controls at
+            the left side:
+            <br />- The "Toggle spin" button{' '}
+            <Icon>
+              <FontAwesomeIcon icon={faSyncAlt} />
+            </Icon>{' '}
+            is used to make the camera slowly rotate around the y-axis.
+            <br /> - The "Center focus" button{' '}
+            <Icon>
+              <FontAwesomeIcon icon={faDotCircle} />
+            </Icon>{' '}
+            is used to make the camera return to its original focus.
+            <br />- (Only with trajectory data) The "Smooth interpolation"
+            button{' '}
+            <Icon>
+              <FontAwesomeIcon icon={faImages} />
+            </Icon>{' '}
+            /{' '}
+            <Icon>
+              <FontAwesomeIcon icon={faVideo} />
+            </Icon>{' '}
+            is used to smooth the jump between frames by adding extra frames
+            in-between where the atom positions are interpolated.
+            <br />- The "Invert background color" button{' '}
+            <Icon>
+              <FontAwesomeIcon icon={faAdjust} />
+            </Icon>{' '}
+            is used to switch background color between black and white.
+            <br />- The "Orthographic / Perspective" button{' '}
+            <Icon>
+              <FontAwesomeIcon icon={faSquare} />
+            </Icon>{' '}
+            /{' '}
+            <Icon>
+              <FontAwesomeIcon icon={faCube} />
+            </Icon>{' '}
+            is used to change the view mode between 2D projection (orthographic
+            or isometric) and 3D projection (perspective).
+            <br />
+            - The "Speed" bar is used to set how fast is the trajectory
+            animation.
+            <br />
+            - The "Frames" bar allows to set how many frames along the
+            trajectory are loaded in the viewer.
+            <br />
+            <br />
+            For more information about the original project, please check the
+            oficial{' '}
+            <a
+              href="http://nglviewer.org/"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              NGL viewer web page
+            </a>
+            .
+          </>
+        ),
+      },
+    ],
+  },
   {
     id: 'bibliography',
     title: 'Bibliography',

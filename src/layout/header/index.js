@@ -3,7 +3,7 @@ import React from 'react';
 import { AppBar, Toolbar } from '@mui/material';
 import { Link } from 'react-router-dom';
 import { styled } from '@mui/material/styles';
-import Menu from '../../components/menu';
+import Menu from '../../components/header-menu';
 import LazyImg from '../../components/lazy-img';
 
 import style from './style.module.css';
@@ -26,10 +26,7 @@ const Header = () => (
       <Link to="/" title="home" className={logoLabel ? style.logoffset : style.logo}>
         <picture>
           <source type="image/webp" srcSet={logoWebP} />
-          <LazyImg
-            src={logo}
-            loading="lazy"
-          />
+          <LazyImg src={logo} loading="lazy" />
           {logoLabel && <div className={style.label}>{logoLabel}</div>}
         </picture>        
       </Link>

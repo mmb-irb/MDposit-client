@@ -17,9 +17,9 @@ import { useTheme } from '@mui/material/styles';
 import { Link } from 'react-router-dom';
 
 // Load the project contexts
-import { ProjectCtx } from '../../../contexts';
+import { ProjectCtx } from '../../contexts';
 
-import { NICE_NAMES } from '../../../utils/constants';
+import { NICE_NAMES } from '../../utils/constants';
 import style from './style.module.css';
 // Set the configuration of the tabs to be displayed in the menu
 // Each tab must have 'dir' or 'drops'. Never both, never none.

@@ -1,0 +1,16 @@
+.card {
+  margin: 1em 0;
+}
+
+.badge {
+  margin-top: -1em;
+  margin-left: 1em;
+  margin-bottom: -1.5em;
+}
+
+.horizontal {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 0.5em;
+}

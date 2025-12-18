@@ -35,7 +35,7 @@ import style from './style.module.css';
 import { useTheme } from '@mui/material/styles';
 
 // The menu used to change the subpage inside the project
-import ProjectMenu from '../../components/menu/project-menu';
+import ProjectMenu from '../../components/project-menu';
 // Component used to visualize API data related to the current subpage
 import DataViewer from './data-viewer';
 
