@@ -185,7 +185,7 @@ export class Project {
             if (!references) return undefined;
             const ligands = references.filter(ref => ref.ref_type === 'ligands');
             const inchikeys = references.filter(ref => ref.ref_type === 'inchikeys');
-            return ligands.concat(inchikeys.map(ref => ref.pubchem).filter(Boolean));
+            return ligands.concat(inchikeys);
         }, [references]);
     }
     get pdbReferences () {

@@ -177,7 +177,7 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
     // Skip those whose name matches with an interacting agent or custom domain
     ligandReferences && ligandReferences.forEach(ligandReference => {
       // Set the ligand name as the domain name
-      const domainName = ligandReference.name;
+      const domainName = ligandReference.name || ligandReference.lipidmaps.name;
       // Discard the domain if its name matches an already existing domain
       if (customDomains.find(domain => domain.name === domainName)) return;
       if (interactionDomains.find(domain => domain.name === domainName))
