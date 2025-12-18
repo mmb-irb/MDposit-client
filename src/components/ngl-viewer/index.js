@@ -19,8 +19,6 @@ import { frame } from 'timing-functions';
 
 import { setNGLFile, updateNGLFile } from './payload-to-ngl-file';
 
-import { EXPLICIT_BONDING_NGL_DRAWING_METHODS } from '../viewer-with-controls/constants';
-
 import { ProjectCtx } from '../../contexts';
 
 import { setTooltipPosition } from '../../utils/tooltip-position-manager';
@@ -1089,7 +1087,7 @@ const NGLViewer = memo(
         // However, if not paused, the surface representations never stop to be calculated
         if (noTrajectory) player.pause();
         else player[playing && isInView ? 'play' : 'pause']();
-        // Remvoing NGL while the animation is playing is fatal
+        // Removing NGL while the animation is playing is fatal
         // This raises the error "Uncaught TypeError: this._bindings is undefined"
         // Set a cleanup function to prevent fatal errors
         return () => player.pause();
