@@ -123,7 +123,7 @@ const Rmsds = () => {
       xAxisLabel = 'Frames';
       xTooltip = xValue => 'frame ' + xValue;
     }
-    else {
+    else if (analysisFrameStep) {
       // DANI: Esto es lo correcto
       const analysisTimeStep = analysisFrameStep * framesTimeStep
       xAxisStep = analysisTimeStep;
@@ -134,7 +134,15 @@ const Rmsds = () => {
       //xAxisStep = timeLength / analysisSteps;
       xAxisLabel = 'Time (ns)';
       xTooltip = xValue => +xValue.toFixed(2) + ' ns';
+    } else {
+      // Fallback to frames when no step is available
+      const totalFrames = payload.data[0].values.length;
+      console.log('totalFrames', totalFrames);
+      xAxisStep = metadata.mdFrames / totalFrames;
+      xAxisLabel = 'Frames';
+      xTooltip = xValue => 'frame ' + Math.round(xValue);
     }
+
     // Get the weigths for each data value corresponding frame
     let xWeights;
     if (populations && populations.payload) {
