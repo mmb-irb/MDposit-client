@@ -53,7 +53,7 @@ const Home = () => {
   return (
     <Card className={style.card}>
       <CardContent className={style['card-content']}>
-        {!HOST_CONFIG.global && <div variant="h6" className={style.global}>
+        {!HOST_CONFIG.global && <div className={style.global}>
           <PublicIcon fontSize='large'/>
           <div>
             This is one of the many federated nodes contributing to MDposit.
