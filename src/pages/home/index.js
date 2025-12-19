@@ -9,12 +9,14 @@ import {
   TextField,
   InputAdornment,
 } from '@mui/material';
+import { Public as PublicIcon } from '@mui/icons-material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
 
 // Additional components
 import Card from '../../components/animated-card'; // The exceled parcels in which almost all features are based
 import LazyImg from '../../components/lazy-img'; // Renders an image by a hook
+import TextLink from '../../components/text-link'; // Renders an image by a hook
 
 // CSS styles
 import style from './style.module.css';
@@ -24,7 +26,7 @@ import euLogo from '../../images/eu.png';
 import euLogoWebP from '../../images/eu.webp';
 
 // Constants
-import { HOST_CONFIG } from '../../utils/constants';
+import { HOST_CONFIG, MDPOSIT_URL } from '../../utils/constants';
 
 // Define the searchbar props
 const inputProps = {
@@ -51,6 +53,14 @@ const Home = () => {
   return (
     <Card className={style.card}>
       <CardContent className={style['card-content']}>
+        {!HOST_CONFIG.global && <div variant="h6" className={style.global}>
+          <PublicIcon fontSize='large'/>
+          <div>
+            This is one of the many federated nodes contributing to MDposit.
+            In order to navigate data through all federated nodes at the same time please use the
+            {' '}<TextLink name={'global node'} url={MDPOSIT_URL} />.
+          </div>
+        </div>}
         <Typography variant="h5">
           {HOST_CONFIG.description}
         </Typography>

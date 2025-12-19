@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 // Import MUI icons
 import {
+    Public as PublicIcon,
     Home as HomeIcon,
     Search as SearchIcon,
     ChevronRight as ChevronRightIcon,
@@ -26,7 +27,7 @@ import {
     Mail as MailIcon
 } from '@mui/icons-material';
 // Import constants
-import { BASE_PATH } from '../../utils/constants';
+import { BASE_PATH, HOST_CONFIG, MDPOSIT_URL } from '../../utils/constants';
 // Import CSS style
 import style from './style.module.css';
 import { useTheme } from '@mui/material/styles';
@@ -50,6 +51,16 @@ const HeaderMenu = () => {
     // Set components in the menu
     return (<menu className={style.menu}>
         <div className={style.main}>
+            {!HOST_CONFIG.global && <Button
+                component={"a"}
+                color="inherit"
+                href={MDPOSIT_URL}
+                target={"_blank"}
+                startIcon={<PublicIcon />}
+                className={style.button}
+            >
+                Global
+            </Button>}
             <Button
                 component={Link}
                 color="inherit"

@@ -53,3 +53,14 @@
 .searchbar-letters {
   font-size: x-large;
 }
+
+.global {
+  border: 3px solid black;
+  background-color: #BDC1FF;
+  padding: 1em;
+  margin-bottom: 1em;
+  display: flex;
+  flex-direction: row;
+  gap: 1em;
+  font-size: larger;
+}

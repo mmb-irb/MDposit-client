@@ -3,6 +3,8 @@ import hostConfig from "./host-config";
 
 export const HOST_CONFIG = hostConfig;
 
+export const MDPOSIT_URL = 'https://mdposit.mddbr.eu';
+
 export const BASE_PATH = HOST_CONFIG.api;
 export const BASE_VERSIONED_PATH = HOST_CONFIG.api + 'current';
 
