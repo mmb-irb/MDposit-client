@@ -199,9 +199,10 @@ export class Project {
         const references = this.references;
         return useMemo(() => {
             if (!references) return undefined;
-            const ligands = references.filter(ref => ref.ref_type === 'ligands');
-            const inchikeys = references.filter(ref => ref.ref_type === 'inchikeys');
-            return ligands.concat(inchikeys);
+            return references.filter(ref =>
+                ref.ref_type === 'ligands' ||
+                (ref.ref_type === 'inchikeys' && ref.pubchem && Object.keys(ref.pubchem).length > 0)
+            );
         }, [references]);
     }
     get pdbReferences () {
