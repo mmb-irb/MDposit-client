@@ -1,0 +1,99 @@
+.card {
+  margin: 1em 0;
+}
+
+.card img {
+  float: right;
+}
+
+.card-content:last-child {
+  padding-bottom: 16px;
+}
+
+.horizontal-marginned {
+  padding-top: 0px;
+  padding-left: 16px;
+  padding-right: 16px;
+  padding-bottom: 0px;
+}
+.horizontal-marginned:last-child {
+  padding-bottom: 0px;
+}
+.vertcial-marginned {
+  padding-top: 16px;
+  padding-left: 0px;
+  padding-right: 0px;
+  padding-bottom: 16px;
+}
+.vertcial-marginned:last-child {
+  padding-bottom: 16px;
+}
+
+/* 'pre-wrap' allows js break lines (\n) */
+.summary-list > div {
+  margin: 1ch 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* copy of Typography component */
+.title {
+  font-family: "Roboto","Helvetica","Arial",sans-serif;
+  font-weight: 500;
+  font-size: 1.25rem;
+  line-height: 1.6;
+  letter-spacing: 0.0075em;
+  margin-right: 0.5em;
+}
+
+.white-background {
+  filter: contrast(1.1);
+}
+
+.highlight {
+  font-size: 1.3em; /* Aplica un tamaño de fuente mayor a los caracteres específicos */
+}
+
+.textarea {
+  width: 100%;
+  max-height: 150px;
+  overflow-y: auto;
+  resize: vertical;
+  overflow-x: hidden;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  padding: 6px;
+  font-size: 14px;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-bottom: 14px;
+}
+
+.card-background {
+  margin-bottom: 15px;
+  padding: 0 10px 10px 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+}
+
+.decorated-list-item__title {
+  flex-basis: 10vw;
+  flex-shrink: 0;
+  text-align: right;
+  padding-right: .8rem;
+  word-break: keep-all;
+}
+
+.decorated-list-item__content {
+  flex-grow: 1;
+  padding-left: .7rem;
+  padding-top: .1rem;
+  padding-bottom: .1rem;
+}
+
+.info {
+  margin: 0 0.3em;
+  cursor: help;
+}

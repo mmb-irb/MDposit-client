@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import RDKitHandler from "./rdkit_load";
-import { Button } from "molstar/lib/mol-plugin-ui/controls/common";
-import { add } from "lodash-es";
 
 const MoleculeViewer = ({ smiles, fingerprintData, mol_block }) => {
   const [RDKit, setRDKit] = useState(null);
