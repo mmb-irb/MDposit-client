@@ -5,7 +5,7 @@ import { Link, Routes, Route, useLocation, useParams, useNavigate } from 'react-
 // Visual assets
 import { Typography, Button, Select, MenuItem } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBook } from '@fortawesome/free-solid-svg-icons';
+import { faBook, faGhost, faExclamationCircle } from '@fortawesome/free-solid-svg-icons';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 // Hooks
@@ -135,6 +135,41 @@ const ContentSwitch = ({ subPage }) => {
       document.title = previousTitle;
   };
   }, [project.accessionAndMdNumber]);
+
+  // If this is the global client then we must make one last check
+  // Make sure the project does still exists in the federated node
+  // To do so we have to ask for any data not stored in the global server
+  // Thus we will force the global API to redirect the request to the federated node
+  // In this case we will request topology data
+  const problems = project.checkProblems(); // This is a hook
+  if (problems){
+    const errorResponse = problems.response;
+    const errorContent = errorResponse.data;
+    const errorCode = errorResponse.status;
+    // Set a silent whistleblower with the original error from the federated node
+    console.error('Original error from the federated node: ' + errorContent);
+    // If the project is not found
+    if (errorCode === 404) return (
+      <div className={style.problem}>
+        <FontAwesomeIcon icon={faGhost} />
+        <div>
+          This project does not exist in the source federated node anymore.
+        </div>
+      </div>
+    );
+    // If there is a server error
+    if (errorCode === 500) return (
+      <div className={style.problem}>
+        <FontAwesomeIcon icon={faExclamationCircle} />
+        <div>
+          The federated node which owns this projects is having problems.
+        </div>
+      </div>
+    );
+    else {
+      return 'There is an unknown problem with this project: ' + problems.message;
+    }
+  }
 
   // Make sure the requested subpage exists among the available directions
   if (project.directions[subPage] === undefined) return `Subpage "${subPage}" is not recognized`;

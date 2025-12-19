@@ -125,6 +125,22 @@ export class Project {
         return this._apiResponses[fieldname];
     };
 
+    // If this is the global client then check that the project exists in the source federated node
+    // To do so, ask for any data which is not stored in the global server (e.g. topology data)
+    // Thus we will force the global API to redirect the request to the federated node
+    checkProblems = () => {
+        // If this is not the global client then there is no need to check
+        if (!HOST_CONFIG.global) return;
+        // Request topology data
+        const response = this._apiQuery('topology');
+        // If we are still loading then there is no problem
+        if (response.loading) return;
+        // If we have an error instead of throwing return the error itself
+        if (response.error) return response.error;
+        // If we finally got the response then it means we are good
+        if (response.payload) return;
+    }
+
     // Interactions getter
     get interactions () {
         // Ask the API for the interactions analysis
