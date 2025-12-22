@@ -1,5 +1,8 @@
 import { generateRanges } from 'src/utils/auxiliar-functions';
 
+// Set the default opacity value por PBC representations
+const PBC_OPACITY = 0.3;
+
 // Get NGL predefined default representations
 const getDefaultRepresentations = topology => {
     // If there is no topology yet then return here and wait for data to be downloaded
@@ -35,6 +38,7 @@ const getDefaultRepresentations = topology => {
                 selection: nglSelection,
                 type: 'spacefill',
                 color: 'chainid',
+                residueIndices: cgResiduesIndices,
             });
             }
             // Now keep going with the all atom residues
@@ -55,6 +59,7 @@ const getDefaultRepresentations = topology => {
                 selection: nglSelection,
                 type: 'licorice',
                 color: 'chainid',
+                residueIndices: shortResidueIndices,
             });
             }
             // The long ranges are to be displayed in cartoon
@@ -69,6 +74,7 @@ const getDefaultRepresentations = topology => {
                 selection: nglSelection,
                 type: 'cartoon',
                 color: 'chainid',
+                residueIndices: longResidueIndices,
             });
             // If this is a nucleic polymer then set also a representation for its bases
             const nucleicPolymers = new Set([ 'dna', 'rna', 'nucleic' ]);
@@ -78,6 +84,7 @@ const getDefaultRepresentations = topology => {
                     selection: nglSelection,
                     type: 'base',
                     color: 'resname',
+                    residueIndices: longResidueIndices,
                 });
             }
             }
@@ -97,19 +104,20 @@ const getDefaultRepresentations = topology => {
         if (ligandResidues.length > 0) {
             // In case we have more than a different ligand in this chain, set a representation for each one
             const ligandIds = new Set(ligandResidues.map(residue => residue.referenceId));
-            for (const ligandId of ligandIds) {
-            // Get the NGL selection of traget residues
-            const currentLigandResidueIndices = ligandResidues
-                .filter(residue => residue.referenceId === ligandId)
-                .map(residue => residue.index);
-            const { rangedSelection: nglSelection } = topology.residueIndices2Ngl(currentLigandResidueIndices);
-            // Add the representation
-            reps.push({
-                name: `${chainLabel} - ligand ${ligandId}`,
-                selection: nglSelection,
-                type: 'ball+stick',
-                color: 'element'
-            });
+                for (const ligandId of ligandIds) {
+                // Get the NGL selection of traget residues
+                const currentLigandResidueIndices = ligandResidues
+                    .filter(residue => residue.referenceId === ligandId)
+                    .map(residue => residue.index);
+                const { rangedSelection: nglSelection } = topology.residueIndices2Ngl(currentLigandResidueIndices);
+                // Add the representation
+                reps.push({
+                    name: `${chainLabel} - ligand ${ligandId}`,
+                    selection: nglSelection,
+                    type: 'ball+stick',
+                    color: 'element',
+                    residueIndices: currentLigandResidueIndices,
+                });
             }
         }
         // 3. Lipids, usually membranes
@@ -128,7 +136,7 @@ const getDefaultRepresentations = topology => {
                 selection: nglSelection,
                 type: 'licorice',
                 color: 'grey',
-                opacity: 0.5,
+                residueIndices: lipidResidueIndices,
             });
         }
         // 4. Ions, single atoms
@@ -145,6 +153,7 @@ const getDefaultRepresentations = topology => {
                 selection: nglSelection,
                 type: 'ball+stick',
                 color: 'element',
+                residueIndices: ionResidueIndices,
             });
         }
         // 5. Other, anything else
@@ -163,10 +172,61 @@ const getDefaultRepresentations = topology => {
                 type: 'spacefill',
                 color: 'purple',
                 opacity: 0.3,
+                residueIndices: otherResiduesIndices,
             });
         }
     });
-    return reps;
+    // Finally, for every representation, check if we have PBC residues
+    // PBC regions are represented with reduced opacity
+    // If a representation is a mix of PBC and non-PBC regions then it is splitted in 2 representations
+    const pbcResidues = topology.pbcResidues;
+    const finalReps = [];
+    for (const representation of reps) {
+        // Get non-PBC residue indices
+        const nonPbcResidueIndices = representation.residueIndices.filter(
+            index => !pbcResidues.has(index));
+        // If none of residues is in PBC
+        if (nonPbcResidueIndices.length === representation.residueIndices.length) {
+            finalReps.push(representation);
+            continue;
+        }
+        // Get PBC residue indices
+        const pbcResidueIndices = representation.residueIndices.filter(
+            index => pbcResidues.has(index));
+        // If all residues are in PBC
+        if (pbcResidueIndices.length === representation.residueIndices.length) {
+            representation.opacity = PBC_OPACITY;
+            representation.isPbc = true;
+            finalReps.push(representation);
+            continue;
+        }
+        // Otherwise it means we have a hybrid representation so we have to split it
+        // DANI: No se ha testeado (no se me ocurría ninguna simulación con cadenas híbridas)
+        // Set the NGL selections
+        const { rangedSelection: nonPbcNglSelection } = topology.residueIndices2Ngl(nonPbcResidueIndices);
+        const { rangedSelection: pbcNglSelection } = topology.residueIndices2Ngl(pbcResidueIndices);
+        // Set the new representations
+        const nonPbcRepresentation = {
+            ...representation,
+            name: representation.name += ' (non PBC)',
+            selection: nonPbcNglSelection
+        };
+        const pbcRepresentation = {
+            ...representation,
+            name: representation.name += ' (PBC)',
+            selection: pbcNglSelection,
+            opacity: PBC_OPACITY,
+            isPbc: true,
+        };
+        finalReps.push(nonPbcRepresentation);
+        finalReps.push(pbcRepresentation);
+    }
+    // Clear the residue indices value from already processed representations
+    // DANI: It wouldn't hurt but I may forget about it and be concerned when I see it in the future
+    for (const representation of finalReps)
+        delete representation.residueIndices;
+    // Return processed representaions
+    return finalReps;
 };
 
 export default getDefaultRepresentations;

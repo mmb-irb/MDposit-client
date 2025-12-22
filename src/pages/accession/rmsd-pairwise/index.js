@@ -192,17 +192,23 @@ const RmsdPairwise = () => {
       // If there were no previous representations then set the default values
       if (previousRepresentations === null) {
         components.forEach((component, index) => {
-          // Set the overall representations
-          // In case there is no interaction selected this would be opaque
-          // In case there is an interaction selected this would be transparent (just a reference)
+          // Set the whole system representations
+          // Copy every default representation but customize them for this analysis
           defaultRepresentations.forEach(representation => {
             const newRepresentation = { ...representation };
             newRepresentation.name = `${component.name} - ${representation.name}`;
             newRepresentation.color = REPRESENTATION_COLORS.base[index];
             newRepresentation.component = component.name;
             newRepresentation.reference = `${REPRESENTATION_REFERENCES.base[index]} - ${representation.name}`;
+            // In case there is no interaction selected this would be opaque
+            // In case there is an interaction selected this would be transparent (just a reference)
             if (currentInteraction) {
               newRepresentation.name += ' reference';
+              newRepresentation.opacity = 0.1;
+            }
+            // Representations with a reducen opacity (i.e. PBC) are made even more transparent
+            // This is donde since PBC regions do not count for the RMSD calculation
+            if (representation.isPbc) {
               newRepresentation.opacity = 0.1;
             }
             newRepresentations.push(newRepresentation);
@@ -299,6 +305,7 @@ const RmsdPairwise = () => {
 
   // Check if anything is still beeing loaded
   const anyLoading = isIndexLoading || isAnalysisLoading || isProjectLoading;
+  console.log(`index ${isIndexLoading}, analysis ${isAnalysisLoading}, project ${isProjectLoading}`);
 
   // Render loading or error messages according with the API response
   // Render loading or error messages according with the API response
