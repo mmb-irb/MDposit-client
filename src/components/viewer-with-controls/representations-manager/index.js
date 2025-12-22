@@ -193,6 +193,7 @@ const RepresentationsManager = memo(
                   icon={<FontAwesomeIcon icon={faPlusCircle} />}
                   label={'Add representation'}
                   variant="outlined"
+                  sx={{ margin: '0.5em' }}
                   onClick={() =>
                     setRepresentations(previousRepresentations => {
                       // Set the default values for the custom representation

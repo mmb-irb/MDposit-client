@@ -47,13 +47,10 @@ import {
   faStarOfLife,
   faShareAlt, // It looks like connected atoms
 } from '@fortawesome/free-solid-svg-icons';
-
+// Load components used specifically in the viewer with controls
 import RepresentationsManager from './representations-manager';
 
 import { get, setAsync } from '../../utils/storage';
-
-// To ask the API
-import { BASE_PATH_PROJECTS } from '../../utils/constants';
 
 // The main component of the viewer itself
 import MolstarViewer from '../molstar-viewer';
@@ -69,10 +66,11 @@ import connectionLevel, {
   HIGH,
 } from '../../utils/connection-level';
 import reducedMotion from '../../utils/reduced-motion';
-
+// Import CSS style
 import style from './style.module.css';
-
+// Import context data
 import { ProjectCtx } from '../../contexts';
+// Import auxiliar functions
 import { copyObject, round2cents } from 'src/utils/auxiliar-functions';
 
 // Decide that the default should be to play the trajectory only on "big enough"
