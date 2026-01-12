@@ -513,6 +513,26 @@ const HOST_CONFIGURATIONS = {
         logo: 'logo-nostrum',
         name:'XNA Hub'
     },
+    '10.0.4.1': {
+        api: `http://10.0.4.1:1558/api/rest/`,
+        primaryColor: '#00cfbf', // Light blue
+        logo: 'logo-nostrum',
+        name:'XNA Hub'
+    },
+    // DANI: Aquí he duplicado el de arriba
+    // DANI: no sé si el puerto se verá en el HOST name
+    '10.0.4.1:1558': {
+        api: `http://10.0.4.1:1558/api/rest/`,
+        primaryColor: '#00cfbf', // Light blue
+        logo: 'logo-nostrum',
+        name:'XNA Hub'
+    },
+    'mddb.nostrumbiodiscovery.com': {
+        api: `https://mddb.nostrumbiodiscovery.com/api/rest/`,
+        primaryColor: '#00cfbf', // Light blue
+        logo: 'logo-nostrum',
+        name:'XNA Hub'
+    },
 };
 
 // Set the current host configuration
