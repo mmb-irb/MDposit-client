@@ -142,3 +142,6 @@ export function* generateRanges (selection) {
   // Yield the last range
   yield currentRange;
 };
+
+// Check if an object is empty
+export const isEmptyObj = obj => obj && Object.keys(obj).length === 0;

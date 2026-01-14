@@ -16,7 +16,8 @@ import {
 import {
   countElement,
   parsedSelectionRanger,
-  unique
+  unique,
+  isEmptyObj
 } from 'src/utils/auxiliar-functions';
 // Functions te setup some predefined viewer representations
 import getDefaultRepresentations from './get-default-reprensetations';
@@ -212,9 +213,9 @@ class Residue {
     //console.log(this.topology.membraneMapping)
     // ----- Inchikey ligands -----------------------------------------------
     if (this.referenceType === 'inchikey') {
-      // Inchikey with lipidmaps or swisslipids data, or those which are not membrane lipids
-      if (!(this.referenceData.swisslipids || this.referenceData.lipidmaps) || 
-      (this.topology.membraneMapping && this.topology.membraneMapping.no_mem_lipid.includes(this.index))){
+      // Inchikey without lipidmaps or swisslipids data, or lipids(inchikeys) outside membrane are classified as ligands
+      if (isEmptyObj(this.referenceData.swisslipids) && isEmptyObj(this.referenceData.lipidmaps) || 
+         (this.topology.membraneMapping && this.topology.membraneMapping.no_mem_lipid.includes(this.index))){
         this._classification = 'ligand'
         return this._classification
       }
