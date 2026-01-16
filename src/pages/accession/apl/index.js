@@ -29,8 +29,8 @@ const AreaPerLipid = () => {
           }
         }
       }
-      const xLabels = payload.data.grid_x.map(x => Math.round(x * 10) / 10);
-      const yLabels = payload.data.grid_y.map(y => Math.round(y * 10) / 10);
+      const xLabels = payload.data.grid_x.map(x => x.toFixed(2));
+      const yLabels = payload.data.grid_y.map(y => y.toFixed(2));
       yLabels.reverse();
       grid.reverse();
       return { data: grid, xLabels, yLabels };
@@ -57,7 +57,7 @@ const AreaPerLipid = () => {
   };
 
   const handleHeatmapTooltip = ({ value, xAxisValue, yAxisValue }) =>
-    `Position (${xAxisValue}, ${yAxisValue})\nArea per lipid: ${Math.round(value * 100) / 100} Å²`;
+    `Position (${xAxisValue}, ${yAxisValue})\nArea per lipid: ${value.toFixed(0)} Å²`;
 
   if (loading) return <Loading />;
   if (error) return error.toString();
