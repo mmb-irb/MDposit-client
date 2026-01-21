@@ -644,7 +644,10 @@ export class Topology {
     if (!this.references) return;
     // Get the requested reference index
     const referenceIndex = this.references.indexOf(reference);
-    if (referenceIndex === -1) return;
+    if (referenceIndex === -1) {
+      console.error('Reference not found:', reference, 'in', this.references);
+      return;
+    }
     const residueIndices = [];
     this.residueReferenceIndices.forEach((refIndex, residueIndex) => {
       if (refIndex !== referenceIndex) return;
