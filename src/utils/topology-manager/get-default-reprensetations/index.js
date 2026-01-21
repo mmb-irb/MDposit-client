@@ -179,7 +179,7 @@ const getDefaultRepresentations = topology => {
     // Finally, for every representation, check if we have PBC residues
     // PBC regions are represented with reduced opacity
     // If a representation is a mix of PBC and non-PBC regions then it is splitted in 2 representations
-    const pbcResidues = topology.pbcResidues;
+    const pbcResidues = topology.pbcResidues || new Set();
     const finalReps = [];
     for (const representation of reps) {
         // Get non-PBC residue indices
