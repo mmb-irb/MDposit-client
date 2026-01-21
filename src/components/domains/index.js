@@ -106,6 +106,7 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
       const referenceId = proteinReference.uniprot;
       // Start by creating a domain for the whole reference
       const wholeReferenceResidueIndices = topology.getReferenceResidueIndices(referenceId);
+      if (!wholeReferenceResidueIndices || wholeReferenceResidueIndices.length === 0) return;
       const wholeReferenceNglSelection = topology.residueIndices2Ngl(wholeReferenceResidueIndices);
       const wholeReferenceDomain = {
         name: proteinReference.name,
