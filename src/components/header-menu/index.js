@@ -58,6 +58,8 @@ const HeaderMenu = () => {
                 target={"_blank"}
                 startIcon={<PublicIcon />}
                 className={style.button}
+                style={{'marginRight': '1.5em'}}
+                variant='outlined'
             >
                 Global
             </Button>}
