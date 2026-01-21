@@ -337,7 +337,7 @@ export default {
     "Topology": [
         {
             "name": "Chain names",
-            "path": "topology.chain_names",
+            "path": "metadata.CHNAME",
             "type": "string",
             "example": "M",
             "options": true,
@@ -345,7 +345,7 @@ export default {
         },
         {
             "name": "Residue names",
-            "path": "topology.residue_names",
+            "path": "metadata.RSNAME",
             "type": "string",
             "example": "NME",
             "options": true,
@@ -353,7 +353,7 @@ export default {
         },
         {
             "name": "Atom names",
-            "path": "topology.atom_names",
+            "path": "metadata.ATNAME",
             "type": "string",
             "example": "OT1",
             "options": false, // Asking for options would make de request way slower
@@ -361,7 +361,7 @@ export default {
         },
         {
             "name": "Atom elements",
-            "path": "topology.atom_elements",
+            "path": "metadata.ATELEM",
             "type": "string",
             "example": "Zn",
             "options": false, // Asking for options would make de request way slower
@@ -389,6 +389,14 @@ export default {
             "type": "string",
             "example": "pocket_10.pdb",
             "options": true
+        },
+        {
+            "name": "System keywords",
+            "path": "metadata.SYSKEYS",
+            "type": "string",
+            "example": "protein",
+            "options": true,
+            "checkbox" : true
         },
         {
             "name": "Type of partner interactions",
