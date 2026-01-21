@@ -76,17 +76,22 @@ const LipidInteractions = () => {
   const lipidNames = useMemo(() => {
     if (!lipidTypes.length || !inchikeyReferences) return {};
     return lipidTypes.reduce((acc, lipid) => {
-      const ref = inchikeyReferences.find(ref => ref.inchikey === lipid);
+      // Check if lipid is an inchikey (exists in inchikeyReferences)
       let name, shortName, longName;
-      if (ref.lipidmaps.synonyms) {
-        name = ref.lipidmaps.name;
-        shortName = ref.lipidmaps.synonyms.split('; ').sort((a, b) => a.length - b.length)[0];
-        longName = ref.lipidmaps.sys_name;
-      } else if (ref.swisslipids.synonyms) {
-        name = shortName = ref.swisslipids.synonyms.find(item => item.type === 'abbreviation').name;
-        longName = ref.swisslipids.entity_name;
+      const inchiKey = inchikeyReferences.find(ref => ref.inchikey === lipid);
+      if (inchiKey) {
+        if (inchiKey.lipidmaps.synonyms) {
+          name = inchiKey.lipidmaps.name;
+          shortName = inchiKey.lipidmaps.synonyms.split('; ').sort((a, b) => a.length - b.length)[0];
+          longName = inchiKey.lipidmaps.sys_name;
+        } else if (inchiKey.swisslipids.synonyms) {
+          name = shortName = inchiKey.swisslipids.synonyms.find(item => item.type === 'abbreviation').name;
+          longName = inchiKey.swisslipids.entity_name;
+        }
+      } else {
+        // Use lipid name as is
+        name = shortName = longName = lipid;
       }
-      console.log('lipid', lipid, 'name', name, 'shortName', shortName, 'longName', longName);
       acc[lipid] = { name, shortName, longName };
       return acc;
     }, {});
@@ -96,8 +101,17 @@ const LipidInteractions = () => {
     const lipidSelection = useMemo(() => {
       if (!lipidTypes.length || !topology) return {};
       return lipidTypes.reduce((acc, lipid) => {
-        const resIndices = topology.getReferenceResidueIndices(lipid);
-        const atomsSelection = `( @${topology.residue2atomIndices(resIndices).join(',')} )`;
+        let resIndices;
+        let atomsSelection;
+        // Check if lipid is an inchikey (exists in inchikeyReferences)
+        const isInchikey = inchikeyReferences && inchikeyReferences.some(ref => ref.inchikey === lipid);
+        if (isInchikey) {
+          resIndices = topology.getReferenceResidueIndices(lipid);
+          atomsSelection = `( @${topology.residue2atomIndices(resIndices).join(',')} )`;
+        } else {
+          // Use lipid name for selection
+          atomsSelection = `( ${lipid} )`;
+        }
         acc[lipid] = atomsSelection;
         return acc;
       }, {});
