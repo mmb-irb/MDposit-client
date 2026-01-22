@@ -145,7 +145,7 @@ const HeaderMenu = () => {
                                 </ListItemIcon>
                                 Documents
                             </MenuItem>
-                            <MenuItem
+                            {/* <MenuItem
                                 onClick={() => openHelp(false)}
                                 component={Link}
                                 to="/software"
@@ -156,7 +156,7 @@ const HeaderMenu = () => {
                                     <DataObjectIcon fontSize="small" sx={{ color: contrastText }} />
                                 </ListItemIcon>
                                 Software
-                            </MenuItem>
+                            </MenuItem> */}
                             <MenuItem
                                 onClick={() => openHelp(false)}
                                 component={Link}
