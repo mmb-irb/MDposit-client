@@ -36,7 +36,12 @@ const Electrostatic = () => {
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
 
   // Get the current project data
-  const { topology, interactions, referenceFrame } = useContext(ProjectCtx);
+  const {
+    topology,
+    interactions,
+    referenceFrame,
+    loading: isProjectLoading,
+  } = useContext(ProjectCtx);
 
   // The interaction to be displayed
   const [selectedInteraction, setSelectedInteraction] = useState(0);
@@ -161,7 +166,10 @@ const Electrostatic = () => {
   ]);
 
   // If there are no interactions or topology
-  if (!interactions) return 'There are no interactions';
+  if (!interactions) {
+    if (isProjectLoading) return <Loading />;
+    return 'There are no interactions';
+  }
   if (!topology) return 'There is no topology';
 
   const handleToggleOrder = () => {

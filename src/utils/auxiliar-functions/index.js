@@ -1,5 +1,6 @@
 import chroma from 'chroma-js';
 import { range } from 'lodash-es';
+import { parse } from 'qs';
 
 // Createa a copy from an object thus not conserving any pointer to the original object contents
 export const copyObject = object => JSON.parse(JSON.stringify(object));
@@ -142,6 +143,16 @@ export function* generateRanges (selection) {
   // Yield the last range
   yield currentRange;
 };
+
+// Convert the URL string into an object
+// This "parse" comes from the "qs" library
+// WARNING: The default "parse" decoding behaviour has a strong conflict between '+' and blank space character
+// This workaround first decodes and then parses without decoding
+// The 'decoder' option is necessary for not decoding
+export const parseLocationSearch = locationSearch => {
+  const decoded = decodeURIComponent(locationSearch);
+  return parse(decoded, { ignoreQueryPrefix: true, decoder: c => c });
+}
 
 // Check if an object is empty
 export const isEmptyObj = obj => obj && Object.keys(obj).length === 0;

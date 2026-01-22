@@ -1,0 +1,117 @@
+.table-body {
+  opacity: 1;
+  transition: 0.5s opacity ease-in-out 0.25s;
+}
+
+/* If we had no valid results we make the table with the results less visible */
+/* This table may contain results from a previous search which are not valid now */
+/* z-index prevents this element to overlap overlaping elements because of the opacity */
+.invalid-results {
+  opacity: 0.3;
+  z-index: 1;
+}
+
+@media (max-width: 1100px) {
+  .table-body img {
+    width: 100px;
+    height: 100px;
+  }
+
+  .table-body td,
+  .table-head th {
+    font: bold 'Fira Sans';
+    padding: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .table-body img {
+    width: 50px;
+    height: 50px;
+  }
+}
+
+.not-published {
+  opacity: 0.6;
+}
+
+.error-row > * {
+  opacity: 0.6;
+  color:rgb(243, 36, 0);
+
+}
+.center {
+  text-align: center;
+}
+
+th.center {
+  min-width: 7em;
+  padding:0;
+}
+
+.sort {
+  justify-content: space-between;
+  padding: 0 0 0 0.5em;
+  min-width: 0px;
+  font-size: initial;
+}
+/* If we had no valid results we render a 'no results' message inside a card */
+/* z-index prevents this element to be overlaped by overlaped elements because of the opacity */
+.no-results-card {
+  position: absolute;
+  z-index: 2;
+  width: 96%;
+  top: 5em;
+}
+
+.minheight {
+  min-height: 12em;
+}
+
+.no-results-text {
+  margin: 2ch;
+}
+
+.analysis {
+  margin: 0.5ch;
+}
+
+.reduced-margin {
+  margin: -0.5ch;
+}
+
+.tab {
+  transform: translate(0px, -9px);
+  width: 100px;
+}
+
+.small {
+  color: grey;
+  font-size: small;
+}
+
+.browser {
+  display: flex;
+  align-items: flex-start; /* align items to the top */
+  padding-left: 0;
+}
+
+.left-bar {
+  width: 25%;
+}
+
+.search {
+  width: 100%;
+  display: flex;
+}
+
+.selector {
+  flex: 1;
+  width: 40%; /* this percent is competing with the 100% of the search bar */
+  margin-left: 1em;
+}
+
+.fillheight {
+  height: 100%;
+}
+
