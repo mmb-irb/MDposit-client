@@ -1,6 +1,6 @@
 // React
-import React, { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useRef, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 // Additional components
 import Card from '../../components/animated-card'; // The exceled parcels in which almost all features are based
@@ -27,6 +27,9 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
+// The table where matched projects are shown
+import ProjectBrowser from  '../../components/project-browser';
+
 // CSS styles
 import style from './style.module.css';
 
@@ -35,6 +38,10 @@ import reducedMotion from '../../utils/reduced-motion';
 
 // Get the host congifuration
 import { HOST_CONFIG } from "../../utils/constants";
+// Auxiliar functions
+import { parseLocationSearch } from '../../utils/auxiliar-functions';
+// String managers
+import { stringify } from 'qs';
 
 // Get the available search fields
 const queryFields = HOST_CONFIG.queryFields;
@@ -141,8 +148,12 @@ const AdvancedSearch = () => {
   // In case it has tried, all error messages appear if things are wrong
   const [displayErrors, setDisplayErrors] = useState(false);
 
-  // Get acces to the history so wen can redirect the user later
+  // Get the location and the history so wen can update the URL later
+  const location = useLocation();
   const history = useNavigate();
+
+  // Parse the location search, including all current query parameters
+  const search = useMemo(() => parseLocationSearch(location.search), [location.search]);
 
   // This is a trick to force the page rerender
   const [, setUpdater] = useState(true);
@@ -476,7 +487,7 @@ const AdvancedSearch = () => {
 
   // Parse a query object
   // Replace names by tags
-  const parse = object => {
+  const parseQuery = object => {
     // In case it is a field
     if (object.field !== undefined) {
       // Get the parameters for the current field
@@ -514,27 +525,36 @@ const AdvancedSearch = () => {
       if (fields.length === 1) {
         const uniqueField = fields[0];
         uniqueField.is = signLogic(uniqueField.is, object.is);
-        return parse(uniqueField);
+        return parseQuery(uniqueField);
       }
       // If there are several fields
-      return { [logicOperator]: fields.map(child => parse(child)) };
+      return { [logicOperator]: fields.map(child => parseQuery(child)) };
     }
   };
 
   // Parse the query to an HTML string which may be passed as an URL
-  const search = () => {
+  const searchQuery = () => {
     if (inputError) {
       setDisplayErrors(true);
       return;
     }
     // Sum up the query parameters into an abreviated object
     const currentQuery = query.current;
-    const parsedQuery = parse(currentQuery);
+    const parsedQuery = parseQuery(currentQuery);
     // Convert the summary obejct to a single string
     const stringQuery = JSON.stringify(parsedQuery);
     if (!stringQuery) return;
     // Then make a browse with the new query
-    history('/browse?query=' + stringQuery);
+    //history('/browse?query=' + stringQuery);
+    history({
+      ...location,
+      search: stringify({
+        ...search,
+        query: stringQuery,
+        // If we had a new query then reset the page
+        page: 0,
+      }),
+    });
   };
 
   return (
@@ -545,12 +565,14 @@ const AdvancedSearch = () => {
         <hr style={{ color: 'lightGrey' }} />
         <Represent object={query.current} />
         <div className={style.right}>
-          <Button variant="contained" onClick={search} className={style.search}>
+          <Button variant="contained" onClick={searchQuery} className={style.search}>
             <FontAwesomeIcon icon={faSearch} />
             &nbsp;
             <span>Search</span>
           </Button>
         </div>
+        <hr style={{ color: 'lightGrey', marginTop: '1em' }} />
+        <ProjectBrowser style={{width: '100%'}} />
       </CardContent>
     </Card>
   );
