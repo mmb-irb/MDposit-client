@@ -42,6 +42,8 @@ const Overview = React.memo(() => {
 
   // State for protein sequence tabs
   const [proteinSeqTab, setProteinSeqTab] = useState(0);
+  // State for nucleic sequence tabs
+  const [nucleicSeqTab, setNucleicSeqTab] = useState(0);
 
   // Get the provided theme
   const theme = useTheme();
@@ -190,8 +192,10 @@ const Overview = React.memo(() => {
           { key: 'SYSTRES', label: 'Total System Residues', showPercentage: false },
           { key: 'PROTATS', label: 'Protein Atoms', showPercentage: true },
           { key: 'PROTRES', label: 'Protein Residues', showPercentage: false },
-          { key: 'NUCLATS', label: 'Nucleic Acid Atoms', showPercentage: true },
-          { key: 'NUCLRES', label: 'Nucleic Acid Residues', showPercentage: false },
+          { key: 'DNAATS', label: 'DNA Atoms', showPercentage: true },
+          { key: 'DNARES', label: 'DNA Residues', showPercentage: false },
+          { key: 'RNAATS', label: 'RNA Atoms', showPercentage: true },
+          { key: 'RNARES', label: 'RNA Residues', showPercentage: false },
           { key: 'LIPIATS', label: 'Lipid Atoms', showPercentage: true },
           { key: 'LIPIRES', label: 'Lipid Residues', showPercentage: false },
           { key: 'CARBATS', label: 'Carbohydrate Atoms', showPercentage: true },
@@ -200,7 +204,7 @@ const Overview = React.memo(() => {
           { key: 'SOLVRES', label: 'Solvent Residues', showPercentage: false },
           { key: 'COUNCAT', label: 'Counter Cations', showPercentage: false },
           { key: 'COUNANI', label: 'Counter Anions', showPercentage: false },
-          { key: 'COUNION', label: 'Total Counter Ions', showPercentage: false }
+          { key: 'COUNION', label: 'Total Counter Ions', showPercentage: true }
         ];
         const hasData = compositionFields.some(field => metadata[field.key] !== undefined && metadata[field.key] > 0);
         return hasData;
@@ -216,8 +220,10 @@ const Overview = React.memo(() => {
                     { key: 'SYSTRES', label: 'Total System Residues', showPercentage: false },
                     { key: 'PROTATS', label: 'Protein Atoms', showPercentage: true, color: '#4CAF50' },
                     { key: 'PROTRES', label: 'Protein Residues', showPercentage: false },
-                    { key: 'NUCLATS', label: 'Nucleic Acid Atoms', showPercentage: true, color: '#2196F3' },
-                    { key: 'NUCLRES', label: 'Nucleic Acid Residues', showPercentage: false },
+                    { key: 'DNAATS', label: 'DNA Atoms', showPercentage: true, color: '#2196F3' },
+                    { key: 'DNARES', label: 'DNA Residues', showPercentage: false },
+                    { key: 'RNAATS', label: 'RNA Atoms', showPercentage: true, color: '#E91E63' },
+                    { key: 'RNARES', label: 'RNA Residues', showPercentage: false },
                     { key: 'LIPIATS', label: 'Lipid Atoms', showPercentage: true, color: '#FF9800' },
                     { key: 'LIPIRES', label: 'Lipid Residues', showPercentage: false },
                     { key: 'CARBATS', label: 'Carbohydrate Atoms', showPercentage: true, color: '#9C27B0' },
@@ -226,7 +232,7 @@ const Overview = React.memo(() => {
                     { key: 'SOLVRES', label: 'Solvent Residues', showPercentage: false },
                     { key: 'COUNCAT', label: 'Counter Cations', showPercentage: false },
                     { key: 'COUNANI', label: 'Counter Anions', showPercentage: false },
-                    { key: 'COUNION', label: 'Total Counter Ions', showPercentage: false }
+                    { key: 'COUNION', label: 'Total Counter Ions', showPercentage: true, color: '#9E9E9E' }
                   ];
                   
                   const totalAtoms = metadata.SYSTATS || 0;
@@ -255,7 +261,8 @@ const Overview = React.memo(() => {
                 {(() => {
                   const compositionFields = [
                     { key: 'PROTATS', label: 'Protein'},
-                    { key: 'NUCLATS', label: 'Nucleic Acid'},
+                    { key: 'DNAATS', label: 'DNA'},
+                    { key: 'RNAATS', label: 'RNA' },
                     { key: 'LIPIATS', label: 'Lipid' },
                     { key: 'CARBATS', label: 'Carbohydrate' },
                     { key: 'SOLVATS', label: 'Solvent' },
@@ -292,7 +299,7 @@ const Overview = React.memo(() => {
                                 backgroundColor: secondaryColor.dark
                               }}
                             >
-                              {item.percentage > 10 && `${item.value.toLocaleString()}`}
+                              {`${item.value.toLocaleString()}`}
                             </div>
                           </div>
                         </div>
@@ -308,19 +315,36 @@ const Overview = React.memo(() => {
       {metadata && Array.isArray(metadata.NUCLSEQ) && metadata.NUCLSEQ.length > 0 && (
         <Card className={style.card}>
           <CardContent className={style['card-content']}>
-          <div>
-              <Typography marginBottom={'10px'} variant="h6">Nucleic Sequences:</Typography>
+            <div>
+              <Typography marginBottom={'10px'} variant="h6" sx={{ fontSize: '1.4rem' }}>Nucleic Sequences:</Typography>
+              <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                <Tabs 
+                  value={nucleicSeqTab} 
+                  onChange={(event, newValue) => setNucleicSeqTab(newValue)}
+                  aria-label="nucleic sequence tabs"
+                >
+                  {metadata.NUCLSEQ.map((seq, index) => (
+                    <Tab key={index} label={`Sequence ${index + 1} (5' → 3')`} />
+                  ))}
+                </Tabs>
+              </Box>
               {metadata.NUCLSEQ.map((seq, index) => (
-                <div 
-                  key={index} 
+                <div
+                  key={index}
+                  role="tabpanel"
+                  hidden={nucleicSeqTab !== index}
                   className={style['card-background']}
                 >
-                <Typography variant="h6" style={{ marginBottom: '5px', marginTop: '10px', fontSize: 'inherit' }}>Sequence {index + 1} (5' -&gt; 3'):</Typography>
-                  <textarea
-                    readOnly
-                    value={seq}
-                    className={style['textarea']}
-                  />
+                  {nucleicSeqTab === index && (
+                    <Box sx={{ pt: 2 }}>
+                      <textarea
+                        readOnly
+                        value={seq}
+                        className={style['textarea']}
+                        rows={Math.ceil(seq.length / 150) + 1}
+                      />
+                    </Box>
+                  )}
                 </div>
               ))}
             </div>
