@@ -76,7 +76,7 @@ const Row = ({ projectData, highlight, index, previewUrl }) => {
       className={cn({ [style['not-published']]: !published })}
     >
       {/* accession */}
-      <TableCell className={style.center}>
+      <TableCell className={`${style.center} ${style['col-accession']}`}>
         <Link
           to={{
             pathname: `/id/${accession || identifier}/overview`,
@@ -92,7 +92,7 @@ const Row = ({ projectData, highlight, index, previewUrl }) => {
         {mdCount > 1 && <div className={style.small}>{`${mdCount} MDs`}</div>}
       </TableCell>
       {/* name */}
-      <TableCell className={style.center}>
+      <TableCell className={`${style.center} ${style['col-name']}`}>
         <Highlight highlight={highlight}>
           {metadata && metadata.NAME
             ? metadata.NAME
@@ -102,36 +102,37 @@ const Row = ({ projectData, highlight, index, previewUrl }) => {
         </Highlight>
       </TableCell>
       {/* preview */}
-      <TableCell className={style.center}>
+      <TableCell className={`${style.center} ${style['col-preview']}`}>
         <LazyImg
           src={previewUrl}
-          width="110"
-          height="110"
+          className={style['preview-img']}
           loading="lazy"
           alt={`Project preview`}
         />
       </TableCell>
       {/* analyses */}
-      <TableCell className={style.center}>
-        {Object.entries(directions)
-          // Display only available directions
-          .filter(([direction, available]) => available)
-          // For each direction create a clickable button which links to the direction route
-          .map(([direction, available]) => (
-            <Chip
-              key={direction}
-              clickable
-              className={style.analysis}
-              component={Link}
-              to={{
-                pathname: `/id/${accession || identifier}/${direction}`,
-                // We pass the selected project data so there is no need to query it again
-                state: { projectData: project },
-              }}
-              label={NICE_NAMES.get(direction) || direction}
-              variant="outlined"
-            />
-          ))}
+      <TableCell className={`${style.center} ${style['col-analyses']}`}>
+        <div className={style['analyses-container']}>
+          {Object.entries(directions)
+            // Display only available directions
+            .filter(([direction, available]) => available)
+            // For each direction create a clickable button which links to the direction route
+            .map(([direction, available]) => (
+              <Chip
+                key={direction}
+                clickable
+                className={style.analysis}
+                component={Link}
+                to={{
+                  pathname: `/id/${accession || identifier}/${direction}`,
+                  // We pass the selected project data so there is no need to query it again
+                  state: { projectData: project },
+                }}
+                label={NICE_NAMES.get(direction) || direction}
+                variant="outlined"
+              />
+            ))}
+        </div>
       </TableCell>
       {/* date */}
     </TableRow>
