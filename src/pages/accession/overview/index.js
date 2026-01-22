@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 // Import context data
 import { ProjectCtx } from '../../../contexts';
 // Import visual assets
@@ -6,6 +6,9 @@ import {
   CardContent,
   Typography,
   Chip,
+  Tabs,
+  Tab,
+  Box,
 } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -36,6 +39,9 @@ const Overview = React.memo(() => {
     creationDate,
     updateDate
   } = useContext(ProjectCtx);
+
+  // State for protein sequence tabs
+  const [proteinSeqTab, setProteinSeqTab] = useState(0);
 
   // Get the provided theme
   const theme = useTheme();
@@ -326,17 +332,34 @@ const Overview = React.memo(() => {
           <CardContent className={style['card-content']}>
             <div>
               <Typography marginBottom={'10px'} variant="h6" sx={{ fontSize: '1.4rem' }}>Protein Sequences:</Typography>
+              <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                <Tabs 
+                  value={proteinSeqTab} 
+                  onChange={(event, newValue) => setProteinSeqTab(newValue)}
+                  aria-label="protein sequence tabs"
+                >
+                  {metadata.PROTSEQ.map((seq, index) => (
+                    <Tab key={index} label={`Sequence ${index + 1}`} />
+                  ))}
+                </Tabs>
+              </Box>
               {metadata.PROTSEQ.map((seq, index) => (
-                <div 
-                  key={index} 
+                <div
+                  key={index}
+                  role="tabpanel"
+                  hidden={proteinSeqTab !== index}
                   className={style['card-background']}
                 >
-                <Typography variant="h6" style={{ marginBottom: '5px', marginTop: '10px', fontSize: 'inherit' }} sx={{ fontSize: '1.4rem' }}>Sequence {index + 1}:</Typography>
-                  <textarea
-                    readOnly
-                    value={seq}
-                    className={style['textarea']}
-                  />
+                  {proteinSeqTab === index && (
+                    <Box sx={{ pt: 2 }}>
+                      <textarea
+                        readOnly
+                        value={seq}
+                        className={style['textarea']}
+                        rows={Math.ceil(seq.length / 150) + 1}
+                      />
+                    </Box>
+                  )}
                 </div>
               ))}
             </div>
