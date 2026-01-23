@@ -92,10 +92,6 @@ th.center {
   top: 5em;
 }
 
-.minheight {
-  min-height: 12em;
-}
-
 .no-results-text {
   margin: 2ch;
 }
@@ -117,11 +113,6 @@ th.center {
   max-height: 10rem; /* 4 rows of analyses */
   overflow-y: auto;
 }
-
-.reduced-margin {
-  margin: -0.5ch;
-}
-
 .tab {
   transform: translate(0px, -9px);
   width: 100px;
@@ -131,29 +122,3 @@ th.center {
   color: grey;
   font-size: small;
 }
-
-.browser {
-  display: flex;
-  align-items: flex-start; /* align items to the top */
-  padding-left: 0;
-}
-
-.left-bar {
-  width: 25%;
-}
-
-.search {
-  width: 100%;
-  display: flex;
-}
-
-.selector {
-  flex: 1;
-  width: 40%; /* this percent is competing with the 100% of the search bar */
-  margin-left: 1em;
-}
-
-.fillheight {
-  height: 100%;
-}
-
