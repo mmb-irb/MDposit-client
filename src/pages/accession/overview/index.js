@@ -9,6 +9,7 @@ import {
   Tabs,
   Tab,
   Box,
+  Grid,
 } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -392,20 +393,19 @@ const Overview = React.memo(() => {
       )}
       {proteinReferences && proteinReferences.length > 0 && (
         <Card className={style.card}>
-          <CardContent className={style['horizontal-marginned']}>
-            {proteinReferences.map((reference, i) => (
-              <div key={i}>
-                {i !== 0 && (
-                  <hr style={{ color: 'lightGrey' }} />
-                ) /* An horizontal line to separate references */}
-                <CardContent className={style['vertcial-marginned']}>
-                  <div>
+          <CardContent className={style['card-content']}>
+            <Typography variant="h6" sx={{ fontSize: '1.4rem', marginBottom: '10px' }}>UniProt References</Typography>
+            <Grid container spacing={2}>
+              {proteinReferences.map((reference, i) => (
+                <Grid item xs={12} md={proteinReferences.length > 1 ? 6 : 12} key={i}>
+                  <div className={`${style['card-background']} ${style['protein-reference-card']}`}>
                     <div className={style['summary-list']}>
                       <Typography variant="h6" sx={{ fontSize: '1.4rem' }}>{reference.name}</Typography>
                       <div style={{ display: 'flex', alignItems: 'center' }}>
                         <div className={style['decorated-list-item__title']}>Gene</div>
                         <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                        {reference.gene && `${reference.gene}`}</div>
+                          {reference.gene && `${reference.gene}`}
+                        </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center' }}>
                         <div className={style['decorated-list-item__title']}>Organism</div>
@@ -416,24 +416,21 @@ const Overview = React.memo(() => {
                       <div style={{ display: 'flex', alignItems: 'center' }}>
                         <div className={style['decorated-list-item__title']}>UniProt ID</div>
                         <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                          {reference.uniprot&& `UniProt ID: `}
-                        <a
-                          href={
-                            'https://www.uniprot.org/uniprotkb/' +
-                            reference.uniprot
-                          }
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {reference.uniprot}
-                        </a>
+                          {reference.uniprot && `UniProt ID: `}
+                          <a
+                            href={'https://www.uniprot.org/uniprotkb/' + reference.uniprot}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {reference.uniprot}
+                          </a>
                         </div>
                       </div>
                     </div>
                   </div>
-                </CardContent>
-              </div>
-            ))}
+                </Grid>
+              ))}
+            </Grid>
           </CardContent>
         </Card>
       )}
