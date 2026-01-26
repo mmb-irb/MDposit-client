@@ -6,11 +6,11 @@ import {
   ToggleButtonGroup,
 } from '@mui/material';
 import { PieChart } from 'react-minimal-pie-chart';
-import SimpleLegend from '../../../components/simple-legend';
-import { createPalette } from '../../../utils/auxiliar-functions';
+import SimpleLegend from '../../../../components/simple-legend';
+import { createPalette } from '../../../../utils/auxiliar-functions';
 import { useTheme } from '@mui/material/styles';
 import style from './style.module.css';
-import Card from '../../../components/animated-card';
+import Card from '../../../../components/animated-card';
 
 const CompositionOverview = ({ metadata }) => {
   // State for composition chart type

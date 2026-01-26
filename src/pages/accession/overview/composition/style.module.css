@@ -1,0 +1,91 @@
+.card {
+  margin: 1em 0;
+}
+
+.card img {
+  float: right;
+}
+
+.card-content:last-child {
+  padding-bottom: 16px;
+}
+
+/* 'pre-wrap' allows js break lines (\n) */
+.summary-list > div {
+  margin: 1ch 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.decorated-list-item__title {
+  flex-basis: 10vw;
+  flex-shrink: 0;
+  text-align: right;
+  padding-right: .8rem;
+  word-break: keep-all;
+}
+
+.decorated-list-item__content {
+  flex-grow: 1;
+  padding-left: .7rem;
+  padding-top: .1rem;
+  padding-bottom: .1rem;
+}
+
+.composition-container {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.composition-stats {
+  flex: 1;
+}
+
+.composition-chart {
+  flex: 2;
+  min-width: 300px;
+  margin-right: 10em;
+  align-self: center;
+}
+
+.chart-title {
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.chart-bar-container {
+  margin-bottom: 0.8rem;
+}
+
+.chart-bar-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.3rem;
+  font-size: 0.9rem;
+}
+
+.chart-bar-percentage {
+  font-weight: 500;
+}
+
+.chart-bar-background {
+  width: 100%;
+  height: 24px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.chart-bar-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 0.5rem;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
