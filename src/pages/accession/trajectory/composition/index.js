@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   CardContent,
   Typography,
@@ -11,10 +11,12 @@ import { createPalette } from '../../../../utils/auxiliar-functions';
 import { useTheme } from '@mui/material/styles';
 import style from './style.module.css';
 import Card from '../../../../components/animated-card';
+import { ProjectCtx } from '../../../../contexts';
 
-const CompositionOverview = ({ metadata }) => {
+const CompositionOverview = () => {
   // State for composition chart type
   const [compositionChartType, setCompositionChartType] = useState('pie');
+  const { metadata } = useContext(ProjectCtx);
 
   // Get the provided theme
   const theme = useTheme();

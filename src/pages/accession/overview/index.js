@@ -21,7 +21,6 @@ import { prettyEnumerate } from '../../../utils/pretty-enumerate';
 // Import auxiliar components
 import Card from '../../../components/animated-card';
 // Import other components which are part of the overview
-import CompositionOverview from './composition';
 import LigandsOverview from './ligands';
 import PdbsOverview from './pdbs';
 // Import constants
@@ -188,7 +187,6 @@ const Overview = React.memo(() => {
           </CardContent>
         </Card>
       )}
-      <CompositionOverview metadata={metadata} />
       {metadata && Array.isArray(metadata.NUCLSEQ) && metadata.NUCLSEQ.length > 0 && (
         <Card className={style.card}>
           <CardContent className={style['card-content']}>

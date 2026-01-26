@@ -14,6 +14,7 @@ import ViewerWithControls from '../../../components/viewer-with-controls';
 import TrajectoryMetadata from './metadata';
 // Component for the chains analysis
 import ChainsAnalysis from './chains';
+import CompositionOverview from '../trajectory/composition';
 
 // CSS style
 import style from './style.module.css';
@@ -64,6 +65,7 @@ const Trajectory = () => {
           </details>
         </CardContent>
       </Card>
+      <CompositionOverview />
       <Card className={style.card} ref={nightingaleRef}>
         {isNightingaleVisible ? (
           <CardContent>
