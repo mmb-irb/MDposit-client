@@ -120,6 +120,7 @@
   flex: 2;
   min-width: 300px;
   margin-right: 10em;
+  align-self: center;
 }
 
 .chart-title {

@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useMemo } from 'react';
 // Import context data
 import { ProjectCtx } from '../../../contexts';
 // Import visual assets
@@ -21,6 +21,7 @@ import { prettyEnumerate } from '../../../utils/pretty-enumerate';
 // Import auxiliar components
 import Card from '../../../components/animated-card';
 // Import other components which are part of the overview
+import CompositionOverview from './composition';
 import LigandsOverview from './ligands';
 import PdbsOverview from './pdbs';
 // Import constants
@@ -187,147 +188,7 @@ const Overview = React.memo(() => {
           </CardContent>
         </Card>
       )}
-      {metadata && (() => {
-        const compositionFields = [
-          { key: 'SYSTATS', label: 'Total System Atoms', showPercentage: false },
-          { key: 'SYSTRES', label: 'Total System Residues', showPercentage: false },
-          { key: 'PROTATS', label: 'Protein Atoms', showPercentage: true },
-          { key: 'PROTRES', label: 'Protein Residues', showPercentage: false },
-          { key: 'DNAATS', label: 'DNA Atoms', showPercentage: true },
-          { key: 'DNARES', label: 'DNA Residues', showPercentage: false },
-          { key: 'RNAATS', label: 'RNA Atoms', showPercentage: true },
-          { key: 'RNARES', label: 'RNA Residues', showPercentage: false },
-          { key: 'LIPIATS', label: 'Lipid Atoms', showPercentage: true },
-          { key: 'LIPIRES', label: 'Lipid Residues', showPercentage: false },
-          { key: 'CARBATS', label: 'Carbohydrate Atoms', showPercentage: true },
-          { key: 'CARBRES', label: 'Carbohydrate Residues', showPercentage: false },
-          { key: 'SOLVATS', label: 'Solvent Atoms', showPercentage: true },
-          { key: 'SOLVRES', label: 'Solvent Residues', showPercentage: false },
-          { key: 'COUNCAT', label: 'Counter Cations', showPercentage: false },
-          { key: 'COUNANI', label: 'Counter Anions', showPercentage: false },
-          { key: 'COUNION', label: 'Total Counter Ions', showPercentage: true }
-        ];
-        const hasData = compositionFields.some(field => metadata[field.key] !== undefined && metadata[field.key] > 0);
-        return hasData;
-      })() && (
-        <Card className={style.card}>
-          <CardContent className={style['card-content']}>
-            <Typography variant="h6" sx={{ fontSize: '1.4rem', marginBottom: '10px' }}>System Composition</Typography>
-            <div className={style['composition-container']}>
-              <div className={`${style['summary-list']} ${style['composition-stats']}`}>
-                {(() => {
-                  const compositionFields = [
-                    { key: 'SYSTATS', label: 'Total System Atoms', showPercentage: false },
-                    { key: 'SYSTRES', label: 'Total System Residues', showPercentage: false },
-                    { key: 'PROTATS', label: 'Protein Atoms', showPercentage: true},
-                    { key: 'PROTRES', label: 'Protein Residues', showPercentage: false },
-                    { key: 'DNAATS', label: 'DNA Atoms', showPercentage: true},
-                    { key: 'DNARES', label: 'DNA Residues', showPercentage: false },
-                    { key: 'RNAATS', label: 'RNA Atoms', showPercentage: true},
-                    { key: 'RNARES', label: 'RNA Residues', showPercentage: false },
-                    { key: 'LIPIATS', label: 'Lipid Atoms', showPercentage: true },
-                    { key: 'LIPIRES', label: 'Lipid Residues', showPercentage: false },
-                    { key: 'CARBATS', label: 'Carbohydrate Atoms', showPercentage: true },
-                    { key: 'CARBRES', label: 'Carbohydrate Residues', showPercentage: false },
-                    { key: 'SOLVATS', label: 'Solvent Atoms', showPercentage: true },
-                    { key: 'SOLVRES', label: 'Solvent Residues', showPercentage: false },
-                    { key: 'COUNCAT', label: 'Counter Cations', showPercentage: false },
-                    { key: 'COUNANI', label: 'Counter Anions', showPercentage: false },
-                    { key: 'NOCNION', label: 'Non Counter Ions', showPercentage: false },
-                    { key: 'OTHRATS', label: 'Other Atoms', showPercentage: false }
-                  ];
-                  
-                  const totalAtoms = metadata.SYSTATS || 0;
-                  
-                  return compositionFields
-                    .filter(field => metadata[field.key] !== undefined && metadata[field.key] > 0)
-                    .map((field, index) => {
-                      const value = metadata[field.key];
-                      const percentage = field.showPercentage && totalAtoms > 0 
-                        ? ((value / totalAtoms) * 100).toFixed(2)
-                        : null;
-                      
-                      return (
-                        <div key={index} style={{ display: 'flex', alignItems: 'center' }}>
-                          <div className={style['decorated-list-item__title']}>{field.label}</div>
-                          <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                            {value.toLocaleString()}
-                            {percentage && ` (${percentage}%)`}
-                          </div>
-                        </div>
-                      );
-                    });
-                })()}
-              </div>
-              <div className={style['composition-chart']}>
-                {(() => {
-                    const compositionFields = [
-                    { key: 'PROTATS', label: 'Protein'},
-                    { key: 'DNAATS', label: 'DNA'},
-                    { key: 'RNAATS', label: 'RNA' },
-                    { key: 'LIPIATS', label: 'Lipid' },
-                    { key: 'CARBATS', label: 'Carbohydrate' },
-                    { key: 'SOLVATS', label: 'Solvent' },
-                    { key: 'OTHRATS', label: 'Other Atoms' }
-                    ];
-                    
-                    const totalAtoms = metadata.SYSTATS || 0;
-                    
-                    // Calculate total ions
-                    const totalIons = (metadata.COUNCAT || 0) + (metadata.COUNANI || 0) + (metadata.NOCNION || 0);
-                    
-                    const chartData = compositionFields
-                    .filter(field => metadata[field.key] !== undefined && metadata[field.key] > 0)
-                    .map(field => ({
-                      ...field,
-                      value: metadata[field.key],
-                      percentage: totalAtoms > 0 ? ((metadata[field.key] / totalAtoms) * 100).toFixed(2) : 0
-                    }));
-                    
-                    // Add ions to chart data if total is greater than 0
-                    if (totalIons > 0) {
-                    chartData.push({
-                      key: 'IONS',
-                      label: 'Ions',
-                      value: totalIons,
-                      percentage: totalAtoms > 0 ? ((totalIons / totalAtoms) * 100).toFixed(2) : 0
-                    });
-                    }
-                    
-                    if (chartData.length === 0) return null;
-                  
-                  return (
-                    <div>
-                      <Typography variant="subtitle1" className={style['chart-title']}>
-                        Composition by Atoms
-                      </Typography>
-                      {chartData.map((item, index) => (
-                        <div key={index} className={style['chart-bar-container']}>
-                          <div className={style['chart-bar-header']}>
-                            <span>{item.label}</span>
-                            <span className={style['chart-bar-percentage']}>{item.percentage}%</span>
-                          </div>
-                          <div className={style['chart-bar-background']}>
-                            <div 
-                              className={style['chart-bar-fill']}
-                              style={{ 
-                                width: `${item.percentage}%`, 
-                                backgroundColor: secondaryColor.dark
-                              }}
-                            >
-                              {`${item.value.toLocaleString()}`}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })()}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <CompositionOverview metadata={metadata} />
       {metadata && Array.isArray(metadata.NUCLSEQ) && metadata.NUCLSEQ.length > 0 && (
         <Card className={style.card}>
           <CardContent className={style['card-content']}>
