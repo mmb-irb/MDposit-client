@@ -219,21 +219,22 @@ const Overview = React.memo(() => {
                   const compositionFields = [
                     { key: 'SYSTATS', label: 'Total System Atoms', showPercentage: false },
                     { key: 'SYSTRES', label: 'Total System Residues', showPercentage: false },
-                    { key: 'PROTATS', label: 'Protein Atoms', showPercentage: true, color: '#4CAF50' },
+                    { key: 'PROTATS', label: 'Protein Atoms', showPercentage: true},
                     { key: 'PROTRES', label: 'Protein Residues', showPercentage: false },
-                    { key: 'DNAATS', label: 'DNA Atoms', showPercentage: true, color: '#2196F3' },
+                    { key: 'DNAATS', label: 'DNA Atoms', showPercentage: true},
                     { key: 'DNARES', label: 'DNA Residues', showPercentage: false },
-                    { key: 'RNAATS', label: 'RNA Atoms', showPercentage: true, color: '#E91E63' },
+                    { key: 'RNAATS', label: 'RNA Atoms', showPercentage: true},
                     { key: 'RNARES', label: 'RNA Residues', showPercentage: false },
-                    { key: 'LIPIATS', label: 'Lipid Atoms', showPercentage: true, color: '#FF9800' },
+                    { key: 'LIPIATS', label: 'Lipid Atoms', showPercentage: true },
                     { key: 'LIPIRES', label: 'Lipid Residues', showPercentage: false },
-                    { key: 'CARBATS', label: 'Carbohydrate Atoms', showPercentage: true, color: '#9C27B0' },
+                    { key: 'CARBATS', label: 'Carbohydrate Atoms', showPercentage: true },
                     { key: 'CARBRES', label: 'Carbohydrate Residues', showPercentage: false },
-                    { key: 'SOLVATS', label: 'Solvent Atoms', showPercentage: true, color: '#00BCD4' },
+                    { key: 'SOLVATS', label: 'Solvent Atoms', showPercentage: true },
                     { key: 'SOLVRES', label: 'Solvent Residues', showPercentage: false },
                     { key: 'COUNCAT', label: 'Counter Cations', showPercentage: false },
                     { key: 'COUNANI', label: 'Counter Anions', showPercentage: false },
-                    { key: 'COUNION', label: 'Total Counter Ions', showPercentage: true, color: '#9E9E9E' }
+                    { key: 'NOCNION', label: 'Non Counter Ions', showPercentage: false },
+                    { key: 'OTHRATS', label: 'Other Atoms', showPercentage: false }
                   ];
                   
                   const totalAtoms = metadata.SYSTATS || 0;
@@ -260,26 +261,40 @@ const Overview = React.memo(() => {
               </div>
               <div className={style['composition-chart']}>
                 {(() => {
-                  const compositionFields = [
+                    const compositionFields = [
                     { key: 'PROTATS', label: 'Protein'},
                     { key: 'DNAATS', label: 'DNA'},
                     { key: 'RNAATS', label: 'RNA' },
                     { key: 'LIPIATS', label: 'Lipid' },
                     { key: 'CARBATS', label: 'Carbohydrate' },
                     { key: 'SOLVATS', label: 'Solvent' },
-                    { key: 'COUNION', label: 'Counter Ions' }
-                  ];
-                  
-                  const totalAtoms = metadata.SYSTATS || 0;
-                  const chartData = compositionFields
+                    { key: 'OTHRATS', label: 'Other Atoms' }
+                    ];
+                    
+                    const totalAtoms = metadata.SYSTATS || 0;
+                    
+                    // Calculate total ions
+                    const totalIons = (metadata.COUNCAT || 0) + (metadata.COUNANI || 0) + (metadata.NOCNION || 0);
+                    
+                    const chartData = compositionFields
                     .filter(field => metadata[field.key] !== undefined && metadata[field.key] > 0)
                     .map(field => ({
                       ...field,
                       value: metadata[field.key],
                       percentage: totalAtoms > 0 ? ((metadata[field.key] / totalAtoms) * 100).toFixed(2) : 0
                     }));
-                  
-                  if (chartData.length === 0) return null;
+                    
+                    // Add ions to chart data if total is greater than 0
+                    if (totalIons > 0) {
+                    chartData.push({
+                      key: 'IONS',
+                      label: 'Ions',
+                      value: totalIons,
+                      percentage: totalAtoms > 0 ? ((totalIons / totalAtoms) * 100).toFixed(2) : 0
+                    });
+                    }
+                    
+                    if (chartData.length === 0) return null;
                   
                   return (
                     <div>
