@@ -296,7 +296,7 @@ const Clusters = () => {
       </Card>
       <ViewerSpawner
         // Set the new viewer or null if there is not a proper "selected" value
-        newViewer={selectedFrame
+        newViewer={selectedFrame !== null
           ? { requestedFrame: selectedFrame }
           : null
         }

@@ -434,7 +434,7 @@ const DihedralEnergies = () => {
         </Card>
         <ViewerSpawner
             // Set the new viewer or null if there is not a proper "selectedResidueIndices" value
-            newViewer={selectedX
+            newViewer={selectedX !== null
             ? {
                 selectedResidueIndices: [ selectedData[selectedX].residue.index ],
                 representationsState: [ representations, setRepresentations ],
