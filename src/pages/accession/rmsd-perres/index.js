@@ -170,7 +170,7 @@ const RmsdPerres = () => {
     });
 
     // Get the number of frames in the analysis from the first residue data
-    const firstResidueData = rmsdpr[0];
+    const firstResidueData = rmsdpr.find(residue => residue !== null);
     const analysisFrameCount = firstResidueData.length;
 
     // Get the total time length
