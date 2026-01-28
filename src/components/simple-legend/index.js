@@ -7,11 +7,23 @@ import React from 'react';
 //      color: 'black',
 //    }
 //  ]
+
 const SimpleLegend = ({ entries, className }) => {
   return (
     <div className={className}>
-      {entries.map(({ label, color }, i) => (
-        <div key={i} style={{ fontSize: '20px' }}>
+      {entries.map(({ label, color, onClick, hidden }, i) => (
+        <div
+          key={i}
+          style={{
+            fontSize: '20px',
+            cursor: onClick ? 'pointer' : 'default',
+            opacity: hidden ? 0.5 : 1,
+            userSelect: 'none',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+          onClick={onClick}
+        >
           <span
             style={{
               display: 'inline-block',
@@ -19,7 +31,9 @@ const SimpleLegend = ({ entries, className }) => {
               width: '1em',
               backgroundColor: color,
               marginRight: '0.5em',
-              fontSize: '20px'
+              fontSize: '20px',
+              border: hidden ? '2px solid #888' : 'none',
+              filter: hidden ? 'grayscale(80%)' : 'none',
             }}
           />
           {label}

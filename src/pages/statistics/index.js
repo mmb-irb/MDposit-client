@@ -17,8 +17,7 @@ import useAPI from '../../hooks/use-api';
 import style from './style.module.css';
 import { useTheme } from '@mui/material/styles';
 
-import { PieChart } from 'react-minimal-pie-chart';
-import SimpleLegend from '../../components/simple-legend';
+import PieChart from '../../components/pie-chart';
 import Histogram from '../../components/histogram';
 import TimelineChart from './timeline';
 
@@ -174,29 +173,23 @@ export default () => {
         <br />
         {HOST_CONFIG.optionsField && <>
             <Typography variant="h6">{`Projects per ${HOST_CONFIG.optionsLabel}`}</Typography>
-            <div className={style.horizontal}>
-                <PieChart
-                    data={optionsPieChartData}
-                    //label={({ dataEntry }) => dataEntry.value}
-                    className={style.piechart}
-                />
-                {optionsLegendData && (
-                    <SimpleLegend entries={optionsLegendData} className={style.legend} />
-                )}
-            </div>
+            <PieChart
+                data={optionsPieChartData}
+                legendData={optionsLegendData}
+                className={style.horizontal}
+                pieClassName={style.piechart}
+                legendClassName={style.legend}
+            />
         </>}
         {methodsPieChartData && <>
             <Typography variant="h6">Projects per non-equilibrium MD method</Typography>
-            <div className={style.horizontal}>
-                <PieChart
-                    data={methodsPieChartData}
-                    //label={({ dataEntry }) => dataEntry.value}
-                    className={style.piechart}
-                />
-                {methodsLegendData && (
-                    <SimpleLegend entries={methodsLegendData} className={style.legend} />
-                )}
-            </div>
+            <PieChart
+                data={methodsPieChartData}
+                legendData={methodsLegendData}
+                className={style.horizontal}
+                pieClassName={style.piechart}
+                legendClassName={style.legend}
+            />
         </>}
         <div className={style.histograms} >
             <div className={style.half}>

@@ -13,7 +13,7 @@ const TimelineChart = ({ data, width = 800, height = 400, className }) => {
   const theme = useTheme();
   const primaryColor = theme.palette.primary.main;
   const secondaryColor = theme.palette.primary.dark;
-
+  console.log("Theme primary color:", data);
   useEffect(() => {
     if (!data || !data.length) return;
 

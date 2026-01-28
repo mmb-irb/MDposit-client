@@ -1,0 +1,15 @@
+.horizontal {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 2rem;
+}
+
+.piechart {
+  width: 220px;
+  height: 220px;
+}
+
+.legend {
+  min-width: 200px;
+}
