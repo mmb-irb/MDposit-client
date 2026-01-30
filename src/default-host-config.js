@@ -35,7 +35,7 @@ import defaultQueryFields from "src/utils/constants/query-fields";
 // options - Additional flags which may be used by the cliente
 
 // Get the requesting URL domain
-const HOST = 'mdposit-dev.mddbr.eu';
+const HOST = window.location.hostname;
 
 // Set default values for every host config fields
 // These values are used to fill missing values
