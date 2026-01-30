@@ -23,20 +23,20 @@ import {
 import style from './style.module.css';
 
 // Constants
-import { BASE_PATH_PROJECTS } from '../../../utils/constants';
+import { BASE_PATH_PROJECTS, HOST_CONFIG } from '../../../utils/constants';
+import { buildProjectionQuery } from '../../../utils/auxiliar-functions';
 const SEARCH_DELAY = 500; // Half a second delay, same as in search component
 
 // Hooks
 import useAPI from '../../../hooks/use-api'; // API acces
 import Loading from '../../../components/loading'; // Displays an animated "loading" circle
 
-// Get the host congifuration
-import { HOST_CONFIG } from "../../../utils/constants";
 
-// Get the avilable search fields
+
+// Get the available search fields
 const queryFields = HOST_CONFIG.queryFields;
 const optionsField = HOST_CONFIG.optionsField;
-const availableFields = Object.values(queryFields).reduce((acc, curr) => acc.concat(curr), []);
+const availableFields = HOST_CONFIG.availableFields;
 
 // Escape all regex sensible characters
 const escapeRegExp = input => {
@@ -278,8 +278,7 @@ const CustomSearch = () => {
   }, [query]);
 
   // Query all the available fields using the 'options' endpoint
-  const projectionStrings = availableFields.filter(field => field.options).map(field => 'projection=' + field.path);
-  const projectionQuery = projectionStrings.join('&');
+  const projectionQuery = buildProjectionQuery(availableFields);
 
   // Build the API URL for the options requests
   // DANI: Se piden todas las options de golpe, lo cual no es muy eficiente y la API tarda 3 segundos aprox
