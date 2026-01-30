@@ -6,13 +6,17 @@
 }
 
 .histograms {
-  margin-top: 20px;
+  margin: 20px 0;
   display : inline-flex;
   width: 100%;
 }
 
-.half {
+.histogram {
   width: 50%;
+}
+
+.histogram text {
+  font-size: 0.8em;
 }
 
 .timelineChart {

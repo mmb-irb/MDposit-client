@@ -54,7 +54,7 @@ const Histogram = forwardRef(({
   color = '#69b3a2',
   // Set the onHover function
   onHover,
-  binMethod = 'log', // log, sturges, root, manual
+  binMethod = 'log', // log, sturges, root, manual, linear
   // Manually set number of bins (optional)
   binCount = 10,
   // Force a classname for the overall component element
@@ -82,7 +82,7 @@ const Histogram = forwardRef(({
     const graph = select(containerRef.current).append('svg');
 
     // Set axes
-    const x = scaleLog().base(10);
+    const x = binMethod === 'linear' ? scaleLinear() : scaleLog().base(10);;
     const xAxis = graph.append("g");
     const y = scaleLinear();
     const yAxis = graph.append("g");
@@ -127,12 +127,8 @@ const Histogram = forwardRef(({
         });
 
         // Get minimum and maximum scales
-        const minScale = Object.keys(scaleCounts).reduce((cv, nv) => {
-          return Math.min(cv, nv);
-        }, Infinity);
-        const maxScale = Object.keys(scaleCounts).reduce((cv, nv) => {
-          return Math.max(cv, nv);
-        }, -Infinity);
+        const minScale = Object.keys(scaleCounts).reduce((cv, nv) => Math.min(cv, nv), Infinity);
+        const maxScale = Object.keys(scaleCounts).reduce((cv, nv) => Math.max(cv, nv), -Infinity);
         // Create the xTicks to be used as x range as well
         // Note that we add 1 to the last scale, so we can plot a histogram bar between the actual last scale and the next
         const xTicks = [];
@@ -145,9 +141,7 @@ const Histogram = forwardRef(({
         });
 
         // Find the maximum count among scaleCounts
-        const maxCount = Object.values(scaleCounts).reduce((cv, nv) => {
-          return Math.max(cv, nv);
-        }, -Infinity);
+        const maxCount = Object.values(scaleCounts).reduce((cv, nv) => Math.max(cv, nv), -Infinity);
 
         // Set axes
         x.domain([xTicks[0], xTicks[xTicks.length - 1]]);
@@ -170,16 +164,34 @@ const Histogram = forwardRef(({
 
         // Force a redraw
         updateSizeRef.current();
-      }
-      else {
+      } else if (binMethod === 'linear') {
+        // Linear binning: one bin per integer unit
+        const values = Object.keys(data).map(Number);
+        const minValue = Math.min(...values);
+        const maxValue = Math.max(...values);
+        // Create bins for every integer between min and max (inclusive)
+        const columnsData = [];
+        for (let i = minValue; i <= maxValue; i++) {
+          columnsData.push({ x0: i, x1: i + 1, length: data[i] || 0 });
+        }
+        const maxCount = Math.max(...columnsData.map(d => d.length));
+        // Use linear scale for x axis
+        x.domain([minValue, maxValue + 1]);
+        y.domain([0, maxCount]);
+        const newColumnsData = graph.selectAll("rect").data(columnsData);
+        newColumnsData.exit().remove();
+        newColumnsData.enter().append('rect');
+        graph.selectAll("rect")
+          .attr("fill", color)
+          .append("svg:title")
+          .text(onHover);
+        updateSizeRef.current();
+      } else {
         if (binMethod === 'sturges' || binMethod === 'root') {
-          const totalDataPoints = Object.values(data).reduce((cv, nv) => {
-            return cv + nv;
-          }, 0);
+          const totalDataPoints = Object.values(data).reduce((cv, nv) => cv + nv, 0);
           if (binMethod === 'sturges') {
             binCount = Math.ceil(Math.log2(totalDataPoints) + 1);
-          }
-          else if (binMethod === 'root') {
+          } else if (binMethod === 'root') {
             binCount = Math.ceil(Math.sqrt(totalDataPoints));
           }
         }
@@ -282,20 +294,27 @@ const Histogram = forwardRef(({
       const columnsCount = columns.nodes().length;
       // Set axis positions
       x.range([margin.left, margin.left + actualWidth]);
+      // Custom tick format for linear vs log
+      let tickFormatFn;
+      if (binMethod === 'linear') {
+        // Only show divisibles of 5 and 1
+        tickFormatFn = d => (d === 1 || (Number.isInteger(d) && d % 5 === 0)) ? d : '';
+      } else {
+        tickFormatFn = d => {
+          if (d === 0) return '0';
+          const exp = Math.log10(d);
+          if (Number.isInteger(exp)) {
+            if (exp === 0) return '1';
+            if (exp === 1) return '10';
+            return `10${formatExponent(exp)}`;
+          }
+          return '';
+        };
+      }
       xAxis.attr("transform", "translate(0," + (margin.top + actualHeight) + ")")
         .call(axisBottom(x)
           .ticks(columnsCount)
-          .tickFormat(d => {
-            // Convert to superscript exponent notation
-            if (d === 0) return '0';
-            const exp = Math.log10(d);
-            if (Number.isInteger(exp)) {
-              if (exp === 0) return '1';
-              if (exp === 1) return '10';
-              return `10${formatExponent(exp)}`;
-            }
-            return '';
-          })
+          .tickFormat(tickFormatFn)
         )
         .style("font-size", axisNumbersFontSize);
       y.range([margin.top + actualHeight, margin.top]);
