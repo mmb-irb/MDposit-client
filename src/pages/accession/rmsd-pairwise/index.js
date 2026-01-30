@@ -172,6 +172,8 @@ const RmsdPairwise = () => {
   useMemo(() => {
     // If there are no components then clear the representations and stop here
     if (!components) return setRepresentations(null);
+    // Same with the default representations
+    if (!defaultRepresentations) return setRepresentations(null);
     // Get the selected interaction
     const interaction = interactions[selectedInteraction];
     // Get also the number of the interacting agents
@@ -305,7 +307,6 @@ const RmsdPairwise = () => {
 
   // Check if anything is still beeing loaded
   const anyLoading = isIndexLoading || isAnalysisLoading || isProjectLoading;
-  console.log(`index ${isIndexLoading}, analysis ${isAnalysisLoading}, project ${isProjectLoading}`);
 
   // Render loading or error messages according with the API response
   // Render loading or error messages according with the API response
