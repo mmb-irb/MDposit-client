@@ -26,6 +26,7 @@ workbox.routing.registerNavigationRoute(
       /\/optimade\//, // avoid responding to /optimade, because it should be outside of the scope of that service worker
       /\/vre_lite\//, /\/vre\//, // exclude the VRE from the scope of the service worker
       /\/minio\//, // exclude MinIO from the scope of the service worker
+      /\/auth\//, /\/vault\//, // These two were requested by Josep Lluís Gelpi
     ],
   },
 );
