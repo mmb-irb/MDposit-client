@@ -217,6 +217,10 @@ export class Project {
         const references = this.references;
         return useMemo(() => references && references.filter(ref => ref.ref_type === 'inchikeys'), [references]);
     }
+    get collectionReferences () {
+        const references = this.references;
+        return useMemo(() => references && references.filter(ref => ref.ref_type === 'collections'), [references]);
+    }
 
     get membraneMapping () {
         const response = this._apiQuery('memmap');

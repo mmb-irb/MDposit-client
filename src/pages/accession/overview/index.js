@@ -1,4 +1,4 @@
-import React, { useContext, useState, useMemo } from 'react';
+import React, { useContext, useState } from 'react';
 // Import context data
 import { ProjectCtx } from '../../../contexts';
 // Import visual assets
@@ -10,16 +10,19 @@ import {
   Tab,
   Box,
   Grid,
+  Button,
 } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faExclamationTriangle,
+  faClipboardList,
 } from '@fortawesome/free-solid-svg-icons';
 import { useTheme } from '@mui/material/styles';
 import style from './style.module.css';
 import { prettyEnumerate } from '../../../utils/pretty-enumerate';
 // Import auxiliar components
 import Card from '../../../components/animated-card';
+import LazyImg from 'src/components/lazy-img';
 // Import other components which are part of the overview
 import LigandsOverview from './ligands';
 import PdbsOverview from './pdbs';
@@ -35,6 +38,7 @@ const Overview = React.memo(() => {
     published,
     metadata,
     proteinReferences,
+    collectionReferences,
     mdCount,
     node,
     creationDate,
@@ -85,6 +89,10 @@ const Overview = React.memo(() => {
     // Finally, join everything into a single string
     citation = compiled;
   }
+
+  // Set if the collections section is to be displayed
+  // If the client is focused in one collection only then there is no need
+  const showCollections = !HOST_CONFIG.singleCollection;
 
   return (
     <>
@@ -187,6 +195,43 @@ const Overview = React.memo(() => {
           </CardContent>
         </Card>
       )}
+      {showCollections && collectionReferences && collectionReferences.length > 0 &&
+        <Card className={style.card}>
+          <CardContent className={style['card-content']}>
+            {collectionReferences.map((collection, index) => (
+              <div key={index} style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }} >
+                <div style={{ width: '70%' }}>
+                  <Typography marginBottom={'10px'} variant="h6" sx={{ fontSize: '1.4rem' }}>
+                    {collection.name}
+                  </Typography>
+                  <div>{collection.description}</div>
+                  <Button component="a" variant="contained" size="small"
+                    href={`/#/collection/${collection.id}`} target="_blank" rel="noreferrer noopener"
+                    sx={{
+                      marginTop: '1em',
+                      backgroundColor: secondaryColor.dark,
+                      border: `1px solid ${secondaryColor.dark}`,
+                      color: '#000',
+                      '&:hover': {
+                          backgroundColor: secondaryColor.main,
+                          border: `1px solid ${secondaryColor.main}`,
+                      }
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faClipboardList} size='lg' style={{ marginRight: '0.5em' }}/>
+                    See collection
+                  </Button>
+                </div>
+                <LazyImg
+                  src={collection.image} loading="lazy" alt={`Collection logo`}
+                  style={{ maxWidth: '30%', height: 'auto' }}
+                />
+                {index !== 0 && <hr style={{ color: 'lightGrey' }}/>}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      }
       {metadata && Array.isArray(metadata.NUCLSEQ) && metadata.NUCLSEQ.length > 0 && (
         <Card className={style.card}>
           <CardContent className={style['card-content']}>

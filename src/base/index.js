@@ -50,6 +50,9 @@ const Contact = lazy(() =>
 const Accession = lazy(() =>
   import(/* webpackChunkName: 'accession' */ '../pages/accession'),
 );
+const Collection = lazy(() =>
+  import(/* webpackChunkName: 'collection' */ '../pages/collection'),
+);
 const Pointer = lazy(() =>
   import(/* webpackChunkName: 'pointer' */ '../pages/pointer'),
 );
@@ -168,6 +171,14 @@ const Base = () => {
                   }
                 />
               </Route>
+            </Route>
+            <Route path="collection" >
+              <Route index element={"Missing collection id"}/>
+              <Route path=":id" element={
+                <Suspense fallback={null}>
+                  <Collection />
+                </Suspense>
+              }/>
             </Route>
             <Route
               path="*"

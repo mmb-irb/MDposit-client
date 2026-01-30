@@ -15,6 +15,7 @@ import useAPI from '../../hooks/use-api'; // API acces
 import ErrorBoundary from '../../components/error-boundary'; // Catch errors in React components
 import Loading from '../../components/loading'; // Displays an animated "loading" circle
 import Info from '../../components/info';
+import LazyImg from 'src/components/lazy-img';
 
 import { docs } from '../help/documentation';
 
@@ -28,6 +29,7 @@ import { Project } from '../../utils/project-manager';
 import {
   BASE_PATH_PROJECTS,
   NICE_NAMES,
+  HOST_CONFIG
 } from '../../utils/constants';
 
 // Styling
@@ -40,7 +42,13 @@ import ProjectMenu from '../../components/project-menu';
 import DataViewer from './data-viewer';
 
 // The AccessionHeader component
-const AccessionHeader = ({ project, accession, accessionAndMdNumber, page, primaryDarkColor }) => {
+const AccessionHeader = ({ page, primaryDarkColor }) => {
+  // Load the context project data
+  const {
+    accession, accessionAndMdNumber,
+    mdCount, mdIndex, mds,
+    metadata, collectionReferences,
+  } = useContext(ProjectCtx);
   // Get the location and the history
   const history = useNavigate();
   const location = useLocation();
@@ -67,7 +75,19 @@ const AccessionHeader = ({ project, accession, accessionAndMdNumber, page, prima
   );
 
   // Check if there are multiple MDs
-  const multipleMDs = project.mdCount > 1;
+  const multipleMDs = mdCount > 1;
+
+  // Set if the collections section is to be displayed
+  // If the client is focused in one collection only then there is no need
+  const showCollections = !HOST_CONFIG.singleCollection;
+
+  // Get the collection reference for the first collection id in the metadata
+  // First collection is consider the "main representative" collection
+  const mainCollection = showCollections && metadata.COLLECTIONS && metadata.COLLECTIONS[0];
+  const mainCollectionReference = mainCollection && collectionReferences &&
+    collectionReferences.find(collectionReference => collectionReference.id === mainCollection);
+  const mainCollectionHoverText = mainCollectionReference && `The current simulation belongs to the ${
+    mainCollectionReference.name} collection.\n` + mainCollectionReference.description;
 
   return (
     <span className={style.container}>
@@ -79,7 +99,7 @@ const AccessionHeader = ({ project, accession, accessionAndMdNumber, page, prima
         {multipleMDs &&
           <Select
             variant="standard"
-            value={project.mdIndex}
+            value={mdIndex}
             onChange={event => {
               const newMdNumber = event.target.value + 1;
               history(`/id/${accession}.${newMdNumber}/${page}`);
@@ -87,7 +107,7 @@ const AccessionHeader = ({ project, accession, accessionAndMdNumber, page, prima
             className={style.selector}
             >
             { // Sort MDs by name while using the index from the API
-            project.mds
+            mds
               .map((md, i) => ({ md, index: i }))
               .filter(({ md }) => !md.endsWith('(removed)'))
               .sort((a, b) => a.md.localeCompare(b.md))
@@ -96,23 +116,29 @@ const AccessionHeader = ({ project, accession, accessionAndMdNumber, page, prima
                 {md}
               </MenuItem>
               ))}
-            </Select>
-            }
-            {multipleMDs && <ChevronRightIcon fontSize='large' sx={{color: primaryDarkColor}}/>}
-            {`${NICE_NAMES.get(page) || page} page ${isData ? ' (data)' : ''}`}
-            {!isData && doc && doc.page && (
-            <Info tooltip={tooltip} className={style.info} sx={{color: primaryDarkColor}}/>
-            )}
-            </Typography>
-            {/* Render a button which links to the API */}
+          </Select>
+        }
+        {multipleMDs && <ChevronRightIcon fontSize='large' sx={{color: primaryDarkColor}}/>}
+        {`${NICE_NAMES.get(page) || page} page ${isData ? ' (data)' : ''}`}
+        {!isData && doc && doc.page && (
+          <Info tooltip={tooltip} className={style.info} sx={{color: primaryDarkColor}}/>
+        )}
+      </Typography>
+      {/* Main collection image */}
+      {mainCollectionReference && <a href={`/#/collection/${mainCollection}`} target="_blank" rel="noreferrer noopener">
+        <LazyImg
+          src={mainCollectionReference.image} loading="lazy" alt={`Collection logo`}
+          title={mainCollectionHoverText}
+          style={{ width: 'auto', maxHeight: '2.6em' }}
+        />
+      </a>}
+      {/* Render a button which links to the API */}
       {!isData && <Button
         component={Link}
         target="_blank"
         to={`/id/${accessionAndMdNumber}/${page}/data`}
         className={style['link-to-api']}
-        sx={{
-          color: primaryDarkColor,
-        }}
+        sx={{ color: primaryDarkColor }}
       >
         <FontAwesomeIcon icon={faBook} />
         &nbsp;&nbsp;data in this page
@@ -214,10 +240,8 @@ const Accession = () => {
   const theme = useTheme();
   const primaryDarkColor = theme.palette.primary.dark;
   // Get the project accession according to the URL
-  const { accession: accessionAndMdNumber, page } = useParams();
   // Get the actual page where the user is going according to the URL
-  const accessionSplits = accessionAndMdNumber.split('.');
-  const accession = accessionSplits[0];
+  const { accession: accessionAndMdNumber, page } = useParams();
   // Set a state to store the current project data
   const [project, setProject] = useState(null);
   // Set a state to store any error when downloading the project
@@ -261,13 +285,7 @@ const Accession = () => {
     // Set the project context, which is used by different scripts including this
     <ProjectCtx.Provider value={project}>
       <ProjectMenu accessionAndMdNumber={accessionAndMdNumber} subPage={page} />
-      <AccessionHeader 
-        project={project}
-        accession={accession}
-        accessionAndMdNumber={accessionAndMdNumber}
-        page={page}
-        primaryDarkColor={primaryDarkColor}
-      />
+      <AccessionHeader page={page} primaryDarkColor={primaryDarkColor} />
       {/* Load the main data summary */}
       <ContentSwitch subPage={page} />
     </ProjectCtx.Provider>

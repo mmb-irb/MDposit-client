@@ -1,0 +1,16 @@
+.decorated-list-item__title {
+  flex-basis: 10vw;
+  flex-shrink: 0;
+  text-align: right;
+  padding-right: .8rem;
+  word-break: keep-all;
+}
+
+.decorated-list-item__content {
+  flex-grow: 1;
+  padding-left: .7rem;
+  padding-top: .1rem;
+  padding-bottom: .1rem;
+  word-break: break-word;
+  border-left: .110rem solid;
+}

@@ -1,13 +1,12 @@
 .container {
   display: flex;
   flex-wrap: wrap;
+  justify-content: space-between;
 }
 
 .title {
   display: flex;
   align-items: center;
-  flex-grow: 1;
-  flex-shrink: 0;
 }
 
 .link-to-api {
