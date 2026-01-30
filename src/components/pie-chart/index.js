@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { PieChart as MinimalPieChart } from 'react-minimal-pie-chart';
 import SimpleLegend from '../simple-legend';
 import style from './style.module.css';
@@ -10,13 +10,39 @@ import style from './style.module.css';
  * @param {string} [className] - Optional className for the container
  * @param {string} [pieClassName] - Optional className for the pie chart
  * @param {string} [legendClassName] - Optional className for the legend
+ * @param {boolean} [autoHide] - If true, automatically hide slices >99% or <1% of total
  */
 
-const PieChart = ({ data, legendData, className, pieClassName, legendClassName }) => {
-  // Track which indices are hidden
-  const [hiddenIndices, setHiddenIndices] = useState([]);
+const PieChart = ({ data, legendData, className, pieClassName, legendClassName, autoHide = false }) => {
+  // Compute indices to auto-hide if enabled
+  const computeAutoHidden = (data) => {
+    if (!autoHide || !data || data.length < 3) return [];
+    const total = data.reduce((sum, d) => sum + d.value, 0);
+    const bigIndices = data
+      .map((d, i) => ({ idx: i, frac: total > 0 ? d.value / total : 0 }))
+      .filter(d => d.frac > 0.99)
+      .map(d => d.idx);
+    const smallIndices = data
+      .map((d, i) => ({ idx: i, frac: total > 0 ? d.value / total : 0 }))
+      .filter(d => d.frac < 0.01)
+      .map(d => d.idx);
+    if (bigIndices.length > 0) {
+      return bigIndices;
+    } else if (smallIndices.length < data.length) {
+      return smallIndices;
+    }
+    return [];
+  };
 
-  // Toggle visibility of a slice
+  // Track which indices are hidden (initialize with autoHidden on mount/data change)
+  const [hiddenIndices, setHiddenIndices] = useState(() => computeAutoHidden(data));
+
+  // Update hiddenIndices if data or autoHide changes
+  useEffect(() => {
+    setHiddenIndices(computeAutoHidden(data));
+  }, [data, autoHide]);
+
+  // Toggle visibility of a slice (user interaction)
   const handleLegendClick = useCallback(idx => {
     setHiddenIndices(prev =>
       prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]

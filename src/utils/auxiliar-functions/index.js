@@ -154,5 +154,10 @@ export const parseLocationSearch = locationSearch => {
   return parse(decoded, { ignoreQueryPrefix: true, decoder: c => c });
 }
 
+// Utility to build projection query string for options endpoints
+export function buildProjectionQuery(fields) {
+  const projectionStrings = fields.filter(field => field.options).map(field => 'projection=' + field.path);
+  return projectionStrings.join('&');
+}
 // Check if an object is empty
 export const isEmptyObj = obj => obj && Object.keys(obj).length === 0;
