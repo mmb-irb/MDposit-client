@@ -35,7 +35,7 @@ import defaultQueryFields from "src/utils/constants/query-fields";
 // options - Additional flags which may be used by the cliente
 
 // Get the requesting URL domain
-const HOST = window.location.hostname;
+const HOST = 'mdposit-dev.mddbr.eu';
 
 // Set default values for every host config fields
 // These values are used to fill missing values
@@ -544,5 +544,7 @@ const HOST_CONFIG = HOST_CONFIGURATIONS[HOST] || HOST_CONFIGURATIONS['localhost'
 Object.entries(DEFAUL_HOST_CONFIGURATION).forEach(([ field, defaultValue ]) => {
     if (!HOST_CONFIG[field]) HOST_CONFIG[field] = defaultValue;
 });
+
+HOST_CONFIG.availableFields = Object.values(HOST_CONFIG.queryFields).reduce((acc, curr) => acc.concat(curr), []);
 
 export default HOST_CONFIG;
