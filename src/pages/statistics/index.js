@@ -142,6 +142,9 @@ export default () => {
     // Use the API to get the atoms options
     const atomsUrl = `${BASE_PATH_PROJECTS}/options?projection=metadata.SYSTATS`;
     const { payload: atomsPayload, error: atomsError } = useAPI(atomsUrl);
+    // Use the API to get the number of MDs per project
+    const mdCountUrl = `${BASE_PATH_PROJECTS}/options?projection=mdcount`;
+    const { payload: mdCountPayload, error: mdCountError } = useAPI(mdCountUrl);
 
     // Check if this is the global cliente
     const isGlobal = HOST_CONFIG.global;
@@ -153,7 +156,7 @@ export default () => {
 
     // Handle possible errors by just showing a log error in the console
     // Thus we allow the rest of the page to keep loading
-    [summaryError, optionsError, snapshotsError, oldSnapshotsError, atomsError, nodesError, growthError].forEach(error => {
+    [summaryError, optionsError, snapshotsError, oldSnapshotsError, atomsError, mdCountError, nodesError, growthError].forEach(error => {
         if (error) console.error(error.message);
     });
 
@@ -222,26 +225,40 @@ export default () => {
             </>
         )}
         <div className={style.histograms} >
-            <div className={style.half}>
+            <div className={style.histogram}>
                 <Typography variant="h6">Snapshots per MD</Typography>
                 <Histogram
                     data={frameCounts}
-                    xAxisLabelText={'Number of snapshots'}
-                    yAxisLabelText={'Number of MDs'}
+                    xAxisLabelText={'Snapshots'}
+                    yAxisLabelText={'MDs'}
                     color={primaryColor}
                     binMethod={'sturges'}
                     onHover={d => `There are ${d.length} MDs with a number of snapshots between ${Math.floor(d.x0)} and ${Math.floor(d.x1)}`}
                 />
             </div>
-            <div className={style.half}>
+            <div className={style.histogram}>
                 <Typography variant="h6">System atoms per project</Typography>
                 <Histogram
                     data={atomsPayload && atomsPayload["metadata.SYSTATS"]}
-                    xAxisLabelText={'Number of atoms'}
-                    yAxisLabelText={'Number of projects'}
+                    xAxisLabelText={'Atoms'}
+                    yAxisLabelText={'Projects'}
                     color={secondaryColor}
                     binMethod={'sturges'}
                     onHover={d => `There are ${d.length} MDs with a number of atoms between ${Math.floor(d.x0)} and ${Math.floor(d.x1)}`}
+                />
+            </div>
+            <div className={style.histogram}>
+                <Typography variant="h6">MD count per project</Typography>
+                <Histogram
+                    data={mdCountPayload && mdCountPayload["mdcount"]}
+                    xAxisLabelText={'MDs'}
+                    yAxisLabelText={'Projects'}
+                    color={primaryColor}
+                    binMethod={'linear'}
+                    binCount={ mdCountPayload && mdCountPayload["mdcount"] 
+                        ? Math.max(...Object.keys(mdCountPayload["mdcount"]).map(Number)) 
+                        : 10}
+                    onHover={d => `There are ${d.length} MDs with a number of MDs between ${Math.floor(d.x0)} and ${Math.floor(d.x1)}`}
                 />
             </div>
         </div>
