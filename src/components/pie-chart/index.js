@@ -20,7 +20,7 @@ const PieChart = ({ data, legendData, className, pieClassName, legendClassName, 
     const total = data.reduce((sum, d) => sum + d.value, 0);
     const bigIndices = data
       .map((d, i) => ({ idx: i, frac: total > 0 ? d.value / total : 0 }))
-      .filter(d => d.frac > 0.99)
+      .filter(d => d.frac > 0.98)
       .map(d => d.idx);
     const smallIndices = data
       .map((d, i) => ({ idx: i, frac: total > 0 ? d.value / total : 0 }))
