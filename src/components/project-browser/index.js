@@ -65,8 +65,10 @@ const parseSorting = search => {
     // Set the parsed query parameter
     const actualField = SORTING_ACTUAL_FIELDS[sorting.field];
     const actualDirection = sorting.direction === 'asc' ? 1 : -1;
-    // It must be JSON.stringify, not the qs.stringify
-    sorting.query = JSON.stringify({ [actualField]: actualDirection })    
+    // If we have query parameters then set the stringified API request argument
+    if (actualField && actualDirection)
+        // It must be JSON.stringify, not the qs.stringify
+        sorting.query = JSON.stringify({ [actualField]: actualDirection })    
     return sorting;
 };
 
