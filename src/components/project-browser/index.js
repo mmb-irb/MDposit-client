@@ -72,8 +72,9 @@ const parseSorting = search => {
     return sorting;
 };
 
-// Note that this component has no inputs nor states, but it totally relies in location search (the URL)
-const ProjectBrowser = () => {
+// This component relies in the location search (the URL) to set the API query
+// However we may force an additional URL-hidden unavoidable query
+const ProjectBrowser = ({ internalQuery }) => {
     // Get the location and the history
     const location = useLocation();
     const history = useNavigate();
@@ -97,8 +98,16 @@ const ProjectBrowser = () => {
         // DANI: Esto habría que mirar de hacerlo vía query, porque este sistema es viejo y redundante
         if (search.option && search.option !== 'All results')
             searchParameters.filter = `${optionsField}+*${search.option}`;
+        // If there is an internal query then add it here
+        if (internalQuery)
+            if (search.query) {
+                const parsedQuery = JSON.parse(searchParameters.query)
+                const extendedQuery = Object.assign(parsedQuery, internalQuery);
+                search.query = JSON.stringify(extendedQuery);
+            }
+            else search.query = JSON.stringify(internalQuery);
         return stringify(searchParameters);
-    }, [search, sorting]);
+    }, [search, sorting, internalQuery]);
 
     // Set a reference for the project browser component
     const componentRef = useRef();

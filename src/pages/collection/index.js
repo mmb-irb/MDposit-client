@@ -1,5 +1,5 @@
 // React logic
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 // Hooks
 import useAPI from 'src/hooks/use-api'; // API acces
@@ -8,6 +8,7 @@ import useAPI from 'src/hooks/use-api'; // API acces
 import Loading from 'src/components/loading'; // Displays an animated "loading" circle
 import Card from 'src/components/animated-card';
 import LazyImg from 'src/components/lazy-img';
+import ProjectBrowser from 'src/components/project-browser';
 import { CardContent, Typography } from '@mui/material';
 
 // Constants
@@ -44,6 +45,10 @@ const Collection = () => {
     const optionsUrl = `${BASE_PATH_PROJECTS}/options?${query}&${projection}`;
     const { payload: optionsPayload, error: optionsError } = useAPI(optionsUrl);
 
+    // Set also the internal query for the project browser
+    const browserInternalQuery = useMemo(
+        () => ({ 'metadata.COLLECTIONS': collectionId }), [collectionId]);
+
     // Get the provided theme
     const theme = useTheme();
     const secondaryColor = theme.palette.secondary;
@@ -78,6 +83,8 @@ const Collection = () => {
                 </div>)
             })}
         </CardContent>
+        <hr style={{ color: 'lightGrey' }} />
+        <ProjectBrowser internalQuery={browserInternalQuery} />
     </Card> );
 };
 
