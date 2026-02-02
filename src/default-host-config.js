@@ -74,6 +74,7 @@ const DEFAUL_HOST_CONFIGURATION = {
     optionsNiceNames: {},
     optionsData: {},
     queryFields: defaultQueryFields,
+    singleCollection: false,
     flags: []
 };
 
@@ -451,6 +452,7 @@ const HOST_CONFIGURATIONS = {
         secondaryColor: '#76FF03', // Light green
         ...UNIT_OPTIONS,
         queryFields: queryFieldsWithCovid,
+        singleCollection: true,
         flags: ['covid'] // Enable covid specific analyses
     },
     // BioExcel covid19 production
@@ -464,6 +466,7 @@ const HOST_CONFIGURATIONS = {
         secondaryColor: '#76FF03', // Light green
         ...UNIT_OPTIONS,
         queryFields: queryFieldsWithCovid,
+        singleCollection: true,
         flags: ['covid'] // Enable covid specific analyses
     },
     // JSC
