@@ -71,7 +71,7 @@ export default () => {
     // Set default selected field when optionsPayload loads
     useEffect(() => {
         if (availableOptionsFields.length > 0 && !selectedOptionsField) {
-            setSelectedOptionsField(availableOptionsFields.includes('node') ? 'node' : methods.COLLECTION);
+            setSelectedOptionsField(availableOptionsFields.includes('node') ? 'node' : 'metadata.METHOD');
         }
     }, [optionsPayload]);
 
