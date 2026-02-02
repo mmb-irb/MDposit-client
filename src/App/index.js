@@ -1,6 +1,5 @@
 import React, { lazy, Suspense, useState, useEffect, useLayoutEffect } from 'react';
-import { initGA, usePageTracking } from "../utils/analytics";
-import CookieBanner from "../components/CookieBanner";
+//import ReactGA from 'react-ga4';
 import { Routes, Route, Router } from 'react-router-dom';
 import { createHashHistory } from 'history';
 import { sleep } from 'timing-functions';
@@ -27,6 +26,9 @@ const Embed = lazy(() =>
 // This is part of the fix to solve problems from updating webpack to v5
 window.Buffer = window.Buffer || require('buffer').Buffer;
 window.process = window.process || require('process');
+
+// Get the Google Analytics id
+const googleAnalyticsId = process.env.REACT_APP_GOOGLE_ANALYTICS_ID;
 
 // These keyframes are used for an animate()
 // An image opacity is iterated between 0 (invisible) and 1 (visible)
@@ -138,37 +140,23 @@ const CustomRouter = ({ history, ...props }) => {
 };
 
 // ---------------------------------------------------------------------------------------------------
-// Create a new component that uses the tracking hook inside the router context
-// useLocation needs to be used inside a Router
-const AppContent = () => {
-  // Setup page tracking with react-router
-  usePageTracking();
-  
-  return (
-    <>
-      <Routes>
-        <Route
-          path="/embed/:accession"
-          element={
-            <Suspense fallback={null}>
-              <Embed />
-            </Suspense>
-          }
-        />
-        <Route path="*" element={<Base />} />
-      </Routes>
-      <CookieBanner />
-    </>
-  );
-};
 
 // Go to the Root script, where there is a switch/route section with all pages
 const App = () => {
   // Setup google analytics
-  useEffect(() => {
-    // Initialize GA4 with default "denied" state immediately on load
-    initGA();
-  }, []);
+  // DANI: Thishas been disabled for now
+  // DANI: The new version of GA4 is using cookies and this is no longer optional
+  // useEffect(() => {
+  //   ReactGA.initialize(googleAnalyticsId, {
+  //     debug: false,
+  //     gaOptions: {
+  //       storage: 'none',
+  //       storeGac: false,
+  //     },
+  //   });
+  //   // Send pageview with a custom path
+  //   //ReactGA.send({ hitType: "pageview", page: history.location.pathname, title: "Some page" });
+  // }, []);
   // Update the favicon and sheet header name according to host configuration
   useEffect(() => {
     // Update the document title, which is the sheet header name
@@ -189,7 +177,17 @@ const App = () => {
       <StyledEngineProvider injectFirst>
         <ThemeProvider theme={theme}>
           <CustomRouter history={history}>
-            <AppContent />
+            <Routes>
+              <Route
+                path="/embed/:accession"
+                element={
+                  <Suspense fallback={null}>
+                    <Embed />
+                  </Suspense>
+                }
+              />
+              <Route path="*" element={<Base />} />
+            </Routes>
           </CustomRouter>
         </ThemeProvider>
       </StyledEngineProvider>
