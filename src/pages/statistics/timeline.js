@@ -16,12 +16,12 @@ const TimelineChart = ({ data, width = 800, height = 400, className }) => {
 
   useEffect(() => {
     if (!data || !data.length) return;
-
+  
     // Clear any existing chart
     d3.select(svgRef.current).selectAll("*").remove();
 
     // Set dimensions and margins
-    const margin = { top: 30, right: 90, bottom: 30, left: 90 };
+    const margin = { top: 30, right: 90, bottom: 80, left: 90 };
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
@@ -55,7 +55,7 @@ const TimelineChart = ({ data, width = 800, height = 400, className }) => {
 
     // Create axes
     const xAxis = d3.axisBottom(x)
-      .ticks(d3.timeMonth.every(6))
+      .ticks(12)
       .tickFormat(d3.timeFormat("%b %Y"));
 
     const y1Axis = d3.axisLeft(y1);
@@ -95,7 +95,7 @@ const TimelineChart = ({ data, width = 800, height = 400, className }) => {
       .curve(d3.curveMonotoneX);
 
     // Add the line paths
-    // Projects line (blue)
+    // Projects line
     svg.append("path")
       .datum(data)
       .attr("fill", "none")
@@ -103,7 +103,7 @@ const TimelineChart = ({ data, width = 800, height = 400, className }) => {
       .attr("stroke-width", 3)
       .attr("d", projectLine);
 
-    // MDs line (orange)
+    // MDs line
     svg.append("path")
       .datum(data)
       .attr("fill", "none")
@@ -175,9 +175,9 @@ const TimelineChart = ({ data, width = 800, height = 400, className }) => {
 
     // Add axes labels
     svg.append("text")
-      .attr("transform", `translate(${innerWidth / 2}, ${innerHeight + margin.bottom + 60})`)
+      .attr("transform", `translate(${innerWidth / 2}, ${innerHeight + 75})`)
       .style("text-anchor", "middle")
-      .style("font-size", "24px")
+      .style("font-size", "20px")
       .text("Upload Date");
 
     // Left Y-axis label (Projects)
