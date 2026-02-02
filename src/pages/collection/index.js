@@ -23,8 +23,9 @@ import { useTheme } from '@mui/material/styles';
 
 // Set option fields to search among projects which belong to a collection
 const PROJECT_OPTIONS = {
-    Authors: 'metadata.AUTHORS',
-    Groups: 'metadata.GROUPS',
+    'Authors': 'metadata.AUTHORS',
+    'Groups': 'metadata.GROUPS',
+    'System keywords': 'metadata.SYSKEYS',
 };
 
 // The main component

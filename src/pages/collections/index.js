@@ -1,0 +1,172 @@
+// React logic
+import React, { useEffect, useMemo, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import Row from './row';
+import Pagination from './pagination';
+
+// Visual assets
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  TableFooter,
+  Typography,
+} from '@mui/material';
+
+// Additional components
+import Card from '../../components/animated-card'; // The exceled parcels in which almost all features are based
+import Loading from '../../components/loading'; // Displays an animated "loading" circle
+
+// API acces
+import useAPI from '../../hooks/use-api';
+
+// Constants
+import { BASE_VERSIONED_PATH, BASE_PATH_PROJECTS } from '../../utils/constants';
+// Auxiliar functions
+import { parseLocationSearch } from '../../utils/auxiliar-functions';
+// String managers
+import { stringify } from 'qs';
+
+// Classnames
+import cn from 'classnames';
+// CSS styles
+import style from './style.module.css';
+
+// Set some default parameters
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 10;
+
+// This component relies in the location search (the URL) to set the API query
+// However we may force an additional URL-hidden unavoidable query
+const CollectionBrowser = () => {
+    // Get the location and the history
+    const location = useLocation();
+    const history = useNavigate();
+
+    // Parse the location search, including all current query parameters
+    const search = useMemo(() => parseLocationSearch(location.search), [location.search]);
+
+    // Convert the specified object back to a single encoded string for the query
+    const searchString = useMemo(() => {
+        const searchParameters = {}
+        if (search.page) searchParameters.page = search.page;
+        if (search.limit) searchParameters.limit = search.limit;    
+        return stringify(searchParameters);
+    }, [search]);
+
+    // Reference data from the API
+    const collectionsUrl = `${BASE_VERSIONED_PATH}/references/collections`;
+    const {
+        loading: collectionsLoading,
+        payload: collectionsPayload,
+        error: collectionsError
+    } = useAPI(collectionsUrl);
+
+    // Set a reference for the collection browser component
+    const componentRef = useRef();
+    // Smoothly scroll up when the page is changed
+    useEffect(() => {
+        const component = componentRef.current;
+        if (!component) return;
+        window.scrollTo({ top: component.offsetTop, behavior: 'smooth' });
+    }, [search.page]);
+
+    // Save the previous query payload
+    // It is rendered in low opacity when the new query payload is empty
+    const previousPayload = useRef(null);
+
+    // Define the results for the final render since it won't support 'null's
+    let results;
+    let matchCount = 0;
+    if (collectionsPayload) {
+        results = collectionsPayload.references;
+        matchCount = collectionsPayload.referencesCount;
+        previousPayload.current = collectionsPayload;
+    } else if (previousPayload.current) {
+        results = previousPayload.current.references;
+        matchCount = previousPayload.current.referencesCount;
+    } else results = [];
+
+    // Using the options API endpoint, get a summary of values from simulations in this collection
+    const optionsUrl = `${BASE_PATH_PROJECTS}/options?projection=metadata.COLLECTIONS`;
+    const { payload: optionsPayload, error: optionsError } = useAPI(optionsUrl);
+
+    // Add the project count to every collection data
+    if (optionsPayload && collectionsPayload) {
+        const collectionProjectCounts = optionsPayload && optionsPayload['metadata.COLLECTIONS'];
+        collectionsPayload.references.forEach(collectionData => {
+            collectionData.projectCount = collectionProjectCounts[collectionData.id];
+        })
+    }
+
+    // While loading
+    // Code above is runned multiple times (around 5) each time the browser is loaded
+    if (collectionsLoading) return <Loading />;
+
+    // When error
+    // This usually happens when the API does not work properly
+    if (collectionsError) return collectionsError.toString();
+
+    // When success
+    return (
+
+        <div ref={componentRef}>
+
+            {/* Render a 'no results' card when there are no results for the last search */}
+            {!collectionsLoading && !collectionsPayload ? (
+            <Card className={style['no-results-card']}>
+                <Typography variant="h5" className={style['no-results-text']}>
+                No results were found
+                </Typography>
+            </Card>
+            ) : []}
+
+            <Table>
+            {/* Table head with the names of each colum */}
+            <TableHead className={style['table-head']}>
+                <TableRow>
+                <TableCell className={style.center}>name
+                </TableCell>
+                <TableCell className={style.center}>system keywords
+                </TableCell>
+                <TableCell className={style.center}>logo</TableCell>
+                <TableCell className={style.center}>size</TableCell>
+                </TableRow>
+            </TableHead>
+            {/* Table body with the content, which is defined above in the Row constant */}
+            {/* When the search has no results the table gets an opacity of 0.25 */}
+            <TableBody
+                className={collectionsPayload
+                ? cn(style['table-body'])
+                : cn(style['table-body'], style['invalid-results'])
+                }
+            >
+                {/* Create a row for each reference in the query payload*/}
+                {results.map((reference, index) => (
+                    <Row
+                        // Load the propierties (inputs) that the class "Row" is expecting
+                        data={reference} // Load reference data (id, name, description, image URL, ...)
+                        highlight={search.search} // Load the highlight
+                        index={index} // Load the index
+                        key={index} // Add a key for react to do not complain
+                    />
+                ))}
+            </TableBody>
+            <TableFooter>
+                <Pagination
+                    matchCount={matchCount}
+                    search={search}
+                    location={location}
+                    history={history}
+                    DEFAULT_LIMIT={DEFAULT_LIMIT}
+                    DEFAULT_PAGE={DEFAULT_PAGE}
+                />
+            </TableFooter>
+            </Table>
+        </div>
+    );
+}
+
+export default CollectionBrowser;

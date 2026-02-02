@@ -24,7 +24,9 @@ import {
     Article as ArticleIcon,
     DataObject as DataObjectIcon,
     Help as HelpIcon,
-    Mail as MailIcon
+    Mail as MailIcon,
+    Storage as StorageIcon,
+    Assignment as AssignmentIcon,
 } from '@mui/icons-material';
 // Import constants
 import { BASE_PATH, HOST_CONFIG, MDPOSIT_URL } from '../../utils/constants';
@@ -34,10 +36,12 @@ import { useTheme } from '@mui/material/styles';
 
 // Render all buttons in the superior header and manage the user redirection when they are clicked
 const HeaderMenu = () => {
-    // Set a state to control if the help panel is open or closed
-    const [ isHelpOpen, openHelp ] = useState(false);
-    // Set a reference for the help button so we can further anchor the pop up menu
-    const helpRef = useRef();
+    // Set states to control if buton panels are open or closed
+    const [ isDataOpen, openData ] = useState(false);
+    const [ isAboutOpen, openAbout ] = useState(false);
+    // Set references for the buttos which open panels, so we can further anchor the pop up menus
+    const dataRef = useRef();
+    const aboutRef = useRef();
     const currentLocation = window.location.hash;
     const isCurrent = useCallback(dir => currentLocation.endsWith(dir), [ currentLocation ]);
     // Get the provided theme
@@ -92,35 +96,17 @@ const HeaderMenu = () => {
                 REST API
             </Button>
             <Button
-                component={Link}
+                onClick={() => openData(!isDataOpen)}
                 color="inherit"
-                to="/meta"
-                startIcon={<TimelineIcon />}
+                startIcon={<StorageIcon />}
                 className={style.button}
+                ref={dataRef}
             >
-                Meta-analysis
-            </Button>
-            <Button
-                component={Link}
-                color="inherit"
-                to="/statistics"
-                startIcon={<BarChartIcon />}
-                className={style.button}
-            >
-                Statistics
-            </Button>
-            <Button
-                onClick={() => openHelp(!isHelpOpen)}
-                color="inherit"
-                startIcon={<InfoIcon />}
-                className={style.button}
-                ref={helpRef}
-            >
-                About
+                Data
             </Button>
             <Popper
-                open={isHelpOpen}
-                anchorEl={helpRef.current}
+                open={isDataOpen}
+                anchorEl={dataRef.current}
                 transition
                 placement={'bottom'}
                 className={style.popper}
@@ -131,10 +117,76 @@ const HeaderMenu = () => {
                     style={{ transformOrigin: 'center top' }}
                 >
                     <Paper sx={{ backgroundColor: primaryColor }}>
-                    <ClickAwayListener onClickAway={() => openHelp(false)}>
+                    <ClickAwayListener onClickAway={() => openData(false)}>
                         <MenuList>
                             <MenuItem
-                                onClick={() => openHelp(false)}
+                                onClick={() => openData(false)}
+                                component={Link}
+                                to="/statistics"
+                                // If this is the current tab then use a different style
+                                style={(isCurrent("statistics") && selectedTabStyle) || normalTabStyle}
+                            >
+                                <ListItemIcon >
+                                    <BarChartIcon fontSize="small" sx={{ color: contrastText }} />
+                                </ListItemIcon>
+                                Statistics
+                            </MenuItem>
+                            <MenuItem
+                                onClick={() => openData(false)}
+                                component={Link}
+                                to="/collections"
+                                // If this is the current tab then use a different style
+                                style={(isCurrent("collections") && selectedTabStyle) || normalTabStyle}
+                            >
+                                <ListItemIcon >
+                                    <AssignmentIcon fontSize="small" sx={{ color: contrastText }} />
+                                </ListItemIcon>
+                                Collections
+                            </MenuItem>
+                            <MenuItem
+                                onClick={() => openData(false)}
+                                component={Link}
+                                to="/meta"
+                                // If this is the current tab then use a different style
+                                style={(isCurrent("meta") && selectedTabStyle) || normalTabStyle}
+                            >
+                                <ListItemIcon >
+                                    <TimelineIcon fontSize="small" sx={{ color: contrastText }} />
+                                </ListItemIcon>
+                                Meta-analysis
+                            </MenuItem>
+                        </MenuList>
+                    </ClickAwayListener>
+                    </Paper>
+                </Grow>
+                )}
+            </Popper>
+            <Button
+                onClick={() => openAbout(!isAboutOpen)}
+                color="inherit"
+                startIcon={<InfoIcon />}
+                className={style.button}
+                ref={aboutRef}
+            >
+                About
+            </Button>
+            <Popper
+                open={isAboutOpen}
+                anchorEl={aboutRef.current}
+                transition
+                placement={'bottom'}
+                className={style.popper}
+            >
+                {({ TransitionProps }) => (
+                <Grow
+                    {...TransitionProps}
+                    style={{ transformOrigin: 'center top' }}
+                >
+                    <Paper sx={{ backgroundColor: primaryColor }}>
+                    <ClickAwayListener onClickAway={() => openAbout(false)}>
+                        <MenuList>
+                            <MenuItem
+                                onClick={() => openAbout(false)}
                                 component={Link}
                                 to="/documents"
                                 // If this is the current tab then use a different style
@@ -146,7 +198,7 @@ const HeaderMenu = () => {
                                 Documents
                             </MenuItem>
                             {/* <MenuItem
-                                onClick={() => openHelp(false)}
+                                onClick={() => openAbout(false)}
                                 component={Link}
                                 to="/software"
                                 // If this is the current tab then use a different style
@@ -158,7 +210,7 @@ const HeaderMenu = () => {
                                 Software
                             </MenuItem> */}
                             <MenuItem
-                                onClick={() => openHelp(false)}
+                                onClick={() => openAbout(false)}
                                 component={Link}
                                 to="/help"
                                 // If this is the current tab then use a different style
@@ -170,7 +222,7 @@ const HeaderMenu = () => {
                                 Help
                             </MenuItem>
                             <MenuItem
-                                onClick={() => openHelp(false)}
+                                onClick={() => openAbout(false)}
                                 component={Link}
                                 to="/contact"
                                 // If this is the current tab then use a different style

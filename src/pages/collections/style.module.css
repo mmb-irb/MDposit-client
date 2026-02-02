@@ -1,0 +1,129 @@
+.table-body {
+  opacity: 1;
+  transition: 0.5s opacity ease-in-out 0.25s;
+}
+
+/* If we had no valid results we make the table with the results less visible */
+/* This table may contain results from a previous search which are not valid now */
+/* z-index prevents this element to overlap overlaping elements because of the opacity */
+.invalid-results {
+  opacity: 0.3;
+  z-index: 1;
+}
+
+@media (max-width: 1100px) {
+  .table-body img {
+    width: 100px;
+    height: 100px;
+  }
+
+  .table-body td,
+  .table-head th {
+    font: bold 'Fira Sans';
+    padding: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .table-body img {
+    width: 50px;
+    height: 50px;
+  }
+}
+
+.not-published {
+  opacity: 0.6;
+}
+
+.error-row > * {
+  opacity: 0.6;
+  color:rgb(243, 36, 0);
+
+}
+.center {
+  text-align: center;
+}
+
+th.center {
+  min-width: 7em;
+  padding:0;
+}
+
+/* Fixed column widths */
+.col-accession {
+  width: 12%;
+  max-width: 12%;
+  font-size: large;
+}
+
+.col-name {
+  width: 18%;
+  max-width: 18%;
+}
+
+.col-preview {
+  width: 18%;
+  max-width: 18%;
+  padding: 0.5rem;
+}
+
+.preview-img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.col-analyses {
+  width: 52%;
+  max-width: 52%;
+}
+
+.sort {
+  justify-content: space-between;
+  padding: 0 0 0 0.5em;
+  min-width: 0px;
+  font-size: initial;
+}
+/* If we had no valid results we render a 'no results' message inside a card */
+/* z-index prevents this element to be overlaped by overlaped elements because of the opacity */
+.no-results-card {
+  position: absolute;
+  z-index: 2;
+  width: 96%;
+  top: 5em;
+}
+
+.no-results-text {
+  margin: 2ch;
+}
+
+.analysis {
+  margin: 0.25rem;
+  flex: 1 1 auto;
+  min-width: fit-content;
+  max-width: 15rem;
+  align-items: center;
+}
+
+.analyses-container {
+  display: flex;
+  flex-wrap: wrap;
+  /* gap: 0.2rem; */
+  justify-content: center;
+  align-items: center;
+  max-height: 10rem; /* 4 rows of analyses */
+  overflow-y: auto;
+}
+.tab {
+  transform: translate(0px, -9px);
+  width: 100px;
+}
+
+.small {
+  color: grey;
+  font-size: small;
+}
+
+.chips {
+  margin: 0.2em;
+}

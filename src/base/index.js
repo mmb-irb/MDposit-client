@@ -53,6 +53,9 @@ const Accession = lazy(() =>
 const Collection = lazy(() =>
   import(/* webpackChunkName: 'collection' */ '../pages/collection'),
 );
+const CollectionsBrowser = lazy(() =>
+  import(/* webpackChunkName: 'collections' */ '../pages/collections'),
+);
 const Pointer = lazy(() =>
   import(/* webpackChunkName: 'pointer' */ '../pages/pointer'),
 );
@@ -180,6 +183,14 @@ const Base = () => {
                 </Suspense>
               }/>
             </Route>
+            <Route
+              path="collections"
+              element={
+                <Suspense fallback={null}>
+                  <CollectionsBrowser />
+                </Suspense>
+              }
+            />
             <Route
               path="*"
               element={<FixedNavigate />}
