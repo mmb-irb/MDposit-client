@@ -15,7 +15,7 @@ const SimpleLegend = ({ entries, className }) => {
         <div
           key={i}
           style={{
-            fontSize: '20px',
+            fontSize: 'clamp(0.8rem, 1vw, 2rem);',
             cursor: onClick ? 'pointer' : 'default',
             opacity: hidden ? 0.5 : 1,
             userSelect: 'none',

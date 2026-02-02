@@ -10,7 +10,7 @@ import style from './style.module.css';
  * @param {string} [className] - Optional className for the container
  * @param {string} [pieClassName] - Optional className for the pie chart
  * @param {string} [legendClassName] - Optional className for the legend
- * @param {boolean} [autoHide] - If true, automatically hide slices >99% or <1% of total
+ * @param {boolean} [autoHide] - If true, automatically hide slices >95% or <1% of total
  */
 
 const PieChart = ({ data, legendData, className, pieClassName, legendClassName, autoHide = false }) => {
@@ -20,7 +20,7 @@ const PieChart = ({ data, legendData, className, pieClassName, legendClassName, 
     const total = data.reduce((sum, d) => sum + d.value, 0);
     const bigIndices = data
       .map((d, i) => ({ idx: i, frac: total > 0 ? d.value / total : 0 }))
-      .filter(d => d.frac > 0.98)
+      .filter(d => d.frac > 0.95)
       .map(d => d.idx);
     const smallIndices = data
       .map((d, i) => ({ idx: i, frac: total > 0 ? d.value / total : 0 }))

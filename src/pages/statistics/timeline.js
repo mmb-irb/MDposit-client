@@ -16,12 +16,13 @@ const TimelineChart = ({ data, width = 800, height = 400, className }) => {
 
   useEffect(() => {
     if (!data || !data.length) return;
-
-    // Clear any existing chart
+  
+    // Clear any existing chart and tooltips
     d3.select(svgRef.current).selectAll("*").remove();
+    d3.selectAll(".timeline-tooltip").remove();
 
     // Set dimensions and margins
-    const margin = { top: 30, right: 90, bottom: 30, left: 90 };
+    const margin = { top: 30, right: 90, bottom: 80, left: 90 };
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
@@ -55,7 +56,7 @@ const TimelineChart = ({ data, width = 800, height = 400, className }) => {
 
     // Create axes
     const xAxis = d3.axisBottom(x)
-      .ticks(d3.timeMonth.every(6))
+      .ticks(12)
       .tickFormat(d3.timeFormat("%b %Y"));
 
     const y1Axis = d3.axisLeft(y1);
@@ -95,7 +96,7 @@ const TimelineChart = ({ data, width = 800, height = 400, className }) => {
       .curve(d3.curveMonotoneX);
 
     // Add the line paths
-    // Projects line (blue)
+    // Projects line
     svg.append("path")
       .datum(data)
       .attr("fill", "none")
@@ -103,35 +104,13 @@ const TimelineChart = ({ data, width = 800, height = 400, className }) => {
       .attr("stroke-width", 3)
       .attr("d", projectLine);
 
-    // MDs line (orange)
+    // MDs line
     svg.append("path")
       .datum(data)
       .attr("fill", "none")
       .attr("stroke", primaryColor)
       .attr("stroke-width", 3)
       .attr("d", mdLine);
-
-    // Add dots for data points - Projects
-    svg.selectAll(".dot-projects")
-      .data(data)
-      .enter()
-      .append("circle")
-      .attr("class", "dot-projects")
-      .attr("cx", d => x(parseDate(d.date)))
-      .attr("cy", d => y1(d.totalProjects))
-      .attr("r", 4)
-      .attr("fill", secondaryColor);
-
-    // Add dots for data points - MDs
-    svg.selectAll(".dot-mds")
-      .data(data)
-      .enter()
-      .append("circle")
-      .attr("class", "dot-mds")
-      .attr("cx", d => x(parseDate(d.date)))
-      .attr("cy", d => y2(d.totalMds))
-      .attr("r", 4)
-      .attr("fill", primaryColor);
 
     // Add tooltip functionality
     const tooltip = d3.select("body")
@@ -147,20 +126,34 @@ const TimelineChart = ({ data, width = 800, height = 400, className }) => {
       .style("opacity", 0)
       .style("z-index", 10);
 
-    // Add tooltip handlers for both types of points
-    const showTooltip = (event, d) => {
+    // Add tooltip handlers for Projects
+    const showTooltipProjects = function(d) {
+      const mouseEvent = d3.event;
       tooltip.transition()
         .duration(200)
         .style("opacity", 0.9);
       tooltip.html(`
         <strong>Date:</strong> ${d.date}<br>
         <strong>New Projects:</strong> ${d.newProjects}<br>
-        <strong>Total Projects:</strong> ${d.totalProjects}<br>
+        <strong>Total Projects:</strong> ${d.totalProjects}
+      `)
+        .style("left", (mouseEvent.pageX + 10) + "px")
+        .style("top", (mouseEvent.pageY - 28) + "px");
+    };
+
+    // Add tooltip handlers for MDs
+    const showTooltipMds = function(d) {
+      const mouseEvent = d3.event;
+      tooltip.transition()
+        .duration(200)
+        .style("opacity", 0.9);
+      tooltip.html(`
+        <strong>Date:</strong> ${d.date}<br>
         <strong>New MDs:</strong> ${d.newMds}<br>
         <strong>Total MDs:</strong> ${d.totalMds}
       `)
-        .style("left", (event.pageX + 10) + "px")
-        .style("top", (event.pageY - 28) + "px");
+        .style("left", (mouseEvent.pageX + 10) + "px")
+        .style("top", (mouseEvent.pageY - 28) + "px");
     };
 
     const hideTooltip = () => {
@@ -169,15 +162,39 @@ const TimelineChart = ({ data, width = 800, height = 400, className }) => {
         .style("opacity", 0);
     };
 
-    svg.selectAll(".dot-projects, .dot-mds")
-      .on("mouseover", showTooltip)
+    // Add dots for data points - Projects
+    svg.selectAll(".dot-projects")
+      .data(data)
+      .enter()
+      .append("circle")
+      .attr("class", "dot-projects")
+      .attr("cx", d => x(parseDate(d.date)))
+      .attr("cy", d => y1(d.totalProjects))
+      .attr("r", 4)
+      .attr("fill", secondaryColor)
+      .style("cursor", "pointer")
+      .on("mouseover", showTooltipProjects)
+      .on("mouseout", hideTooltip);
+
+    // Add dots for data points - MDs
+    svg.selectAll(".dot-mds")
+      .data(data)
+      .enter()
+      .append("circle")
+      .attr("class", "dot-mds")
+      .attr("cx", d => x(parseDate(d.date)))
+      .attr("cy", d => y2(d.totalMds))
+      .attr("r", 4)
+      .attr("fill", primaryColor)
+      .style("cursor", "pointer")
+      .on("mouseover", showTooltipMds)
       .on("mouseout", hideTooltip);
 
     // Add axes labels
     svg.append("text")
-      .attr("transform", `translate(${innerWidth / 2}, ${innerHeight + margin.bottom + 60})`)
+      .attr("transform", `translate(${innerWidth / 2}, ${innerHeight + 75})`)
       .style("text-anchor", "middle")
-      .style("font-size", "24px")
+      .style("font-size", "20px")
       .text("Upload Date");
 
     // Left Y-axis label (Projects)

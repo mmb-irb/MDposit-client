@@ -44,7 +44,7 @@ export default () => {
 
     // Use the API to get the summary
     const summaryUrl = `${BASE_PATH_PROJECTS}/summary`;
-    const { payload: summaryPayload, error: summaryError } = useAPI(summaryUrl);
+    const { payload: summaryPayload, error: summaryError } = useAPI(summaryUrl, { name: 'summary', cacheOn: true });
 
     // Use the API to get the options
     // Reuse projection query logic from custom-search
@@ -77,12 +77,11 @@ export default () => {
 
     // Use the API to get the project growth data
     const growthUrl = `${BASE_PATH_PROJECTS}/summary/growth`;
-    const { payload: growthPayload, error: growthError } = useAPI(growthUrl);
+    const { payload: growthPayload, error: growthError } = useAPI(growthUrl, { name: 'growth', cacheOn: true });
 
     // Prepare data for the selected options pie chart
     const { optionPieChartData, optionLegendData } = useMemo(() => {
         if (!selectedOptionsField || !optionsPayload) return {};
-        console.log('Preparing pie chart for field:', optionsPayload, queryFields);
         const option = Object.entries(optionsPayload[selectedOptionsField]).filter(([key, value]) => key !== 'null');
         if (option) option.sort((a, b) => b[1] - a[1]);
         const colors = option && createPalette(option.length);
@@ -109,7 +108,7 @@ export default () => {
             : [{ title: 'Loading...', value: 1, color: 'lightgrey' }];
         const summatory = option && option.reduce((current_value, [key, value]) => current_value + value, 0);
         const optionLegendData = option && option.map(([key, value], i) => ({
-            label: key.charAt(0).toUpperCase() + key.slice(1) + ': ' + value + ' (' + (Math.round((value / summatory) * 10000) / 100) + ' %)',
+            label: key.charAt(0).toUpperCase() + key.slice(1) + ': ' + value + ' (' + (Math.round((value / summatory) * 10000) / 100) + '%)',
             color: colors[i],
         }));
         return { optionPieChartData, optionLegendData };
@@ -167,41 +166,41 @@ export default () => {
             <NodeTable nodeData={nodesPayload} />
             <br />
         </>}
-        <Typography key={0} variant="h6">Data summary</Typography>
-        Total number of projects:{' '}
-        {summaryPayload ? summaryPayload.projectsCount.toLocaleString() : 'Loading...'}
-        <br />
-        Total number of MDs:{' '}
-        {summaryPayload ? summaryPayload.mdCount.toLocaleString() : 'Loading...'}
-        <br />
-        {/*
-            DANI: Funciona. Solo lo he quitado temporalmente por un tema "político"
-            Total amount of MD time (μs):{' '}
-            {summaryPayload ? Math.round(summaryPayload.totalTime / 1000) : 'Loading...'}
-            <br />
-        */}
-        Total amount of MD frames:{' '}
-        {summaryPayload ? summaryPayload.totalFrames.toLocaleString() : 'Loading...'}
-        <br />
-        Total number of stored files:{' '}
-        {summaryPayload ? summaryPayload.totalFiles.toLocaleString() : 'Loading...'}
-        <br />
-        Total number of stored analyses:{' '}
-        {summaryPayload ? summaryPayload.totalAnalyses.toLocaleString() : 'Loading...'}
-        <br />
-        Total size of the uncompressed data:{' '}
-        {summaryPayload ? `${summaryPayload.storageStats.dataSizeInTB} (TB)` : 'Loading...'}
-        <br />
-        {availableOptionsFields.length > 0 && (
-            <>
-                <Typography style={{ marginTop: 16 }} variant="h6">Projects per field</Typography>
-                <div style={{ marginBottom: 16 }}>
-                    <label htmlFor="options-field-select" style={{ marginRight: 8 }}>Field:</label>
+        <div className={style.dataSummary}>
+            <Typography style={{marginBottom: 10}} key={0} variant="h6">Data summary</Typography>
+            <table className={style.summaryTable}>
+                <tbody>
+                    <tr>
+                        <td className={style.summaryTitle}>Projects</td>
+                        <td className={style.summaryTitle}>MDs</td>
+                        {/* <td className={style.summaryTitle}>MD time (μs)</td> */}
+                        <td className={style.summaryTitle}>Frames</td>
+                        <td className={style.summaryTitle}>Files</td>
+                        <td className={style.summaryTitle}>Analyses</td>
+                        <td className={style.summaryTitle}>Data</td>
+                    </tr>
+                    <tr>
+                        <td className={style.summaryValue}>{summaryPayload ? summaryPayload.projectsCount.toLocaleString() : 'Loading...'}</td>
+                        <td className={style.summaryValue}>{summaryPayload ? summaryPayload.mdCount.toLocaleString() : 'Loading...'}</td>
+                        {/* <td className={style.summaryValue}>{summaryPayload ? Math.round(summaryPayload.totalTime / 1000) : 'Loading...'}</td> */}
+                        <td className={style.summaryValue}>{summaryPayload ? summaryPayload.totalFrames.toLocaleString() : 'Loading...'}</td>
+                        <td className={style.summaryValue}>{summaryPayload ? summaryPayload.totalFiles.toLocaleString() : 'Loading...'}</td>
+                        <td className={style.summaryValue}>{summaryPayload ? summaryPayload.totalAnalyses.toLocaleString() : 'Loading...'}</td>
+                        <td className={style.summaryValue}>{summaryPayload ? `${summaryPayload.storageStats.dataSizeInTB} (TB)` : 'Loading...'}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div className={style.pieAndGrowth} >
+            {availableOptionsFields.length > 0 && (
+            <div className={style.pieChart}>
+                <Typography variant="h6">Projects per field</Typography>
+                <div style={{ marginBottom: 18 }}>
                     <select
                         id="options-field-select"
                         value={selectedOptionsField || ''}
                         onChange={e => setSelectedOptionsField(e.target.value)}
-                        style={{ fontSize: '1rem', padding: '4px 8px' }}
+                        style={{ fontSize: '1rem', padding: '4px 8px', width: '99%' }}
                     >
                         {availableOptionsFields.map(field => {
                             const fieldObj = findFieldByTitleOrLabel(queryFields, field);
@@ -222,8 +221,23 @@ export default () => {
                         autoHide={true}
                     />
                 )}
-            </>
-        )}
+            </div>
+            )}
+            <div className={style.growth}>
+                <Typography variant="h6">Data Growth Over Time</Typography>
+                <div className={style.timelineChart}>
+                    {growthPayload ? (
+                        <TimelineChart
+                            data={growthPayload}
+                            className={style.growthChart}
+                        />
+                    ) : (
+                        'Loading growth data...'
+                    )}
+                </div>
+            </div>
+            
+        </div>
         <div className={style.histograms} >
             <div className={style.histogram}>
                 <Typography variant="h6">Snapshots per MD</Typography>
@@ -262,16 +276,6 @@ export default () => {
                 />
             </div>
         </div>
-        <Typography variant="h6">Projects and MDs Growth Over Time</Typography>
-        <div className={style.timelineChart}>
-            {growthPayload ? (
-                <TimelineChart
-                    data={growthPayload}
-                    className={style.growthChart}
-                />
-            ) : (
-                'Loading growth data...'
-            )}
-        </div>
+        
     </>);
 };
