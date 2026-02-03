@@ -18,6 +18,7 @@ import {
 // Additional components
 import Card from '../../components/animated-card'; // The exceled parcels in which almost all features are based
 import Loading from '../../components/loading'; // Displays an animated "loading" circle
+import SearchBar from 'src/components/search-bar';
 
 // API acces
 import useAPI from '../../hooks/use-api';
@@ -53,11 +54,12 @@ const CollectionBrowser = () => {
         const searchParameters = {}
         if (search.page) searchParameters.page = search.page;
         if (search.limit) searchParameters.limit = search.limit;    
+        if (search.search) searchParameters.query = JSON.stringify({ name: { $regex: search.search, $options: 'i' } });
         return stringify(searchParameters);
     }, [search]);
 
     // Reference data from the API
-    const collectionsUrl = `${BASE_VERSIONED_PATH}/references/collections`;
+    const collectionsUrl = `${BASE_VERSIONED_PATH}/references/collections?${searchString}`;
     const {
         loading: collectionsLoading,
         payload: collectionsPayload,
@@ -113,57 +115,57 @@ const CollectionBrowser = () => {
     return (
 
         <div ref={componentRef}>
-
+            <SearchBar/>
             {/* Render a 'no results' card when there are no results for the last search */}
             {!collectionsLoading && !collectionsPayload ? (
-            <Card className={style['no-results-card']}>
+            <Card className={style['no-results-card']} style={{ marginTop: '1em' }}>
                 <Typography variant="h5" className={style['no-results-text']}>
                 No results were found
                 </Typography>
             </Card>
             ) : []}
 
-            <Table>
-            {/* Table head with the names of each colum */}
-            <TableHead className={style['table-head']}>
-                <TableRow>
-                <TableCell className={style.center}>name
-                </TableCell>
-                <TableCell className={style.center}>system keywords
-                </TableCell>
-                <TableCell className={style.center}>logo</TableCell>
-                <TableCell className={style.center}>size</TableCell>
-                </TableRow>
-            </TableHead>
-            {/* Table body with the content, which is defined above in the Row constant */}
-            {/* When the search has no results the table gets an opacity of 0.25 */}
-            <TableBody
-                className={collectionsPayload
-                ? cn(style['table-body'])
-                : cn(style['table-body'], style['invalid-results'])
-                }
-            >
-                {/* Create a row for each reference in the query payload*/}
-                {results.map((reference, index) => (
-                    <Row
-                        // Load the propierties (inputs) that the class "Row" is expecting
-                        data={reference} // Load reference data (id, name, description, image URL, ...)
-                        highlight={search.search} // Load the highlight
-                        index={index} // Load the index
-                        key={index} // Add a key for react to do not complain
+            <Table style={{ marginTop: '1em' }}>
+                {/* Table head with the names of each colum */}
+                <TableHead className={style['table-head']}>
+                    <TableRow>
+                    <TableCell className={style.center}>name
+                    </TableCell>
+                    <TableCell className={style.center}>system keywords
+                    </TableCell>
+                    <TableCell className={style.center}>logo</TableCell>
+                    <TableCell className={style.center}>size</TableCell>
+                    </TableRow>
+                </TableHead>
+                {/* Table body with the content, which is defined above in the Row constant */}
+                {/* When the search has no results the table gets an opacity of 0.25 */}
+                <TableBody
+                    className={collectionsPayload
+                    ? cn(style['table-body'])
+                    : cn(style['table-body'], style['invalid-results'])
+                    }
+                >
+                    {/* Create a row for each reference in the query payload*/}
+                    {results.map((reference, index) => (
+                        <Row
+                            // Load the propierties (inputs) that the class "Row" is expecting
+                            data={reference} // Load reference data (id, name, description, image URL, ...)
+                            highlight={search.search} // Load the highlight
+                            index={index} // Load the index
+                            key={index} // Add a key for react to do not complain
+                        />
+                    ))}
+                </TableBody>
+                <TableFooter>
+                    <Pagination
+                        matchCount={matchCount}
+                        search={search}
+                        location={location}
+                        history={history}
+                        DEFAULT_LIMIT={DEFAULT_LIMIT}
+                        DEFAULT_PAGE={DEFAULT_PAGE}
                     />
-                ))}
-            </TableBody>
-            <TableFooter>
-                <Pagination
-                    matchCount={matchCount}
-                    search={search}
-                    location={location}
-                    history={history}
-                    DEFAULT_LIMIT={DEFAULT_LIMIT}
-                    DEFAULT_PAGE={DEFAULT_PAGE}
-                />
-            </TableFooter>
+                </TableFooter>
             </Table>
         </div>
     );

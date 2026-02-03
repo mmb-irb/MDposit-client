@@ -68,8 +68,8 @@ th.center {
 }
 
 .preview-img {
-  width: 100%;
-  height: auto;
+  max-width: 20em;
+  max-height: 5em;
   object-fit: contain;
 }
 

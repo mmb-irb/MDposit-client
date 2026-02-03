@@ -41,7 +41,7 @@ import style from './style.module.css';
 import { parseLocationSearch } from '../../utils/auxiliar-functions';
 
 // The search bar
-import Search from './search';
+import SearchBar from '../../components/search-bar';
 
 // Available sort options with both ascending and descending for each field
 const SORT_OPTIONS = {
@@ -197,7 +197,7 @@ const Browse = () => {
         </div>
         <div className={style['right-bar']}>
           <div className={style.search}>
-            <Search />
+            <SearchBar />
             <OptionsFilter location={location} search={search} history={history} />
             <Sorter location={location} search={search} history={history}/>
           </div>

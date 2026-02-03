@@ -6,11 +6,11 @@ import { InputAdornment, TextField } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
 
-import { docs } from '../../help/documentation';
+import { docs } from '../../pages/help/documentation';
 
 import style from './style.module.css';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { HOST_CONFIG } from '../../../utils/constants';
+import { HOST_CONFIG } from '../../utils/constants';
 
 // Half second delay (500 ms) to process changes in the search bar
 const DEBOUNCE_DELAY = 500;
@@ -59,7 +59,7 @@ export const updateLocation = (location, history, value) => {
 const debouncedUpdateLocation = debounce(updateLocation, DEBOUNCE_DELAY);
 
 // This function is called each time that a letter is typed in the search bar
-const Search = () => {
+const SearchBar = () => {
   // Get the history and the location
   const location = useLocation();
   const history = useNavigate();
@@ -92,4 +92,4 @@ const Search = () => {
   );
 };
 
-export default Search;
+export default SearchBar;
