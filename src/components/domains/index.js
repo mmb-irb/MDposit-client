@@ -184,8 +184,9 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
       if (interactionDomains.find(domain => domain.name === domainName))
         return;
       // Get the NGL selection for ligand residues
-      const residueIndices = topology.getReferenceResidueIndices(ligandReference.pubchem) ||
-        topology.getReferenceResidueIndices(ligandReference.inchikey);
+      // Ligands are identified by their InChIKey or PubChem ID (old system)
+      const referenceId = ligandReference.inchikey || ligandReference.pubchem;
+      const residueIndices = topology.getReferenceResidueIndices(referenceId)
       if (!residueIndices || residueIndices.length === 0) {
         console.error(`Ligand reference "${ligandReference.pubchem}" not found in topology`);
         return;
