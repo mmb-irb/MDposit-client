@@ -146,15 +146,17 @@ const CollectionBrowser = () => {
                     }
                 >
                     {/* Create a row for each reference in the query payload*/}
-                    {results.map((reference, index) => (
-                        <Row
+                    {results.map((reference, index) => {
+                        // Skip empty collections
+                        if (!reference.projectCount) return;
+                        return (<Row
                             // Load the propierties (inputs) that the class "Row" is expecting
                             data={reference} // Load reference data (id, name, description, image URL, ...)
                             highlight={search.search} // Load the highlight
                             index={index} // Load the index
                             key={index} // Add a key for react to do not complain
-                        />
-                    ))}
+                        />)
+                    })}
                 </TableBody>
                 <TableFooter>
                     <Pagination

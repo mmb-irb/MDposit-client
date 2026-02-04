@@ -131,7 +131,7 @@ const HeaderMenu = () => {
                                 </ListItemIcon>
                                 Statistics
                             </MenuItem>
-                            <MenuItem
+                            {!HOST_CONFIG.singleCollection && <MenuItem
                                 onClick={() => openData(false)}
                                 component={Link}
                                 to="/collections"
@@ -142,7 +142,7 @@ const HeaderMenu = () => {
                                     <AssignmentIcon fontSize="small" sx={{ color: contrastText }} />
                                 </ListItemIcon>
                                 Collections
-                            </MenuItem>
+                            </MenuItem>}
                             <MenuItem
                                 onClick={() => openData(false)}
                                 component={Link}
