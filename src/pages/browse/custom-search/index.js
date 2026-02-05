@@ -31,12 +31,13 @@ const SEARCH_DELAY = 500; // Half a second delay, same as in search component
 import useAPI from '../../../hooks/use-api'; // API acces
 import Loading from '../../../components/loading'; // Displays an animated "loading" circle
 
-
-
 // Get the available search fields
 const queryFields = HOST_CONFIG.queryFields;
 const optionsField = HOST_CONFIG.optionsField;
 const availableFields = HOST_CONFIG.availableFields;
+
+// Set a regular expression for numeric values
+const NUMERIC_REGEXP = new RegExp(/[0-9+-.,]*/);
 
 // Escape all regex sensible characters
 const escapeRegExp = input => {
@@ -287,7 +288,7 @@ const CustomSearch = () => {
   const { payload: optionsPayload, error: optionsError } = useAPI(optionsUrl, { name: 'browse', cacheOn: true });
 
   // State to track expanded accordions
-  const [expandedCategory, setExpandedCategory] = useState(true);
+  const [expandedCategory, setExpandedCategory] = useState({});
   const [expandedFields, setExpandedFields] = useState({});
 
   // Initialize expanded state based on URL query
@@ -532,8 +533,9 @@ const CustomSearch = () => {
                                 const minValue = currentQuery[field.path] && currentQuery[field.path].min || '';
                                 const maxValue = currentQuery[field.path] && currentQuery[field.path].max || '';
                                 
-                                return (
+                                return (<>
                                   <div className={style.aligned}>
+                                    <span style={{padding: '3px'}}>greater than</span>
                                     <TextField
                                       title={'Type here the value for the specified field'}
                                       value={minValue}
@@ -549,11 +551,14 @@ const CustomSearch = () => {
                                       placeholder={'> e.g. ' + field.example}
                                       inputProps={{
                                         inputMode: 'numeric',
-                                        pattern: '[0-9.,+-]*',
+                                        pattern: NUMERIC_REGEXP,
                                       }}
                                       className={style.spaced}
+                                      size="small"
                                     />
-                                    <span style={{padding: '3px'}}>-</span>
+                                  </div>
+                                  <div className={style.aligned}>
+                                    <span style={{padding: '3px'}}>lower than</span>
                                     <TextField
                                       title={'Type here the value for the specified field'}
                                       value={maxValue}
@@ -569,12 +574,13 @@ const CustomSearch = () => {
                                       placeholder={'< e.g. ' + field.example}
                                       inputProps={{
                                         inputMode: 'numeric',
-                                        pattern: '[0-9.,+-]*',
+                                        pattern: NUMERIC_REGEXP,
                                       }}
                                       className={style.spaced}
+                                      size="small"
                                     />
                                   </div>
-                                );
+                                </>);
                               }
                             }
                           })()}
