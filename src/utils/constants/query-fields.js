@@ -1,42 +1,193 @@
 export default {
-    "General annotations": [
+    "System": [
         {
-            "name": "Name",
-            "path": "metadata.NAME",
+            "name": "Keywords",
+            "path": "metadata.SYSKEYS",
             "type": "string",
-            "example": "spike opening ...",
-            "options": false
-        },
-        {
-            "name": "Description",
-            "path": "metadata.DESCRIPTION",
-            "type": "string",
-            "example": "this simulation ...",
-            "options": false
-        },
-        {
-            "name": "Authors",
-            "path": "metadata.AUTHORS",
-            "type": "string",
-            "example": "Modesto Orozco",
+            "example": "protein",
             "options": true,
-            "checkbox" : false
+            "checkbox" : true,
+            "defaultOpen": true,
         },
         {
-            "name": "Groups",
-            "path": "metadata.GROUPS",
+            "name": "Interactions",
+            "path": "metadata.INTERACTIONS.type",
             "type": "string",
-            "example": "IRB Barcelona, Orozco lab",
+            "example": "protein-protein",
             "options": true,
-            "checkbox" : false
+            "checkbox" : true
         },
         {
-            "name": "Citation",
-            "path": "metadata.CITATION",
-            "type": "string",
-            "example": "institute of ...",
+            "name": "System atom count",
+            "path": "metadata.SYSTATS",
+            "type": "int",
+            "example": "any integer number",
             "options": false
         },
+        {
+            "name": "System residue count",
+            "path": "metadata.SYSTRES",
+            "type": "int",
+            "example": "any integer number",
+            "options": false
+        },
+        {
+            "name": "Protein atom count",
+            "path": "metadata.PROTATS",
+            "type": "int",
+            "example": "any integer number",
+            "options": false
+        },
+        {
+            "name": "Protein residue count",
+            "path": "metadata.PROTRES",
+            "type": "int",
+            "example": "any integer number",
+            "options": false
+        },
+        {
+            "name": "DNA atom count",
+            "path": "metadata.DNAATS",
+            "type": "int",
+            "example": "any integer number",
+            "options": false
+        },
+        {
+            "name": "DNA residue count",
+            "path": "metadata.DNARES",
+            "type": "int",
+            "example": "any integer number",
+            "options": false
+        },
+        {
+            "name": "RNA atom count",
+            "path": "metadata.RNAATS",
+            "type": "int",
+            "example": "any integer number",
+            "options": false
+        },
+        {
+            "name": "RNA residue count",
+            "path": "metadata.RNARES",
+            "type": "int",
+            "example": "any integer number",
+            "options": false
+        },
+        {
+            "name": "Lipid atom count",
+            "path": "metadata.LIPIATS",
+            "type": "int",
+            "example": "any integer number",
+            "options": false
+        },
+        {
+            "name": "Lipid residue count",
+            "path": "metadata.LIPIRES",
+            "type": "int",
+            "example": "any integer number",
+            "options": false
+        },
+        {
+            "name": "Carbohydrates atom count",
+            "path": "metadata.CARBATS",
+            "type": "int",
+            "example": "any integer number",
+            "options": false
+        },
+        {
+            "name": "Carbohydrates residue count",
+            "path": "metadata.CARBRES",
+            "type": "int",
+            "example": "any integer number",
+            "options": false
+        },
+        {
+            "name": "Solvent atom count",
+            "path": "metadata.SOLVATS",
+            "type": "int",
+            "example": "any integer number",
+            "options": false
+        },
+        {
+            "name": "Solvent residue count",
+            "path": "metadata.SOLVRES",
+            "type": "int",
+            "example": "any integer number",
+            "options": false
+        },
+        {
+            "name": "Counter cation count",
+            "path": "metadata.COUNCAT",
+            "type": "int",
+            "example": "any integer number",
+            "options": false
+        },
+        {
+            "name": "Counter anion count",
+            "path": "metadata.COUNANI",
+            "type": "int",
+            "example": "any integer number",
+            "options": false
+        },
+        {
+            "name": "Counter ion count",
+            "path": "metadata.COUNION",
+            "type": "int",
+            "example": "any integer number",
+            "options": false
+        },
+        {
+            "name": "Non-counter ion count",
+            "path": "metadata.NOCNION",
+            "type": "int",
+            "example": "any integer number",
+            "options": false
+        },
+        {
+            "name": "Other atom count",
+            "path": "metadata.OTHRATS",
+            "type": "int",
+            "example": "any integer number",
+            "options": false
+        },
+    ],
+    "Features": [
+        {
+            "name": "Protein sequence",
+            "path": "metadata.PROTSEQ",
+            "type": "string",
+            "example": "VNLTTRT",
+            "options": false
+        },
+        {
+            "name": "Nucleic acid sequences",
+            "path": "metadata.NUCLSEQ",
+            "type": "string",
+            "example": "CGCGAATTCGCG",
+            "options": false
+        },
+        {
+            "name": "Domains",
+            "path": "metadata.DOMAINS",
+            "type": "string",
+            "example": "Receptor-binding domain (RBD)",
+            "options": true
+        },
+        {
+            "name": "Post translational modifications",
+            "path": "metadata.PTM",
+            "type": "string",
+            "example": "Glycosylation",
+            "options": true
+        },
+        {
+            "name": "Multimeric form",
+            "path": "metadata.MULTIMERIC",
+            "type": "string",
+            "example": "Dimer",
+            "options": true,
+            "checkbox" : true
+        } 
     ],
     "References": [
         {
@@ -185,7 +336,7 @@ export default {
             "options": true
         }
     ],
-    "Molecular Dynamics protocol": [
+    "Molecular Dynamics": [
         {
             "name": "Program",
             "path": "metadata.PROGRAM",
@@ -257,16 +408,7 @@ export default {
             "example": "Triclinic",
             "options": true,
             "checkbox" : true
-        }
-    ],
-    "Size of the simulations": [
-        {
-            "name": "Number of frames",
-            "path": "mds.frames",
-            "type": "int",
-            "example": "any integer number",
-            "options": false
-        }, 
+        },
         {
             "name": "Framestep (ns)",
             "path": "metadata.FRAMESTEP",
@@ -275,64 +417,12 @@ export default {
             "options": false
         },
         {
-            "name": "System atom count",
-            "path": "metadata.SYSTATS",
+            "name": "Number of frames",
+            "path": "mds.frames",
             "type": "int",
             "example": "any integer number",
             "options": false
         },
-        {
-            "name": "Protein atom count",
-            "path": "metadata.PROTATS",
-            "type": "int",
-            "example": "any integer number",
-            "options": false
-        },
-        {
-            "name": "Protein residue count",
-            "path": "metadata.PROT",
-            "type": "int",
-            "example": "any integer number",
-            "options": false
-        }
-    ],
-    "Protein related features": [
-        {
-            "name": "Protein sequence",
-            "path": "metadata.PROTSEQ",
-            "type": "string",
-            "example": "VNLTTRT",
-            "options": false
-        },
-        {
-            "name": "Nucleic acid sequences",
-            "path": "metadata.NUCLSEQ",
-            "type": "string",
-            "example": "CGCGAATTCGCG",
-            "options": false
-        },
-        {
-            "name": "Domains",
-            "path": "metadata.DOMAINS",
-            "type": "string",
-            "example": "Receptor-binding domain (RBD)",
-            "options": true
-        },
-        {
-            "name": "Post translational modifications",
-            "path": "metadata.PTM",
-            "type": "string",
-            "example": "Glycosylation",
-            "options": true
-        },
-        {
-            "name": "Multimeric form",
-            "path": "metadata.MULTIMERIC",
-            "type": "string",
-            "example": "Dimer",
-            "options": true,
-            "checkbox" : true
-        } 
     ],
     "Topology": [
         {
@@ -368,6 +458,53 @@ export default {
             "checkbox" : false
         },
     ],
+        "General annotations": [
+        {
+            "name": "Name",
+            "path": "metadata.NAME",
+            "type": "string",
+            "example": "spike opening ...",
+            "options": false
+        },
+        {
+            "name": "Description",
+            "path": "metadata.DESCRIPTION",
+            "type": "string",
+            "example": "this simulation ...",
+            "options": false
+        },
+        {
+            "name": "Authors",
+            "path": "metadata.AUTHORS",
+            "type": "string",
+            "example": "Modesto Orozco",
+            "options": true,
+            "checkbox" : false
+        },
+        {
+            "name": "Groups",
+            "path": "metadata.GROUPS",
+            "type": "string",
+            "example": "IRB Barcelona, Orozco lab",
+            "options": true,
+            "checkbox" : false
+        },
+        {
+            "name": "Citation",
+            "path": "metadata.CITATION",
+            "type": "string",
+            "example": "institute of ...",
+            "options": false
+        },
+        {
+            "name": "Collections",
+            "path": "metadata.COLLECTIONS",
+            "type": "string",
+            "example": "cv19",
+            "options": true,
+            "checkbox": true,
+        },
+    ],
     "Other": [
         {
             "name": "Available MD analyses",
@@ -389,22 +526,6 @@ export default {
             "type": "string",
             "example": "pocket_10.pdb",
             "options": true
-        },
-        {
-            "name": "System keywords",
-            "path": "metadata.SYSKEYS",
-            "type": "string",
-            "example": "protein",
-            "options": true,
-            "checkbox" : true
-        },
-        {
-            "name": "Type of partner interactions",
-            "path": "metadata.INTERACTIONS.type",
-            "type": "string",
-            "example": "protein-protein",
-            "options": true,
-            "checkbox" : true
         },
         {
             "name": "Number of MDs",

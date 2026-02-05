@@ -79,21 +79,19 @@ const DEFAUL_HOST_CONFIGURATION = {
 };
 
 // Set the configuration for the collections option
-// DANI: Para no repetirlo cada vez
 const COLLECTION_OPTIONS = {
     optionsField: 'metadata.COLLECTIONS',
     optionsLabel: 'Collection',
     optionsNiceNames: {
-        'cv19': 'BioExcel - COVID-19',
-        'mcns': 'MoDEL - Central Nervous System',
-        'model': 'MoDEL 2010',
-        'bigna': 'BIGNASim',
-        'abc': 'ABC',
-        'modtox': 'ModTox',
         'null': 'Independent',
         [null]: 'Independent',
     }
 };
+
+// Set the collection options as the defualt options
+// LORE: Back in the day there was no default options
+// LORE: But someone asked for clients to be as much coherent as possible between nodes
+Object.assign(DEFAUL_HOST_CONFIGURATION, COLLECTION_OPTIONS);
 
 // Set the configuration for covid19 specific units option
 // DANI: Para no repetirlo cada vez
@@ -103,75 +101,12 @@ const UNIT_OPTIONS = {
     optionsNiceNames: {} // There is no need to use nice names, they arleady are
 };
 
-// Set the configuration for MDposit node option
-// DANI: Para no repetirlo cada vez
-const NODE_OPTIONS = {
-    optionsField: 'node',
-    optionsLabel: 'Node',
-    optionsNiceNames: {
-        'mmb': 'IRB Barcelona, MMB',
-        'pklr': 'BSC - Pyruvate Kinase',
-        'oxf': 'Oxford University',
-        'cin': 'Cineca',
-        'inr': 'Inria',
-        'rpbs': 'RPBS',
-        'jsc': 'JSC',
-        'ufl': 'University of Florida'
-    },
-    optionsData: {
-        description: {
-            'mmb': 'This node is maintained by the Molecular Modeling and Bioinformatics (MMB)'
-                + ' group in IRB Barcelona. This was the first node and therefore has simulations'
-                + ' of multiple authors and all sorts thus not being topic-specific.',
-            'pklr': 'This node is maintained by the Life Sciences Department in the Barcelona'
-                + ' Supercomputing Center (BSC). At the moment, this node is hosting a Pyruvate Kinase'
-                + ' specific dataset, including different mutations and ligands.',
-            'oxf': 'This node is maintained by the Department of Biochemistry in the University of'
-                + ' Oxford. This node is focused in membrane proteins, both atomistic and coarse grained'
-                + ', since one of its goals is to integrate MemProtMD.',
-            'cin': 'This node is maintained by the High Performance Computing department of Cineca.'
-                + ' It is mainlfy focused in protein-ligand systems as it was originally intended to'
-                + ' store and make publicly available the Ligate dataset.',
-            'inr': 'This node is mantained by the Inria center at the Lorraine University.'
-                + ' It was originally intended to store and make publicly available the DynaRepo dataset.',
-            'rpbs': 'This node is maintained under the Ressource Parisienne en Bioinformatique'
-                + ' Structurale framework.',
-            'jsc': 'This node is maintained by the Jülich Supercomputing Center.',
-            'ufl': 'This node is maintained by the Department of Chemistry in the University of Florida.',
-        },
-        logo: {
-            'mmb': 'logo-irb',
-            'pklr': 'logo-bsc',
-            'oxf': 'oxf-node-logo',
-            'cin': 'cin-node-logo',
-            'inr': 'inr-node-logo',
-            'rpbs': 'rpbs-node-logo',
-            'jsc': 'jsc-node-logo',
-            'ufl': 'ufl-node-logo',
-        }
-    }
-};
-
 // Set additional query fields
 // DANI: Para no repetirlo cada vez
 
-// Include the collections field, which makes no sense in some collection-specific nodes (e.g. covid, abc)
-const queryFieldsWithCollections = copyObject(defaultQueryFields);
-const collectionsField = {
-    name: "Collections",
-    path: "metadata.COLLECTIONS",
-    type: "string",
-    example: "cv19",
-    options: true,
-    checkbox : true,
-    defaultOpen : true
-};
-queryFieldsWithCollections["General annotations"].unshift(collectionsField);
-
-// Include the collections field, which makes no sense in some collection-specific nodes (e.g. covid, abc)
-const queryFieldsWithNodesAndCollections = copyObject(defaultQueryFields);
-queryFieldsWithNodesAndCollections["General annotations"].unshift(collectionsField);
-queryFieldsWithNodesAndCollections["General annotations"].unshift({
+// Include the node field, which makes sense only in the global clients
+const queryFieldsWithNodes = copyObject(defaultQueryFields);
+queryFieldsWithNodes["General annotations"].unshift({
     name: "Node",
     path: "node",
     type: "string",
@@ -295,24 +230,21 @@ const HOST_CONFIGURATIONS = {
     'mdposit-dev.mddbr.eu': {
         global: true,
         primaryColor: '#5c6bc0', // Light indigo
-        ...NODE_OPTIONS,
-        queryFields: queryFieldsWithNodesAndCollections,
+        queryFields: queryFieldsWithNodes,
     },
     // MDposit production
     'mdposit.mddbr.eu': {
         production: true,
         global: true,
         primaryColor: '#5c6bc0', // Light indigo
-        ...NODE_OPTIONS,
-        queryFields: queryFieldsWithNodesAndCollections,
+        queryFields: queryFieldsWithNodes,
     },
     // MDposit development (obsolete url)
     'mdposit-dev.bsc.es': {
         api: 'https://mdposit-dev.mddbr.eu/api/rest/',
         global: true,
         primaryColor: '#5c6bc0', // Light indigo
-        ...NODE_OPTIONS,
-        queryFields: queryFieldsWithNodesAndCollections,
+        queryFields: queryFieldsWithNodes,
     },
     // MMB node development
     'mmb-dev.mddbr.eu': {
@@ -322,8 +254,6 @@ const HOST_CONFIGURATIONS = {
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations stored at the MMB group at IRB Barcelona.
         </>,
-        ...COLLECTION_OPTIONS,
-        queryFields: queryFieldsWithCollections,
     },
     // MMB node production
     'mmb.mddbr.eu': {
@@ -334,8 +264,6 @@ const HOST_CONFIGURATIONS = {
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations stored at the MMB group at IRB Barcelona.
         </>,
-        ...COLLECTION_OPTIONS,
-        queryFields: queryFieldsWithCollections,
     },
     // IRB node development
     'irb-dev.mddbr.eu': {
@@ -356,8 +284,6 @@ const HOST_CONFIGURATIONS = {
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations stored at the MMB group at IRB Barcelona.
         </>,
-        ...COLLECTION_OPTIONS,
-        queryFields: queryFieldsWithCollections,
     },
     // IRB node production
     'irb.mddbr.eu': {
@@ -369,8 +295,6 @@ const HOST_CONFIGURATIONS = {
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations stored at the MMB group at IRB Barcelona.
         </>,
-        ...COLLECTION_OPTIONS,
-        queryFields: queryFieldsWithCollections,
     },
     // ABC node development
     'abc-dev.mddbr.eu': {

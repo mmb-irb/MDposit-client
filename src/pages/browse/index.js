@@ -30,6 +30,7 @@ import useAPI from '../../hooks/use-api';
 
 // Constants
 import {
+  BASE_VERSIONED_PATH,
   BASE_PATH_PROJECTS,
   HOST_CONFIG,
 } from '../../utils/constants';
@@ -82,6 +83,21 @@ const OptionsFilter = ({ location, search, history }) => {
   // Options data from the API
   const optionsUrl = optionsField ? `${BASE_PATH_PROJECTS}/options?projection=${optionsField}` : null;
   const { payload: optionsPayload, error: optionsError } = useAPI(optionsUrl);
+
+  // If the options field is metadata collections (which is usual) then get collecion names
+  // DANI: De momento estamos lejos de llegar a las 100, en un futuro habría que paginar
+  // DANI: Cuando este día llegue igual ya no merece la pena que la option sea collections
+  const referencesUrl = optionsField === 'metadata.COLLECTIONS' ?
+    `${BASE_VERSIONED_PATH}/references/collections?limit=100` : null;
+  const { payload: referencesPayload, error: referencesError } = useAPI(referencesUrl);
+  if (referencesPayload) {
+    console.log(referencesPayload);
+    const collectionNames = {};
+    referencesPayload.references.forEach(reference => {
+      collectionNames[reference.id] = reference.name;
+    });
+    Object.assign(HOST_CONFIG.optionsNiceNames, collectionNames);
+  }
 
   // Add the all flag at the beginning as default value
   // Remove null values since they are not queryable
