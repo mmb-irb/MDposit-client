@@ -85,24 +85,25 @@ const DataViewer = ({ accessionAndMdNumber, subPage }) => {
     const additionalUrls = additionalEndpoints.map(endpoint => `${projectUrl}/${endpoint}`);
     return [ projectUrl, ...additionalUrls ]
   }, [accessionAndMdNumber, subPage]);
-  console.log(apiUrls);
   if (apiUrls === NOT_IMPLEMENTED_ERROR) return NOT_IMPLEMENTED_ERROR;
   // Request all API URLs
   const apiResponses = useBatchAPI(apiUrls);
-  console.log(apiResponses);
   // Render every requested URL, even if we still have no response
-  return apiResponses.map((response, i) => 
-    <Accordion key={i} slotProps={{ transition: { timeout: 500 } }} defaultExpanded={apiResponses.length === 1}>
-      <AccordionSummary>
-        <ChevronRightIcon color="primary" fontSize='large'/>
-        <Typography variant="h6">{getEndpointLabel(response.url)}</Typography>
-      </AccordionSummary>
-      <AccordionDetails>
-        <TextLink name={response.url} url={response.url} style={{ padding: '1em' }}/>
-        {(response.loading && <Loading />) || parseResponse(response.payload)}
-      </AccordionDetails>
-    </Accordion>
-  );
+  return apiResponses.map((response, i) => {
+    if (!response.url) return;
+    return (
+      <Accordion key={i} slotProps={{ transition: { timeout: 500 } }} defaultExpanded={apiResponses.length === 1}>
+        <AccordionSummary>
+          <ChevronRightIcon color="primary" fontSize='large'/>
+          <Typography variant="h6">{getEndpointLabel(response.url)}</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <TextLink name={response.url} url={response.url} style={{ padding: '1em' }}/>
+          {(response.loading && <Loading />) || parseResponse(response.payload)}
+        </AccordionDetails>
+      </Accordion>
+    );
+  });
 };
 
 export default DataViewer;
