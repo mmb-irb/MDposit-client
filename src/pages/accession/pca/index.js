@@ -79,15 +79,10 @@ const PCA = () => {
       trajectoryURLs = [ projectionURL ];
     }
 
-    // Atom indices must be sorted
-    // The API should be able to handle disordedred indices
-    // However for some reason we are getting a CORS error if atom are no sorted
-    // Besides, the PCA should have atom indices sorted already, but just in case (it has happened)
-    const sortedAtomIndices = data.atoms.sort((a, b) => a - b);
     // Set the NGL component
     const components = [
       {
-        atomIndices: sortedAtomIndices,
+        atomIndices: data.atoms,
         trajectoryURLs: trajectoryURLs,
       },
     ];

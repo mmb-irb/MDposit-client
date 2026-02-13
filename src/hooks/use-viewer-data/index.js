@@ -104,11 +104,15 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
                         error: null,
                     });
                 } else {
+                    // WARNING: Atom indices must be sorted
+                    // The API should be able to handle disordedred indices
+                    // However for some reason we are getting a CORS error if atom are no sorted
+                    const sortedAtomIndices = atomIndices.sort((a, b) => a - b);
                     // Add the topology to the list, so it will be requested to the API
                     newRequestedTopologies.push({
                         urlpath: urlpath,
                         selection: selection,
-                        atomindices: atomIndices,
+                        atomindices: sortedAtomIndices,
                         loading: true,
                         requested: false,
                         error: null,
