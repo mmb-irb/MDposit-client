@@ -155,8 +155,8 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
                 topology.source = accessionAndMdNumber;
                 // Create the POST body
                 const postData = JSON.stringify({
-                    selection : topology.selection,
-                    atomindices: topology.atomindices,
+                    selection : topology.selection || undefined,
+                    atomindices: topology.atomindices || undefined,
                 });
                 // Request the API
                 // http exception is added for local testing in http://localhost
