@@ -102,6 +102,7 @@ const RepresentationsManager = memo(
                 <TableCell align="right">
                   <TextField
                     defaultValue={representation.selection}
+                    title={representation.selection}
                     variant="outlined"
                     onKeyPress={event => {
                       if (event.key !== 'Enter') return;
