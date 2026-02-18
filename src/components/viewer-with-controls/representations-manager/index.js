@@ -101,7 +101,8 @@ const RepresentationsManager = memo(
                 {/* Selection */}
                 <TableCell align="right">
                   <TextField
-                    defaultValue={representation.selection}
+                    value={representation.custom ? undefined : representation.selection}
+                    defaultValue={representation.custom ? representation.selection : undefined}
                     title={representation.selection}
                     variant="outlined"
                     onKeyPress={event => {
