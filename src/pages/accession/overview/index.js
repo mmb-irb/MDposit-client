@@ -199,8 +199,13 @@ const Overview = React.memo(() => {
         <Card className={style.card}>
           <CardContent className={style['card-content']}>
             {collectionReferences.map((collection, index) => (
-              <div key={index} style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }} >
-                <div style={{ width: '70%' }}>
+              <div key={index} style={{
+                  display: 'flex',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }} >
+                <div>
                   <Typography marginBottom={'10px'} variant="h6" sx={{ fontSize: '1.4rem' }}>
                     {collection.name}
                   </Typography>
@@ -224,7 +229,7 @@ const Overview = React.memo(() => {
                 </div>
                 <LazyImg
                   src={collection.image} loading="lazy" alt={`Collection logo`}
-                  style={{ maxWidth: '30%', height: 'auto' }}
+                  style={{ maxWidth: '30%', height: 'auto', margin: '0 1em' }}
                 />
                 {index !== 0 && <hr style={{ color: 'lightGrey' }}/>}
               </div>

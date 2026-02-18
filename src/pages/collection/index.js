@@ -61,15 +61,21 @@ const Collection = () => {
     // Return the accession routes
     return (<Card>
         <CardContent>
-            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', marginBottom: '1em' }} >
-                <div style={{ width: '70%' }}>
+            <div style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '1em',
+                }} >
+                <div>
                 <Typography marginBottom={'10px'} variant="h6" sx={{ fontSize: '1.4rem' }}>
                     {referenceData.name}
                 </Typography>
                 <div>{referenceData.description}</div>
                 </div>
                 <LazyImg src={referenceData.image} loading="lazy" alt={`Collection logo`}
-                    style={{ maxWidth: '30%', height: 'auto' }}
+                    style={{ maxWidth: '30%', height: 'auto', margin: '0 1em' }}
                 />
             </div>
             {Object.entries(PROJECT_OPTIONS).map(([optionName, optionField]) => {
