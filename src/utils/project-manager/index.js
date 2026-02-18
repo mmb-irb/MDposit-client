@@ -199,10 +199,14 @@ export class Project {
         const references = this.references;
         return useMemo(() => {
             if (!references) return undefined;
-            return references.filter(ref =>
+            const inchikeyReferencesWithLigand = references.filter(ref =>
                 ref.ref_type === 'ligands' ||
-                (ref.ref_type === 'inchikeys' && ref.pubchem && Object.keys(ref.pubchem).length > 0)
+                (ref.ref_type === 'inchikeys' && (
+                    (ref.ligand && Object.keys(ref.ligand).length > 0) || // Current name
+                    (ref.pubchem && Object.keys(ref.pubchem).length > 0) // Old name
+                ))
             );
+            return inchikeyReferencesWithLigand.map(ref => ref.ligand || ref.pubchem);
         }, [references]);
     }
     get pdbReferences () {
