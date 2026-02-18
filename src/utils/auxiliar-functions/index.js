@@ -161,3 +161,9 @@ export function buildProjectionQuery(fields) {
 }
 // Check if an object is empty
 export const isEmptyObj = obj => obj && Object.keys(obj).length === 0;
+
+// Compare sets for equality
+export const areSetsEqual = (a, b) => a.size === b.size && [...a].every(v => b.has(v));
+// Compare arrays for having the same values
+// Note that we do not care about duplicates or order
+export const sameValues = (a, b) => areSetsEqual(new Set(a), new Set(b));

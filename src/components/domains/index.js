@@ -15,7 +15,9 @@ import style from './style.module.css';
 
 import Loading from '../loading';
 
-import { rangedSelectionParser } from '../../utils/auxiliar-functions';
+import { rangedSelectionParser, sameValues } from '../../utils/auxiliar-functions';
+// Get the defaults representations getter
+import getDefaultRepresentations from '../../utils/topology-manager/get-default-reprensetations';
 
 // Show floatting bubles with domain names
 // When a bubble is selected the domain is represented
@@ -87,12 +89,14 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
           if (current) return;
           const nglSelection = topology.atomIndices2Ngl(agent.atoms);
           interactionDomains.push({
-            name: agent.name,
+            name: `Interacting agent "${agent.name}"`,
+            description: 'This is one of the interacting agents considered in interaction analyses.',
             representations: [
               {
                 name: agent.name,
                 selection: nglSelection,
                 type: 'licorice',
+                color: 'element',
               },
             ],
           });
@@ -107,13 +111,11 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
       // Start by creating a domain for the whole reference
       const wholeReferenceResidueIndices = topology.getReferenceResidueIndices(referenceId);
       if (!wholeReferenceResidueIndices || wholeReferenceResidueIndices.length === 0) return;
-      const wholeReferenceNglSelection = topology.residueIndices2Ngl(wholeReferenceResidueIndices);
+      const wholeReferenceRepresentations = getDefaultRepresentations(topology, wholeReferenceResidueIndices);
       const wholeReferenceDomain = {
         name: proteinReference.name,
-        representations: [{
-          name: proteinReference.name,
-          selection: wholeReferenceNglSelection.rangedSelection
-        }],
+        description: `UniProt ${referenceId} reference.`,
+        representations: wholeReferenceRepresentations,
       };
       referenceDomains.push(wholeReferenceDomain);
       // Collect all domains in protein reference data
@@ -136,38 +138,61 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
           return;
         // Discard the domain if its name matches the reference name
         // This is quite usual: some references have domains which are basically the whole thing
-        // There may be a difference in the pole residues, but it is redundant anyway
-        // Note that we already add a domain for the whole reference
+        // There may be a small difference in both ends, but it is redundant anyway
+        // Note that we already added a domain for the whole reference
+        // Sometimes the domain with the whole thing has a slightly different name
+        // So we may also discard it later if the selection is identical
         if (proteinReference.name === domainName) return;
+        // Set the text to be displayed on hover
+        let description = domain.description;
+        // Let the user know that this domain comes from UniProt
+        // It may not have description
+        if (description) description += ` This domain was obtained from UniProt ${referenceId}.`;
+        else description = `This domain was obtained from UniProt ${referenceId}.`;
+        // Set the final domain
         const mappedDomain = {
           name: proteinReference.name + ' - ' + domainName,
-          description: domain.description, // It may not have description
+          description: description,
           representations: [],
         };
-        // Set a function to modify a representation by parsing its selections to NGL
-        const parseRepresentationSelection = representation => {
-          const selection = representation.selection;
-          const parsedSelection = rangedSelectionParser(selection);
-          // WARNING: A single protein reference residue may correspond to multiple topology residues
-          const mappedSelection = topology.getReferenceResidueIndices(referenceId, parsedSelection);
-          // Representations with a selection not present in topology are discarded
-          if (!mappedSelection || mappedSelection.length === 0) return;
-          // Transform the residue indices to a NGL selection
-          const { rangedSelection: nglSelection, small } = topology.residueIndices2Ngl(mappedSelection);
-          const newRepresentation = { ...representation };
-          newRepresentation.selection = nglSelection;
-          // residueIndices2Ngl returns 'small' = true when there are series of 3 residues or less
-          // These small residue selections will be not represented in cartoon due to an NGL bug
-          // https://github.com/nglviewer/ngl/issues/223
-          if (small) newRepresentation.type = 'licorice';
-          mappedDomain.representations.push(newRepresentation);
-        };
+        // If we have a selection (the usual case) then parse it and set default representations for it
         if (domain.selection) {
-          const domainRepresentation = { name: domainName, selection: domain.selection };
-          parseRepresentationSelection(domainRepresentation);
+          const parsedSelection = rangedSelectionParser(domain.selection);
+          const domianResidueIndices = topology.getReferenceResidueIndices(referenceId, parsedSelection);
+          // If residue indices in this domain are identical to residue indices in the whole reference
+          // then skip this domain. This is quite common.
+          if (!sameValues(domianResidueIndices, wholeReferenceResidueIndices)) {
+            // Add the representations for this specific region to the domain
+            const domainRepresentations = getDefaultRepresentations(topology, domianResidueIndices);
+            mappedDomain.representations.push(...domainRepresentations);
+          }
         }
+        // If we have a custom set of representations (unusual) then parse these representations
+        // Parse the selections to proper NGL selections
+        // In some cases the type may be overriden to licorice (small ranges or coarse grain)
         if (domain.representations) {
-          domain.representations.forEach(parseRepresentationSelection);
+          domain.representations.forEach(representation => {
+            const selection = representation.selection;
+            const parsedSelection = rangedSelectionParser(selection);
+            // WARNING: A single protein reference residue may correspond to multiple topology residues
+            const mappedSelection = topology.getReferenceResidueIndices(referenceId, parsedSelection);
+            // Representations with a selection not present in topology are discarded
+            if (!mappedSelection || mappedSelection.length === 0) return;
+            // Transform the residue indices to a NGL selection
+            const { rangedSelection: nglSelection, small } = topology.residueIndices2Ngl(mappedSelection);
+            const newRepresentation = { ...representation };
+            newRepresentation.selection = nglSelection;
+            // residueIndices2Ngl returns 'small' = true when there are series of 3 residues or less
+            // These small residue selections will be not represented in cartoon due to an NGL bug
+            // https://github.com/nglviewer/ngl/issues/223
+            if (small) newRepresentation.type = 'licorice';
+            // Check if any residue is in coarse grain
+            // If so then the cartool will also fail
+            // We will also need to set the licorice type of representation
+            const cgResidue = mappedSelection.find(residueIndex => topology.getResidueByIndex(residueIndex).isCg);
+            if (cgResidue) newRepresentation.type = 'licorice';
+            mappedDomain.representations.push(newRepresentation);
+          });
         }
         // Domains whose representatios have been all discarded are also discarded
         if (mappedDomain.representations.length > 0)
@@ -178,11 +203,10 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
     // Skip those whose name matches with an interacting agent or custom domain
     ligandReferences && ligandReferences.forEach(ligandReference => {
       // Set the ligand name as the domain name
-      const domainName = ligandReference.name || ligandReference.pubchem.name || ligandReference.lipidmaps.name;
-      // Discard the domain if its name matches an already existing domain
+      const domainName = ligandReference.name ||
+        ligandReference.pubchem.name || ligandReference.lipidmaps.name;
+      // Discard the domain if its name matches an already existing custom domain
       if (customDomains.find(domain => domain.name === domainName)) return;
-      if (interactionDomains.find(domain => domain.name === domainName))
-        return;
       // Get the NGL selection for ligand residues
       // Ligands are identified by their InChIKey or PubChem ID (old system)
       const referenceId = ligandReference.inchikey || ligandReference.pubchem;
@@ -191,19 +215,11 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
         console.error(`Ligand reference "${ligandReference.pubchem}" not found in topology`);
         return;
       }
-      const { rangedSelection: nglSelection } = topology.residueIndices2Ngl(residueIndices);
+      const ligandRepresentations = getDefaultRepresentations(topology, residueIndices);
       // Set the ligand domain
       const ligandDomain = {
         name: domainName,
-        // description: 
-        representations: [
-          {
-            name: domainName,
-            selection: nglSelection,
-            type: 'ball+stick',
-            color: 'element'
-          }
-        ],
+        representations: ligandRepresentations,
       };
       // Add it to the reference domains list
       referenceDomains.push(ligandDomain);
@@ -225,6 +241,7 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
       };
       domains.push(mutationsDomain);
     }
+    // Add the epitopes domain if possible
     if (epitopesRepresentation) {
       const epitopesDomain = {
         name: 'Epitopes',
@@ -277,7 +294,7 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
       representations.push({
         name: 'Reference',
         color: 'grey',
-        opacity: 0.1,
+        opacity: 0.2,
       });
 
     // Set the NGL selection for the focus

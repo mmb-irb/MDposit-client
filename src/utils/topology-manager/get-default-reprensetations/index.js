@@ -4,9 +4,12 @@ import { generateRanges } from 'src/utils/auxiliar-functions';
 const PBC_OPACITY = 0.3;
 
 // Get NGL predefined default representations
-const getDefaultRepresentations = topology => {
+// You may pass a residue indices selection of the only region to be represented
+const getDefaultRepresentations = (topology, selectedResidueIndices = null) => {
     // If there is no topology yet then return here and wait for data to be downloaded
     if (!topology) return [];
+    // Make sure the residue indices are in a set, and not in an array
+    if (selectedResidueIndices) selectedResidueIndices = new Set(selectedResidueIndices);
     // Set a list to store all final representations
     const reps = [];
     // Iterate the different chains
@@ -18,10 +21,13 @@ const getDefaultRepresentations = topology => {
             ? `${metadataChainName} (Chain ${chain.name})`
             : `Chain ${chain.name}`;
         // Get residues in the current chain
-        const chainResidues = chain.residues;
+        let chainResidues = chain.residues;
+        // Filter away residues which are not in the residue selection, if passed
+        if (selectedResidueIndices)
+            chainResidues = chainResidues.filter(residue => selectedResidueIndices.has(residue.index));
         // 1. Polymers such as proteins and nucleic acids
         // Represent polymers in cartoon and colored by chain
-        // Note that coarse grain (CG) residues will not be propery represented in cartoon
+        // Note that coarse grain (CG) residues will not be properly represented in cartoon
         // For this reason we must create a separated representation for them in spacefill (vdw)
         const respresentPolymer = polymer => {
             // Start by classify residues (note that this logic is actually run only once and then stored)
@@ -31,6 +37,7 @@ const getDefaultRepresentations = topology => {
             const cgResidues = residues.filter(residue => residue.isCg);
             if (cgResidues.length > 0) {
             const cgResiduesIndices = cgResidues.map(residue => residue.index);
+            // Parse residue indices to the NGL selection
             const { rangedSelection: nglSelection } = topology.residueIndices2Ngl(cgResiduesIndices);
             // Set the new representation
             reps.push({
