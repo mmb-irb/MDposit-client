@@ -91,7 +91,6 @@ const OptionsFilter = ({ location, search, history }) => {
     `${BASE_VERSIONED_PATH}/references/collections?limit=100` : null;
   const { payload: referencesPayload, error: referencesError } = useAPI(referencesUrl);
   if (referencesPayload) {
-    console.log(referencesPayload);
     const collectionNames = {};
     referencesPayload.references.forEach(reference => {
       collectionNames[reference.id] = reference.name;
