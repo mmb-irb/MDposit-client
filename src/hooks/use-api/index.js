@@ -30,6 +30,11 @@ const saveCache = (cache) => {
 
 // Cache object to store API responses
 let cache = loadCache();
+
+// Store all calls to the API and their state setter
+// This allows to update all states with a unique actual call
+const apiCalls = {};
+
 // Get data from the API
 const useAPI = (url, cacheOptions = {}) => {
   // Destructure options and set default values
@@ -64,6 +69,20 @@ const useAPI = (url, cacheOptions = {}) => {
       setData(blank);
       return;
     }
+    // Check if the current URL has been already requested
+    const previousCall = apiCalls[url];
+    if (previousCall) {
+      // If there is a state already then use it
+      // This means the request was already made and answered
+      if (previousCall.state) setData(previousCall.state);
+      // Otherwise add the setter
+      // This means the request was already made but not yet answered
+      previousCall.setters.add(setData);
+      return;
+    }
+    // If this is the first call then add it to the api calls
+    const originalCall = { setters: new Set([ setData ]) };
+    apiCalls[url] = originalCall;
     // This is axios (https://www.npmjs.com/package/axios)
     // Set a cancel option (token). If a request includes this cancel token in its options, the request can be cancelled
     // In order to cancel the request, the same token must be used through axios
@@ -97,7 +116,11 @@ const useAPI = (url, cacheOptions = {}) => {
           cache[name] = responseData;
           saveCache(cache);
         }
-        setData(responseData);
+        // Save the state to be used for future calls
+        originalCall.state = responseData;
+        // Update all setters wawiting for the response
+        originalCall.setters.forEach(setter => setter(responseData));
+        //setData(responseData);
       })
       // Otherwise
       .catch(error => {
@@ -108,7 +131,11 @@ const useAPI = (url, cacheOptions = {}) => {
           payload: null,
           error: error,
         };
-        setData(responseData);
+        // Save the state to be used for future calls
+        originalCall.state = responseData;
+        // Update all setters wawiting for the response
+        originalCall.setters.forEach(setter => setter(responseData));
+        //setData(responseData);
       });
 
     return () => {
