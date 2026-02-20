@@ -35,7 +35,8 @@ import defaultQueryFields from "src/utils/constants/query-fields";
 // options - Additional flags which may be used by the cliente
 
 // Get the requesting URL domain
-const HOST = window.location.hostname;
+//const HOST = window.location.hostname;
+const HOST = 'irb-dev.mddbr.eu';
 
 // Set default values for every host config fields
 // These values are used to fill missing values
@@ -267,6 +268,7 @@ const HOST_CONFIGURATIONS = {
     },
     // IRB node development
     'irb-dev.mddbr.eu': {
+        //api: 'http://localhost:8000/rest/',
         logoLabel: 'IRB dev',
         palette: {
             primary: {

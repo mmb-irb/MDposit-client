@@ -203,13 +203,12 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
     // Skip those whose name matches with an interacting agent or custom domain
     ligandReferences && ligandReferences.forEach(ligandReference => {
       // Set the ligand name as the domain name
-      const domainName = ligandReference.name ||
-        ligandReference.pubchem.name || ligandReference.lipidmaps.name;
+      const domainName = ligandReference.name;
       // Discard the domain if its name matches an already existing custom domain
       if (customDomains.find(domain => domain.name === domainName)) return;
       // Get the NGL selection for ligand residues
       // Ligands are identified by their InChIKey or PubChem ID (old system)
-      const referenceId = ligandReference.inchikey || ligandReference.pubchem;
+      const referenceId = ligandReference.inchiRef.inchikey;
       const residueIndices = topology.getReferenceResidueIndices(referenceId)
       if (!residueIndices || residueIndices.length === 0) {
         console.error(`Ligand reference "${ligandReference.pubchem}" not found in topology`);

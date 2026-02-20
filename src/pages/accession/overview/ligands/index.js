@@ -58,7 +58,7 @@ const morganTooltip = morganDoc && morganDoc.page && (<>
 const LigandsOverview = () => {
 
     // Get context data
-    const { metadata, ligandReferences, inchikeyReferences } = useContext(ProjectCtx);
+    const { metadata, ligandReferences } = useContext(ProjectCtx);
 
     // Get the provided theme
     const theme = useTheme();
@@ -88,23 +88,13 @@ const LigandsOverview = () => {
     };
 
     // Download ligand information for every ligand pubchem id in metadata
-    const pubchemIds = metadata.LIGANDS;
     const [pubchemInfo, setPubchemInfo] = useState({});
     useEffect(() => {
-        if (!pubchemIds || !inchikeyReferences) return;
-        // Add pubchem IDs from inchikeyReferences to pubchemIds
-        const allPubchemIds = new Set(pubchemIds || []);
-        if (inchikeyReferences) {
-            inchikeyReferences.forEach(ref => {
-                if (ref.pubchem && ref.pubchem.pubchem) {
-                allPubchemIds.add(ref.pubchem.pubchem);
-                }
-            });
-        }
-        const combinedPubchemIds = Array.from(allPubchemIds);
+        if (!ligandReferences) return;
         // Store requests so we can abort them all in the useEffect cleanup function in case they were not completed on time
         const requests = [];
-        combinedPubchemIds.forEach(pubchemId => {
+        ligandReferences.forEach(ligandReference => {
+        const pubchemId = ligandReference.pubchem;
         if (typeof pubchemId !== 'string') return;
         const pubchemAPIurl = `https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/${pubchemId}/JSON/`;
         let body = '';
@@ -148,7 +138,7 @@ const LigandsOverview = () => {
         return () => {
             for (const request of requests) request.abort();
         };
-    }, [pubchemIds, inchikeyReferences]);
+    }, [ligandReferences]);
     // If there are no PDB references then show nothing
     if (Object.keys(pubchemInfo).length === 0) return;
     // Render the component

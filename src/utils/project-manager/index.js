@@ -60,8 +60,6 @@ export class Project {
         }
         // Add the electrostatic direction whenever there are interactions
         this.directions['electrostatic'] = this.analyses.includes('interactions');
-        // Add reference specific directions
-        this.directions['ligand-descriptors'] = Boolean(this.metadata && this.metadata.LIGANDS && this.metadata.LIGANDS.length > 0);
         // Now set some specialized analyses
         // These analyses are hidden when the project is out of context
         // Their availability may be also more complicated than the generic ones
@@ -197,7 +195,16 @@ export class Project {
                     (ref.pubchem && Object.keys(ref.pubchem).length > 0) // Old name
                 ))
             );
-            return inchikeyReferencesWithLigand.map(ref => ref.ligand || ref.pubchem);
+            // Get the ligand data only
+            return inchikeyReferencesWithLigand.map(ref => {
+                const ligandReference = ref.ligand || ref.pubchem;
+                // Make sure every ligand data has a name
+                if (!ligandReference.name) ligandReference.name = ref.name || 
+                    (ref.lipidmaps && ref.lipidmaps.name) || 'Unnamed ligand';
+                // Add the inchi reference inside the ligand reference
+                ligandReference.inchiRef = ref;
+                return ligandReference;
+            });
         }, [references]);
     }
     get pdbReferences () {
