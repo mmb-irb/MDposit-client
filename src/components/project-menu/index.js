@@ -77,6 +77,7 @@ const tabs = [
       },
       {
         name: 'Other',
+        hideIfEmpty: true,
         analyses: [
           'pockets',
           'populations',
