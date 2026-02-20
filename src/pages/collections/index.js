@@ -96,6 +96,7 @@ const CollectionBrowser = () => {
     const { payload: optionsPayload, error: optionsError } = useAPI(optionsUrl);
 
     // Add the project count to every collection data
+    // This is useful to discard empty collections further
     if (optionsPayload && collectionsPayload) {
         const collectionProjectCounts = optionsPayload && optionsPayload['metadata.COLLECTIONS'];
         collectionsPayload.references.forEach(collectionData => {
@@ -129,12 +130,11 @@ const CollectionBrowser = () => {
                 {/* Table head with the names of each colum */}
                 <TableHead className={style['table-head']}>
                     <TableRow>
-                    <TableCell className={style.center}>name
-                    </TableCell>
-                    <TableCell className={style.center}>system keywords
-                    </TableCell>
-                    <TableCell className={style.center}>logo</TableCell>
-                    <TableCell className={style.center}>size</TableCell>
+                        <TableCell className={style.center} style={{ minWidth: '15%' }}>name</TableCell>
+                        <TableCell className={style.center}>summary</TableCell>
+                        <TableCell className={style.center}>system keywords</TableCell>
+                        <TableCell className={style.center}>logo</TableCell>
+                        <TableCell className={style.center}>size</TableCell>
                     </TableRow>
                 </TableHead>
                 {/* Table body with the content, which is defined above in the Row constant */}

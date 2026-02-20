@@ -69,26 +69,50 @@ const Collection = () => {
                     marginBottom: '1em',
                 }} >
                 <div>
-                <Typography marginBottom={'10px'} variant="h6" sx={{ fontSize: '1.4rem' }}>
-                    {referenceData.name}
-                </Typography>
-                <div>{referenceData.description}</div>
+                    <Typography marginBottom={'10px'} variant="h6" sx={{ fontSize: '1.4rem' }}>
+                        {referenceData.name}
+                    </Typography>
+                    <div style={{ 'marginBottom': '0.5em' }}>{referenceData.description}</div>
+                    {Object.entries(PROJECT_OPTIONS).map(([optionName, optionField]) => {
+                        if (!optionsPayload) return;
+                        // Get the option values
+                        const optionValues = optionsPayload[optionField];
+                        return (<div key={optionName} style={{ display: 'flex', alignItems: 'center', marginBottom: '0.3em' }}>
+                            <div className={style['decorated-list-item__title']}>{optionName}</div>
+                            <div className={style['decorated-list-item__content']} style={{ borderColor: secondaryColor.dark }}>
+                                {Object.keys(optionValues).join(', ')}
+                            </div>
+                        </div>)
+                    })}
+                    {referenceData.links && referenceData.links.length > 0 &&
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <div className={style['decorated-list-item__title']}>Links</div>
+                        <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
+                        {referenceData.links.map((link, l) => (
+                        <div key={l}>
+                            {link.name}:{' '}
+                            <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noreferrer noopener"
+                            >
+                            {link.url}
+                            </a>
+                        </div>
+                        ))}
+                        </div>
+                    </div>}
                 </div>
                 <LazyImg src={referenceData.image} loading="lazy" alt={`Collection logo`}
                     style={{ maxWidth: '30%', height: 'auto', margin: '0 1em' }}
                 />
             </div>
-            {Object.entries(PROJECT_OPTIONS).map(([optionName, optionField]) => {
-                if (!optionsPayload) return;
-                // Get the option values
-                const optionValues = optionsPayload[optionField];
-                return (<div key={optionName} style={{ display: 'flex', alignItems: 'center', marginBottom: '0.3em' }}>
-                    <div className={style['decorated-list-item__title']}>{optionName}</div>
-                    <div className={style['decorated-list-item__content']} style={{ borderColor: secondaryColor.dark }}>
-                        {Object.keys(optionValues).join(', ')}
-                    </div>
-                </div>)
-            })}
+            {referenceData.citation && <div style={{ marginTop: '0.5em' }}>
+                The use of any trajectory data in any reports or publications of
+                results obtained with the trajectory data should be acknowledged
+                by including a citation to:
+                <div>{referenceData.citation}</div>
+            </div>}
         </CardContent>
         <hr style={{ color: 'lightGrey' }} />
         <ProjectBrowser internalQuery={browserInternalQuery} />

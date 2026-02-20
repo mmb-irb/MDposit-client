@@ -48,6 +48,9 @@ const Row = ({ data, highlight, index }) => {
   const optionsUrl = `${BASE_PATH_PROJECTS}/options?${query}&${projection}`;
   const { loading: optionsLoading, payload: optionsPayload, error: optionsError } = useAPI(optionsUrl);
 
+  // Using the projects API endpoint, get the sum of projects and MDs which belong to this collection
+  const projectsUrl = `${BASE_PATH_PROJECTS}?${query}&countMds=true`;
+  const { loading: projectsLoading, payload: projectsPayload, error: projectsError } = useAPI(projectsUrl);
   // In case we retrieve an errored entry
   if (data.error) return (
     <TableRow ref={ref} className={style['error-row']}>
@@ -74,6 +77,10 @@ const Row = ({ data, highlight, index }) => {
           </Highlight>
         </Link>
       </TableCell>
+      {/* summary */}
+      <TableCell className={style.center}>
+        {data.summary}
+      </TableCell>
       {/* system keywords */}
       <TableCell className={style.center}>
         {optionsLoading && <Loading />}
@@ -93,7 +100,12 @@ const Row = ({ data, highlight, index }) => {
       </TableCell>
       {/* size */}
       <TableCell className={style.center}>
-        {`${data.projectCount} projects`}
+        {projectsLoading && <Loading />}
+        {projectsError && projectsError.toString()}
+        {projectsPayload && <>
+          <div className={style.rowtext}>{`${projectsPayload.filteredCount} projects`}</div>
+          <div className={style.rowtext}>{`(${projectsPayload.totalMdsCount} MDs)`}</div>
+        </>}
       </TableCell>
     </TableRow>
   );

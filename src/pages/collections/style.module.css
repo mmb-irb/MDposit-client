@@ -49,6 +49,10 @@ th.center {
   padding:0;
 }
 
+.rowtext {
+  white-space: nowrap;
+}
+
 /* Fixed column widths */
 .col-accession {
   width: 12%;
