@@ -163,10 +163,29 @@ const getDefaultRepresentations = (topology, selectedResidueIndices = null) => {
                 residueIndices: ionResidueIndices,
             });
         }
-        // 5. Other, anything else
+        // 5. Solvent, water
         // Residues not falling in any previous section will be represented in low opacity purple licorice
         // This includes solvent and unknown residues (e.g. carbohydrates)
-        const otherClasses = new Set([ 'solvent', 'unknown' ]);
+        const solventClass = 'solvent';
+        const solventResidues = chainResidues.filter(residue => residue.classification === solventClass);
+        if (solventResidues.length > 0) {
+            // Now parse them to a NGL selection
+            const solventResiduesIndices = solventResidues.map(residue => residue.index);
+            const { rangedSelection: nglSelection } = topology.residueIndices2Ngl(solventResiduesIndices);
+            // Add the representation
+            reps.push({
+                name: `${chainLabel} - solvent`,
+                selection: nglSelection,
+                type: 'ball+stick',
+                color: 'element',
+                opacity: 0.3,
+                residueIndices: solventResiduesIndices,
+            });
+        }
+        // 6. Other, anything else
+        // Residues not falling in any previous section will be represented in low opacity purple licorice
+        // This includes solvent and unknown residues (e.g. carbohydrates)
+        const otherClasses = new Set([ 'unknown' ]);
         const otherResidues = chainResidues.filter(residue => otherClasses.has(residue.classification));
         if (otherResidues.length > 0) {
             // Now parse them to a NGL selection
