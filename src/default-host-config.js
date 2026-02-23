@@ -4,6 +4,18 @@ import { copyObject } from "src/utils/auxiliar-functions";
 // Import default query fields
 import defaultQueryFields from "src/utils/constants/query-fields";
 
+// Import some images
+import logoIRB from 'src/images/logo-irb.png';
+import logoIRBWebP from 'src/images/logo-irb.webp';
+import logoBSC from 'src/images/logo-bsc.png';
+import logoBioExcel from 'src/images/logo-bioexcel.png';
+import logoBSCWebP from 'src/images/logo-bsc.webp';
+import logoBioExcelWebP from 'src/images/logo-bioexcel.webp';
+import logoHBP from 'src/images/logo-hbp.png';
+import logoHBPWebP from 'src/images/logo-hbp.webp';
+import logoEbrains from 'src/images/logo-ebrains.png';
+import logoEbrainsWebP from 'src/images/logo-ebrains.webp';
+
 // Set the behaviour of the web client depending of the URL which makes the request
 // Note that this script must be placed after the src directory for react to use it and JSX to be parsed
 
@@ -18,6 +30,9 @@ import defaultQueryFields from "src/utils/constants/query-fields";
 // description - Text or JSX to be displayed in the home page
 // logo - Logo filename (without the format extension) to be dipslayed on the top-left corner, in the header
 //        Images are located at src/images/.
+// logoLabel - Small text to be written right below the logo
+// footers - Image paths/URLs and the URLs to redirect on click for the webpage footer logos.
+//           The MDDB logo is not optional.
 // primaryColor - Color of the header and additional regions along the whole web page
 // secondaryColor - Color of non-primary regions along the whole web page
 // searchExample - Search example: This is shown in search bars as placeholder when they are empty
@@ -52,6 +67,7 @@ const DEFAUL_HOST_CONFIGURATION = {
     </>,
     logo: 'logo-mdposit',
     logoLabel: '',
+    footers: [],
     primaryColor: '#808080', // Grey
     secondaryColor: '#fafafa', // Light grey
     searchExample: 'e.g. Orozco lab',
@@ -206,6 +222,43 @@ const inriaConfig = {
     metaURL: 'github.com/Dynarepo/dynarepo-MDDB-meta',
 }
 
+// Set default footers for IRB configurations
+const irbFooters = [
+    {
+        image: logoIRB,
+        webp: logoIRBWebP,
+        url: "https://www.irbbarcelona.org/",
+    },
+    {
+        image: logoBSC,
+        webp: logoBSCWebP,
+        url: "https://www.bsc.es/",
+    },
+    {
+        image: logoBioExcel,
+        webp: logoBioExcelWebP,
+        url: "https://bioexcel.eu/",
+    },
+    {
+        image: logoHBP,
+        webp: logoHBPWebP,
+        url: "Human Brain Project website",
+    },
+    {
+        image: logoEbrains,
+        webp: logoEbrainsWebP,
+        url: "https://ebrains.eu/",
+    },
+];
+
+// Set default footers for Oxford configurations
+const oxfordFooters = [
+    {
+        image: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/University_of_Oxford.svg/1280px-University_of_Oxford.svg.png?20230918031758",
+        url: "https://www.ox.ac.uk/",
+    },
+];
+
 // Set every host configuration
 const HOST_CONFIGURATIONS = {
     // Testing
@@ -231,6 +284,7 @@ const HOST_CONFIGURATIONS = {
         global: true,
         primaryColor: '#5c6bc0', // Light indigo
         queryFields: queryFieldsWithNodes,
+        footers: irbFooters,
     },
     // MDposit production
     'mdposit.mddbr.eu': {
@@ -238,6 +292,7 @@ const HOST_CONFIGURATIONS = {
         global: true,
         primaryColor: '#5c6bc0', // Light indigo
         queryFields: queryFieldsWithNodes,
+        footers: irbFooters,
     },
     // MDposit development (obsolete url)
     'mdposit-dev.bsc.es': {
@@ -245,6 +300,7 @@ const HOST_CONFIGURATIONS = {
         global: true,
         primaryColor: '#5c6bc0', // Light indigo
         queryFields: queryFieldsWithNodes,
+        footers: irbFooters,
     },
     // MMB node development
     'mmb-dev.mddbr.eu': {
@@ -254,6 +310,7 @@ const HOST_CONFIGURATIONS = {
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations stored at the MMB group at IRB Barcelona.
         </>,
+        footers: irbFooters,
     },
     // MMB node production
     'mmb.mddbr.eu': {
@@ -264,6 +321,7 @@ const HOST_CONFIGURATIONS = {
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations stored at the MMB group at IRB Barcelona.
         </>,
+        footers: irbFooters,
     },
     // IRB node development
     'irb-dev.mddbr.eu': {
@@ -285,6 +343,7 @@ const HOST_CONFIGURATIONS = {
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations stored at the MMB group at IRB Barcelona.
         </>,
+        footers: irbFooters,
     },
     // IRB node production
     'irb.mddbr.eu': {
@@ -296,6 +355,7 @@ const HOST_CONFIGURATIONS = {
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations stored at the MMB group at IRB Barcelona.
         </>,
+        footers: irbFooters,
     },
     // ABC node development
     'abc-dev.mddbr.eu': {
@@ -304,7 +364,7 @@ const HOST_CONFIGURATIONS = {
         description: <>
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations from the Ascona B-DNA Consortium.
-        </>
+        </>,
     },
     // ABC node production
     'abc.mddbr.eu': {
@@ -314,7 +374,7 @@ const HOST_CONFIGURATIONS = {
         description: <>
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations from the Ascona B-DNA Consortium.
-        </>
+        </>,
     },
     // Oxford node hidden development
     'roslin.bioch.ox.ac.uk': {
@@ -323,7 +383,8 @@ const HOST_CONFIGURATIONS = {
         description: <>
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations from the Oxford University node.
-        </>
+        </>,
+        footers: oxfordFooters,
     },
     // Oxford node development
     'oxford-dev.mddbr.eu': {
@@ -332,7 +393,8 @@ const HOST_CONFIGURATIONS = {
         description: <>
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations from the Oxford University node.
-        </>
+        </>,
+        footers: oxfordFooters,
     },
     // Oxford node production
     'oxford.mddbr.eu': {
@@ -342,7 +404,8 @@ const HOST_CONFIGURATIONS = {
         description: <>
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations from the Oxford University node.
-        </>
+        </>,
+        footers: oxfordFooters,
     },
     // Cineca node
     'cineca.mddbr.eu': {
@@ -373,12 +436,13 @@ const HOST_CONFIGURATIONS = {
         name: 'BioExcel - Covid19',
         favicon: 'bioexcel_favicon',
         logo: 'logo-bioexcel-cv19',
+        footers: irbFooters,
         primaryColor: '#607D8B', // Light grey
         secondaryColor: '#76FF03', // Light green
         ...UNIT_OPTIONS,
         queryFields: queryFieldsWithCovid,
         singleCollection: true,
-        flags: ['covid'] // Enable covid specific analyses
+        flags: ['covid'], // Enable covid specific analyses
     },
     // BioExcel covid19 production
     'bioexcel-cv19.mddbr.eu': {
@@ -387,6 +451,7 @@ const HOST_CONFIGURATIONS = {
         favicon: 'bioexcel_favicon',
         description: covidDescription,
         logo: 'logo-bioexcel-cv19',
+        footers: irbFooters,
         primaryColor: '#607D8B', // Light grey
         secondaryColor: '#76FF03', // Light green
         ...UNIT_OPTIONS,
