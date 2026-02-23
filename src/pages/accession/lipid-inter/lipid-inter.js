@@ -3,17 +3,11 @@ import { useInView } from 'react-intersection-observer';
 
 import {
   CardContent,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-  FormControlLabel,
-  Checkbox,
   Tabs,
   Tab,
   Typography,
-  Slider,
+  ToggleButton,
+  ToggleButtonGroup,
 } from '@mui/material';
 
 import Card from '../../../components/animated-card';
@@ -45,11 +39,11 @@ const LipidInteractions = () => {
     error: interactionsError,
   } = useAPI(`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/lipid-inter/`);
 
-  // Add state for selected lipid type
+  // Add state for selected lipid type and lipid part (head / tail)
   const [selectedLipid, setSelectedLipid] = useState(null);
+  const [selectedPart, setSelectedPart] = useState('head');
   const [representations, setRepresentations] = useState(null);
   const schemes = useRef({});
-  const maxOccupancy = useRef({});
 
   // Get available lipid types for tabs
   const lipidTypes = useMemo(() => {
@@ -64,12 +58,6 @@ const LipidInteractions = () => {
     if (lipidTypes.length && !selectedLipid) {
       setSelectedLipid(lipidTypes[0]);
     }
-    // Save max occupancy of all lipids in a ref
-    maxOccupancy.current = lipidTypes.reduce((acc, lipid) => {
-      acc[lipid] = Math.max(...interactionsPayload.data[lipid]);
-      return acc;
-    }, {});
-    maxOccupancy.current = Math.max(...Object.values(maxOccupancy.current));
   }, [lipidTypes, selectedLipid]);
 
   // Get the names and synonyms from the references
@@ -117,18 +105,28 @@ const LipidInteractions = () => {
       }, {});
     }, [lipidTypes, topology]);
 
-  // Generate a color scheme based on interaction data
-  const generateScheme = (lipid) => {
+  // Detect whether a lipid entry uses the new {head, tail} format or the old flat array
+  // Can be delete after all analysis have version >= 0.1.0
+  const isNewFormat = (lipid) =>
+    interactionsPayload &&
+    interactionsPayload.data &&
+    lipid &&
+    !Array.isArray(interactionsPayload.data[lipid]);
+
+  // Generate a color scheme based on interaction data for a given lipid and part
+  const generateScheme = (lipid, part) => {
     if (!interactionsPayload || !interactionsPayload.data || !lipid) return null;
     return ColormakerRegistry.addScheme(function (params) {
       this.atomColor = function (atom) {
         // Check if this residue has interaction data
         const resIdx = interactionsPayload.data.residue_indices.indexOf(atom.residueIndex);
         if (resIdx === -1) return 0xffffff;
-        const value = interactionsPayload.data[lipid][resIdx];
+        // Support both old flat array format and new {head, tail} format
+        const lipidData = interactionsPayload.data[lipid];
+        const value = Array.isArray(lipidData) ? lipidData[resIdx] : lipidData[part][resIdx];
         // Create a gradient from white (0xffffff) to dark red (0x800000) through orange
-        // For white -> orange -> dark red transition
-        const normalized = Math.sqrt(value/maxOccupancy.current);
+        // For white -> orange -> dark red transition (value is already a probability in [0, 1])
+        const normalized = Math.sqrt(value);
         let red = 255;
         let green, blue;
         
@@ -145,26 +143,27 @@ const LipidInteractions = () => {
         // Combine into RGB color
         return (red << 16) | (green << 8) | blue;
         };
-    }, lipid);
+    }, `${lipid}_${part}`);
   };
 
-  // Get or create a scheme for a lipid type
-  const getSchemeForLipid = (lipidType) => {
-    if (!schemes.current[lipidType]) {
-      schemes.current[lipidType] = generateScheme(lipidType);
+  // Get or create a scheme for a lipid type and part combination
+  const getSchemeForLipid = (lipidType, part) => {
+    const key = `${lipidType}_${part}`;
+    if (!schemes.current[key]) {
+      schemes.current[key] = generateScheme(lipidType, part);
     }
-    return schemes.current[lipidType];
+    return schemes.current[key];
   };
   
-  // Update representations when selection changes
+  // Update representations when lipid or part selection changes
   useEffect(() => {
     if (!defaultRepresentations || defaultRepresentations.length === 0 || !selectedLipid) return;
     defaultRepresentations.forEach(rep => {
         if (rep.name.toLowerCase().includes('protein')) { 
             rep.color = 'custom';
             rep.type = 'spacefill';
-            rep.color = getSchemeForLipid(selectedLipid);
-            rep.customScheme = selectedLipid;
+            rep.color = getSchemeForLipid(selectedLipid, selectedPart);
+            rep.customScheme = `${selectedLipid}_${selectedPart}`;
         } else if (rep.name.toLowerCase().includes('lipid')) {
             rep.color = 'grey';
             rep.opacity = 0.1;
@@ -179,7 +178,7 @@ const LipidInteractions = () => {
     };
 
     setRepresentations([...defaultRepresentations, lipidRep]);
-  }, [selectedLipid, defaultRepresentations]);
+  }, [selectedLipid, selectedPart, defaultRepresentations]);
 
   if (interactionsLoading) return <Loading />;
   if (interactionsError) return interactionsError.toString();
@@ -220,36 +219,22 @@ const LipidInteractions = () => {
             ))}
           </Tabs>
           
-          {/* <div className={style.controls}>
-            <Typography id="threshold-slider" gutterBottom>
-              Interaction Threshold: {threshold}
-            </Typography>
-            <Slider
-              value={threshold}
-              onChange={(e, newValue) => setThreshold(newValue)}
-              aria-labelledby="threshold-slider"
-              step={0.05}
-              marks
-              min={0}
-              max={1}
-              valueLabelDisplay="auto"
-            />
-            
-          </div> */}
+          <div className={style.part_toggle} style={{ display: 'flex', justifyContent: 'center', marginTop: '8px' }}>
+            {/* Only show head/tail toggle when the selected lipid uses the new format */}
+            {isNewFormat(selectedLipid) && (
+              <ToggleButtonGroup
+                value={selectedPart}
+                exclusive
+                onChange={(event, value) => { if (value) setSelectedPart(value); }}
+                size="small"
+              >
+                <ToggleButton value="head">Head group</ToggleButton>
+                <ToggleButton value="tail">Tails</ToggleButton>
+              </ToggleButtonGroup>
+            )}
+          </div>
         </CardContent>
       </Card>
-      
-      {/* <Card className={style.legend_container}>
-        <ColorLegend
-          title={'Lipid Interaction Frequency'}
-          minValue={0}
-          maxValue={1}
-          colorPlan={colorPalette}
-          vertical={true}
-          className={style.legend}
-        />
-      </Card> */}
-      
       <Card className={style.nglcard} ref={nglRef}>
         {isNglVisible ? (
           <ViewerWithControls
