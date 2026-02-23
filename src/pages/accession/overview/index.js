@@ -170,18 +170,20 @@ const Overview = React.memo(() => {
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <div className={style['decorated-list-item__title']}>Links</div>
                 <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                {metadata.LINKS.map((link, l) => (
-                  <div key={l}>
+                {metadata.LINKS.map((link, l) => {
+                  let url = link.url;
+                  if (!url.startsWith('http')) url = 'https://' + url;
+                  return (<div key={l}>
                     {link.name}:{' '}
                     <a
-                      href={link.url}
+                      href={url}
                       target="_blank"
                       rel="noreferrer noopener"
                     >
                       {link.url}
                     </a>
-                  </div>
-                ))}
+                  </div>)
+                })}
                 </div>
               </div>}
               {metadata.WARNINGS &&
