@@ -442,7 +442,6 @@ const HOST_CONFIGURATIONS = {
         ...UNIT_OPTIONS,
         queryFields: queryFieldsWithCovid,
         singleCollection: true,
-        flags: ['covid'], // Enable covid specific analyses
     },
     // BioExcel covid19 production
     'bioexcel-cv19.mddbr.eu': {
@@ -457,7 +456,6 @@ const HOST_CONFIGURATIONS = {
         ...UNIT_OPTIONS,
         queryFields: queryFieldsWithCovid,
         singleCollection: true,
-        flags: ['covid'] // Enable covid specific analyses
     },
     // JSC
     'jsc.mddbr.eu': {

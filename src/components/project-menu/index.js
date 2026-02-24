@@ -58,6 +58,7 @@ const tabs = [
       },
       {
         name: 'Bibliography',
+        hideIfEmpty: true, // Hide this tab if there are no bibliography analyses
         analyses: [
           'epitopes',
           'mutations',

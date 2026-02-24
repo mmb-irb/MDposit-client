@@ -64,14 +64,12 @@ export class Project {
         // These analyses are hidden when the project is out of context
         // Their availability may be also more complicated than the generic ones
         // Set covid-19 specific analyses
-        if (HOST_CONFIG.flags && HOST_CONFIG.flags.includes('covid')) {
-            const anyReferenceWithEntropies = this.metadata && this.metadata.REFERENCES &&
-                this.metadata.REFERENCES.find(ref => REFERENCES_WITH_ENTROPIES.includes(ref));
-            this.directions['mutations'] = Boolean(anyReferenceWithEntropies);
-            const anyReferenceWithEpitopes = this.metadata && this.metadata.REFERENCES &&
-                this.metadata.REFERENCES.find(ref => REFERENCES_WITH_EPITOPES.includes(ref));
-            this.directions['epitopes'] = Boolean(anyReferenceWithEpitopes);
-        }
+        const anyReferenceWithEntropies = this.metadata && this.metadata.REFERENCES &&
+            this.metadata.REFERENCES.find(ref => REFERENCES_WITH_ENTROPIES.includes(ref));
+        this.directions['mutations'] = Boolean(anyReferenceWithEntropies);
+        const anyReferenceWithEpitopes = this.metadata && this.metadata.REFERENCES &&
+            this.metadata.REFERENCES.find(ref => REFERENCES_WITH_EPITOPES.includes(ref));
+        this.directions['epitopes'] = Boolean(anyReferenceWithEpitopes);
         // Set MSM specific analyses
         if (this.metadata && this.metadata.METHOD === 'Markov state model (MSM)') {
             this.directions['populations'] = this.files && this.files.find(file => file === 'populations.json');
