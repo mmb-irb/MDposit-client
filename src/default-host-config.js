@@ -50,7 +50,8 @@ import logoEbrainsWebP from 'src/images/logo-ebrains.webp';
 // options - Additional flags which may be used by the cliente
 
 // Get the requesting URL domain
-const HOST = window.location.hostname;
+//const HOST = window.location.hostname;
+const HOST = 'oxford.mddbr.eu';
 
 // Set default values for every host config fields
 // These values are used to fill missing values
@@ -476,7 +477,13 @@ const HOST_CONFIGURATIONS = {
         production: false,
         primaryColor: '#eb94d3', // pink,
         logoLabel: 'florida node',
-        name:'MDposit florida'
+        name:'MDposit florida',
+        footers: [
+            {
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/University_of_Florida_logo.svg/500px-University_of_Florida_logo.svg.png?20171011005719",
+                url: "https://perez.chem.ufl.edu/",
+            },
+        ]
     },
     // INRIA
     'inria.mddbr.eu': inriaConfig,
