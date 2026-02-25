@@ -77,6 +77,10 @@ const Collection = () => {
                         if (!optionsPayload) return;
                         // Get the option values
                         const optionValues = optionsPayload[optionField];
+                        // Remove null values form the option values
+                        delete optionValues[null];
+                        // If the final object is empty then do not show the section at all
+                        if (Object.keys(optionValues).length === 0) return;
                         return (<div key={optionName} style={{ display: 'flex', alignItems: 'center', marginBottom: '0.3em' }}>
                             <div className={style['decorated-list-item__title']}>{optionName}</div>
                             <div className={style['decorated-list-item__content']} style={{ borderColor: secondaryColor.dark }}>
