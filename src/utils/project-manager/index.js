@@ -24,10 +24,13 @@ export class Project {
         });
         // If the project is wrong we do not even have metadata then stop here
         if (!this.metadata) return;
-        // Calculate any additional metadata
+        // Calculate any additional metadata or edit/fix some metadata fields
         if (!this.metadata.mdFrames) this.metadata.mdFrames = this.metadata.SNAPSHOTS;
         this.metadata.timeLength = (this.metadata.FRAMESTEP && this.metadata.mdFrames &&
             this.metadata.FRAMESTEP * this.metadata.mdFrames) || null;
+        // In old metadata we may find numeric values in the program version
+        if (typeof this.metadata.VERSION === 'number')
+            this.metadata.VERSION = this.metadata.VERSION.toString();
         // Set the count of MDs by excluding those MDs flagged as 'removed'
         this.mdCount = this.mds ? this.mds.filter(md => md.slice(-9) !== '(removed)').length : 0;
         // Calculate a few internal things
