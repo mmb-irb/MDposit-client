@@ -15,6 +15,8 @@ import logoHBP from 'src/images/logo-hbp.png';
 import logoHBPWebP from 'src/images/logo-hbp.webp';
 import logoEbrains from 'src/images/logo-ebrains.png';
 import logoEbrainsWebP from 'src/images/logo-ebrains.webp';
+import logoNostrum from 'src/images/logo-nostrum.png';
+import logoNostrumWebP from 'src/images/logo-nostrum.webp';
 
 // Set the behaviour of the web client depending of the URL which makes the request
 // Note that this script must be placed after the src directory for react to use it and JSX to be parsed
@@ -220,6 +222,12 @@ const inriaConfig = {
         }
     ],
     metaURL: 'github.com/Dynarepo/dynarepo-MDDB-meta',
+    footers: [
+        {
+            image: "https://ostrails.eu/images/Partners/inr_logo_rouge.png",
+            url: "https://www.inria.fr/",
+        },
+    ]
 }
 
 // Set default footers for IRB configurations
@@ -242,7 +250,7 @@ const irbFooters = [
     {
         image: logoHBP,
         webp: logoHBPWebP,
-        url: "Human Brain Project website",
+        url: "https://www.humanbrainproject.eu/",
     },
     {
         image: logoEbrains,
@@ -258,6 +266,20 @@ const oxfordFooters = [
         url: "https://www.ox.ac.uk/",
     },
 ];
+
+// Set the default nostrum config so we don't have to repeat it several times
+const nostrumConfig = {
+    primaryColor: '#00cfbf', // Light blue
+    logo: 'logo-nostrum',
+    name:'XNA Hub',
+    footers: [
+        {
+            image: logoNostrum,
+            webp: logoNostrumWebP,
+            url: "https://www.nostrumbiodiscovery.com/",
+        },
+    ]
+}
 
 // Set every host configuration
 const HOST_CONFIGURATIONS = {
@@ -365,6 +387,7 @@ const HOST_CONFIGURATIONS = {
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations from the Ascona B-DNA Consortium.
         </>,
+        footers: irbFooters,
     },
     // ABC node production
     'abc.mddbr.eu': {
@@ -375,6 +398,7 @@ const HOST_CONFIGURATIONS = {
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations from the Ascona B-DNA Consortium.
         </>,
+        footers: irbFooters,
     },
     // Oxford node hidden development
     'roslin.bioch.ox.ac.uk': {
@@ -428,7 +452,13 @@ const HOST_CONFIGURATIONS = {
         description: <>
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations from the Cineca node in Bologna.
-        </>
+        </>,
+        footers: [
+            {
+                image: "https://max-centre.eu/wp-content/uploads/2025/01/7.-CINECA-logo-1024x279.png",
+                url: "https://www.cineca.it/",
+            },
+        ],
     },
     // BioExcel covid19 development
     'bioexcel-cv19-dev.mddbr.eu': {
@@ -462,14 +492,37 @@ const HOST_CONFIGURATIONS = {
         production: true,
         primaryColor: '#c5b96b', // Golden,
         logoLabel: 'JSC node',
-        name:'MDposit JSC'
+        name:'MDposit JSC',
+        footers: [
+            {
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Logo_des_Forschungszentrums_J%C3%BClich_seit_2018.svg/500px-Logo_des_Forschungszentrums_J%C3%BClich_seit_2018.svg.png",
+                url: "https://www.fz-juelich.de/",
+            },
+            {
+                image: logoHBP,
+                webp: logoHBPWebP,
+                url: "https://www.humanbrainproject.eu/",
+            },
+            {
+                image: logoEbrains,
+                webp: logoEbrainsWebP,
+                url: "https://ebrains.eu/",
+            },
+        ],
     },
     // BSC
     'bsc.mddbr.eu': {
         production: true,
         primaryColor: '#a8cdf3', // Golden,
         logoLabel: 'PKLR node',
-        name:'PKLR@MDDB'
+        name:'PKLR@MDDB',
+        footers: [
+            {
+                image: logoBSC,
+                webp: logoBSCWebP,
+                url: "https://www.bsc.es/",
+            },
+        ]
     },
     // FLORIDA DEV
     'devmddb.rc.ufl.edu': {
@@ -494,7 +547,13 @@ const HOST_CONFIGURATIONS = {
         production: true,
         primaryColor: '#6bc5b8', // Turquoise,
         logoLabel: 'RPBS node',
-        name:'MDposit RPBS'
+        name:'MDposit RPBS',
+        footers: [
+            {
+                image: "https://plateformes.u-paris.fr/wp-content/uploads/sites/21/2023/02/01209_62_illustration-rpbs.png",
+                url: "https://bioserv.rpbs.univ-paris-diderot.fr/index.html",
+            },
+        ]
     },
     // PODMAN DEV
     '10.4.96.40': {
@@ -506,29 +565,21 @@ const HOST_CONFIGURATIONS = {
     // Nostrum
     '3.144.224.102': {
         api: `http://3.144.224.102/api/rest/`,
-        primaryColor: '#00cfbf', // Light blue
-        logo: 'logo-nostrum',
-        name:'XNA Hub'
+        ...nostrumConfig,
     },
     '10.0.4.1': {
         api: `http://10.0.4.1:1558/api/rest/`,
-        primaryColor: '#00cfbf', // Light blue
-        logo: 'logo-nostrum',
-        name:'XNA Hub'
+        ...nostrumConfig,
     },
     // DANI: Aquí he duplicado el de arriba
     // DANI: no sé si el puerto se verá en el HOST name
     '10.0.4.1:1558': {
         api: `http://10.0.4.1:1558/api/rest/`,
-        primaryColor: '#00cfbf', // Light blue
-        logo: 'logo-nostrum',
-        name:'XNA Hub'
+        ...nostrumConfig,
     },
     'mddb.nostrumbiodiscovery.com': {
         api: `https://mddb.nostrumbiodiscovery.com/api/rest/`,
-        primaryColor: '#00cfbf', // Light blue
-        logo: 'logo-nostrum',
-        name:'XNA Hub'
+        ...nostrumConfig,
     },
 };
 
