@@ -67,15 +67,19 @@ const LipidOrder = () => {
     return lipidTypes.reduce((acc, lipid) => {
       const ref = inchikeyReferences.find(ref => ref.inchikey === lipid);
       let name, shortName, longName;
-      if (ref.lipidmaps.synonyms) {
+      if (!ref) {
+        // CG simulations use resnames as keys — no inchikey reference available
+        name = shortName = longName = lipid;
+      } else if (ref.lipidmaps && ref.lipidmaps.synonyms) {
         name = ref.lipidmaps.name;
         shortName = ref.lipidmaps.synonyms.split('; ').sort((a, b) => a.length - b.length)[0];
         longName = ref.lipidmaps.sys_name;
-      } else if (ref.swisslipids.synonyms) {
+      } else if (ref.swisslipids && ref.swisslipids.synonyms) {
         name = shortName = ref.swisslipids.synonyms.find(item => item.type === 'abbreviation').name;
         longName = ref.swisslipids.entity_name;
+      } else {
+        name = shortName = longName = lipid;
       }
-      console.log('lipid', lipid, 'name', name, 'shortName', shortName, 'longName', longName);
       acc[lipid] = { name, shortName, longName };
       return acc;
     }, {});
@@ -86,8 +90,14 @@ const LipidOrder = () => {
     if (!lipidTypes.length || !topology) return {};
     return lipidTypes.reduce((acc, lipid) => {
       const resIndices = topology.getReferenceResidueIndices(lipid);
-      const atomsSelection = `( @${topology.residue2atomIndices(resIndices).join(',')} )`;
-      acc[lipid] = atomsSelection;
+      let selection;
+      if (!resIndices || !resIndices.length) {
+        // If reference not found, we may have CG and select by name
+        selection = `( ${lipid} )`;
+      } else {
+        selection = `( @${topology.residue2atomIndices(resIndices).join(',')} )`;
+      }
+      acc[lipid] = selection;
       return acc;
     }, {});
   }, [lipidTypes, topology]);
