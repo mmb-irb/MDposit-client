@@ -112,8 +112,17 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
       const wholeReferenceResidueIndices = topology.getReferenceResidueIndices(referenceId);
       if (!wholeReferenceResidueIndices || wholeReferenceResidueIndices.length === 0) return;
       const wholeReferenceRepresentations = getDefaultRepresentations(topology, wholeReferenceResidueIndices);
+      // If the reference matches the whole system then "replace" the overall representation
+      const isWholeSystem = wholeReferenceResidueIndices.length === topology.residueCount;
+      // Set the protein name as the domain name
+      let domainName = proteinReference.name;
+      if (isWholeSystem) {
+        domainName += ' (Overall)';
+        // By marking the domain as redundant it will be removed further
+        overallDomain.redundant = true;
+      }
       const wholeReferenceDomain = {
-        name: proteinReference.name,
+        name: domainName,
         description: `UniProt ${referenceId} reference.`,
         representations: wholeReferenceRepresentations,
       };
@@ -203,7 +212,7 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
     // Skip those whose name matches with an interacting agent or custom domain
     ligandReferences && ligandReferences.forEach(ligandReference => {
       // Set the ligand name as the domain name
-      const domainName = ligandReference.name;
+      let domainName = ligandReference.name;
       // Discard the domain if its name matches an already existing custom domain
       if (customDomains.find(domain => domain.name === domainName)) return;
       // Get the NGL selection for ligand residues
@@ -213,6 +222,13 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
       if (!residueIndices || residueIndices.length === 0) {
         console.error(`Ligand reference "${ligandReference.pubchem}" not found in topology`);
         return;
+      }
+      // If the reference matches the whole system then "replace" the overall representation
+      const isWholeSystem = residueIndices.length === topology.residueCount;
+      if (isWholeSystem) {
+        domainName += ' (Overall)';
+        // By marking the domain as redundant it will be removed further
+        overallDomain.redundant = true;
       }
       const ligandRepresentations = getDefaultRepresentations(topology, residueIndices);
       // Set the ligand domain
@@ -224,12 +240,13 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
       referenceDomains.push(ligandDomain);
     });
     // Put all domains together
+    // Filter away thoses flaged as "redundant" (so far it may happen only to the overall)
     const domains = [
       overallDomain,
       ...customDomains,
       ...referenceDomains,
       ...interactionDomains,
-    ];
+    ].filter(domain => !domain.redundant);
     // Add the mutations domain if possible
     if (mutationsRepresentation) {
       const mutationsDomain = {
@@ -312,7 +329,8 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
 
   return (
     <Suspense fallback={<Loading />}>
-      {domains && domains.length > 0 && (
+      {/* If there is only one domain then it will be the overall domain, so no reason to render */}
+      {domains && domains.length > 1 && (
         <Card className={style.card}>
           <CardContent>
             <a className={style.title}>Domains</a>
