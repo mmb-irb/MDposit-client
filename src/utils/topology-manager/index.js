@@ -210,7 +210,6 @@ class Residue {
       this._classification = 'ligand'
       return this._classification
     }
-    //console.log(this.topology.membraneMapping)
     // ----- Inchikey ligands -----------------------------------------------
     if (this.referenceType === 'inchikey') {
       // Inchikey without lipidmaps or swisslipids data, or lipids(inchikeys) outside membrane are classified as ligands
@@ -219,6 +218,13 @@ class Residue {
         this._classification = 'ligand'
         return this._classification
       }
+    }
+    // Lipids with inchikeys in the membrane mapping and with swisslipids or lipidmaps data are classified as lipids
+    if (this.referenceType === 'inchikey' && this.topology.membraneMapping && this.topology.membraneMapping.lipid.includes(this.index) &&
+        (!isEmptyObj(this.referenceData.swisslipids) || !isEmptyObj(this.referenceData.lipidmaps))){
+      this._classification = 'lipid'
+      console.log('Lipid with reference data found in the membrane mapping:', this.standardLabel, this.referenceData)
+      return this._classification
     }
     // ----- Others -----------------------------------------------
     // If the residue does not fall in any of the previous conditions then try it with the residue name
@@ -495,6 +501,23 @@ export class Topology {
       // If we did not manage to match this chain then log an error
       if (chainReference.chain_indices.length === 0)
         console.error('Unmatched chain reference ' + chainReference.sequence);
+    }
+    // Process membrane mapping: convert atom indices to residue indices
+    // The raw membrane mapping stores atom indices, but residue classification uses residue indices
+    if (this.membraneMapping) {
+      // Convert no_mem_lipid from atom indices to residue indices
+      if (this.membraneMapping.no_mem_lipid && this.membraneMapping.no_mem_lipid.length > 0) {
+        this.membraneMapping.no_mem_lipid = this.atom2residueIndices(this.membraneMapping.no_mem_lipid);
+      }
+      // Build a flat list of all residue indices that are part of any membrane leaflet
+      const membraneLipidAtoms = [];
+      for (const memData of Object.values(this.membraneMapping.mems || {})) {
+        if (memData.leaflets) {
+          membraneLipidAtoms.push(...(memData.leaflets.top || []));
+          membraneLipidAtoms.push(...(memData.leaflets.bot || []));
+        }
+      }
+      this.membraneMapping.lipid = this.atom2residueIndices(membraneLipidAtoms);
     }
     // Set internal values
     this._pbcAtoms = undefined;

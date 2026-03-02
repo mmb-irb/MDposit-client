@@ -131,8 +131,8 @@ const getDefaultRepresentations = (topology, selectedResidueIndices = null) => {
         // Represent membranes in grey licorice, with a reduced oppacity
         // Thus we ease observing what is there inside of the membrane
         // Start by finding lipid residues
-        const lipidClasses = new Set([ 'fatty', 'steroid' ]);
-        const lipidResidues = chainResidues.filter(residue => lipidClasses.has(residue.classification));
+        const lipidClasses = new Set([ 'fatty', 'steroid' ]);  // Fallback with lipids classified by name
+        const lipidResidues = chainResidues.filter(residue => residue.classification === 'lipid' || lipidClasses.has(residue.classification));
         if (lipidResidues.length > 0) {
             // Now parse them to a NGL selection
             const lipidResidueIndices = lipidResidues.map(residue => residue.index);
