@@ -24,7 +24,7 @@ import SearchBar from 'src/components/search-bar';
 import useAPI from '../../hooks/use-api';
 
 // Constants
-import { BASE_VERSIONED_PATH, BASE_PATH_PROJECTS } from '../../utils/constants';
+import { BASE_VERSIONED_PATH } from '../../utils/constants';
 // Auxiliar functions
 import { parseLocationSearch } from '../../utils/auxiliar-functions';
 // String managers
@@ -91,19 +91,6 @@ const CollectionBrowser = () => {
         matchCount = previousPayload.current.referencesCount;
     } else results = [];
 
-    // Using the options API endpoint, get a summary of values from simulations in this collection
-    const optionsUrl = `${BASE_PATH_PROJECTS}/options?projection=metadata.COLLECTIONS`;
-    const { payload: optionsPayload, error: optionsError } = useAPI(optionsUrl);
-
-    // Add the project count to every collection data
-    // This is useful to discard empty collections further
-    if (optionsPayload && collectionsPayload) {
-        const collectionProjectCounts = optionsPayload && optionsPayload['metadata.COLLECTIONS'];
-        collectionsPayload.references.forEach(collectionData => {
-            collectionData.projectCount = collectionProjectCounts[collectionData.id];
-        })
-    }
-
     // While loading
     // Code above is runned multiple times (around 5) each time the browser is loaded
     if (collectionsLoading) return <Loading />;
@@ -146,17 +133,15 @@ const CollectionBrowser = () => {
                     }
                 >
                     {/* Create a row for each reference in the query payload*/}
-                    {results.map((reference, index) => {
-                        // Skip empty collections
-                        if (!reference.projectCount) return;
-                        return (<Row
+                    {results.map((reference, index) =>
+                        <Row
                             // Load the propierties (inputs) that the class "Row" is expecting
                             data={reference} // Load reference data (id, name, description, image URL, ...)
                             highlight={search.search} // Load the highlight
                             index={index} // Load the index
                             key={index} // Add a key for react to do not complain
-                        />)
-                    })}
+                        />
+                    )}
                 </TableBody>
                 <TableFooter>
                     <Pagination
