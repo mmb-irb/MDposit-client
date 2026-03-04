@@ -95,7 +95,7 @@ const DistPerres = () => {
     isReduced,
   } = useMemo(() => {
     // Return if the dataset is not ready
-    if (!dataset || !topology) return {};
+    if (!dataset || !topology || !interaction) return {};
 
     // Set the data to be displayed
     const displayedData = display === 'mean' ? dataset.means : dataset.stdvs;
@@ -264,7 +264,7 @@ const DistPerres = () => {
   const anyLoading = isIndexLoading || isAnalysisLoading || isProjectLoading;
 
   // Render loading or error messages according with the API response
-  if (indexError) return indexError.toString();
+  if (indexError) return indexError.toString() + '. Analysis may not be available for this trajectory.';
   if (error) return error.toString();
   if (dataset && dataset.error) return dataset.error;
   if (!dataset) {
@@ -325,7 +325,7 @@ const DistPerres = () => {
               // Invert colors here, since minimum values belong to closer residues
               maxValueColor={heatmapMinimumColor}
               minValueColor={heatmapMaximumColor}
-              totalHeight={heatmapData.yLabels.length === 1 ? 30 : undefined}
+              totalHeight={heatmapData?.yLabels?.length === 1 ? 30 : undefined}
               xTitle={xTitle}
               yTitle={yTitle}
             />
