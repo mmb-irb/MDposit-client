@@ -6,8 +6,8 @@ import useAPI from '../../hooks/use-api';
 import {
     BASE_PATH_PROJECTS,
     HOST_CONFIG,
-    REFERENCES_WITH_ENTROPIES,
-    REFERENCES_WITH_EPITOPES
+    UNIPROTS_WITH_ENTROPIES,
+    UNIPROTS_WITH_EPITOPES
 } from '../constants';
 // Import the topology manager class
 import { Topology } from '../../utils/topology-manager';
@@ -68,10 +68,10 @@ export class Project {
         // Their availability may be also more complicated than the generic ones
         // Set covid-19 specific analyses
         const anyReferenceWithEntropies = this.metadata && this.metadata.REFERENCES &&
-            this.metadata.REFERENCES.find(ref => REFERENCES_WITH_ENTROPIES.includes(ref));
+            this.metadata.REFERENCES.find(ref => UNIPROTS_WITH_ENTROPIES.includes(ref));
         this.directions['mutations'] = Boolean(anyReferenceWithEntropies);
         const anyReferenceWithEpitopes = this.metadata && this.metadata.REFERENCES &&
-            this.metadata.REFERENCES.find(ref => REFERENCES_WITH_EPITOPES.includes(ref));
+            this.metadata.REFERENCES.find(ref => UNIPROTS_WITH_EPITOPES.includes(ref));
         this.directions['epitopes'] = Boolean(anyReferenceWithEpitopes);
         // Set MSM specific analyses
         if (this.metadata && this.metadata.METHOD === 'Markov state model (MSM)') {

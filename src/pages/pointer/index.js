@@ -9,26 +9,12 @@ import { BASE_VERSIONED_PATH, HOST_CONFIG } from '../../utils/constants';
 // Import web components
 import Card from '../../components/animated-card';
 import {
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   CardContent,
   Typography,
-  Chip
 } from '@mui/material';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faGhost, faUmbrella } from '@fortawesome/free-solid-svg-icons';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Loading from 'src/components/loading';
-import LazyImg from 'src/components/lazy-img';
-// Import auxiliar functions
-import { round2cents } from 'src/utils/auxiliar-functions';
-// CSS style
-import style from './style.module.css';
-
-// Set some definitions
-const PRESENCE_DEF = 'Residues in the system which belong to the reference';
-const COVERAGE_DEF = 'Residues in the reference which exist in the system';
+// Import local components
+import PointerRow, { PROJECTION_METADATA } from './row';
 
 // Set ID names for the different references
 const ID_NAMES = {
@@ -49,14 +35,7 @@ const Pointer = () => {
   if (!reference) return 'Missing reference';
   if (!referenceId) return 'Missing reference id';
   // Set project metadata values to retrieve from the pointers endpoint
-  const projection = {
-    name: 'metadata.NAME',
-    description: 'metadata.DESCRIPTION',
-    authors: 'metadata.AUTHORS',
-    groups: 'metadata.GROUPS',
-    grouper: HOST_CONFIG.optionsField
-  };
-  const projectionParameters = '?' + Object.values(projection)
+  const projectionParameters = '?' + Object.values(PROJECTION_METADATA)
     .map(field => 'projection=' + field).join('&');
   // Get pointers data using the API
   const pointerURL = `${BASE_VERSIONED_PATH}/pointers/${reference}/${referenceId}${projectionParameters}`;
@@ -83,72 +62,9 @@ const Pointer = () => {
       <Typography variant="h5" style={{ marginBottom: '0.6em' }}>
         {`Entries including ${referenceId} ${ID_NAMES[reference]} (${payload.length} results)`}
       </Typography>
-      {Object.entries(groupedData).map(([group, projects]) => {
-        const hasLogo = Boolean(HOST_CONFIG.optionsData && HOST_CONFIG.optionsData.logo);
-        const pngImage = hasLogo && require(`src/images/${HOST_CONFIG.optionsData.logo[group]}.png`);
-        const webpImage = hasLogo && require(`src/images/${HOST_CONFIG.optionsData.logo[group]}.png`);
-        const hasDescription = Boolean(HOST_CONFIG.optionsData && HOST_CONFIG.optionsData.description);
-        return (
-          <Accordion key={group} slotProps={{ transition: { timeout: 500 } }} defaultExpanded={false}>
-            <AccordionSummary
-              expandIcon={<ExpandMoreIcon />}
-              title={hasDescription && HOST_CONFIG.optionsData.description[group]}
-            >
-              <div className={style['horizontal-expanded']}>
-                <div>
-                  <Typography variant="h5">
-                    {HOST_CONFIG.optionsNiceNames[group] || group}
-                  </Typography>
-                  <div>{`${projects.length} result${projects.length === 1 ? '' : 's'}`}</div>
-                </div>
-                {hasLogo && <picture style={{ marginRight: '1em' }}>
-                  <source type="image/webp" src={webpImage} />
-                  <LazyImg height="50px" src={pngImage} loading="lazy" />
-                </picture>}
-              </div>
-            </AccordionSummary>
-            <AccordionDetails>
-              {projects.map(project => {
-                const name = project[projection.name] || 'Unnamed';
-                const description = project[projection.description];
-                let authors = project[projection.authors];
-                if (authors && typeof authors === 'string') authors = [authors];
-                let groups = project[projection.groups];
-                if (groups && typeof groups === 'string') groups = [groups];
-                return (<div key={project.id}>
-                  <hr style={{ color: 'lightGrey', margin: '0' }} />
-                  <div style={{ margin: '0.5em' }} >
-                    <div className={style['horizontal-expanded']}>
-                      <Typography variant="h6">{project.id}</Typography>
-                      <Typography variant="subtitle2">
-                        <a href={project.web} target="_blank" rel="noopener noreferrer" >
-                          {project.web}
-                        </a>
-                      </Typography>
-                    </div>
-                    <div>{`Name: ${name}`}</div>
-                    <div>{description && `Description: ${description}`}</div>
-                    <div>{authors && `Authors: ${authors.join(', ')}`}</div>
-                    <div>{groups && `Groups: ${groups.join(', ')}`}</div>
-                    <div className={style.horizontal}>
-                      {project.presence && <div title={PRESENCE_DEF}>
-                        <Chip
-                          icon={<FontAwesomeIcon icon={faGhost} />}
-                          label={`Presence: ${round2cents(project.presence * 100)} %`} />
-                      </div>}
-                      {project.coverage && <div title={COVERAGE_DEF}>
-                        <Chip
-                          icon={<FontAwesomeIcon icon={faUmbrella} />}
-                          label={`Coverage: ${round2cents(project.coverage * 100)} %`} />
-                      </div>}
-                    </div>
-                  </div>
-                </div>);
-              })}
-            </AccordionDetails>
-          </Accordion>
-        )
-      })}
+      {Object.entries(groupedData).map(([group, projects]) =>
+        <PointerRow key={group} group={group} projects={projects} />
+      )}
     </CardContent>
   </Card>);
 };

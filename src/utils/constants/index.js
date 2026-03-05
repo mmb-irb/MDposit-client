@@ -3,6 +3,33 @@ import hostConfig from "./host-config";
 
 export const HOST_CONFIG = hostConfig;
 
+// State the different reference types and how their data is organized
+export const REFERENCES = {
+    proteins: {
+        idField: 'uniprot',
+        projectIdsField: 'metadata.REFERENCES'
+    },
+    ligands: {
+        idField: 'pubchem',
+        projectIdsField: 'metadata.LIGANDS'
+    },
+    inchikeys: {
+        idField: 'inchikey',
+        projectIdsField: 'metadata.INCHIKEYS'
+    },
+    pdbs: {
+        idField: 'id',
+        projectIdsField: 'metadata.PDBIDS'
+    },
+    chains: {
+        idField: 'sequence',
+        projectIdsField: 'metadata.PROTSEQ'
+    },
+    collections: {
+        idField: 'id',
+        projectIdsField: 'metadata.COLLECTIONS'
+    }
+};
 export const MDPOSIT_URL = 'https://mdposit.mddbr.eu';
 
 export const BASE_PATH = HOST_CONFIG.api;
@@ -59,5 +86,5 @@ export const NICE_NAMES = new Map([
 // Set manually which references have entropies or epitopes
 // This needs to be updated by hand when there is a new reference with entropies or epitopes
 // This workaround prevents having to pass the references context to the root, which makes no sense
-export const REFERENCES_WITH_ENTROPIES = ['P0DTC2'];
-export const REFERENCES_WITH_EPITOPES = ['P0DTC2'];
+export const UNIPROTS_WITH_ENTROPIES = ['P0DTC2'];
+export const UNIPROTS_WITH_EPITOPES = ['P0DTC2'];

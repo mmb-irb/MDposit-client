@@ -11,7 +11,7 @@ import Card from '../../../components/animated-card';
 import ViewerWithControls from '../../../components/viewer-with-controls';
 import style from './style.module.css';
 import Loading from '../../../components/loading';
-import { REFERENCES_WITH_ENTROPIES } from '../../../utils/constants';
+import { UNIPROTS_WITH_ENTROPIES } from '../../../utils/constants';
 import { ProjectCtx } from '../../../contexts';
 import ResidueSelector from '../../../components/residue-selector';
 
@@ -31,7 +31,7 @@ const Mutations = () => {
     // Determine if this project has entropies
     // Otherwise stop here
     const validReferences = topology.proteinReferences.filter(
-      ref => REFERENCES_WITH_ENTROPIES.includes(ref.uniprot) && ref.entropies
+      ref => UNIPROTS_WITH_ENTROPIES.includes(ref.uniprot) && ref.entropies
     );
     if (validReferences.length === 0) return;
     // Iterate over all residues in the topology to find their corresponding entropy
