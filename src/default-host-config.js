@@ -516,6 +516,7 @@ const HOST_CONFIGURATIONS = {
         primaryColor: '#a8cdf3', // Golden,
         logoLabel: 'PKLR node',
         name:'PKLR@MDDB',
+        searchExample: 'e.g. Gelpi',
         footers: [
             {
                 image: logoBSC,
