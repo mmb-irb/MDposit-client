@@ -125,6 +125,11 @@ const useAPI = (url, cacheOptions = {}) => {
       // Otherwise
       .catch(error => {
         if (didCancel) return;
+        // Extend the error message with the API error reason
+        let errorMessage = error.toString();
+        if (error.response && error.response.data)
+          errorMessage += ` -> ${error.response.data}`;
+        error.message = errorMessage;
         const responseData = {
           url: url,
           loading: false,
