@@ -85,6 +85,7 @@ const Histogram = forwardRef(({
     const x = binMethod === 'linear' ? scaleLinear() : scaleLog().base(10);;
     const xAxis = graph.append("g");
     const y = scaleLinear();
+    const yGrid = graph.append("g").attr("class", style.grid);
     const yAxis = graph.append("g");
 
     // Set  axis labels
@@ -318,6 +319,8 @@ const Histogram = forwardRef(({
         )
         .style("font-size", axisNumbersFontSize);
       y.range([margin.top + actualHeight, margin.top]);
+      yGrid.attr("transform", "translate(" + margin.left + ", 0)")
+        .call(axisLeft(y).tickSize(-actualWidth).tickFormat(''));
       yAxis.attr("transform", "translate(" + margin.left + ", 0)").call(axisLeft(y))
         .style("font-size", axisNumbersFontSize);
       // Set axis label positions

@@ -9,7 +9,8 @@ import Loading from 'src/components/loading'; // Displays an animated "loading" 
 import Card from 'src/components/animated-card';
 import LazyImg from 'src/components/lazy-img';
 import ProjectBrowser from 'src/components/project-browser';
-import { CardContent, Typography } from '@mui/material';
+import { CardContent, Typography, Button } from '@mui/material';
+import { Link } from 'react-router-dom';
 
 // Constants
 import {
@@ -117,8 +118,19 @@ const Collection = () => {
                 by including a citation to:
                 <div>{referenceData.citation}</div>
             </div>}
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1em' }}>
+            <Button
+                component={Link}
+                to={`/collection/${collectionId}/statistics`}
+                variant="outlined"
+                size="small"
+            >
+                View statistics
+            </Button>
+        </div>
         </CardContent>
         <hr style={{ color: 'lightGrey' }} />
+        
         <ProjectBrowser internalQuery={browserInternalQuery} />
     </Card> );
 };

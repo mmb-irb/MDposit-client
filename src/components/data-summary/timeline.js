@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import { useTheme } from '@mui/material/styles';
 
@@ -7,15 +7,29 @@ import { useTheme } from '@mui/material/styles';
 const axisNumbersFontSize = "14px";
 const axisLabelsFontSize = "24px";
 
-const TimelineChart = ({ data, width = 800, height = 400, className }) => {
+const TimelineChart = ({ data, className }) => {
+  const containerRef = useRef();
   const svgRef = useRef();
+  const [dimensions, setDimensions] = useState({ width: 800, height: 400 });
   // Get the provided theme
   const theme = useTheme();
   const primaryColor = theme.palette.primary.main;
   const secondaryColor = theme.palette.primary.dark;
 
+  // Observe container size changes
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver(entries => {
+      const { width, height } = entries[0].contentRect;
+      if (width > 0 && height > 0) setDimensions({ width, height });
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
   useEffect(() => {
     if (!data || !data.length) return;
+    const { width, height } = dimensions;
   
     // Clear any existing chart and tooltips
     d3.select(svgRef.current).selectAll("*").remove();
@@ -46,21 +60,45 @@ const TimelineChart = ({ data, width = 800, height = 400, className }) => {
 
     // Primary Y-axis scale (for projects)
     const y1 = d3.scaleLinear()
-      .domain([0, d3.max(data, d => d.totalProjects) * 1.1]) // Add 10% padding at top
-      .range([innerHeight, 0]);
+      .domain([0, d3.max(data, d => d.totalProjects) * 1.1])
+      .range([innerHeight, 0])
+      .nice();
 
     // Secondary Y-axis scale (for MDs)
     const y2 = d3.scaleLinear()
-      .domain([0, d3.max(data, d => d.totalMds) * 1.1]) // Add 10% padding at top
-      .range([innerHeight, 0]);
+      .domain([0, d3.max(data, d => d.totalMds) * 1.1])
+      .range([innerHeight, 0])
+      .nice();
 
-    // Create axes
+    // Create axes — use same tick count; grid lines align with left axis
     const xAxis = d3.axisBottom(x)
       .ticks(12)
       .tickFormat(d3.timeFormat("%b %Y"));
 
-    const y1Axis = d3.axisLeft(y1);
-    const y2Axis = d3.axisRight(y2);
+    const tickCount = 8;
+    const y1Max = y1.domain()[1];
+    const y2Max = y2.domain()[1];
+    // Evenly spaced from 0 to niced max — same count guarantees identical pixel positions
+    const y1TickValues = d3.range(tickCount + 1).map(i => Math.round(i * y1Max / tickCount));
+    const y2TickValues = d3.range(tickCount + 1).map(i => Math.round(i * y2Max / tickCount));
+
+    const y1Axis = d3.axisLeft(y1).tickValues(y1TickValues);
+    const y2Axis = d3.axisRight(y2).tickValues(y2TickValues);
+
+    // Add horizontal grid lines (using shared y1 tick values)
+    svg.append("g")
+      .attr("class", "grid")
+      .call(
+        d3.axisLeft(y1)
+          .tickValues(y1TickValues)
+          .tickSize(-innerWidth)
+          .tickFormat("")
+      )
+      .call(g => g.select(".domain").remove())
+      .call(g => g.selectAll(".tick line")
+        .style("stroke", "#e0e0e0")
+        .style("stroke-dasharray", "3,3")
+      );
 
     // Add X axis
     svg.append("g")
@@ -219,9 +257,23 @@ const TimelineChart = ({ data, width = 800, height = 400, className }) => {
       .style("font-size", axisLabelsFontSize)
       .text("Total MDs");
 
-    // Add legend
+    // Add legend (inside the plot area, top-center, above grid lines)
+    const legendWidth = 160;
+    const legendHeight = 22;
+    const legendX = innerWidth / 2 - legendWidth / 2;
+    const legendY = 10;
     const legend = svg.append("g")
-      .attr("transform", `translate(${innerWidth / 2 - 100}, -10)`);
+      .attr("transform", `translate(${legendX}, ${legendY})`);
+
+    // White background so text is readable over grid lines
+    legend.append("rect")
+      .attr("x", -6)
+      .attr("y", -4)
+      .attr("width", legendWidth + 12)
+      .attr("height", legendHeight)
+      .attr("fill", "white")
+      .attr("opacity", 0.85)
+      .attr("rx", 3);
 
     // Projects legend
     legend.append("rect")
@@ -251,7 +303,7 @@ const TimelineChart = ({ data, width = 800, height = 400, className }) => {
       .text("MDs")
       .style("font-size", "14px");
 
-  }, [data, width, height]);
+  }, [data, dimensions]);
 
   // Cleanup function to remove tooltip when component unmounts
   useEffect(() => {
@@ -260,7 +312,11 @@ const TimelineChart = ({ data, width = 800, height = 400, className }) => {
     };
   }, []);
 
-  return <svg ref={svgRef} className={className} />;
+  return (
+    <div ref={containerRef} className={className} style={{ width: '100%', height: '100%' }}>
+      <svg ref={svgRef} style={{ display: 'block' }} />
+    </div>
+  );
 };
 
 export default TimelineChart;

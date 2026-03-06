@@ -1,0 +1,33 @@
+.chart-bar-container {
+  margin-bottom: 0.8rem;
+}
+
+.chart-bar-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.3rem;
+  font-size: 0.9rem;
+}
+
+.chart-bar-percentage {
+  font-weight: 500;
+}
+
+.chart-bar-value {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.chart-bar-background {
+  width: 100%;
+  height: 24px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.chart-bar-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  border-radius: 4px;
+}
