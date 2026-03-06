@@ -95,6 +95,9 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary' }) => {
             setSelectedOptionsField(availableOptionsFields.includes('node') ? 'node' : 'metadata.METHOD');
         }
     }, [optionsPayload]);
+    // Use the API to get the real data size from the stats endpoint
+    const statsUrl = `${BASE_VERSIONED_PATH}/stats${summaryQueryParam}`;
+    const { payload: statsPayload, error: statsError } = useAPI(statsUrl, { name: 'stats', cacheOn: true });
     // Use the API to get the project growth data (global only — not meaningful for subsets)
     const growthUrl = !internalQuery ? `${BASE_PATH_PROJECTS}/summary/growth` : null;
     const { payload: growthPayload, error: growthError } = useAPI(growthUrl, { name: 'growth', cacheOn: true });
@@ -174,7 +177,7 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary' }) => {
 
     // Handle possible errors by just showing a log error in the console
     // Thus we allow the rest of the page to keep loading
-    [summaryError, optionsError, snapshotsError, oldSnapshotsError, atomsError, mdCountError, growthError].forEach(error => {
+    [summaryError, optionsError, snapshotsError, oldSnapshotsError, atomsError, mdCountError, growthError, statsError].forEach(error => {
         if (error) console.error(error.message);
     });
 
@@ -199,7 +202,7 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary' }) => {
                         <td className={style.summaryValue}>{summaryPayload ? summaryPayload.totalFrames.toLocaleString() : 'Loading...'}</td>
                         <td className={style.summaryValue}>{summaryPayload ? summaryPayload.totalFiles.toLocaleString() : 'Loading...'}</td>
                         <td className={style.summaryValue}>{summaryPayload ? summaryPayload.totalAnalyses.toLocaleString() : 'Loading...'}</td>
-                        {!internalQuery && <td className={style.summaryValue}>{summaryPayload ? `${summaryPayload?.storageStats?.dataSizeInTB} TB` : 'Loading...'}</td>}
+                        {!internalQuery && <td className={style.summaryValue}>{statsPayload ? `${statsPayload?.dataSizeInTB} TB` : 'Loading...'}</td>}
                     </tr>
                 </tbody>
             </table>
