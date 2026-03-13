@@ -13,6 +13,11 @@ import React, {
 import { useInView } from 'react-intersection-observer';
 import { clamp } from 'lodash-es';
 import cn from 'classnames';
+// About NGL versions
+// We are stuck in version 2.0.0-dev.37
+// Current versions of NGL do not load trajectory coordinates, starting at version 2.1.0
+// I don't know where the problem is, but there are no error logs and I have spent a few hours already
+// Previous version 2.0.1 had a bug not showing surfaces and returning "Worker.onerror molsurf"
 import { autoLoad, Stage, Shape, ColormakerRegistry, Matrix4 } from 'ngl';
 
 import { frame } from 'timing-functions';
