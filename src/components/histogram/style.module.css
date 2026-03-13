@@ -1,5 +1,14 @@
 .default {
-  height: 50vh;
+  height: 20vw;
+}
+
+.grid line {
+  stroke: #e0e0e0;
+  stroke-dasharray: 3 3;
+}
+
+.grid path {
+  stroke: none;
 }
 
 .graph-container {

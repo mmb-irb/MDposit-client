@@ -68,6 +68,9 @@ const PieChart = ({ data, legendData, className, pieClassName, legendClassName, 
       <MinimalPieChart
         data={filteredData}
         className={pieClassName ? pieClassName : style.piechart}
+        animate
+        animationDuration={500}
+        animationEasing="ease-out"
       />
       {legendData && (
         <SimpleLegend

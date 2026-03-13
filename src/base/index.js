@@ -53,6 +53,9 @@ const Accession = lazy(() =>
 const Collection = lazy(() =>
   import(/* webpackChunkName: 'collection' */ '../pages/collection'),
 );
+const CollectionStatistics = lazy(() =>
+  import(/* webpackChunkName: 'collection-statistics' */ '../pages/collection/statistics'),
+);
 const CollectionsBrowser = lazy(() =>
   import(/* webpackChunkName: 'collections' */ '../pages/collections'),
 );
@@ -177,11 +180,18 @@ const Base = () => {
             </Route>
             <Route path="collection" >
               <Route index element={"Missing collection id"}/>
-              <Route path=":id" element={
-                <Suspense fallback={null}>
-                  <Collection />
-                </Suspense>
-              }/>
+              <Route path=":id">
+                <Route index element={
+                  <Suspense fallback={null}>
+                    <Collection />
+                  </Suspense>
+                }/>
+                <Route path="statistics" element={
+                  <Suspense fallback={null}>
+                    <CollectionStatistics />
+                  </Suspense>
+                }/>
+              </Route>
             </Route>
             <Route
               path="collections"

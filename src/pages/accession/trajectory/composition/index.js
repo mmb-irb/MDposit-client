@@ -7,6 +7,7 @@ import {
 } from '@mui/material';
 import { PieChart } from 'react-minimal-pie-chart';
 import SimpleLegend from '../../../../components/simple-legend';
+import SimpleHistogram from '../../../../components/simple-histogram';
 import { createPalette } from '../../../../utils/auxiliar-functions';
 import { useTheme } from '@mui/material/styles';
 import style from './style.module.css';
@@ -166,27 +167,7 @@ const CompositionOverview = () => {
                   </div>
                   
                   {compositionChartType === 'histogram' ? (
-                    <div>
-                      {chartData.map((item, index) => (
-                        <div key={index} className={style['chart-bar-container']}>
-                          <div className={style['chart-bar-header']}>
-                            <span>{item.label}</span>
-                            <span className={style['chart-bar-percentage']}>{item.percentage}%</span>
-                          </div>
-                          <div className={style['chart-bar-background']}>
-                            <div 
-                              className={style['chart-bar-fill']}
-                              style={{ 
-                                width: `${item.percentage}%`, 
-                                backgroundColor: secondaryColor.dark
-                              }}
-                            >
-                              {`${item.value.toLocaleString()}`}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    <SimpleHistogram data={chartData} />
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '20px', height: '100%' }}>
                         <PieChart
