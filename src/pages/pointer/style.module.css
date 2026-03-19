@@ -2,6 +2,14 @@
   margin: 1em 0;
 }
 
+.topmargined {
+  margin-top: 0.5em
+}
+
+.bold {
+  font-weight: bold;
+}
+
 .horizontal-expanded {
   width: 100%;
   display: flex;

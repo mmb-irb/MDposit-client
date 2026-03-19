@@ -17,9 +17,9 @@ import Info from 'src/components/info';
 import Card from 'src/components/animated-card';
 import LazyImg from 'src/components/lazy-img';
 import MoleculeViewer from 'src/components/rdkit/rdkit_viewer';
+import ExpanderButton from 'src/components/expander-button';
 // Import some components which are specific to the ligands overview component
 import LigandTable from './ligand-table';
-import ExpanderButton from './expander-button';
 // Import the documentation
 import { docs } from 'src/pages/help/documentation';
 // Import other tools
@@ -188,7 +188,7 @@ const LigandsOverview = () => {
                     {ligandReference && ligandReference.smiles && <>
                     <div className={style["decorated-list-item__title"]}>SMILES</div>
                     <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                        <ExpanderButton ligandReference={ligandReference} fieldName="smiles"/>
+                        <ExpanderButton text={ligandReference["smiles"]}/>
                     </div>
                     </>
                     }
@@ -197,7 +197,7 @@ const LigandsOverview = () => {
                     {ligandReference && ligandReference.inchi && <>
                     <div className={style["decorated-list-item__title"]}>InChI</div>
                     <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                        <ExpanderButton ligandReference={ligandReference} fieldName="inchi"/>
+                        <ExpanderButton text={ligandReference["inchi"]}/>
                     </div>
                     </>
                     }

@@ -14,8 +14,8 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faGhost, faUmbrella } from '@fortawesome/free-solid-svg-icons';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import Loading from 'src/components/loading';
 import LazyImg from 'src/components/lazy-img';
+import ExpanderButton from 'src/components/expander-button';
 // Import auxiliar functions
 import { round2cents } from 'src/utils/auxiliar-functions';
 // CSS style
@@ -90,12 +90,14 @@ const PointerRow = ({ group, projects }) => {
             </AccordionSummary>
             <AccordionDetails>
               {projects.map(project => {
-                const name = project[PROJECTION_METADATA.name] || 'Unnamed';
+                const name = project[PROJECTION_METADATA.name];
                 const description = project[PROJECTION_METADATA.description];
                 let authors = project[PROJECTION_METADATA.authors];
                 if (authors && typeof authors === 'string') authors = [authors];
+                authors = authors.join(', ');
                 let groups = project[PROJECTION_METADATA.groups];
                 if (groups && typeof groups === 'string') groups = [groups];
+                groups = groups.join(', ');
                 return (<div key={project.id}>
                   <hr style={{ color: 'lightGrey', margin: '0' }} />
                   <div style={{ margin: '0.5em' }} >
@@ -107,10 +109,22 @@ const PointerRow = ({ group, projects }) => {
                         </a>
                       </Typography>
                     </div>
-                    <div>{`Name: ${name}`}</div>
-                    <div>{description && `Description: ${description}`}</div>
-                    <div>{authors && `Authors: ${authors.join(', ')}`}</div>
-                    <div>{groups && `Groups: ${groups.join(', ')}`}</div>
+                    {name && <div className={style.topmargined}>
+                      <span className={style.bold}>Name: </span>
+                      <ExpanderButton text={name} />
+                    </div>}
+                    {description && <div className={style.topmargined}>
+                      <span className={style.bold}>Description: </span>
+                      <ExpanderButton text={description} />
+                    </div>}
+                    {authors && <div className={style.topmargined}>
+                      <span className={style.bold}>Authors: </span>
+                      <ExpanderButton text={authors} />
+                    </div>}
+                    {groups && <div className={style.topmargined}>
+                      <span className={style.bold}>Groups: </span>
+                      <ExpanderButton text={groups} />
+                    </div>}
                     <div className={style.horizontal}>
                       {project.presence && <div title={PRESENCE_DEF}>
                         <Chip
