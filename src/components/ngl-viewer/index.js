@@ -366,8 +366,22 @@ const NGLViewer = memo(
               topology.file.atomStore.occupancy.length,
             ).fill(1);
             // Set atom bonds according to our topology
-            const safeBonds = topologyManager.atomBonds;
+            let safeBonds = topologyManager.atomBonds;
             if (safeBonds) {
+              // Take in count if the topology contains a subset of the atoms
+              const atomIndices = comp.atomIndices;
+              const isPartialSystem = atomIndices && atomIndices.length < topologyManager.atomCount;
+              if (isPartialSystem) {
+                // Create a 'whole system index' to 'partial system index' map
+                const indexMap = {};
+                atomIndices.forEach((wholeIndex, partialIndex) => { indexMap[wholeIndex] = partialIndex });
+                // Convert atom indices in order to adapt safe bonds to the partial system
+                safeBonds = atomIndices.map(
+                  atomIndex => safeBonds[atomIndex].map(
+                    bondAtomindex => indexMap[bondAtomindex]
+                  ).filter(bondAtomindex => bondAtomindex != undefined));
+              }
+              // Get the NGL internal bonds handler
               const bondStore = topology.file.bondStore;
               // Remove default bonds
               bondStore.length = 0;
