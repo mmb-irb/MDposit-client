@@ -92,6 +92,10 @@ const useAPI = (url, cacheOptions = {}) => {
     axios(url, {
       // This token allows us to further cancel the request if necessary
       cancelToken: source.token,
+      // Header used by the backend to identify requests coming from this frontend hook.
+      headers: {
+        ['X-MDDB-Request-Source']: 'mdposit-client',
+      },
       // Send the start time so we can calculate the response time when we get the response
       startTime: new Date()
     })
