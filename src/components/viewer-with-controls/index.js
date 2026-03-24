@@ -622,9 +622,9 @@ const ViewerWithControls = forwardRef(
                     </IconButton>
 
                     {noTrajectory || (
-                      <div className={style['stacked-icons']} title={hasPbcResidues &&
+                      <div className={style['stacked-icons']} title={hasPbcResidues ?
                         'Smooth interpolation is not allowed since there are residues under Periodic Boundary Conditions. ' +
-                        'The smoothing may result in misleading artifacts for those atoms jumping across boundaries.'}>
+                        'The smoothing may result in misleading artifacts for those atoms jumping across boundaries.' : undefined}>
                         <IconButton
                           title={`Toggle smooth interpolation ${smooth ? 'off' : 'on'}`}
                           onClick={() => setSmooth(previous => !previous)}
