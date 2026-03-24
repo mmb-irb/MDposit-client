@@ -1,0 +1,45 @@
+.card {
+  margin: 1em 0;
+}
+
+.card img {
+  float: right;
+}
+
+.card-content:last-child {
+  padding-bottom: 16px;
+}
+
+.summary-list > div {
+  margin: 1ch 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.title {
+  font-family: "Roboto","Helvetica","Arial",sans-serif;
+  font-weight: 500;
+  font-size: 1.25rem;
+  line-height: 1.6;
+  letter-spacing: 0.0075em;
+  margin-right: 0.5em;
+}
+
+.white-background {
+  filter: contrast(1.1);
+}
+
+.decorated-list-item__title {
+  flex-basis: 10vw;
+  flex-shrink: 0;
+  text-align: right;
+  padding-right: .8rem;
+  word-break: keep-all;
+}
+
+.decorated-list-item__content {
+  flex-grow: 1;
+  padding-left: .7rem;
+  padding-top: .1rem;
+  padding-bottom: .1rem;
+}

@@ -25,6 +25,7 @@ import Card from '../../../components/animated-card';
 import LazyImg from 'src/components/lazy-img';
 // Import other components which are part of the overview
 import LigandsOverview from './ligands';
+import LipidsOverview from './lipids';
 import PdbsOverview from './pdbs';
 // Import constants
 import { HOST_CONFIG } from '../../../utils/constants';
@@ -362,6 +363,7 @@ const Overview = React.memo(() => {
       )}
       <PdbsOverview/>
       <LigandsOverview/>
+      <LipidsOverview/>
       <Card className={style.card}>
         <CardContent className={style['card-content']}>
           <Typography variant="h6">License</Typography>

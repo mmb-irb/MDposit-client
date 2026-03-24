@@ -220,6 +220,22 @@ export class Project {
         const references = this.references;
         return useMemo(() => references && references.filter(ref => ref.ref_type === 'inchikeys'), [references]);
     }
+    get lipidReferences () {
+        const references = this.references;
+        const ligandReferences = this.ligandReferences;
+        return useMemo(() => {
+            if (!references) return undefined;
+            // Keep only inchikey references that were not already mapped as ligands.
+            const ligandInchikeys = new Set(
+                (ligandReferences || [])
+                    .map(ref => ref.inchiRef && ref.inchiRef.inchikey)
+                    .filter(Boolean)
+            );
+            return references.filter(ref =>
+                ref.ref_type === 'inchikeys' && !ligandInchikeys.has(ref.inchikey)
+            );
+        }, [references, ligandReferences]);
+    }
     get collectionReferences () {
         const references = this.references;
         return useMemo(() => references && references.filter(ref => ref.ref_type === 'collections'), [references]);

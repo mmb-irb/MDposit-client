@@ -223,7 +223,6 @@ class Residue {
     if (this.referenceType === 'inchikey' && this.topology.membraneMapping && this.topology.membraneMapping.lipid.includes(this.index) &&
         (!isEmptyObj(this.referenceData.swisslipids) || !isEmptyObj(this.referenceData.lipidmaps))){
       this._classification = 'lipid'
-      console.log('Lipid with reference data found in the membrane mapping:', this.standardLabel, this.referenceData)
       return this._classification
     }
     // ----- Others -----------------------------------------------

@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, useMemo } from 'react';
 // Import context data
 import { ProjectCtx } from 'src/contexts';
 // Import visual assets
@@ -55,15 +55,43 @@ const morganTooltip = morganDoc && morganDoc.page && (<>
     </a>.
 </>);
 
+const uniqueStrings = values => Array.from(new Set(values.filter(Boolean)));
+
 const LigandsOverview = () => {
 
     // Get context data
-    const { metadata, ligandReferences } = useContext(ProjectCtx);
+    const { metadata, ligandReferences, topology } = useContext(ProjectCtx);
 
     // Get the provided theme
     const theme = useTheme();
     const secondaryColor = theme.palette.secondary;
     const primaryDarkColor = theme.palette.primary.dark;
+
+    // Group residue names by reference id so we can show topology residue names per ligand.
+    const residueNamesByReferenceId = useMemo(() => {
+        if (!topology) return { ligand: {}, inchikey: {} };
+        const ligand = {};
+        const inchikey = {};
+        for (const residue of topology.iterresidues()) {
+            if (!residue.name || !residue.referenceId) continue;
+            const key = String(residue.referenceId);
+            if (residue.referenceType === 'ligand') {
+                if (!ligand[key]) ligand[key] = new Set();
+                ligand[key].add(residue.name);
+            }
+            if (residue.referenceType === 'inchikey') {
+                if (!inchikey[key]) inchikey[key] = new Set();
+                inchikey[key].add(residue.name);
+            }
+        }
+        const toObject = grouped => Object.fromEntries(
+            Object.entries(grouped).map(([key, values]) => [key, Array.from(values).sort()])
+        );
+        const toSingleValueObject = grouped => Object.fromEntries(
+            Object.entries(grouped).map(([key, values]) => [key, Array.from(values).sort()[0]])
+        );
+        return { ligand: toObject(ligand), inchikey: toSingleValueObject(inchikey) };
+    }, [topology]);
 
     // Define the state and the function to show the table or not for Mordred (ligands)
     const [showTable, setShowTable] = useState(new Set());
@@ -147,6 +175,11 @@ const LigandsOverview = () => {
             {Object.entries(pubchemInfo).map(([pubchemId, pubchemData], i) => {
             const ligandReference = ligandReferences &&
                 ligandReferences.find(ref => ref.pubchem === pubchemId);
+            const residueNames = uniqueStrings([
+                ...((residueNamesByReferenceId.ligand && residueNamesByReferenceId.ligand[String(pubchemId)]) || []),
+                ((residueNamesByReferenceId.inchikey && ligandReference && ligandReference.inchikey && residueNamesByReferenceId.inchikey[String(ligandReference.inchikey)]) || null),
+                ((residueNamesByReferenceId.inchikey && ligandReference && ligandReference.inchiRef && ligandReference.inchiRef.inchikey && residueNamesByReferenceId.inchikey[String(ligandReference.inchiRef.inchikey)]) || null),
+            ]).sort();
             return ( <div key={i} className={style['summary-list']}>
                 {i !== 0 && ( <hr style={{ color: 'lightGrey' }} /> ) /* An horizontal line */}
                 <LazyImg
@@ -211,6 +244,14 @@ const LigandsOverview = () => {
                     </>
                     }
                 </div>
+                {residueNames.length > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <div className={style["decorated-list-item__title"]}>Residue name</div>
+                    <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
+                        <ExpanderButton text={residueNames.join(', ')} />
+                    </div>
+                    </div>
+                )}
                 <div>
                 {pubchemData.chemblID && (<div style={{ display: 'flex', alignItems: 'center' }}>
                     <div className={style["decorated-list-item__title"]}>ChEMBL ID</div>
