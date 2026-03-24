@@ -34,7 +34,7 @@ const nglPlaceholder = (
 
 const PCA = () => {
   // Get the current project metadata
-  const { accessionAndMdNumber, metadata, files } = useContext(ProjectCtx);
+  const { accessionAndMdNumber, metadata, files, topology } = useContext(ProjectCtx);
 
   // Load the main data from the API
   const { loading, payload, error } = useAPI(
@@ -62,12 +62,14 @@ const PCA = () => {
 
   // Set the component to be passed to the NGL
   const [representations, components] = useMemo(() => {
-    if (!data || !files) return [undefined, undefined];
+    if (!data || !files || !topology) return [undefined, undefined];
     // Only backbon atoms will be shown so they are better represented in spacefill
+    // However if the system is made of a single residue then use balls and sticks
+    const isSingleResidue = topology.residueCount === 1;
     const representations = [
       {
         name: 'PC projection',
-        type: 'spacefill',
+        type: isSingleResidue ? 'ball+stick' : 'spacefill',
       },
     ];
 
@@ -88,7 +90,7 @@ const PCA = () => {
     ];
 
     return [representations, components];
-  }, [data, files, projections]);
+  }, [data, files, projections, topology]);
 
   // Return the loading spin if we are still waiting for data
   if (loading) return <Loading />;
