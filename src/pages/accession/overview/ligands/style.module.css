@@ -29,11 +29,31 @@
   padding-bottom: 16px;
 }
 
+.summary-list {
+  margin-bottom: 20px;
+}
 /* 'pre-wrap' allows js break lines (\n) */
 .summary-list > div {
   margin: 1ch 0;
   white-space: pre-wrap;
   word-break: break-all;
+}
+
+.ligand-header-row {
+  display: flex;
+  align-items: center;
+}
+
+.residue-name-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 /* copy of Typography component */

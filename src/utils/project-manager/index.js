@@ -208,6 +208,26 @@ export class Project {
             });
         }, [references]);
     }
+    // Temporal reference to get both ligand and inchikey for overview display
+    get ligandAndLipidReferences () {
+        const references = this.references;
+        return useMemo(() => {
+            if (!references) return undefined;
+            const inchikeyReferencesWithLigand = references.filter(ref =>
+                ref.ref_type === 'ligands' || ref.ref_type === 'inchikeys'
+            );
+            // Get the ligand data only
+            return inchikeyReferencesWithLigand.map(ref => {
+                const ligandReference = ref.ligand || ref.pubchem;
+                // Make sure every ligand data has a name
+                if (!ligandReference.name) 
+                    ligandReference.name = ref.name || ref.swisslipids?.entity_name || ref.lipidmaps?.name || 'Unnamed ligand';
+                // Add the inchi reference inside the ligand reference
+                ligandReference.inchiRef = ref;
+                return ligandReference;
+            });
+        }, [references]);
+    }
     get pdbReferences () {
         const references = this.references;
         return useMemo(() => references && references.filter(ref => ref.ref_type === 'pdbs'), [references]);
