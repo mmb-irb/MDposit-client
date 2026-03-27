@@ -213,7 +213,8 @@ class Residue {
     // ----- Inchikey ligands -----------------------------------------------
     if (this.referenceType === 'inchikey') {
       // Inchikey without lipidmaps or swisslipids data, or lipids(inchikeys) outside membrane are classified as ligands
-      if (isEmptyObj(this.referenceData.swisslipids) && isEmptyObj(this.referenceData.lipidmaps) || 
+      if (isEmptyObj(this.referenceData.swisslipids) && isEmptyObj(this.referenceData.lipidmaps) ||  // Old system
+         (!this.referenceData.swisslipids && !this.referenceData.lipidmaps) ||  // New system
          (this.topology.membraneMapping && this.topology.membraneMapping.no_mem_lipid.includes(this.index))){
         this._classification = 'ligand'
         return this._classification

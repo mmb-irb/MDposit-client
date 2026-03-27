@@ -235,6 +235,7 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
       const ligandDomain = {
         name: domainName,
         representations: ligandRepresentations,
+        description: `InChIKey ${referenceId}`,
       };
       // Add it to the reference domains list
       referenceDomains.push(ligandDomain);

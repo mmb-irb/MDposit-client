@@ -1,6 +1,6 @@
 .card {
   margin: 1em 0;
-  height: 8em;
+  max-height: 8em;
   overflow-y: auto;
 }
 
