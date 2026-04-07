@@ -74,28 +74,18 @@ const LigandsOverview = () => {
 
     // Group residue names by reference id so we can show topology residue names per ligand.
     const residueNamesByReferenceId = useMemo(() => {
-        if (!topology) return { ligand: {}, inchikey: {} };
-        const ligand = {};
-        const inchikey = {};
+        if (!topology) return {};
+        const groupedByReferenceId = {};
         for (const residue of topology.iterresidues()) {
             if (!residue.name || !residue.referenceId) continue;
             const key = String(residue.referenceId);
-            if (residue.referenceType === 'ligand') {
-                if (!ligand[key]) ligand[key] = new Set();
-                ligand[key].add(residue.name);
-            }
-            if (residue.referenceType === 'inchikey') {
-                if (!inchikey[key]) inchikey[key] = new Set();
-                inchikey[key].add(residue.name);
-            }
+            if (!groupedByReferenceId[key]) groupedByReferenceId[key] = new Set();
+            groupedByReferenceId[key].add(residue.name);
         }
-        const toObject = grouped => Object.fromEntries(
-            Object.entries(grouped).map(([key, values]) => [key, Array.from(values).sort()])
+        // Join the residue names in case of glucolipids
+        return Object.fromEntries(
+            Object.entries(groupedByReferenceId).map(([key, values]) => [key, Array.from(values).sort().join(', ')])
         );
-        const toSingleValueObject = grouped => Object.fromEntries(
-            Object.entries(grouped).map(([key, values]) => [key, Array.from(values).sort()[0]])
-        );
-        return { ligand: toObject(ligand), inchikey: toSingleValueObject(inchikey) };
     }, [topology]);
 
     // Define the state and the function to show the table or not for Mordred (ligands)
@@ -220,11 +210,9 @@ const LigandsOverview = () => {
                     ? `https://www.lipidmaps.org/databases/lmsd/${lipidmapsId}`
                     : null;
                 const residueNames = uniqueStrings([
-                    ...(pubchemId
-                        ? ((residueNamesByReferenceId.ligand && residueNamesByReferenceId.ligand[String(pubchemId)]) || [])
-                        : []),
-                    ((residueNamesByReferenceId.inchikey && reference.inchikey && residueNamesByReferenceId.inchikey[String(reference.inchikey)]) || null),
-                    ((residueNamesByReferenceId.inchikey && reference.inchiRef && reference.inchiRef.inchikey && residueNamesByReferenceId.inchikey[String(reference.inchiRef.inchikey)]) || null),
+                    ...(pubchemId ? [residueNamesByReferenceId[String(pubchemId)] || null] : []),
+                    ((reference.inchikey && residueNamesByReferenceId[String(reference.inchikey)]) || null),
+                    ((reference.inchiRef && reference.inchiRef.inchikey && residueNamesByReferenceId[String(reference.inchiRef.inchikey)]) || null),
                 ]).sort();
                 const residueName = residueNames.length > 0 ? residueNames[0] : null;
                 return (<div key={descriptorKey} className={style['summary-list']}>

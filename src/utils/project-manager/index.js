@@ -218,7 +218,7 @@ export class Project {
             );
             // Get the ligand data only
             return inchikeyReferencesWithLigand.map(ref => {
-                const ligandReference = ref.ligand || ref.pubchem;
+                const ligandReference = ref.ligand || ref.pubchem || ref;
                 // Make sure every ligand data has a name
                 if (!ligandReference.name) 
                     ligandReference.name = ref.name || ref.swisslipids?.entity_name || ref.lipidmaps?.name || 'Unnamed ligand';
