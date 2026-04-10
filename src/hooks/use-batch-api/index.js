@@ -14,7 +14,7 @@ const loading = {
 };
 
 // Get data from the API for multiple URLs
-const useBatchAPI = urls => {
+const useBatchAPI = (urls, responseType = 'arraybuffer') => {
   // Set the 'data' state object, which is returned at the end of this function
   const [data, setData] = useState(urls.map(url => ({ url: url, ...blank })));
 
@@ -49,7 +49,10 @@ const useBatchAPI = urls => {
         cancelToken: source.token,
         // Send the start time so we can calculate the response time when we get the response
         startTime: new Date(),
-        responseType: 'arraybuffer'
+        responseType: responseType,
+        headers: {
+          ['X-MDDB-Request-Source']: 'mdposit-client',
+        },
       })
         // (.then is async) If the request has succeed
         .then(response => {

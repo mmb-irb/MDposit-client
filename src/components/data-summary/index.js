@@ -5,6 +5,7 @@ import { useTheme } from '@mui/material/styles';
 import { BASE_PATH_PROJECTS, BASE_VERSIONED_PATH, HOST_CONFIG } from '../../utils/constants';
 import { buildProjectionQuery, createPalette } from '../../utils/auxiliar-functions';
 import useAPI from '../../hooks/use-api';
+import useBatchAPI from '../../hooks/use-batch-api';
 
 import PieChart from '../pie-chart';
 import Histogram from '../histogram';
@@ -47,11 +48,12 @@ export function findFieldByTitleOrLabel(queryFields, searchValue) {
  *   When omitted the global summary is shown.
  * @param {string} [title='Data summary'] - Section heading text.
  */
-const DataSummary = ({ internalQuery = null, title = 'Data summary' }) => {
+const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = null }) => {
     // Get the provided theme
     const theme = useTheme();
     const primaryColor = theme.palette.primary.main;
     const secondaryColor = theme.palette.secondary.dark;
+    const isGlobalSummary = HOST_CONFIG.global && !internalQuery;
 
     // Helper to build the leading query string fragment for URLs
     const queryPrefix = internalQuery
@@ -91,13 +93,64 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary' }) => {
     // Set default selected field when optionsPayload loads
     useEffect(() => {
         if (availableOptionsFields.length > 0 && !selectedOptionsField) {
-            console.log('availableOptionsFields', availableOptionsFields);
             setSelectedOptionsField(availableOptionsFields.includes('node') ? 'node' : 'metadata.METHOD');
         }
     }, [optionsPayload]);
     // Use the API to get the real data size from the stats endpoint
-    const statsUrl = `${BASE_VERSIONED_PATH}/stats${summaryQueryParam}`;
+    const statsUrl = !isGlobalSummary ? `${BASE_VERSIONED_PATH}/stats${summaryQueryParam}` : null;
     const { payload: statsPayload, error: statsError } = useAPI(statsUrl, { name: 'stats', cacheOn: true });
+
+    // Aggregate data size across all nodes for the global view
+    const federatedStatsUrls = useMemo(() => {
+        if (!isGlobalSummary || !Array.isArray(nodeData) || nodeData.length === 0) return [];
+        return nodeData
+            .map(node => node && node.api_url)
+            .filter(Boolean)
+            .map(apiUrl => `${apiUrl}rest/current/stats`);
+    }, [isGlobalSummary, nodeData]);
+
+    const batchStatsResponses = useBatchAPI(federatedStatsUrls, 'json');
+
+    const { bsPayload, bsError, bsLoading } = useMemo(() => {
+        if (!isGlobalSummary) 
+            return { bsPayload: null, bsError: null, bsLoading: false,};
+        if (federatedStatsUrls.length === 0) 
+            return { bsPayload: null, bsError: null, bsLoading: true, };
+
+        const isLoading = batchStatsResponses.length !== federatedStatsUrls.length
+            || batchStatsResponses.some(response => response.loading);
+
+        const successfulPayloads = batchStatsResponses
+            .filter(response => !response.loading && !response.error && response.payload)
+            .map(response => response.payload);
+
+        if (successfulPayloads.length > 0) {
+            const totalDataSizeInTB = successfulPayloads.reduce((acc, payload) => {
+                const parsedSize = Number(payload?.dataSizeInTB);
+                return acc + (Number.isFinite(parsedSize) ? parsedSize : 0);
+            }, 0);
+            return {
+                bsPayload: {
+                    dataSizeInTB: Math.round(totalDataSizeInTB * 1000) / 1000,
+                    nodeCount: successfulPayloads.length,
+                    totalNodes: federatedStatsUrls.length,
+                },
+                bsError: null,
+                bsLoading: isLoading,
+            };
+        }
+
+        if (isLoading) 
+            return { bsPayload: null, bsError: null, bsLoading: true, };
+
+        const firstError = batchStatsResponses.find(response => response.error)?.error;
+        return {
+            bsPayload: null,
+            bsError: firstError || new Error('Unable to retrieve stats from any node'),
+            bsLoading: false,
+        };
+    }, [isGlobalSummary, federatedStatsUrls, batchStatsResponses]);
+
     // Use the API to get the project growth data (global only — not meaningful for subsets)
     const growthUrl = !internalQuery ? `${BASE_PATH_PROJECTS}/summary/growth` : null;
     const { payload: growthPayload, error: growthError } = useAPI(growthUrl, { name: 'growth', cacheOn: true });
@@ -177,9 +230,19 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary' }) => {
 
     // Handle possible errors by just showing a log error in the console
     // Thus we allow the rest of the page to keep loading
-    [summaryError, optionsError, snapshotsError, oldSnapshotsError, atomsError, mdCountError, growthError, statsError].forEach(error => {
+    [summaryError, optionsError, snapshotsError, oldSnapshotsError, atomsError, mdCountError, growthError, statsError, bsError].forEach(error => {
         if (error) console.error(error.message);
     });
+
+    const dataSizeValue = useMemo(() => {
+        if (!isGlobalSummary) {
+            return statsPayload ? `${statsPayload?.dataSizeInTB} TB` : 'Loading...';
+        }
+        if (!Array.isArray(nodeData) || nodeData.length === 0) return 'Loading...';
+        if (bsPayload) return `${bsPayload.dataSizeInTB.toLocaleString()} TB`;
+        if (bsError) return 'Unavailable';
+        return 'Loading...';
+    }, [isGlobalSummary, nodeData, statsPayload, bsPayload, bsLoading, bsError]);
 
     return (<>
         <div className={style.dataSummary}>
@@ -202,7 +265,7 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary' }) => {
                         <td className={style.summaryValue}>{summaryPayload ? summaryPayload.totalFrames.toLocaleString() : 'Loading...'}</td>
                         <td className={style.summaryValue}>{summaryPayload ? summaryPayload.totalFiles.toLocaleString() : 'Loading...'}</td>
                         <td className={style.summaryValue}>{summaryPayload ? summaryPayload.totalAnalyses.toLocaleString() : 'Loading...'}</td>
-                        {!internalQuery && <td className={style.summaryValue}>{statsPayload ? `${statsPayload?.dataSizeInTB} TB` : 'Loading...'}</td>}
+                        {!internalQuery && <td className={style.summaryValue}>{dataSizeValue}</td>}
                     </tr>
                 </tbody>
             </table>

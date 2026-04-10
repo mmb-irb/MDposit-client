@@ -10,7 +10,7 @@ import NodeTable from './nodetable';
 
 // Constants
 import { BASE_PATH, HOST_CONFIG } from '../../utils/constants';
-// API acces
+// API access
 import useAPI from '../../hooks/use-api';
 
 import style from './style.module.css';
@@ -35,6 +35,6 @@ export default () => {
             <NodeTable nodeData={nodesPayload} />
             <br />
         </>}
-        <DataSummary />
+        <DataSummary nodeData={nodesPayload}/>
     </>);
 };
