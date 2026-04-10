@@ -11,6 +11,7 @@ import PieChart from '../pie-chart';
 import Histogram from '../histogram';
 import SimpleHistogram from '../simple-histogram';
 import TimelineChart from './timeline';
+import FramestepPlot from './framestep';
 
 // Fields that are best represented as a pie chart (categorical, low cardinality)
 const PIE_CHART_FIELDS = new Set([
@@ -154,6 +155,8 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
     // Use the API to get the project growth data (global only — not meaningful for subsets)
     const growthUrl = !internalQuery ? `${BASE_PATH_PROJECTS}/summary/growth` : null;
     const { payload: growthPayload, error: growthError } = useAPI(growthUrl, { name: 'growth', cacheOn: true });
+    // Use the API datapoint for the FrameStep plot
+    const framestepUrl = `${BASE_PATH_PROJECTS}/summary/framestep${summaryQueryParam}`;
 
     // Prepare data for the selected options pie chart
     const { optionPieChartData, optionLegendData } = useMemo(() => {
@@ -350,6 +353,9 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
                     onHover={d => `There are ${d.length} MDs with a number of MDs between ${Math.floor(d.x0)} and ${Math.floor(d.x1)}`}
                 />
             </div>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'center', margin: '20px 10%' }}>
+            <FramestepPlot jsonUrl={framestepUrl} />
         </div>
     </>);
 };
