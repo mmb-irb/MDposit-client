@@ -51,7 +51,12 @@ function makeLogBins(values, minLog, maxLog, n) {
         hiLog += 0.5;
     }
 
-    const step = (hiLog - loLog) / n;
+    let step = (hiLog - loLog) / n;
+    if (step < 0.01) {
+        // to small bin cause subpixel rendering issues
+        step = 0.01;
+        n = Math.ceil((hiLog - loLog) / step);
+    }
     const bins = Array.from({ length: n }, (_, i) => {
         const lo = 10 ** (loLog + i * step);
         const hi = 10 ** (loLog + (i + 1) * step);
@@ -412,9 +417,9 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
     // ── KDE density contours in log10 space (zorder 3) ────────────────────────
     // Compute KDE on log10 grid, matching Python's gaussian_kde(bw_method=0.2) * N
     const logPts = points.map(([t, f]) => [Math.log10(t), Math.log10(f)]);
-    const kdeXMin = d3.min(logPts, d => d[0]) - 0.2;
-    const kdeXMax = d3.max(logPts, d => d[0]) + 0.2;
-    const kdeYMin = d3.min(logPts, d => d[1]) - 0.2;
+    const kdeXMin = d3.min(logPts, d => d[0]) - DOMAIN_PAD_DECADES;
+    const kdeXMax = d3.max(logPts, d => d[0]) + DOMAIN_PAD_DECADES;
+    const kdeYMin = d3.min(logPts, d => d[1]) - DOMAIN_PAD_DECADES;
     const kdeYMax = 7.0;
     const kdeDx = (kdeXMax - kdeXMin) / N_GRID;
     const kdeDy = (kdeYMax - kdeYMin) / N_GRID;
@@ -449,17 +454,17 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
     );
 
     // ── Scatter points (under contours) ──────────────────────────────────────
-    const alphaWeight = 10 ** ((logHi + logLo) / 2); // mid-level density for alpha scaling
+    const alphaWeight = 10 ** (logHi / 1.5); // mid-level density for alpha scaling
     drawScatterCanvas(canvasEl, points, xSc, ySc, MAIN_W, MAIN_H, alphaWeight);
 
 
     const fmtDensity = v => v >= 1 ? d3.format(',.0f')(v) : v.toFixed(1);
 
-    // Filled contours (alpha 0.3 so scatter dots show through)
+    // Filled contours (alpha 0.2 so scatter dots show through)
     gPlot.selectAll('.cf').data(contours).enter().append('path')
         .attr('d', d3.geoPath())
         .attr('fill', d => getColor(d.value))
-        .attr('fill-opacity', 0.3)
+        .attr('fill-opacity', 0.2)
         .style('cursor', 'default')
         .on('mouseover', function(d) {
             d3.select(this).attr('fill-opacity', 0.55);
