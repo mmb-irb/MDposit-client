@@ -52,6 +52,8 @@ function makeLogBins(values, minLog, maxLog, n) {
 // ─── 2D Gaussian KDE in log10 space ───────────────────────────────────────────
 // Matches scipy.stats.gaussian_kde with bw_method=0.2, evaluated on a grid and
 // multiplied by N to give "expected MDs per (log10 unit)²".
+// Returns a flat array of length nGrid*nGrid in row-major order, representing
+// the KDE evaluated at the center of each grid cell.
 function computeKDE(logPts, nGrid, xMin, xMax, yMin, yMax) {
     const N = logPts.length;
     const dx = (xMax - xMin) / nGrid;
@@ -144,6 +146,83 @@ function transformContourCoords(contour, xMin, yMin, dx, dy, xSc, ySc) {
     };
 }
 
+function contourBBox(contour) {
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    for (const polygon of contour.coordinates) {
+        for (const ring of polygon) {
+            for (const [x, y] of ring) {
+                if (x < minX) minX = x;
+                if (y < minY) minY = y;
+                if (x > maxX) maxX = x;
+                if (y > maxY) maxY = y;
+            }
+        }
+    }
+
+    return { minX, minY, maxX, maxY };
+}
+
+function contourContainsPoint(contour, point) {
+    for (const polygon of contour.coordinates) {
+        const outer = polygon[0];
+        if (!outer || !d3.polygonContains(outer, point)) continue;
+
+        let inHole = false;
+        for (let i = 1; i < polygon.length; i++) {
+            if (d3.polygonContains(polygon[i], point)) {
+                inHole = true;
+                break;
+            }
+        }
+
+        if (!inHole) return true;
+    }
+
+    return false;
+}
+
+function countPointsInContour(contour, projectedPoints) {
+    const bbox = contour._bbox ?? (contour._bbox = contourBBox(contour));
+    let count = 0;
+
+    for (const p of projectedPoints) {
+        const [x, y] = p;
+        if (x < bbox.minX || x > bbox.maxX || y < bbox.minY || y > bbox.maxY) continue;
+        if (contourContainsPoint(contour, p)) count++;
+    }
+
+    return count;
+}
+
+function drawScatterCanvas(canvasEl, points, xSc, ySc, mainWidth, mainHeight) {
+    const dpr = window.devicePixelRatio || 1;
+    canvasEl.width = Math.max(1, Math.round(mainWidth * dpr));
+    canvasEl.height = Math.max(1, Math.round(mainHeight * dpr));
+    canvasEl.style.width = `${mainWidth}px`;
+    canvasEl.style.height = `${mainHeight}px`;
+
+    const ctx = canvasEl.getContext('2d');
+    if (!ctx) return;
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, mainWidth, mainHeight);
+    ctx.fillStyle = 'rgba(70, 130, 180, 0.08)';
+
+    const radius = 2.5;
+    for (const [t, f] of points) {
+        const x = xSc(t);
+        const y = ySc(f);
+        if (x < -radius || x > mainWidth + radius || y < -radius || y > mainHeight + radius) continue;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
 // ─── D3 chart renderer ────────────────────────────────────────────────────────
 // containerWidth is the full pixel width of the wrapping div
 const SUPERSCRIPTS = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
@@ -153,7 +232,7 @@ function fmtPow10(v) {
     const sup = String(exp).split('').map(c => SUPERSCRIPTS[c] ?? c).join('');
     return `10${sup}`;
 }
-function drawChart(el, points, containerWidth = 760) {
+function drawChart(el, canvasEl, points, containerWidth = 760) {
     const MAIN_W = Math.max(200, containerWidth - FIXED_W);
     const SVG_W = ML + MAIN_W + GAP_R + RIGHT_W + GAP_CBAR + CBAR_W + MR + 60;
     const SVG_H = MT + TOP_H + GAP_T + MAIN_H + MB;
@@ -166,6 +245,7 @@ function drawChart(el, points, containerWidth = 760) {
     const tooltip = d3.select('body').append('div')
         .attr('class', 'fs-tooltip')
         .style('position', 'fixed')
+        .style('z-index', 9999)
         .style('background', 'rgba(0,0,0,0.72)')
         .style('color', '#fff')
         .style('padding', '3px 8px')
@@ -180,6 +260,7 @@ function drawChart(el, points, containerWidth = 760) {
     // Scales
     const xSc = d3.scaleLog().domain([8e-3, 1e6]).range([0, MAIN_W]);
     const ySc = d3.scaleLog().domain([2e-1, 5e6]).range([MAIN_H, 0]);
+    const projectedPoints = points.map(([t, f]) => [xSc(t), ySc(f)]);
 
     // Clip path
     svg.append('defs').append('clipPath').attr('id', 'fsClip')
@@ -187,7 +268,7 @@ function drawChart(el, points, containerWidth = 760) {
 
     // ── Main plot group ───────────────────────────────────────────────────────
     const gMain = svg.append('g').attr('transform', `translate(${ox},${oy})`);
-    gMain.append('rect').attr('width', MAIN_W).attr('height', MAIN_H).attr('fill', 'white');
+    gMain.append('rect').attr('width', MAIN_W).attr('height', MAIN_H).attr('fill', 'none');
     const gPlot = gMain.append('g').attr('clip-path', 'url(#fsClip)');
 
     // Major grid
@@ -263,25 +344,28 @@ function drawChart(el, points, containerWidth = 760) {
         10 ** (logLo + i * (logHi - logLo) / (N_LEVELS - 1))
     );
 
-    // Color mapping (interpolation in log space)
+    // Color mapping on a logarithmic density scale.
     // Ref: https://matplotlib.org/stable/users/explain/colors/colormaps.html
-    const getColor = v =>
-        d3.interpolateRdPu(Math.max(0, Math.min(1,
-            (Math.log10(v) - logLo) / (logHi - logLo))));
+    const densityColor = d3.scaleSequential(d3.interpolateRdPu)
+        .domain([logLo, logHi]);
+    const getColor = v => densityColor(Math.log10(v));
 
     // Generate contours in grid coordinates, then transform to pixel space
     const contourGen = d3.contours().size([N_GRID, N_GRID]).thresholds(levels);
-    const contours = contourGen(freq)
+    const contourLevels = contourGen(freq)
         .filter(c => c.value >= levels[0])
         .map(c => transformContourCoords(c, kdeXMin, kdeYMin, kdeDx, kdeDy, xSc, ySc));
+    const contours = contourLevels.flatMap(c =>
+        c.coordinates.map(polygon => ({
+            type: 'MultiPolygon',
+            value: c.value,
+            coordinates: [polygon],
+        }))
+    );
 
-    // ── Scatter points (above contours) ──────────────────────────────────────
-    gPlot.selectAll('.dot').data(points).enter().append('circle')
-        .attr('cx', d => xSc(d[0]))
-        .attr('cy', d => ySc(d[1]))
-        .attr('r', 2.5)
-        .attr('fill', 'steelblue')
-        .attr('fill-opacity', 0.4);
+    // ── Scatter points (under contours) ──────────────────────────────────────
+    drawScatterCanvas(canvasEl, points, xSc, ySc, MAIN_W, MAIN_H);
+
 
     const fmtDensity = v => v >= 1 ? d3.format(',.0f')(v) : v.toFixed(1);
 
@@ -293,8 +377,16 @@ function drawChart(el, points, containerWidth = 760) {
         .style('cursor', 'default')
         .on('mouseover', function(d) {
             d3.select(this).attr('fill-opacity', 0.55);
+
+            if (d.pointCount == null) {
+                d.pointCount = countPointsInContour(d, projectedPoints);
+            }
+
             tooltip.style('opacity', 1)
-            .text(`Density: ${fmtDensity(d.value)} MD/decade²`);
+            .html(
+                `Density: ${fmtDensity(d.value)} MD/decade²<br/>` +
+                `MDs in contour: ${d3.format(',.0f')(d.pointCount)}`
+            );
         })
         .on('mousemove', () => tooltip
             .style('left', (d3.event.clientX + 12) + 'px')
@@ -431,10 +523,10 @@ function drawChart(el, points, containerWidth = 760) {
 }
 
 // ─── React component ──────────────────────────────────────────────────────────
-// Data is fetched from jsonUrl. For local development, place time.json in the
-// public/ folder so it is served at /time.json by the dev server.
+// Data is fetched from jsonUrl.
 const FramestepPlot = ({ jsonUrl }) => {
     const svgRef = useRef(null);
+    const canvasRef = useRef(null);
     const containerRef = useRef(null);
     const [points, setPoints] = useState(null);
     const [error, setError] = useState(null);
@@ -459,7 +551,12 @@ const FramestepPlot = ({ jsonUrl }) => {
     }, [jsonUrl]);
 
     useEffect(() => {
-        if (points && svgRef.current) drawChart(svgRef.current, points, width);
+        if (points && svgRef.current) {
+            drawChart(svgRef.current, canvasRef.current, points, width);
+        } else if (canvasRef.current) {
+            const ctx = canvasRef.current.getContext('2d');
+            if (ctx) ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        }
     }, [points, width]);
 
     // Old APIs have no framestep endpoint so we just return and empty component
@@ -467,11 +564,22 @@ const FramestepPlot = ({ jsonUrl }) => {
         console.error(error.toString());
         return null;
     }
-
     return (
-        <div ref={containerRef} style={{ width: '100%' }}>
+        <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
             {!points && <div style={{ padding: 8 }}>Loading...</div>}
-            <svg ref={svgRef} style={{ display: 'block' }} />
+            <canvas
+                ref={canvasRef}
+                className="fs-scatter-canvas"
+                aria-hidden="true"
+                style={{
+                    position: 'absolute',
+                    left: ML,
+                    top: MT + TOP_H + GAP_T,
+                    zIndex: 0,
+                    pointerEvents: 'none',
+                }}
+            />
+            <svg ref={svgRef} style={{ display: 'block', position: 'relative', zIndex: 1 }} />
         </div>
     );
 };
