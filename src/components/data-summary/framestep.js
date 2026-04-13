@@ -22,6 +22,8 @@ const FRAMESTEP_LINES = [
 
 const axisNumbersFontSize = "15px";
 const axisLabelsFontSize = "24px";
+// Padding for the axis to add to the min/max
+const DOMAIN_PAD_DECADES = 0.5;
 
 // ─── Data processing ──────────────────────────────────────────────────────────
 function processData(raw) {
@@ -41,12 +43,75 @@ function processData(raw) {
 
 // ─── Log-spaced histogram bins ────────────────────────────────────────────────
 function makeLogBins(values, minLog, maxLog, n) {
-    const step = (maxLog - minLog) / n;
-    return Array.from({ length: n }, (_, i) => {
-        const lo = 10 ** (minLog + i * step);
-        const hi = 10 ** (minLog + (i + 1) * step);
-        return { x0: lo, x1: hi, count: values.filter(v => v >= lo && v < hi).length };
+    let loLog = minLog;
+    let hiLog = maxLog;
+    if (!(hiLog > loLog)) {
+        // Degenerate case (e.g. all values equal): widen one decade around the value.
+        loLog -= 0.5;
+        hiLog += 0.5;
+    }
+
+    const step = (hiLog - loLog) / n;
+    const bins = Array.from({ length: n }, (_, i) => {
+        const lo = 10 ** (loLog + i * step);
+        const hi = 10 ** (loLog + (i + 1) * step);
+        return { x0: lo, x1: hi, count: 0 };
     });
+
+    for (const v of values) {
+        if (!(v > 0)) continue;
+        let idx = Math.floor((Math.log10(v) - loLog) / step);
+        if (!Number.isFinite(idx)) continue;
+        if (idx < 0) continue;
+        if (idx >= n) idx = n - 1; // include exact max edge in last bin
+        bins[idx].count++;
+    }
+
+    return bins;
+}
+
+function computeLogDomain(values, fallbackMin, fallbackMax) {
+    if (!values.length) return [fallbackMin, fallbackMax];
+
+    const minV = d3.min(values);
+    const maxV = d3.max(values);
+    if (!Number.isFinite(minV) || !Number.isFinite(maxV) || minV <= 0 || maxV <= 0) {
+        return [fallbackMin, fallbackMax];
+    }
+
+    let minLog = Math.log10(minV);
+    let maxLog = Math.log10(maxV);
+
+    if (minLog === maxLog) {
+        minLog -= 0.5;
+        maxLog += 0.5;
+    } else {
+        minLog -= DOMAIN_PAD_DECADES;
+        maxLog += DOMAIN_PAD_DECADES;
+    }
+
+    return [10 ** minLog, 10 ** maxLog];
+}
+
+function majorLogTicks(minV, maxV) {
+    const start = Math.floor(Math.log10(minV));
+    const end = Math.ceil(Math.log10(maxV));
+    return d3.range(start, end + 1)
+        .map(e => 10 ** e)
+        .filter(v => v >= minV && v <= maxV);
+}
+
+function minorLogTicks(minV, maxV) {
+    const start = Math.floor(Math.log10(minV));
+    const end = Math.ceil(Math.log10(maxV));
+    const ticks = [];
+    for (let e = start; e <= end; e++) {
+        for (let m = 2; m <= 9; m++) {
+            const v = m * 10 ** e;
+            if (v >= minV && v <= maxV) ticks.push(v);
+        }
+    }
+    return ticks;
 }
 
 // ─── 2D Gaussian KDE in log10 space ───────────────────────────────────────────
@@ -198,7 +263,7 @@ function countPointsInContour(contour, projectedPoints) {
     return count;
 }
 
-function drawScatterCanvas(canvasEl, points, xSc, ySc, mainWidth, mainHeight) {
+function drawScatterCanvas(canvasEl, points, xSc, ySc, mainWidth, mainHeight, alphaWeight) {
     const dpr = window.devicePixelRatio || 1;
     canvasEl.width = Math.max(1, Math.round(mainWidth * dpr));
     canvasEl.height = Math.max(1, Math.round(mainHeight * dpr));
@@ -210,7 +275,7 @@ function drawScatterCanvas(canvasEl, points, xSc, ySc, mainWidth, mainHeight) {
 
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, mainWidth, mainHeight);
-    ctx.fillStyle = 'rgba(70, 130, 180, 0.08)';
+    ctx.fillStyle = `rgba(70, 130, 180, ${alphaWeight / points.length})`;
 
     const radius = 2.5;
     for (const [t, f] of points) {
@@ -226,12 +291,23 @@ function drawScatterCanvas(canvasEl, points, xSc, ySc, mainWidth, mainHeight) {
 // ─── D3 chart renderer ────────────────────────────────────────────────────────
 // containerWidth is the full pixel width of the wrapping div
 const SUPERSCRIPTS = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+function fmtLargeNumber(v) {
+    const av = Math.abs(v);
+    if (av >= 1e4) return d3.format('.0e')(v);
+    if (av >= 1) return d3.format(',.0f')(v);
+    return d3.format('.2g')(v);
+}
+
 function fmtPow10(v) {
-    const exp = Math.round(Math.log10(v));
+    const exp = Math.floor(Math.log10(v));
+    const base = v / (10 ** exp);
+    // only label exact powers of 10, not 2e-3 or 5e6
+    if (base !== 1) return ''; 
     if (exp === 0) return '1';
     const sup = String(exp).split('').map(c => SUPERSCRIPTS[c] ?? c).join('');
     return `10${sup}`;
 }
+
 function drawChart(el, canvasEl, points, containerWidth = 760) {
     const MAIN_W = Math.max(200, containerWidth - FIXED_W);
     const SVG_W = ML + MAIN_W + GAP_R + RIGHT_W + GAP_CBAR + CBAR_W + MR + 60;
@@ -257,9 +333,17 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
 
     const ox = ML, oy = MT + TOP_H + GAP_T;
 
+    const [xMin, xMax] = computeLogDomain(points.map(d => d[0]), 8e-3, 1e6);
+    let [yMin, yMax] = computeLogDomain(points.map(d => d[1]), 2e-1, 5e6);
+    yMin = Math.max(yMin, 1); // ensure we show the region around 1 frame
+    const xMajorTicks = majorLogTicks(xMin, xMax);
+    const yMajorTicks = majorLogTicks(yMin, yMax);
+    const xMinorTicks = minorLogTicks(xMin, xMax);
+    const yMinorTicks = minorLogTicks(yMin, yMax);
+
     // Scales
-    const xSc = d3.scaleLog().domain([8e-3, 1e6]).range([0, MAIN_W]);
-    const ySc = d3.scaleLog().domain([2e-1, 5e6]).range([MAIN_H, 0]);
+    const xSc = d3.scaleLog().domain([xMin, xMax]).range([0, MAIN_W]);
+    const ySc = d3.scaleLog().domain([yMin, yMax]).range([MAIN_H, 0]);
     const projectedPoints = points.map(([t, f]) => [xSc(t), ySc(f)]);
 
     // Clip path
@@ -272,50 +356,51 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
     const gPlot = gMain.append('g').attr('clip-path', 'url(#fsClip)');
 
     // Major grid
-    [1e-2, 1e-1, 1, 10, 1e2, 1e3, 1e4, 1e5].forEach(v =>
+    xMajorTicks.forEach(v =>
         gPlot.append('line')
             .attr('x1', xSc(v)).attr('x2', xSc(v)).attr('y1', 0).attr('y2', MAIN_H)
             .attr('stroke', '#444').attr('stroke-opacity', 0.45).attr('stroke-width', 0.8));
-    [1, 10, 1e2, 1e3, 1e4, 1e5, 1e6].forEach(v =>
+    yMajorTicks.forEach(v =>
         gPlot.append('line')
             .attr('x1', 0).attr('x2', MAIN_W).attr('y1', ySc(v)).attr('y2', ySc(v))
             .attr('stroke', '#444').attr('stroke-opacity', 0.45).attr('stroke-width', 0.8));
 
     // Minor grid
-    for (let e = -3; e <= 5; e++) {
-        for (let m = 2; m <= 9; m++) {
-            gPlot.append('line')
-                .attr('x1', xSc(m * 10 ** e)).attr('x2', xSc(m * 10 ** e))
-                .attr('y1', 0).attr('y2', MAIN_H)
-                .attr('stroke', 'gray').attr('stroke-opacity', 0.35).attr('stroke-width', 0.4)
-                .attr('stroke-dasharray', '2,2');
-            gPlot.append('line')
-                .attr('x1', 0).attr('x2', MAIN_W)
-                .attr('y1', ySc(m * 10 ** e)).attr('y2', ySc(m * 10 ** e))
-                .attr('stroke', 'gray').attr('stroke-opacity', 0.35).attr('stroke-width', 0.4)
-                .attr('stroke-dasharray', '2,2');
-        }
-    }
+    xMinorTicks.forEach(v => {
+        gPlot.append('line')
+            .attr('x1', xSc(v)).attr('x2', xSc(v))
+            .attr('y1', 0).attr('y2', MAIN_H)
+            .attr('stroke', 'gray').attr('stroke-opacity', 0.35).attr('stroke-width', 0.4)
+            .attr('stroke-dasharray', '2,2');
+    });
+    yMinorTicks.forEach(v => {
+        gPlot.append('line')
+            .attr('x1', 0).attr('x2', MAIN_W)
+            .attr('y1', ySc(v)).attr('y2', ySc(v))
+            .attr('stroke', 'gray').attr('stroke-opacity', 0.35).attr('stroke-width', 0.4)
+            .attr('stroke-dasharray', '2,2');
+    });
 
     // ── Isolines for constant FRAMESTEP ───────────────────────────────────────
-    const tLog = d3.range(-2.1, 6.11, 0.02);
+    const tLog = d3.range(Math.log10(xMin) - 0.1, Math.log10(xMax) + 0.11, 0.02);
     FRAMESTEP_LINES.forEach(([dt, lbl]) => {
         const lineData = tLog
             .map(le => [10 ** le, 10 ** le / dt])
-            .filter(([t, f]) => t >= 8e-3 && t <= 1e6 && f >= 2e-1 && f <= 5e6);
+            .filter(([t, f]) => t >= xMin && t <= xMax && f >= yMin && f <= yMax);
         gPlot.append('path').datum(lineData)
             .attr('d', d3.line().x(d => xSc(d[0])).y(d => ySc(d[1])))
             .attr('stroke', 'gray').attr('stroke-dasharray', '5,3')
             .attr('stroke-width', 1).attr('fill', 'none').attr('opacity', 0.55);
         // Compute the visual angle of the isoline for label rotation
         // In log-log, slope=1 → angle = atan(pixelsPerLogY / pixelsPerLogX)
-        const logXRange = Math.log10(1e6) - Math.log10(8e-3); // ~8.1
-        const logYRange = Math.log10(5e6) - Math.log10(2e-1); // ~7.4
+        const logXRange = Math.log10(xMax) - Math.log10(xMin);
+        const logYRange = Math.log10(yMax) - Math.log10(yMin);
         const pxPerLogX = MAIN_W / logXRange;
         const pxPerLogY = MAIN_H / logYRange;
         const angleDeg = -Math.atan(pxPerLogY / pxPerLogX) * (180 / Math.PI);
-        const lt = 0.5, lf = lt / dt;
-        if (lf >= 5e-1 && lf <= 4e6 && lt >= 8e-3 && lt <= 1e6) {
+        const lt = 10 ** (Math.log10(xMin) + 0.22 * (Math.log10(xMax) - Math.log10(xMin)));
+        const lf = lt / dt;
+        if (lf >= yMin && lf <= yMax && lt >= xMin && lt <= xMax) {
             gPlot.append('text').text(`Δt=${lbl}`)
                 .attr('x', xSc(lt)).attr('y', ySc(lf))
                 .attr('transform', `rotate(${angleDeg}, ${xSc(lt)}, ${ySc(lf)})`)
@@ -364,12 +449,13 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
     );
 
     // ── Scatter points (under contours) ──────────────────────────────────────
-    drawScatterCanvas(canvasEl, points, xSc, ySc, MAIN_W, MAIN_H);
+    const alphaWeight = 10 ** ((logHi + logLo) / 2); // mid-level density for alpha scaling
+    drawScatterCanvas(canvasEl, points, xSc, ySc, MAIN_W, MAIN_H, alphaWeight);
 
 
     const fmtDensity = v => v >= 1 ? d3.format(',.0f')(v) : v.toFixed(1);
 
-    // Filled contours (alpha 0.4 so scatter dots show through)
+    // Filled contours (alpha 0.3 so scatter dots show through)
     gPlot.selectAll('.cf').data(contours).enter().append('path')
         .attr('d', d3.geoPath())
         .attr('fill', d => getColor(d.value))
@@ -453,7 +539,7 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
                 .style('top',  (d3.event.clientY - 30) + 'px'))
             .on('mouseout', () => tooltip.style('opacity', 0));
     });
-    gHT.append('g').call(d3.axisLeft(htYSc).ticks(3)).style('font-size', '12px');
+    gHT.append('g').call(d3.axisLeft(htYSc).ticks(3).tickFormat(fmtLargeNumber)).style('font-size', '10px');
     gHT.append('text').text('Count')
         .attr('text-anchor', 'middle')
         .attr('transform', `translate(-48,${TOP_H / 2}) rotate(-90)`)
@@ -488,7 +574,7 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
             .on('mouseout', () => tooltip.style('opacity', 0));
     });
     gHR.append('g').attr('transform', `translate(0,${MAIN_H})`)
-        .call(d3.axisBottom(hrXSc).ticks(2)).style('font-size', '12px');
+        .call(d3.axisBottom(hrXSc).ticks(2).tickFormat(fmtLargeNumber)).style('font-size', '10px');
     gHR.append('text').text('Count')
         .attr('text-anchor', 'middle').attr('x', RIGHT_W / 2).attr('y', MAIN_H + 42)
         .style('font-size', axisNumbersFontSize);
@@ -512,10 +598,10 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
     gCbar.append('g').attr('transform', `translate(${CBAR_W},0)`)
         .call(d3.axisRight(cbarSc)
             .tickValues(levels)
-            .tickFormat(v => v >= 1 ? d3.format(',.0f')(v) : v.toFixed(1)))
+            .tickFormat(fmtLargeNumber))
         .style('font-size', '11px');
     // Label: "MDs per decade²"
-    const cbarLabelX = CBAR_W + 62;
+    const cbarLabelX = CBAR_W + 64;
     gCbar.append('text').text('MDs per decade²')
         .attr('text-anchor', 'middle')
         .attr('transform', `translate(${cbarLabelX},${MAIN_H / 2}) rotate(-90)`)

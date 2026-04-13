@@ -354,6 +354,7 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
                 />
             </div>
         </div>
+        <hr style={{ color: 'lightGrey' }} />
         <div style={{ display: 'flex', justifyContent: 'center', margin: '20px 10%' }}>
             <FramestepPlot jsonUrl={framestepUrl} />
         </div>
