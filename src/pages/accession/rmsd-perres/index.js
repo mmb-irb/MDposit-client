@@ -83,6 +83,7 @@ const RmsdPerres = () => {
     components,
     representations,
     analysisFrameCount,
+    analysisResiduesCount,
     xAxisStep,
     xAxisLabel,
     isEnsemble,
@@ -176,6 +177,9 @@ const RmsdPerres = () => {
     // Get the total time length
     const timeLength = metadata.timeLength;
 
+    // Get the number of residues with actual data
+    const analysisResiduesCount = data.means.filter(residueData => residueData !== null).length;
+
     // If this is an ensemble or we are missing the time length then we use frames as the x axis
     // If this is a trajectory and we have the time length then we use time as the x axis
     const isEnsemble = metadata.TYPE === 'ensemble';
@@ -207,6 +211,7 @@ const RmsdPerres = () => {
       components,
       representations,
       analysisFrameCount,
+      analysisResiduesCount,
       xAxisStep,
       xAxisLabel,
       isEnsemble,
@@ -312,14 +317,14 @@ const RmsdPerres = () => {
   return (
     <Suspense fallback={<Loading />}>
       <Card>
-        <ResidueSelector
+        {analysisResiduesCount > 1 && <ResidueSelector
           residueValues={data.means}
           legendTitle={'Average RMSD (Å)'}
           onSelect={handleSelect}
           onDeselect={handleDeselect}
           onClean={handleClean}
           onTooltip={handleTooltip}
-        />
+        />}
       </Card>
       <Card className={style.graphcard}>
         {selectedResidues.length > 0 ? (

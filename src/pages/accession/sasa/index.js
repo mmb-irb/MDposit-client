@@ -85,6 +85,7 @@ const Sasa = () => {
     components,
     representations,
     framesNumber,
+    residuesCount,
     xAxisStep,
     xAxisLabel,
     isEnsemble,
@@ -199,6 +200,9 @@ const Sasa = () => {
     const sampleResidueData = data.saspf.find(residueData => residueData !== null);
     const framesNumber = sampleResidueData.length;
 
+    // Get the number of residues with actual data
+    const residuesCount = data.means.filter(residueData => residueData !== null).length;
+
     // Get the total time length
     const timeLength = metadata.timeLength;
     // If this is an ensemble or we are missing the time length then we use frames as the x axis
@@ -230,6 +234,7 @@ const Sasa = () => {
       components,
       representations,
       framesNumber,
+      residuesCount,
       xAxisStep,
       xAxisLabel,
       isEnsemble,
@@ -336,7 +341,7 @@ const Sasa = () => {
   // Render
   return (
     <Suspense fallback={<Loading />}>
-      {topology.residueCount > 1 && <Card>
+      {residuesCount > 1 && <Card>
         <ResidueSelector
           residueValues={data.means}
           legendTitle={'Average Relative SAS (Å²)'}
