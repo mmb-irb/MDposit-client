@@ -282,6 +282,7 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
                     'Loading growth data...'
                 )}
             </div>
+            {growthPayload && <hr style={{ color: 'lightGrey' }} />}
         </div>}
         {availableOptionsFields.length > 0 && (
             <div className={style.fieldStats}>
@@ -318,6 +319,7 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
                 )}
             </div>
         )}
+        <hr style={{ color: 'lightGrey' }} />
         <Typography variant="h6">Data distributions</Typography>
         <div className={style.histograms}>
             <div className={style.histogram}>
@@ -355,6 +357,7 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
             </div>
         </div>
         <hr style={{ color: 'lightGrey' }} />
+        <Typography variant="h6">Time distribution</Typography>
         <div style={{ display: 'flex', justifyContent: 'center', margin: '20px 10%' }}>
             <FramestepPlot jsonUrl={framestepUrl} />
         </div>

@@ -14,6 +14,8 @@ const BW_METHOD = 0.9; // Bandwidth factor (tuned to match Python contour spread
 
 // Constant FRAMESTEP isolines (ns)
 const FRAMESTEP_LINES = [
+    [100,   '100 ns'],
+    [10,    '10 ns'],
     [1,     '1 ns'],
     [0.1,   '0.1 ns'],
     [0.01,  '0.01 ns'],
@@ -392,6 +394,8 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
         const lineData = tLog
             .map(le => [10 ** le, 10 ** le / dt])
             .filter(([t, f]) => t >= xMin && t <= xMax && f >= yMin && f <= yMax);
+        if (!lineData.length) return;
+
         gPlot.append('path').datum(lineData)
             .attr('d', d3.line().x(d => xSc(d[0])).y(d => ySc(d[1])))
             .attr('stroke', 'gray').attr('stroke-dasharray', '5,3')
@@ -403,15 +407,18 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
         const pxPerLogX = MAIN_W / logXRange;
         const pxPerLogY = MAIN_H / logYRange;
         const angleDeg = -Math.atan(pxPerLogY / pxPerLogX) * (180 / Math.PI);
-        const lt = 10 ** (Math.log10(xMin) + 0.22 * (Math.log10(xMax) - Math.log10(xMin)));
-        const lf = lt / dt;
-        if (lf >= yMin && lf <= yMax && lt >= xMin && lt <= xMax) {
-            gPlot.append('text').text(`Δt=${lbl}`)
-                .attr('x', xSc(lt)).attr('y', ySc(lf))
-                .attr('transform', `rotate(${angleDeg}, ${xSc(lt)}, ${ySc(lf)})`)
-                .attr('dx', 2).attr('dy', -4)
-                .style('font-size', '14px').attr('fill', '#191919').attr('opacity', 0.85);
+        let lt = 10 ** (Math.log10(xMin) + 0.15 * (Math.log10(xMax) - Math.log10(xMin)));
+        let lf = lt / dt;
+        if (lf < yMin) {
+            lf = yMin * 1.15;
+            lt = lf * dt;
         }
+
+        gPlot.append('text').text(`Δt=${lbl}`)
+            .attr('x', xSc(lt)).attr('y', ySc(lf))
+            .attr('transform', `rotate(${angleDeg}, ${xSc(lt)}, ${ySc(lf)})`)
+            .attr('dx', 2).attr('dy', -4)
+            .style('font-size', '14px').attr('fill', '#191919').attr('opacity', 0.85);
     });
 
     // ── KDE density contours in log10 space (zorder 3) ────────────────────────
