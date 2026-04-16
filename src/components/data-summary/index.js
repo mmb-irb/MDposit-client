@@ -16,8 +16,8 @@ import FramestepPlot from './framestep';
 // Fields that are best represented as a pie chart (categorical, low cardinality)
 const PIE_CHART_FIELDS = new Set([
     'metadata.METHOD', 'metadata.WAT', 'metadata.BOXTYPE', 'metadata.COLLECTIONS',
-    'metadata.ENSEMBLE', 'metadata.INTERACTIONS.type', 'metadata.TEMP', 
-    'metadata.TIMESTEP', 'metadata.PROGRAM', 'metadata.TYPE'
+    'metadata.ENSEMBLE', 'metadata.INTERACTIONS.type', 'metadata.TEMP',
+    'metadata.TIMESTEP', 'metadata.PROGRAM', 'metadata.TYPE', 'node',
 ]);
 
 // Fields to hide because they are more for internal use
@@ -26,6 +26,10 @@ const HIDDEN_FIELDS = new Set([
 ]);
 
 import style from './style.module.css';
+
+const formatFieldValue = value => value.charAt(0).toUpperCase() + value.slice(1);
+
+const formatNodeDisplayName = (nodeAlias, nodeNameMap) => nodeNameMap[nodeAlias] || nodeAlias;
 
 // Utility to search for a field by title (name) or label (path) in queryFields
 export function findFieldByTitleOrLabel(queryFields, searchValue) {
@@ -85,9 +89,9 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
         return Object.keys(optionsPayload)
             .filter(field => !HIDDEN_FIELDS.has(field) && Object.keys(optionsPayload[field]).some(key => key !== 'null'))
             .sort((a, b) => {
-            const aName = findFieldByTitleOrLabel(queryFields, a)?.name || a;
-            const bName = findFieldByTitleOrLabel(queryFields, b)?.name || b;
-            return aName.localeCompare(bName);
+                const aName = findFieldByTitleOrLabel(queryFields, a)?.name || a;
+                const bName = findFieldByTitleOrLabel(queryFields, b)?.name || b;
+                return aName.localeCompare(bName);
             });
     }, [optionsPayload]);
 
@@ -101,9 +105,21 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
     const statsUrl = !isGlobalSummary ? `${BASE_VERSIONED_PATH}/stats${summaryQueryParam}` : null;
     const { payload: statsPayload, error: statsError } = useAPI(statsUrl, { name: 'stats', cacheOn: true });
 
+    const nodeNameMap = useMemo(() => {
+        if (!Array.isArray(nodeData)) return {};
+
+        return nodeData.reduce((acc, node) => {
+            if (node?.alias && node?.name) {
+                acc[node.alias] = node.name;
+            }
+            return acc;
+        }, {});
+    }, [nodeData]);
+
     // Aggregate data size across all nodes for the global view
     const federatedStatsUrls = useMemo(() => {
         if (!isGlobalSummary || !Array.isArray(nodeData) || nodeData.length === 0) return [];
+        console.log('Node data for federated stats:', nodeData);
         return nodeData
             .map(node => node && node.api_url)
             .filter(Boolean)
@@ -113,9 +129,9 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
     const batchStatsResponses = useBatchAPI(federatedStatsUrls, 'json');
 
     const { bsPayload, bsError, bsLoading } = useMemo(() => {
-        if (!isGlobalSummary) 
-            return { bsPayload: null, bsError: null, bsLoading: false,};
-        if (federatedStatsUrls.length === 0) 
+        if (!isGlobalSummary)
+            return { bsPayload: null, bsError: null, bsLoading: false, };
+        if (federatedStatsUrls.length === 0)
             return { bsPayload: null, bsError: null, bsLoading: true, };
 
         const isLoading = batchStatsResponses.length !== federatedStatsUrls.length
@@ -141,7 +157,7 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
             };
         }
 
-        if (isLoading) 
+        if (isLoading)
             return { bsPayload: null, bsError: null, bsLoading: true, };
 
         const firstError = batchStatsResponses.find(response => response.error)?.error;
@@ -177,25 +193,29 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
         }
         // Max value for histogram and sumatory for pie chart
         let divisor;
+        console.log('Option for pie chart:', selectedOptionsField);
         if (PIE_CHART_FIELDS.has(selectedOptionsField)) {
             divisor = option.reduce((acc, [, value]) => acc + value, 0);
         } else {
             divisor = option.reduce((max, [, value]) => value > max ? value : max, 0);
         }
+        const displayLabel = key => selectedOptionsField === 'node'
+            ? formatNodeDisplayName(key, nodeNameMap)
+            : formatFieldValue(key);
         const optionPieChartData = option
             ? option.map(([key, value], i) => ({
-                title: key,
+                title: displayLabel(key),
                 value,
                 percentage: divisor ? Math.round((value / divisor) * 10000) / 100 : 0,
                 color: colors[i],
-              }))
+            }))
             : [{ title: 'Loading...', value: 1, percentage: 100, color: 'lightgrey' }];
         const optionLegendData = option && option.map(([key, value], i) => ({
-            label: key.charAt(0).toUpperCase() + key.slice(1) + ': ' + value + ' (' + (Math.round((value / divisor) * 10000) / 100) + '%)',
+            label: displayLabel(key) + ': ' + value + ' (' + (Math.round((value / divisor) * 10000) / 100) + '%)',
             color: colors[i],
         }));
         return { optionPieChartData, optionLegendData };
-    }, [optionsPayload, selectedOptionsField]);
+    }, [nodeNameMap, optionsPayload, selectedOptionsField]);
 
     // Use the API to get the snapshots options
     const snapshotsUrl = `${BASE_PATH_PROJECTS}/options?${queryPrefix}projection=mds.frames`;
@@ -284,9 +304,10 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
             </div>
             {growthPayload && <hr style={{ color: 'lightGrey' }} />}
         </div>}
-        {availableOptionsFields.length > 0 && (
-            <div className={style.fieldStats}>
-                    <Typography variant="h6">Projects per field</Typography>
+        <div className={style.fieldStats}>
+            <Typography variant="h6">Projects per field</Typography>
+            {availableOptionsFields.length > 0 ? (
+                <>
                     <div style={{ marginBottom: 18, width: '33%' }}>
                         <select
                             id="options-field-select"
@@ -304,22 +325,25 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
                             })}
                         </select>
                     </div>
-                {optionPieChartData && optionLegendData && optionLegendData.length > 0 && (
-                    PIE_CHART_FIELDS.has(selectedOptionsField)
-                        ? <PieChart data={optionPieChartData} legendData={optionLegendData} autoHide={true} />
-                        : <div className={style.fieldHistograms}>
-                            <SimpleHistogram
-                                showPercentage={false}
-                                data={optionPieChartData.map(item => ({
-                                    label: item.title,
-                                    value: item.value,
-                                    percentage: item.percentage,
-                                }))} />
-                          </div>
-                )}
-            </div>
-        )}
-        <hr style={{ color: 'lightGrey' }} />
+                    {optionPieChartData && optionLegendData && optionLegendData.length > 0 && (
+                        PIE_CHART_FIELDS.has(selectedOptionsField)
+                            ? <PieChart data={optionPieChartData} legendData={optionLegendData} autoHide={true} />
+                            : <div className={style.fieldHistograms}>
+                                <SimpleHistogram
+                                    showPercentage={false}
+                                    data={optionPieChartData.map(item => ({
+                                        label: item.title,
+                                        value: item.value,
+                                        percentage: item.percentage,
+                                    }))} />
+                            </div>
+                    )}
+                </>
+            ) : (
+                <div style={{ textAlign: 'center' }}>Loading field data...</div>
+            )}
+        </div>
+        {availableOptionsFields.length > 0 && <hr style={{ color: 'lightGrey' }} />}
         <Typography variant="h6">Data distributions</Typography>
         <div className={style.histograms}>
             <div className={style.histogram}>

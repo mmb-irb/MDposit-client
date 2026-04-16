@@ -5,13 +5,12 @@
   justify-content: center;
   gap: 1rem;
   flex-grow: 0.5;
-  margin: 0 25%;
 }
 
 .piechart {
   flex-grow: 1;
-  width: 60%;
   max-height: 325px;
+  max-width: 35%;
 }
 
 .legend {
