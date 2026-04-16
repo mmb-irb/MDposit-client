@@ -98,7 +98,7 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
     // Set default selected field when optionsPayload loads
     useEffect(() => {
         if (availableOptionsFields.length > 0 && !selectedOptionsField) {
-            setSelectedOptionsField(availableOptionsFields.includes('node') ? 'node' : 'metadata.METHOD');
+            setSelectedOptionsField(availableOptionsFields.includes('node') && !internalQuery ? 'node' : 'metadata.METHOD');
         }
     }, [optionsPayload]);
     // Use the API to get the real data size from the stats endpoint
