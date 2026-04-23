@@ -23,6 +23,8 @@ const D3HeatmapGrid = memo(
     yAxisValues = [], // String labels for the vertical axis
     xAxisLabel, // String title for the horizontal axis
     yAxisLabel, // String title for the vertical axis
+    maxCellsHeight = 40, // Set a maximum for cells size thus preventing extremly wide cells when there are few values in one dimension
+    // DANI: maxCellsHeight funciona pero no he consegudio que el componente hijo se adapte al padre cuando el padre usa un maxHeight
     verticalPadding = 0,
     colorPlan = ['red', 'white', 'blue'],
     colorScale, // In case a color scale is passed it overrides the max, mid and min colors
@@ -31,6 +33,7 @@ const D3HeatmapGrid = memo(
     flippedXAxisValues = true, // Set if values in x axis is horizontal (false) or vertical (true)
     margin = { top: 10, right: 10, bottom: 10, left: 10 },
     className,
+    style,
     NaNColor = '#ffffff', // Default black color for NaN
     minValue,
     maxValue,
@@ -124,10 +127,9 @@ const D3HeatmapGrid = memo(
     const requiredXOffset = flippedXAxisValues
       ? maxXAxisWidth + xAxisLabelHegiht
       : textHeight + xAxisLabelHegiht;
-    const requiredYOffset =
-      yAxisValues.length === 1
-        ? Math.max(maxYAxisWidth, getTextWidth(yAxisLabel, titlesD3font))
-        : maxYAxisWidth + yAxisLabelHeight;
+    const requiredYOffset = yAxisValues.length === 1
+      ? Math.max(maxYAxisWidth, getTextWidth(yAxisLabel, titlesD3font))
+      : maxYAxisWidth + yAxisLabelHeight;
 
     // Set the dimensions and offsets of the graph
     const offset = {
@@ -156,9 +158,18 @@ const D3HeatmapGrid = memo(
         clientHeight: height,
       } = container.parentElement;
 
+      // Calculate the available body width and height
+      const availableBodyWidth = width - offset.left - offset.right;
+      const availableBodyHeight = height - offset.top - offset.bottom;
+
       // Calculate the body width and height
-      const bodyWidth = width - offset.left - offset.right;
-      const bodyHeight = height - offset.top - offset.bottom;
+      const bodyWidth = availableBodyWidth;
+      const bodyHeight = maxCellsHeight
+        ? Math.min(availableBodyHeight, maxCellsHeight * yAxisValues.length)
+        : availableBodyHeight;
+
+      // Calculate the final used height
+      const finalHeight = offset.top + bodyHeight + offset.bottom
 
       // Calculate how many labels we can show in any axis while avoiding overlapping
       // Take in count that bottom labels are rotated 90º, so it is their height that counts
@@ -195,7 +206,7 @@ const D3HeatmapGrid = memo(
       const svg = select(container)
         .append('svg')
         .attr('id', 'svg')
-        .attr('viewBox', [0, 0, width, height]);
+        .attr('viewBox', [0, 0, width, finalHeight]);
 
       // Build X scales and axis:
       const x = scaleBand()
@@ -262,8 +273,7 @@ const D3HeatmapGrid = memo(
           .attr('class', 'y label')
           .attr('text-anchor', 'middle')
           .attr('x', -(offset.top + bodyHeight / 2))
-          .attr(
-            'y',
+          .attr('y',
             margin.left +
               yAxisLabelHeight -
               roatatedTextOffset -
@@ -407,7 +417,7 @@ const D3HeatmapGrid = memo(
       // Otherwise canvas and svg may be not coordinated
       <div
         className={className}
-        style={className ? undefined : { height: '600px', width: '600px' }}
+        style={style ? style : className ? undefined : { height: '600px', width: '600px' }}
       >
         <div
           ref={containerRef}

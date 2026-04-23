@@ -325,7 +325,6 @@ const DistPerres = () => {
               // Invert colors here, since minimum values belong to closer residues
               maxValueColor={heatmapMinimumColor}
               minValueColor={heatmapMaximumColor}
-              totalHeight={heatmapData?.yLabels?.length === 1 ? 30 : undefined}
               xTitle={xTitle}
               yTitle={yTitle}
             />

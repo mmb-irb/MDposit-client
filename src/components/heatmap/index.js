@@ -1,13 +1,10 @@
-import React, { Suspense, useMemo } from 'react';
+import React, { useMemo } from 'react';
 
 import { CardContent } from '@mui/material';
-
-import style from './style.module.css';
 
 import D3HeatmapGrid from '../d3-heatmap-grid';
 
 import ColorLegend from '../color-legend';
-import { ucs2 } from 'punycode';
 
 const Heatmap = ({
   // The expected data format is an complex object
@@ -182,9 +179,13 @@ const Heatmap = ({
     return onTooltip(mousePosition);
   };
 
+  // If there is only one column then make the heatmap shorter
+  const rowsCount = data.length;
+  const height = rowsCount === 1 ? '150px' : '600px';
+
   // Render
   return (
-    <Suspense fallback={<div className={style.loading}>Loading...</div>}>
+    <>
       <D3HeatmapGrid
         data={data}
         xAxisValues={xLabels}
@@ -194,7 +195,7 @@ const Heatmap = ({
         yAxisLabel={yTitle}
         onClick={handleMouseClick}
         onTooltip={handleMouseTooltip}
-        className={style.heatmap}
+        style={{ height: height, width: '100%' }}
         minValue={minValue}  // Add these
         maxValue={maxValue}
       />
@@ -208,7 +209,7 @@ const Heatmap = ({
           />
         </CardContent>
       )}
-    </Suspense>
+    </>
   );
 };
 
