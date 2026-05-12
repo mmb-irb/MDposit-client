@@ -201,39 +201,41 @@ const Overview = React.memo(() => {
         <Card className={style.card}>
           <CardContent className={style['card-content']}>
             {collectionReferences.map((collection, index) => (
-              <div key={index} style={{
-                  display: 'flex',
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }} >
-                <div>
-                  <Typography marginBottom={'10px'} variant="h6" sx={{ fontSize: '1.4rem' }}>
-                    {collection.name}
-                  </Typography>
-                  <div>{collection.description}</div>
-                  <Button component="a" variant="contained" size="small"
-                    href={`/#/collection/${collection.id}`} target="_blank" rel="noreferrer noopener"
-                    sx={{
-                      marginTop: '1em',
-                      backgroundColor: secondaryColor.dark,
-                      border: `1px solid ${secondaryColor.dark}`,
-                      color: '#000',
-                      '&:hover': {
-                          backgroundColor: secondaryColor.main,
-                          border: `1px solid ${secondaryColor.main}`,
-                      }
-                    }}
-                  >
-                    <FontAwesomeIcon icon={faClipboardList} size='lg' style={{ marginRight: '0.5em' }}/>
-                    See collection
-                  </Button>
+              <div key={index}>
+                {index !== 0 && <hr style={{ color: 'lightGrey', marginTop: '1em' }}/>}
+                <div style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }} >
+                  <div>
+                    <Typography marginBottom={'10px'} variant="h6" sx={{ fontSize: '1.4rem' }}>
+                      {collection.name}
+                    </Typography>
+                    <div>{collection.description}</div>
+                    <Button component="a" variant="contained" size="small"
+                      href={`/#/collection/${collection.id}`} target="_blank" rel="noreferrer noopener"
+                      sx={{
+                        marginTop: '1em',
+                        backgroundColor: secondaryColor.dark,
+                        border: `1px solid ${secondaryColor.dark}`,
+                        color: '#000',
+                        '&:hover': {
+                            backgroundColor: secondaryColor.main,
+                            border: `1px solid ${secondaryColor.main}`,
+                        }
+                      }}
+                    >
+                      <FontAwesomeIcon icon={faClipboardList} size='lg' style={{ marginRight: '0.5em' }}/>
+                      See collection
+                    </Button>
+                  </div>
+                  <LazyImg
+                    src={collection.image} loading="lazy" alt={`Collection logo`}
+                    style={{ maxWidth: '30%', height: 'auto', margin: '0 1em' }}
+                  />
                 </div>
-                <LazyImg
-                  src={collection.image} loading="lazy" alt={`Collection logo`}
-                  style={{ maxWidth: '30%', height: 'auto', margin: '0 1em' }}
-                />
-                {index !== 0 && <hr style={{ color: 'lightGrey' }}/>}
               </div>
             ))}
           </CardContent>
