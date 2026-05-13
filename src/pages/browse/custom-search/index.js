@@ -246,6 +246,10 @@ const CustomSearch = () => {
   // Parse the query parameter from URL 
   const urlParams = parse(location.search, { ignoreQueryPrefix: true });
   const urlQuery = urlParams.query;
+  // Get the browser searach
+  const urlBrowserSearch = urlParams.search;
+  // Get the "browser option", not to be confused with the options endpoint or its projections
+  const urlBrowserOption = urlParams.option;
   
   // Initialize the query based on URL or empty object
   const initialQuery = urlQuery ? parseUrlQuery(urlQuery) : {};
@@ -284,8 +288,22 @@ const CustomSearch = () => {
   // Build the API URL for the options requests
   // DANI: Se piden todas las options de golpe, lo cual no es muy eficiente y la API tarda 3 segundos aprox
   // DANI: Hemos decidido que este valor se guardará en la db y se actualizará periódicamente, cosa mucho más eficiente
-  const optionsUrl = `${BASE_PATH_PROJECTS}/options?${projectionQuery}`;
-  const { payload: optionsPayload, error: optionsError } = useAPI(optionsUrl, { name: 'browse', cacheOn: true });
+  let optionsUrl = `${BASE_PATH_PROJECTS}/options?${projectionQuery}`;
+  // In case the user has searched some text in the browser
+  if (urlBrowserSearch) {
+    optionsUrl += `&search=${urlBrowserSearch}`;
+  }
+  // In case the user has selected a specific "browser option" we filter the query
+  if (urlBrowserOption) {
+    const browserOptionsField = HOST_CONFIG.optionsField;
+    const browserOptionsQuery = JSON.stringify({ [browserOptionsField]: urlBrowserOption });
+    optionsUrl += `&query=${browserOptionsQuery}`;
+  }
+  const {
+    loading: optionsLoading,
+    payload: optionsPayload,
+    error: optionsError
+  } = useAPI(optionsUrl, { name: 'browse', cacheOn: true });
 
   // State to track expanded accordions
   const [expandedCategory, setExpandedCategory] = useState({});
@@ -344,7 +362,11 @@ const CustomSearch = () => {
     });
   };
   // Stop here if any of the requests failed
-  if (optionsError) return optionsError.toString();
+  let noResults = false;
+  if (optionsError) {
+    if (optionsError.response.status === 404) noResults = true;
+    else return optionsError.toString();
+  }
 
   // Helper function to update query state and trigger search
   const updateQueryValue = (fieldPath, value, options = {}) => {
@@ -416,23 +438,27 @@ const CustomSearch = () => {
               >
                 <Typography variant='h6' className={style.margined}>{category}</Typography>
               </AccordionSummary>
-              <AccordionDetails  className={style.section}>
+              <AccordionDetails className={style.section}>
                 <div>
                   {fields.map((field, f) => {
                     if (field.path === optionsField) return null; // hide the one in OptionsFilter
+                    // Hide a fields with no options
+                    const emptyField = optionsPayload && field.options && Object.keys(optionsPayload[field.path]).length === 0;
                     return (
                       <Accordion 
                         key={f} 
                         className={style.accordion} 
                         disableGutters={true}
-                        expanded={!!expandedFields[field.path]}
+                        expanded={noResults === false && !!expandedFields[field.path]}
                         onChange={handleFieldChange(field.path)}
+                        disabled={noResults || emptyField}
                       >
                         <AccordionSummary className={style.summary}>{field.name}</AccordionSummary>
                         <AccordionDetails>
                           {(() => {
                             // Get the corresponding payload
-                            if (!optionsPayload) return <Loading />;
+                            if (optionsLoading) return <Loading />;
+                            if (noResults) return;
                             // Save the current queries
                             const currentQuery = query;
                             // In case it is a field with options (i.e. input is specified through checkboxes)
