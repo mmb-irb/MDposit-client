@@ -426,22 +426,35 @@ const ViewerWithControls = forwardRef(
       }, [setLoad],
     );
 
+    // Set a reference to the progress element
+    const progressRef = useRef(null);
+
     // handle click or click & drag progress bar
-    const handleManualProgress = useCallback(
-      ({ buttons, clientX, currentTarget, type }) => {
-        if (!viewerRef.current) return;
-        // if mousemove event, but the main button is not pressed, bail
-        if (type === 'mousemove' && buttons !== 1) return;
-        const { x, width } = currentTarget.getBoundingClientRect();
-        // Set pause
-        togglePlaying(false);
-        // Change the ngl viewer current ref from its exposed setter
-        // Then the ngl itself will update the 'progress' state
-        viewerRef.current.currentFrame = Math.floor(
-          ((clientX - x) / width) * viewerRef.current.totalExpectedFrames,
-        );
-      }, [togglePlaying],
-    );
+    const handleManualProgress = useCallback(event => {
+      if (!progressRef.current || !viewerRef.current) return;
+      // Get the mouse position
+      const { clientX } = event;
+      // Get the progress element position and width
+      const { x, width } = progressRef.current.getBoundingClientRect();
+      // Set pause
+      togglePlaying(false);
+      // Change the ngl viewer current ref from its exposed setter
+      // Then the ngl itself will update the 'progress' state
+      viewerRef.current.currentFrame = Math.floor(
+        ((clientX - x) / width) * viewerRef.current.totalExpectedFrames,
+      );
+    }, [togglePlaying]);
+
+    // Set callbacks for event listeners
+    const startDraggingProgress = useCallback(event => {
+      handleManualProgress(event);
+      window.addEventListener('mouseup', stopDraggingProgress);
+      window.addEventListener('mousemove', handleManualProgress);
+    }, []);
+    const stopDraggingProgress = useCallback(() => {
+      window.removeEventListener('mouseup', stopDraggingProgress);
+      window.removeEventListener('mousemove', handleManualProgress);
+    }, []);
 
     // Frame change handler to interact with the child viewer
     const handleFrameChange = useCallback(
@@ -756,14 +769,14 @@ const ViewerWithControls = forwardRef(
           </Card>
           <CardContent style={{ padding: 0 }}>
             {noTrajectory
-              // Render an empty div to avoid a Warning message since CardContent expect a ReactNode and an undefuned is not
+              // Render an empty div to avoid a Warning message since CardContent expect a ReactNode and an undefined is not
               ? (<div />)
               // Render the loading/progress bar in case there is a trajectory to be loaded
               : (<div className={style.progressContainer}>
                   <div
                     className={cn(style.progress, { [style.dark]: darkBackground })}
-                    onClick={handleManualProgress}
-                    onMouseMove={handleManualProgress}
+                    onMouseDown={startDraggingProgress}
+                    ref={progressRef}
                   >
                     <LinearProgress
                       variant="buffer"
@@ -771,7 +784,6 @@ const ViewerWithControls = forwardRef(
                       value={progress * 100}
                       valueBuffer={load * 100}
                       style={{ height: '1ch' }}
-                      className="prevent-drag"
                     />
                   </div>
                   {metadata.FRAMESTEP && (
