@@ -7,7 +7,7 @@ import {
     BASE_PATH_PROJECTS,
     HOST_CONFIG,
     UNIPROTS_WITH_ENTROPIES,
-    UNIPROTS_WITH_EPITOPES
+    UNIPROTS_WITH_EPITOPES,
 } from '../constants';
 // Import the topology manager class
 import { Topology } from '../../utils/topology-manager';
@@ -87,6 +87,8 @@ export class Project {
         // Set the creation date as a date object
         this.creationDate = new Date(this.creationDate).toLocaleDateString('en-GB');
         this.updateDate = this.updateDate ? new Date(this.updateDate).toLocaleDateString('en-GB') : undefined;
+        // Set an internal variable to trak if the node is responding or not
+        this.isNodeResponding = null;
     }
     // Declare the different field endpoints to request the API
     _apiEndpoints = {
@@ -111,6 +113,9 @@ export class Project {
         if (!available) return;
         // Update the loading status
         this._apiQueriesLoading[url] = apiQuery.loading;
+        // Update the "is node responding" status
+        if (apiQuery.payload) this.isNodeResponding = true;
+        if (apiQuery.error && apiQuery.error.noRespone) this.isNodeResponding = false;
         return apiQuery
     };
 
@@ -176,7 +181,11 @@ export class Project {
     get references () {
         const response = this._apiQuery('references');
         if (response.loading) return undefined;
-        if (response.error) throw new Error('Error when downloading project references: ' + response.error.message);
+        if (response.error) {
+            // We handle this problem for references so the overview page can still request them and not crash
+            if (response.error.noResponse) return undefined;
+            throw new Error('Error when downloading project references: ' + response.error.message);
+        }
         if (!response.payload) throw new Error('Something went wrong with project references');
         return response.payload;
     }
@@ -287,7 +296,11 @@ export class Project {
         const membraneMapping = this.membraneMapping;
         // Make sure data is available
         if (response.loading) return undefined;
-        if (response.error) throw new Error('Error when downloading project topology: ' + response.error.message);
+        if (response.error) {
+            // We handle this problem for the topology so the overview page can still request it and not crash
+            if (response.error.noResponse) return undefined;
+            throw new Error('Error when downloading project topology: ' + response.error.message);
+        }
         if (!response.payload) throw new Error('Something went wrong with project topology');
         // Return the stored value in case we already have it
         if (this._topologyManager) return this._topologyManager;

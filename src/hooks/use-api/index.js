@@ -93,9 +93,9 @@ const useAPI = (url, cacheOptions = {}) => {
       // This token allows us to further cancel the request if necessary
       cancelToken: source.token,
       // Header used by the backend to identify requests coming from this frontend hook.
-      headers: {
-        ['X-MDDB-Request-Source']: 'mdposit-client',
-      },
+      headers: { ['X-MDDB-Request-Source']: 'mdposit-client' },
+      // Timeout to handle when a node is not responding
+      timeout: 5000,
       // Send the start time so we can calculate the response time when we get the response
       startTime: new Date()
     })
@@ -134,6 +134,12 @@ const useAPI = (url, cacheOptions = {}) => {
         if (error.response && error.response.data)
           errorMessage += ` -> ${error.response.data}`;
         error.message = errorMessage;
+        // If the error comes from our own timeout then change the message completely
+        if (error.code === 'ECONNABORTED') {
+          error.message = 'The node is not responding';
+          // Also add a flag used by others
+          error.noResponse = true;
+        }
         const responseData = {
           url: url,
           loading: false,

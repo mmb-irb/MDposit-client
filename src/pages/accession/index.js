@@ -1,11 +1,11 @@
 // React logic
-import React, { lazy, Suspense, useContext, useEffect, useState } from 'react';
+import React, { lazy, Suspense, useContext, useEffect, useMemo, useState } from 'react';
 import { Link, Routes, Route, useLocation, useParams, useNavigate } from 'react-router-dom';
 
 // Visual assets
 import { Typography, Button, Select, MenuItem } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBook, faGhost, faExclamationCircle } from '@fortawesome/free-solid-svg-icons';
+import { faBook, faGhost, faExclamationCircle, faTrash } from '@fortawesome/free-solid-svg-icons';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 // Hooks
@@ -27,6 +27,7 @@ import { Project } from '../../utils/project-manager';
 
 // Constants
 import {
+  BASE_PATH,
   BASE_PATH_PROJECTS,
   NICE_NAMES,
   HOST_CONFIG
@@ -157,9 +158,7 @@ const ContentSwitch = ({ subPage }) => {
     const previousTitle = document.title;
     document.title = project.mdCount > 1 ? project.accessionAndMdNumber : project.accession;
     // Return a cleanup function that will run when the component unmounts
-    return () => {
-      document.title = previousTitle;
-  };
+    return () => { document.title = previousTitle; };
   }, [project.accessionAndMdNumber]);
 
   // If this is the global client then we must make one last check
@@ -168,18 +167,41 @@ const ContentSwitch = ({ subPage }) => {
   // Thus we will force the global API to redirect the request to the federated node
   // In this case we will request topology data
   const problems = project.checkProblems(); // This is a hook
-  if (problems){
+  // Get nodes info only if there are any problems with the federated node
+  // This is just to know the node name, for the logs
+  const nodesUrl = problems ? `${BASE_PATH}/current/nodes` : null;
+  const { payload: nodesPayload, error: nodesError } = useAPI(nodesUrl);
+  // Silently report any problem with this call since we don't really need it
+  if (nodesError) console.error(nodesError.message);
+  // Prepare the problems banner to be shown in the top of the page, right below the accession header
+  const problemsBanner = useMemo(() => {
+    if (!problems) return;
+    // Get the node full name
+    const nodeData = nodesPayload && nodesPayload.find(node => node.alias === project.node);
+    const nodeName = (nodeData && nodeData.name) || project.node;
+    // If the error comes from our own timeout
+    if (problems.noResponse) return (
+      <div className={style.problem}>
+        <FontAwesomeIcon icon={faGhost} size='lg'/>
+        <div>
+          Data from project "{project.accession}" is stored in the "{nodeName}" federated node.
+          However this node is not responding right now so data may be incomplete.
+          Please try visting this entry later.
+        </div>
+      </div>
+    );
     const errorResponse = problems.response;
     const errorContent = errorResponse.data;
     const errorCode = errorResponse.status;
     // Set a silent whistleblower with the original error from the federated node
-    console.error('Original error from the federated node: ' + errorContent);
+    console.error(`Original error from the "${nodeName}" federated node: ` + errorContent);
     // If the project is not found
     if (errorCode === 404) return (
       <div className={style.problem}>
-        <FontAwesomeIcon icon={faGhost} />
+        <FontAwesomeIcon icon={faTrash} />
         <div>
-          This project does not exist in the source federated node anymore.
+          Data from project "{project.accession}"" should be stored in the "{nodeName}" federated node.
+          However this node does not store the project data anymore.
         </div>
       </div>
     );
@@ -188,14 +210,20 @@ const ContentSwitch = ({ subPage }) => {
       <div className={style.problem}>
         <FontAwesomeIcon icon={faExclamationCircle} />
         <div>
-          The federated node which owns this projects is having problems.
+          Data from project "{project.accession}" is stored in the "{nodeName}" federated node.
+          However this node is having problems right now so data may be incomplete.
+          Please try visting this entry later.
         </div>
       </div>
     );
     else {
-      return 'There is an unknown problem with this project: ' + problems.message;
+      return `The federated node "${nodeName}" is having an unknown problem with project "${project.accession}": ${problems.message}`;
     }
-  }
+  }, [project, problems, nodesPayload]);
+  // The overview page is prepared to work even when no additional data from the federated node is available
+  // For this reason we let the render proceed only if the subpage is the overview page
+  // Note that the overview page will also show the problems banner anyway
+  if (problems && subPage !== 'overview') return problemsBanner;
 
   // Make sure the requested subpage exists among the available directions
   if (project.directions[subPage] === undefined) return `Subpage "${subPage}" is not recognized`;
@@ -207,6 +235,7 @@ const ContentSwitch = ({ subPage }) => {
   // Render the accession
   return (
     <ErrorBoundary>
+      {problems && problemsBanner}
       {' '}
       <Routes>
         <Route
