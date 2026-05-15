@@ -16,7 +16,7 @@ import { faSearch } from '@fortawesome/free-solid-svg-icons';
 // Additional components
 import Card from '../../components/animated-card'; // The exceled parcels in which almost all features are based
 import LazyImg from '../../components/lazy-img'; // Renders an image by a hook
-import TextLink from '../../components/text-link'; // Renders an image by a hook
+import TextLink from '../../components/text-link'; // Renders a text which is also a link
 
 // CSS styles
 import style from './style.module.css';
