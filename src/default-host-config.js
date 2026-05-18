@@ -587,11 +587,20 @@ const HOST_CONFIGURATIONS = {
 // Set the current host configuration
 if (!(HOST in HOST_CONFIGURATIONS)) console.error(`Unknown host "${HOST}". Using default configuration.`)
 const HOST_CONFIG = HOST_CONFIGURATIONS[HOST] || HOST_CONFIGURATIONS['localhost'];
-//const HOST_CONFIG = HOST_CONFIGURATIONS['mdposit-dev.mddbr.eu'];
 
 // Fill the host configuration gaps with default values
 Object.entries(DEFAUL_HOST_CONFIGURATION).forEach(([ field, defaultValue ]) => {
     if (!HOST_CONFIG[field]) HOST_CONFIG[field] = defaultValue;
+});
+
+// If the client is not in "production mode" then allow also the "published" query
+if (!HOST_CONFIG.production) HOST_CONFIG.queryFields["Other"].push({
+    "name": "Published",
+    "path": "published",
+    "type": "boolean",
+    "example": "true",
+    "options": true,
+    "checkbox": true,
 });
 
 HOST_CONFIG.availableFields = Object.values(HOST_CONFIG.queryFields).reduce((acc, curr) => acc.concat(curr), []);
