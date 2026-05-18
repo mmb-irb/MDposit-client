@@ -364,7 +364,8 @@ const CustomSearch = () => {
   // Stop here if any of the requests failed
   let noResults = false;
   if (optionsError) {
-    if (optionsError.response.status === 404) noResults = true;
+    if (optionsError.noResponse) noResults = true;
+    else if (optionsError.response.status === 404) noResults = true;
     else return optionsError.toString();
   }
 

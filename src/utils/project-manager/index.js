@@ -103,13 +103,13 @@ export class Project {
     // Set a function to query the API
     // Note that the useAPI hook is smart enough to store and reuse identical calls
     // There is no need to handle this here
-    _apiQuery = (fieldname, available = true) => {
+    _apiQuery = (fieldname, available = true, timeout = null) => {
         // Set the request URL
         let url = this._apiBaseUrl + this._apiEndpoints[fieldname];
         // Request the value if it is available only
         if (!available) url = null;
         // Do the API query
-        const apiQuery = useAPI(url);
+        const apiQuery = useAPI(url, undefined, timeout);
         if (!available) return;
         // Update the loading status
         this._apiQueriesLoading[url] = apiQuery.loading;
@@ -122,11 +122,12 @@ export class Project {
     // If this is the global client then check that the project exists in the source federated node
     // To do so, ask for any data which is not stored in the global server (e.g. topology data)
     // Thus we will force the global API to redirect the request to the federated node
+    // Use a timeout for this query to check if the node is responding, since this query should be fast
     checkProblems = () => {
         // If this is not the global client then there is no need to check
         if (!HOST_CONFIG.global) return;
-        // Request topology data
-        const response = this._apiQuery('topology');
+        // Request topology data with a timeout of 5 seconds
+        const response = this._apiQuery('topology', undefined, 5000);
         // If we are still loading then there is no problem
         if (response.loading) return;
         // If we have an error instead of throwing return the error itself

@@ -36,7 +36,7 @@ let cache = loadCache();
 const apiCalls = {};
 
 // Get data from the API
-const useAPI = (url, cacheOptions = {}) => {
+const useAPI = (url, cacheOptions = {}, timeout = null) => {
   // Destructure options and set default values
   const {
     name = '',
@@ -95,7 +95,7 @@ const useAPI = (url, cacheOptions = {}) => {
       // Header used by the backend to identify requests coming from this frontend hook.
       headers: { ['X-MDDB-Request-Source']: 'mdposit-client' },
       // Timeout to handle when a node is not responding
-      timeout: 5000,
+      timeout: timeout,
       // Send the start time so we can calculate the response time when we get the response
       startTime: new Date()
     })
