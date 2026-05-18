@@ -130,12 +130,13 @@ const useAPI = (url, cacheOptions = {}, timeout = null) => {
       .catch(error => {
         if (didCancel) return;
         // Extend the error message with the API error reason
-        let errorMessage = error.toString();
+        const errorOriginalMessage = error.message;
+        let errorMessage = errorOriginalMessage || error.toString();
         if (error.response && error.response.data)
           errorMessage += ` -> ${error.response.data}`;
         error.message = errorMessage;
         // If the error comes from our own timeout then change the message completely
-        if (error.code === 'ECONNABORTED') {
+        if (error.code === 'ECONNABORTED' || errorOriginalMessage === 'Network Error') {
           error.message = 'The node is not responding';
           // Also add a flag used by others
           error.noResponse = true;
