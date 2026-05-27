@@ -66,6 +66,7 @@ const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
 const Thickness = () => {
     // Get the metadata
     const { accessionAndMdNumber, metadata, chains, topology } = useContext(ProjectCtx);
+    const maximumSnapshots = metadata.mdFrames;
 
     // Send a request to the API with the url of the specific analysis
     const {
@@ -136,7 +137,7 @@ const Thickness = () => {
             }
         };
 
-        const frameStep = thicknessPayload.data.step;
+        const frameStep = Math.ceil(maximumSnapshots / thicknessPayload.data.thickness.length)
         const defaultDisplay = {
             'Membrane': true,
             'Upper leaflet': true,
@@ -278,7 +279,6 @@ const Thickness = () => {
     else if (thicknessError) return thicknessError.toString();
     else if (!thicknessPayload) return 'Something bad happened loading thickness data';
     const cents = num => Math.round(num * 100) / 100;
-    //console.log('Render')
 
     // Render
     return (
