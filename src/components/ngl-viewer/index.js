@@ -1388,7 +1388,7 @@ const NGLViewer = memo(
         ref,
         () => ({
           autoResize: handleResize,
-          drawMesh(position, color_offset, name = "test") {
+          drawMesh(position, colorData, name = "test", normalsData = null) {
             const previousComponent = stageRef.current.compList.find(
               (component) => component.name === name
             );
@@ -1397,21 +1397,34 @@ const NGLViewer = memo(
             }
             if (!position || position.length === 0) return;
             const shape = new Shape(name, { disableImpostor: true });
-            let colors = new Float32Array(position.length);
-            colors = colors.map((v, i) => {
-              if (i > color_offset[1] && i % 3 === 2) {
-                return 1.0;
-              } else if (i > color_offset[0] && i <= color_offset[1] && i % 3 === 1) {
-                return 1.0;
-              } else if (i <= (color_offset[0]) && i % 3 === 0) {
-                return 1.0;
-              } else {
+            let colors;
+
+            // New API path: explicit RGB triplets per coordinate.
+            if (Array.isArray(colorData) && colorData.length === position.length) {
+              colors = new Float32Array(colorData);
+            } else {
+              // Backward-compatible path for previous color offset input.
+              const colorOffset = Array.isArray(colorData) ? colorData : [0, 0];
+              colors = new Float32Array(position.length);
+              colors = colors.map((v, i) => {
+                if (i > colorOffset[1] && i % 3 === 2) {
+                  return 1.0;
+                } else if (i > colorOffset[0] && i <= colorOffset[1] && i % 3 === 1) {
+                  return 1.0;
+                } else if (i <= colorOffset[0] && i % 3 === 0) {
+                  return 1.0;
+                }
                 return 0.0;
-              }
-            });
-            shape.addMesh(position, colors);
+              });
+            }
+
+            const normals = Array.isArray(normalsData) && normalsData.length === position.length
+              ? new Float32Array(normalsData)
+              : undefined;
+
+            shape.addMesh(position, colors, undefined, normals);
             var shapeComp = stageRef.current.addComponentFromObject(shape, { name: name });
-            var rep = shapeComp.addRepresentation("buffer", { opacity: 0.8, roughness: 1 });
+            var rep = shapeComp.addRepresentation("buffer", { opacity: 1., roughness: 1 });
           },
           // Output the current orientation/focus in console
           // Note: this is for the developer, not for the regular user

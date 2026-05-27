@@ -2,11 +2,56 @@
   margin-bottom: 20px;
 }
 
-.nglcard {
-  height: 60vh;
+.analysisRow {
+  display: flex;
+  gap: 20px;
+  align-items: stretch;
   margin-bottom: 20px;
+}
+
+.halfCard {
+  flex: 1 1 0;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.nglcard {
+  height: 55vh;
+  position: relative;
+}
+
+.graphcard {
+  height: 55vh;
 }
 
 .container {
   height: 100%;
+}
+
+.controls {
+  position: absolute;
+  z-index: 2;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.controlLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #333;
+}
+
+.controlSelect {
+  min-width: 170px;
+  font-size: 12px;
 }
