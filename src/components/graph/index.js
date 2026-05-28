@@ -132,6 +132,7 @@ const Graph = forwardRef(({
   flippedXAxisValues = false, // Set if values in x axis is horizontal (false) or vertical (true) 
   fullPrecision = false,      // If true, draw all points in the graph no matter how many points are there 
   className,                  // Force a classname for the overall component element
+  legendClassName,            // Optional classname to apply to the legend container
   marks,                      // Mark x values by displaying a vertical line in their positions
   areaStdDev = false,          // Display the standard deviation area per point
   zeroLine = false,            // Draw a line at y=0
@@ -1149,7 +1150,7 @@ const Graph = forwardRef(({
       <div className={style.flexible}>
         <div className={style['graph-container']} ref={containerRef} />
         {selfLegend && (
-          <div className={style['graph-legend']}>
+          <div className={`${style['graph-legend']} ${legendClassName || ''}`.trim()}>
             {yEntries.map(([key]) => (
               <FormControlLabel
                 data-key={key}

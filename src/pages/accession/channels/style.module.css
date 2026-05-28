@@ -55,3 +55,18 @@
   min-width: 170px;
   font-size: 12px;
 }
+
+.legendCompact {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: center;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.legendCompact > * {
+  margin: 0 0.2em !important;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}

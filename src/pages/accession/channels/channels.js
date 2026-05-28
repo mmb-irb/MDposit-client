@@ -23,13 +23,13 @@ const PROFILE_SERIES = [
   { key: 'radiusMean', label: 'Radius', color: 'red', propertyName: 'avg_radius' },
   {
     key: 'plHydrophobicityMean',
-    label: 'PL Hydrophobicity',
+    label: 'Pore Lining Hydrophobicity',
     color: 'orange',
     propertyName: 'avg_pl_hydrophobicity',
   },
   {
     key: 'pfHydrophobicityMean',
-    label: 'PF Hydrophobicity',
+    label: 'Pore Facing Hydrophobicity',
     color: '#e7d336',
     propertyName: 'avg_pf_hydrophobicity',
   },
@@ -82,6 +82,7 @@ const Channels = () => {
       },
       [],
     );
+    let poreResentations = null;
     if (poreLiningIndices.length === 0) return;
     const { rangedSelection: poreSelection } = topology.residueIndices2Ngl(poreLiningIndices);
     const poreLiningRepresentation = {
@@ -91,6 +92,7 @@ const Channels = () => {
       selection: poreSelection,
       reference: 'pore-lining',
     };
+    poreResentations = [poreLiningRepresentation];
     const poreFacingIndices = (channelsPayload.data.pore_residues.pore_facing || []).reduce(
       (indices, value, residueIndex) => {
         if (value > 0.5) indices.push(residueIndex);
@@ -98,17 +100,21 @@ const Channels = () => {
       },
       [],
     );
-    const { rangedSelection: poreFacingSelection } = topology.residueIndices2Ngl(poreFacingIndices);
-    const poreFacingRepresentation = {
-      name: 'Pore facing residues',
-      type: 'ball+stick',
-      color: 'yellow',
-      selection: poreFacingSelection,
-      reference: 'pore-facing',
-    };
+    if (poreFacingIndices.length !== 0) {
+      const { rangedSelection: poreFacingSelection } = topology.residueIndices2Ngl(poreFacingIndices);
+      const poreFacingRepresentation = {
+        name: 'Pore facing residues',
+        type: 'ball+stick',
+        color: 'yellow',
+        selection: poreFacingSelection,
+        reference: 'pore-facing',
+      };
+        poreResentations.push(poreFacingRepresentation);
+    }
+
     setRepresentations(prev => {
       const remainingRepresentations = (prev || []).filter(rep => rep.reference !== 'pore-lining' && rep.reference !== 'pore-facing');
-      return [...remainingRepresentations, poreLiningRepresentation, poreFacingRepresentation];
+      return [...remainingRepresentations, ...poreResentations];
     });
 
 
@@ -159,7 +165,8 @@ const Channels = () => {
 
     const yData = PROFILE_SERIES.reduce((accumulator, series) => {
       const values = getChannelPropertyValues(frame, xAxisValues, series.propertyName);
-      if (!Array.isArray(values) || values.length !== xAxisValues.length) {
+      // Skip if no values, or all values are zero
+      if (!Array.isArray(values) || values.length === 0 || values.every(value => value === 0)) {
         return accumulator;
       }
 
@@ -240,6 +247,7 @@ const Channels = () => {
             <CardContent>
               <Graph
                 title={'Channel profiles'}
+                legendClassName={style.legendCompact}
                 yData={profileGraphData.yData}
                 // step={profileGraphData.step}
                 xAxisValues={profileGraphData.xAxisValues}
