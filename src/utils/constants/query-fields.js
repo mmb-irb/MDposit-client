@@ -239,7 +239,7 @@ export default {
         },
         {
             "name": "Ligand name",
-            "path": "references.ligands.name",
+            "path": "references.inchikeys.ligand.name",
             "type": "string",
             "example": "aclidinium",
             "options": true,
@@ -255,7 +255,7 @@ export default {
         },
         {
             "name": "Ligand DrugBank id",
-            "path": "references.ligands.drugbank",
+            "path": "references.inchikeys.ligand.drugbank",
             "type": "string",
             "example": "DB09330",
             "options": true,
@@ -263,7 +263,7 @@ export default {
         },
         {
             "name": "Ligand ChEMBL id",
-            "path": "references.ligands.chembl",
+            "path": "references.inchikeys.ligand.chembl",
             "type": "string",
             "example": "CHEMBL14830",
             "options": true,
@@ -271,26 +271,10 @@ export default {
         },
         {
             "name": "Ligand PDB code",
-            "path": "references.ligands.pdbid",
+            "path": "references.inchikeys.ligand.pdbid",
             "type": "string",
             "example": "HEM",
             "options": true,
-            "checkbox" : false
-        },
-        {
-            "name": "Ligand PDB molecular formula",
-            "path": "references.ligands.formula",
-            "type": "string",
-            "example": "C28H33N7O2",
-            "options": false,
-            "checkbox" : false
-        },
-        {
-            "name": "Ligand SMILES",
-            "path": "references.ligands.smiles",
-            "type": "string",
-            "example": "CN1C=C(C2=CC=CC=C21)C3=NC(=NC=C3)NC4=C(C=C(C(=C4)NC(=O)C=C)N(C)CCN(C)C)OC",
-            "options": false,
             "checkbox" : false
         },
         {
