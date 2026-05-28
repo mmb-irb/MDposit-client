@@ -1,5 +1,8 @@
 import { Vector4 } from 'three';
-import { NURBSUtils } from 'three/examples/jsm/curves/NURBSUtils.js';
+import {
+  calcBSplinePoint,
+  calcNURBSDerivatives,
+} from 'three/examples/jsm/curves/NURBSUtils.js';
 // constant used for numerical stability
 const EPSILON = 1e-8;
 const CHAP_SPLINE_DEGREE = 3;
@@ -165,13 +168,13 @@ const evaluateScalarSpline = (u, knots, ctrl, extrapolation) => {
 
   if (u < lo || u > hi) {
     if (extrapolation === 'constant') {
-      const endpoint = NURBSUtils.calcBSplinePoint(degree, fullKnots, ctrlW, u < lo ? lo : hi);
+      const endpoint = calcBSplinePoint(degree, fullKnots, ctrlW, u < lo ? lo : hi);
       return endpoint.x / Math.max(endpoint.w, EPSILON);
     }
   }
 
   const uClamped = clamp(u, lo, hi);
-  const point = NURBSUtils.calcBSplinePoint(degree, fullKnots, ctrlW, uClamped);
+  const point = calcBSplinePoint(degree, fullKnots, ctrlW, uClamped);
   return point.x / Math.max(point.w, EPSILON);
 };
 
@@ -183,23 +186,23 @@ const evaluateVectorSpline = (s, knots, ctrlX, ctrlY, ctrlZ, extrapolation) => {
   const ctrlW = toWeightedVectorCtrl(ctrlX, ctrlY, ctrlZ);
 
   if (s >= lo && s <= hi) {
-    const point = NURBSUtils.calcBSplinePoint(degree, fullKnots, ctrlW, s);
+    const point = calcBSplinePoint(degree, fullKnots, ctrlW, s);
     const invW = 1 / Math.max(point.w, EPSILON);
     return [point.x * invW, point.y * invW, point.z * invW];
   }
 
   if (extrapolation !== 'linear') {
-    const boundaryPoint = NURBSUtils.calcBSplinePoint(degree, fullKnots, ctrlW, s < lo ? lo : hi);
+    const boundaryPoint = calcBSplinePoint(degree, fullKnots, ctrlW, s < lo ? lo : hi);
     const invW = 1 / Math.max(boundaryPoint.w, EPSILON);
     return [boundaryPoint.x * invW, boundaryPoint.y * invW, boundaryPoint.z * invW];
   }
 
   const boundary = s < lo ? lo : hi;
-  const boundaryPoint = NURBSUtils.calcBSplinePoint(degree, fullKnots, ctrlW, boundary);
+  const boundaryPoint = calcBSplinePoint(degree, fullKnots, ctrlW, boundary);
   const invW = 1 / Math.max(boundaryPoint.w, EPSILON);
   const b0 = [boundaryPoint.x * invW, boundaryPoint.y * invW, boundaryPoint.z * invW];
 
-  const deriv = NURBSUtils.calcNURBSDerivatives(degree, fullKnots, ctrlW, boundary, 1)[1];
+  const deriv = calcNURBSDerivatives(degree, fullKnots, ctrlW, boundary, 1)[1];
   const slope = deriv ? [deriv.x, deriv.y, deriv.z] : [0, 0, 0];
   return vecAdd(b0, vecScale(slope, s - boundary));
 };
