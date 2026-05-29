@@ -247,7 +247,7 @@ export default {
         },
         {
             "name": "Ligand PubChem id",
-            "path": "metadata.LIGANDS",
+            "path": "references.inchikeys.ligand.pubchem",
             "type": "string",
             "example": "1986",
             "options": true,
