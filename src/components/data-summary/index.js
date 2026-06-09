@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Typography } from '@mui/material';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Button, ButtonGroup, Typography } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 
 import { BASE_PATH_PROJECTS, BASE_VERSIONED_PATH, HOST_CONFIG } from '../../utils/constants';
@@ -76,11 +76,20 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
     const availableFields = HOST_CONFIG.availableFields;
     const queryFields = HOST_CONFIG.queryFields;
     const projectionQuery = buildProjectionQuery(availableFields);
-    const optionsUrl = `${BASE_PATH_PROJECTS}/options?${queryPrefix}${projectionQuery}`;
+    const optionsUrl = `${BASE_PATH_PROJECTS}/options?${queryPrefix}${projectionQuery}&countMds=true`;
+    console.log('Options URL:', optionsUrl);
     const { payload: optionsPayload, error: optionsError } = useAPI(optionsUrl, { name: 'browse', cacheOn: true });
 
     // State for selected options field for pie chart
     const [selectedOptionsField, setSelectedOptionsField] = useState(null);
+    const [selectedStatsMode, setSelectedStatsMode] = useState('mds');
+    const selectedStatsIndex = selectedStatsMode === 'mds' ? 1 : 0;
+
+    const getOptionCount = useCallback(value => {
+        if (Array.isArray(value)) return Number(value[selectedStatsIndex] ?? 0);
+        const parsedValue = Number(value);
+        return Number.isFinite(parsedValue) ? parsedValue : 0;
+    }, [selectedStatsIndex]);
 
     // Get all available fields from optionsPayload (if loaded), sorted and memoized
     // Filter out fields where all entries are null (would produce an empty legend)
@@ -98,9 +107,17 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
     // Set default selected field when optionsPayload loads
     useEffect(() => {
         if (availableOptionsFields.length > 0 && !selectedOptionsField) {
-            setSelectedOptionsField(availableOptionsFields.includes('node') && !internalQuery ? 'node' : 'metadata.METHOD');
+            // Defaults: collections for general statistics, node for central node and METHOD for collections
+            if (internalQuery) {
+                setSelectedOptionsField('metadata.METHOD');
+            } else if (availableOptionsFields.includes('node')) {
+                setSelectedOptionsField('node');
+            } else {
+                setSelectedOptionsField('metadata.COLLECTIONS');
+            }
+
         }
-    }, [optionsPayload]);
+    }, [availableOptionsFields, internalQuery, selectedOptionsField]);
     // Use the API to get the real data size from the stats endpoint
     const statsUrl = !isGlobalSummary ? `${BASE_VERSIONED_PATH}/stats${summaryQueryParam}` : null;
     const { payload: statsPayload, error: statsError } = useAPI(statsUrl, { name: 'stats', cacheOn: true });
@@ -119,7 +136,6 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
     // Aggregate data size across all nodes for the global view
     const federatedStatsUrls = useMemo(() => {
         if (!isGlobalSummary || !Array.isArray(nodeData) || nodeData.length === 0) return [];
-        console.log('Node data for federated stats:', nodeData);
         return nodeData
             .map(node => node && node.api_url)
             .filter(Boolean)
@@ -177,7 +193,9 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
     // Prepare data for the selected options pie chart
     const { optionPieChartData, optionLegendData } = useMemo(() => {
         if (!selectedOptionsField || !optionsPayload) return {};
-        const option = Object.entries(optionsPayload[selectedOptionsField]).filter(([key]) => key !== 'null');
+        const option = Object.entries(optionsPayload[selectedOptionsField])
+            .filter(([key]) => key !== 'null')
+            .map(([key, value]) => [key, getOptionCount(value)]);
         if (option) option.sort((a, b) => b[1] - a[1]);
         const colors = option && createPalette(option.length);
         // Cycle through the colors array in steps of 20% of its length
@@ -193,7 +211,6 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
         }
         // Max value for histogram and sumatory for pie chart
         let divisor;
-        console.log('Option for pie chart:', selectedOptionsField);
         if (PIE_CHART_FIELDS.has(selectedOptionsField)) {
             divisor = option.reduce((acc, [, value]) => acc + value, 0);
         } else {
@@ -215,7 +232,7 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
             color: colors[i],
         }));
         return { optionPieChartData, optionLegendData };
-    }, [nodeNameMap, optionsPayload, selectedOptionsField]);
+    }, [getOptionCount, nodeNameMap, optionsPayload, selectedOptionsField, selectedStatsIndex]);
 
     // Use the API to get the snapshots options
     const snapshotsUrl = `${BASE_PATH_PROJECTS}/options?${queryPrefix}projection=mds.frames`;
@@ -269,7 +286,7 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
 
     return (<>
         <div className={style.dataSummary}>
-            <Typography style={{ marginBottom: 10 }} variant="h6">{title}</Typography>
+            <Typography style={{ marginBottom: 10 }} variant="h5">{title}</Typography>
             <table className={style.summaryTable}>
                 <tbody>
                     <tr>
@@ -294,7 +311,7 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
             </table>
         </div>
         {!internalQuery && <div className={style.growth}>
-            <Typography variant="h6">Data Growth Over Time</Typography>
+            <Typography variant="h5">Data Growth Over Time</Typography>
             <div className={style.timelineChart}>
                 {growthPayload ? (
                     <TimelineChart data={growthPayload} className={style.growthChart} />
@@ -302,10 +319,25 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
                     'Loading growth data...'
                 )}
             </div>
-            {growthPayload && <hr style={{ color: 'lightGrey' }} />}
         </div>}
         <div className={style.fieldStats}>
-            <Typography variant="h6">Projects per field</Typography>
+            <div className={style.fieldStatsHeader}>
+                <Typography variant="h5">Statistics per field</Typography>
+                <ButtonGroup size="small" variant="outlined" className={style.statsModeToggle}>
+                    <Button
+                        onClick={() => setSelectedStatsMode('mds')}
+                        variant={selectedStatsMode === 'mds' ? 'contained' : 'outlined'}
+                    >
+                        MDs
+                    </Button>
+                    <Button
+                        onClick={() => setSelectedStatsMode('projects')}
+                        variant={selectedStatsMode === 'projects' ? 'contained' : 'outlined'}
+                    >
+                        Projects
+                    </Button>
+                </ButtonGroup>
+            </div>
             {availableOptionsFields.length > 0 ? (
                 <>
                     <div style={{ marginBottom: 18, width: '33%' }}>
@@ -343,8 +375,7 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
                 <div style={{ textAlign: 'center' }}>Loading field data...</div>
             )}
         </div>
-        {availableOptionsFields.length > 0 && <hr style={{ color: 'lightGrey' }} />}
-        <Typography variant="h6">Data distributions</Typography>
+        <Typography variant="h5">Data distributions</Typography>
         <div className={style.histograms}>
             <div className={style.histogram}>
                 <Histogram
@@ -380,8 +411,7 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
                 />
             </div>
         </div>
-        <hr style={{ color: 'lightGrey' }} />
-        <Typography variant="h6">Time distribution</Typography>
+        <Typography variant="h5">Time distribution</Typography>
         <div style={{ display: 'flex', justifyContent: 'center', margin: '20px 10%' }}>
             <FramestepPlot jsonUrl={framestepUrl} />
         </div>

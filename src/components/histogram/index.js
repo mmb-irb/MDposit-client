@@ -42,7 +42,7 @@ function formatExponent(exp) {
 
 // Set the size of the axis numbers
 const axisNumbersFontSize = "15px";
-const axisLabelsFontSize = "24px";
+const axisLabelsFontSize = "20px";
 
 const Histogram = forwardRef(({
   // Data containing an object with count of different values
@@ -324,7 +324,7 @@ const Histogram = forwardRef(({
       yAxis.attr("transform", "translate(" + margin.left + ", 0)").call(axisLeft(y))
         .style("font-size", axisNumbersFontSize);
       // Set axis label positions
-      const xAxisLabelMargin = 5;
+      const xAxisLabelMargin = 10;
       xAxisLabel.attr("x", margin.left + actualWidth / 2).attr("y", height - xAxisLabelMargin);
       const yAxisLabelMargin = 20;
       yAxisLabel.attr("x", yAxisLabelMargin).attr("y", margin.top + actualHeight / 2)

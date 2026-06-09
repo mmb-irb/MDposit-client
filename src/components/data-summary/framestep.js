@@ -23,7 +23,7 @@ const FRAMESTEP_LINES = [
 ];
 
 const axisNumbersFontSize = "15px";
-const axisLabelsFontSize = "24px";
+const axisLabelsFontSize = "22px";
 // Padding for the axis to add to the min/max
 const DOMAIN_PAD_DECADES = 0.5;
 

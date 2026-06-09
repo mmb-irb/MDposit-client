@@ -30,7 +30,7 @@ export default () => {
 
     return (<>
         {isGlobal && <>
-            <Typography variant="h6">Node locations</Typography>
+            <Typography variant="h5">Node locations</Typography>
             <NodeMap nodeData={nodesPayload} className={style.nodemap} />
             <NodeTable nodeData={nodesPayload} />
             <br />

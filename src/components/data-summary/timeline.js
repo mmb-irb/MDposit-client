@@ -109,7 +109,7 @@ const TimelineChart = ({ data, className }) => {
       .style("font-size", axisNumbersFontSize)
       .attr("dx", "-.8em")
       .attr("dy", ".15em")
-      .attr("transform", "rotate(-45)");
+      .attr("transform", "rotate(-36)");
 
     // Add primary Y axis (projects)
     svg.append("g")
@@ -249,7 +249,7 @@ const TimelineChart = ({ data, className }) => {
     // Right Y-axis label (MDs)
     svg.append("text")
       .attr("transform", "rotate(90)")
-      .attr("y", -innerWidth - margin.right + 5)
+      .attr("y", -innerWidth - margin.right + 0)
       .attr("x", innerHeight / 2)
       .attr("dy", "1em")
       .style("text-anchor", "middle")
