@@ -36,11 +36,16 @@ const PieChart = ({ data, legendData, className, pieClassName, legendClassName, 
 
   // Track which indices are hidden (initialize with autoHidden on mount/data change)
   const [hiddenIndices, setHiddenIndices] = useState(() => computeAutoHidden(data));
+  const [hoveredIndex, setHoveredIndex] = useState(null);
 
   // Update hiddenIndices if data or autoHide changes
   useEffect(() => {
     setHiddenIndices(computeAutoHidden(data));
   }, [data, autoHide]);
+
+  useEffect(() => {
+    setHoveredIndex(null);
+  }, [data, legendData]);
 
   // Toggle visibility of a slice (user interaction)
   const handleLegendClick = useCallback(idx => {
@@ -49,9 +54,31 @@ const PieChart = ({ data, legendData, className, pieClassName, legendClassName, 
     );
   }, []);
 
+  const handleHoverChange = useCallback((idx) => {
+    setHoveredIndex(idx);
+  }, []);
+
   // Filter data for PieChart
   const filteredData = data
-    ? data.map((entry, i) => hiddenIndices.includes(i) ? { ...entry, value: 0 } : entry)
+    ? data.map((entry, i) => {
+        const isHidden = hiddenIndices.includes(i);
+        const isHovered = hoveredIndex === i;
+        return isHidden
+          ? { ...entry, value: 0 }
+          : {
+              ...entry,
+              onMouseOver: () => handleHoverChange(i),
+              onMouseOut: () => handleHoverChange(null),
+              style: {
+                ...entry.style,
+                color: isHovered ? entry.color : '#111',
+                opacity: isHovered ? 1 : entry.style?.opacity,
+                stroke: isHovered ? '#111' : entry.style?.stroke,
+                strokeWidth: isHovered ? 2 : entry.style?.strokeWidth,
+                filter: isHovered ? 'brightness(1.08)' : entry.style?.filter,
+              },
+            };
+      })
     : [];
 
   // Enhance legend entries with onClick and hidden state
@@ -59,7 +86,10 @@ const PieChart = ({ data, legendData, className, pieClassName, legendClassName, 
     ? legendData.map((entry, i) => ({
         ...entry,
         onClick: () => handleLegendClick(i),
+        onMouseEnter: () => handleHoverChange(i),
+        onMouseLeave: () => handleHoverChange(null),
         hidden: hiddenIndices.includes(i),
+        hovered: hoveredIndex === i,
       }))
     : [];
 
@@ -71,6 +101,13 @@ const PieChart = ({ data, legendData, className, pieClassName, legendClassName, 
         animate
         animationDuration={500}
         animationEasing="ease-out"
+        onMouseOver={(_, index) => {
+          setHoveredIndex(index);
+        }}
+        onMouseOut={() => {
+          setHoveredIndex(undefined);
+        }}
+        segmentsStyle={(index) => index === hoveredIndex ? { filter: 'brightness(1.08)' } : {}}
       />
       {legendData && (
         <SimpleLegend

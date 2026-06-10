@@ -17,5 +17,6 @@
 .legend {
   width: 45%;
   max-height: 350px;
+  overflow-x: hidden;
   overflow-y: auto;
 }
