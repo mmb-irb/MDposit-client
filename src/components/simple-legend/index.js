@@ -8,7 +8,10 @@ import React from 'react';
 //    }
 //  ]
 
-const SimpleLegend = ({ entries, className }) => {
+const SimpleLegend = ({ entries, className, sortValue = false }) => {
+  if (sortValue) {
+    entries = [...entries].sort((a, b) => b.value - a.value);
+  }
   return (
     <div className={className}>
       {entries.map(({ label, color, onClick, hidden }, i) => (

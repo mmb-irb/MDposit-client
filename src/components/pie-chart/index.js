@@ -76,6 +76,7 @@ const PieChart = ({ data, legendData, className, pieClassName, legendClassName, 
         <SimpleLegend
           entries={legendEntries}
           className={legendClassName ? legendClassName : style.legend}
+          sortValue={true}
         />
       )}
     </div>

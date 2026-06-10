@@ -194,9 +194,13 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
     const { optionPieChartData, optionLegendData } = useMemo(() => {
         if (!selectedOptionsField || !optionsPayload) return {};
         const option = Object.entries(optionsPayload[selectedOptionsField])
-            .filter(([key]) => key !== 'null')
-            .map(([key, value]) => [key, getOptionCount(value)]);
-        if (option) option.sort((a, b) => b[1] - a[1]);
+        .filter(([key]) => key !== 'null')
+        .map(([key, value]) => [key, getOptionCount(value)]);
+        if (option) option.sort((a, b) => {
+            const aLabel = a[0];
+            const bLabel = b[0];
+            return aLabel.localeCompare(bLabel) || a[0].localeCompare(b[0]);
+        });
         const colors = option && createPalette(option.length);
         // Cycle through the colors array in steps of 20% of its length
         if (colors) {
@@ -228,6 +232,7 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
             }))
             : [{ title: 'Loading...', value: 1, percentage: 100, color: 'lightgrey' }];
         const optionLegendData = option && option.map(([key, value], i) => ({
+            value,
             label: displayLabel(key) + ': ' + value + ' (' + (Math.round((value / divisor) * 10000) / 100) + '%)',
             color: colors[i],
         }));
