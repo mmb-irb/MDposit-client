@@ -26,3 +26,17 @@ Use the default values as template.<br/>
 Note that the client behaviour depends on the host URL.<br/>
 This allows a single cliente to service several hosts with a different behaviour for each.<br/>
 Comments inside the configuration file will guide you.
+
+## Development
+
+### Make a new version
+
+1. Update the version in `package.json`, `package-lock.json`, commit the changes and create a tag with:
+```bash
+npm version X.Y.Z
+```
+2. Push the changes and the tag to the repository:
+```bash
+git push
+git push origin vX.Y.Z
+```
