@@ -196,11 +196,17 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
         const option = Object.entries(optionsPayload[selectedOptionsField])
         .filter(([key]) => key !== 'null')
         .map(([key, value]) => [key, getOptionCount(value)]);
-        if (option) option.sort((a, b) => {
-            const aLabel = a[0];
-            const bLabel = b[0];
-            return aLabel.localeCompare(bLabel) || a[0].localeCompare(b[0]);
-        });
+        if (option) {
+            if (!PIE_CHART_FIELDS.has(selectedOptionsField)) {
+                option.sort((a, b) => b[1] - a[1]);
+            } else {
+                option.sort((a, b) => {
+                    const aLabel = a[0];
+                    const bLabel = b[0];
+                    return aLabel.localeCompare(bLabel) || a[0].localeCompare(b[0]);
+                });
+            }
+        }
         const colors = option && createPalette(option.length);
         // Cycle through the colors array in steps of 20% of its length
         if (colors) {
