@@ -77,7 +77,6 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
     const queryFields = HOST_CONFIG.queryFields;
     const projectionQuery = buildProjectionQuery(availableFields);
     const optionsUrl = `${BASE_PATH_PROJECTS}/options?${queryPrefix}${projectionQuery}&countMds=true`;
-    console.log('Options URL:', optionsUrl);
     const { payload: optionsPayload, error: optionsError } = useAPI(optionsUrl, { name: 'browse', cacheOn: true });
 
     // State for selected options field for pie chart
@@ -281,13 +280,14 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
 
     // Handle possible errors by just showing a log error in the console
     // Thus we allow the rest of the page to keep loading
-    [summaryError, optionsError, snapshotsError, oldSnapshotsError, atomsError, mdCountError, growthError, statsError, bsError].forEach(error => {
-        if (error) console.error(error.message);
+    const errorMap = { summaryError, optionsError, snapshotsError, oldSnapshotsError, atomsError, mdCountError, growthError, statsError, bsError };
+    Object.entries(errorMap).forEach(([name, error]) => {
+        if (error) console.error(`${name}:`, error.message);
     });
 
     const dataSizeValue = useMemo(() => {
         if (!isGlobalSummary) {
-            return statsPayload ? `${statsPayload?.dataSizeInTB} TB` : 'Loading...';
+            return statsPayload ? `${statsPayload?.realDataSizeInTB.toFixed(2)} TB` : 'Loading...';
         }
         if (!Array.isArray(nodeData) || nodeData.length === 0) return 'Loading...';
         if (bsPayload) return `${bsPayload.dataSizeInTB.toLocaleString()} TB`;
@@ -307,7 +307,7 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
                         <td className={style.summaryTitle}>Frames</td>
                         <td className={style.summaryTitle}>Files</td>
                         <td className={style.summaryTitle}>Analyses</td>
-                        {!internalQuery && <td className={style.summaryTitle}>Data</td>}
+                        <td className={style.summaryTitle}>Data</td>
                     </tr>
                     <tr>
                         <td className={style.summaryValue}>{summaryPayload ? summaryPayload.projectsCount.toLocaleString() : 'Loading...'}</td>
@@ -316,7 +316,7 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
                         <td className={style.summaryValue}>{summaryPayload ? summaryPayload.totalFrames.toLocaleString() : 'Loading...'}</td>
                         <td className={style.summaryValue}>{summaryPayload ? summaryPayload.totalFiles.toLocaleString() : 'Loading...'}</td>
                         <td className={style.summaryValue}>{summaryPayload ? summaryPayload.totalAnalyses.toLocaleString() : 'Loading...'}</td>
-                        {!internalQuery && <td className={style.summaryValue}>{dataSizeValue}</td>}
+                        <td className={style.summaryValue}>{dataSizeValue}</td>
                     </tr>
                 </tbody>
             </table>
