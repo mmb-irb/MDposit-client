@@ -309,10 +309,16 @@ function fmtPow10(v) {
     const exp = Math.floor(Math.log10(v));
     const base = v / (10 ** exp);
     // only label exact powers of 10, not 2e-3 or 5e6
-    if (base !== 1) return ''; 
+    if (base !== 1) return '';
     if (exp === 0) return '1';
     const sup = String(exp).split('').map(c => SUPERSCRIPTS[c] ?? c).join('');
     return `10${sup}`;
+}
+
+function fmtScientific(v) {
+    // Display exact values in scientific notation with no decimals
+    if (v<1000) return d3.format('.2f')(v);
+    return d3.format('.2e')(v);
 }
 
 function drawChart(el, canvasEl, points, containerWidth = 760) {
@@ -464,8 +470,53 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
     const alphaWeight = 10 ** (logHi / 1.5); // mid-level density for alpha scaling
     drawScatterCanvas(canvasEl, points, xSc, ySc, MAIN_W, MAIN_H, alphaWeight);
 
-
     const fmtDensity = v => v >= 1 ? d3.format(',.0f')(v) : v.toFixed(1);
+
+    // Shared tooltip helper
+    function showTooltip(targetGroup, customLines) {
+        customLines = customLines || [];
+        const [mx, my] = d3.mouse(targetGroup.node());
+        const adjustedX = mx - ox;
+        const adjustedY = my - oy;
+        const textLines = [];
+
+        if (adjustedX >= 0 && adjustedX <= MAIN_W && adjustedY >= 0 && adjustedY <= MAIN_H) {
+            const timeNs = xSc.invert(adjustedX);
+            const frames = ySc.invert(adjustedY);
+            textLines.push(`Time: ${fmtScientific(timeNs)} ns`);
+            textLines.push(`Frames: ${fmtScientific(frames)}`);
+        }
+
+        textLines.push(...customLines);
+
+
+        tooltip.style('opacity', 1)
+            .html(textLines.join('<br/>'))
+            .style('left', (d3.event.clientX + 15) + 'px')
+            .style('top', (d3.event.clientY - 5) + 'px');
+    }
+
+    function moveTooltip() {
+        tooltip
+            .style('left', (d3.event.clientX + 15) + 'px')
+            .style('top', (d3.event.clientY - 5) + 'px');
+    }
+
+    function showSimpleTooltip(text) {
+        tooltip.style('opacity', 1).text(text);
+        moveTooltip();
+    }
+
+    // Transparent overlay for value display in empty areas
+    // This is added BEFORE contours so contours can capture their own hover events
+    gPlot.append('rect')
+        .attr('class', 'value-overlay')
+        .attr('width', MAIN_W)
+        .attr('height', MAIN_H)
+        .attr('fill', 'transparent')
+        .style('pointer-events', 'visible')
+        .on('mousemove', () => showTooltip(svg, []))
+        .on('mouseout', () => tooltip.style('opacity', 0));
 
     // Filled contours (alpha 0.2 so scatter dots show through)
     gPlot.selectAll('.cf').data(contours).enter().append('path')
@@ -475,20 +526,16 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
         .style('cursor', 'default')
         .on('mouseover', function(d) {
             d3.select(this).attr('fill-opacity', 0.55);
-
             if (d.pointCount == null) {
                 d.pointCount = countPointsInContour(d, projectedPoints);
             }
-
-            tooltip.style('opacity', 1)
-            .html(
-                `Density: ${fmtDensity(d.value)} MD/decade²<br/>` +
-                `MDs in contour: ${d3.format(',.0f')(d.pointCount)}`
-            );
         })
-        .on('mousemove', () => tooltip
-            .style('left', (d3.event.clientX + 12) + 'px')
-            .style('top',  (d3.event.clientY - 30) + 'px'))
+        .on('mousemove', function() {
+            showTooltip(gPlot,
+                [`Density: ${fmtDensity(d3.select(this).datum().value)} MD/decade²`,
+                `MDs in contour: ${d3.format(',.0f')(d3.select(this).datum().pointCount)}`
+                ]);
+        })
         .on('mouseout', function() {
             d3.select(this).attr('fill-opacity', 0.3);
             tooltip.style('opacity', 0);
@@ -545,10 +592,8 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
             .attr('y', htYSc(count)).attr('height', TOP_H - htYSc(count))
             .attr('fill', 'steelblue').attr('fill-opacity', 0.75)
             .style('cursor', 'default')
-            .on('mouseover', () => tooltip.style('opacity', 1).text(`Count: ${count}`))
-            .on('mousemove', () => tooltip
-                .style('left', (d3.event.clientX + 12) + 'px')
-                .style('top',  (d3.event.clientY - 30) + 'px'))
+            .on('mouseover', () => showSimpleTooltip(`Count: ${count}`))
+            .on('mousemove', () => moveTooltip())
             .on('mouseout', () => tooltip.style('opacity', 0));
     });
     gHT.append('g').call(d3.axisLeft(htYSc).ticks(3).tickFormat(fmtLargeNumber)).style('font-size', '10px');
@@ -579,10 +624,8 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
             .attr('x', 0).attr('width', hrXSc(count))
             .attr('fill', 'steelblue').attr('fill-opacity', 0.75)
             .style('cursor', 'default')
-            .on('mouseover', () => tooltip.style('opacity', 1).text(`Count: ${count}`))
-            .on('mousemove', () => tooltip
-                .style('left', (d3.event.clientX + 12) + 'px')
-                .style('top',  (d3.event.clientY - 30) + 'px'))
+            .on('mouseover', () => showSimpleTooltip(`Count: ${count}`))
+            .on('mousemove', () => moveTooltip())
             .on('mouseout', () => tooltip.style('opacity', 0));
     });
     gHR.append('g').attr('transform', `translate(0,${MAIN_H})`)
