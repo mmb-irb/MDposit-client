@@ -11,10 +11,12 @@
   flex-grow: 1;
   max-height: 325px;
   max-width: 35%;
+  margin-left: 10%;
 }
 
 .legend {
   width: 45%;
   max-height: 350px;
+  overflow-x: hidden;
   overflow-y: auto;
 }
