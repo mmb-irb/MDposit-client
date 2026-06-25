@@ -285,7 +285,7 @@ const nostrumConfig = {
 const HOST_CONFIGURATIONS = {
     // Testing
     'localhost': {
-        api: 'https://irb-dev.mddbr.eu/api/rest/',
+        api: 'http://localhost:8000/rest/',
         palette: {
             primary: {
             light: '#eeeeee',
