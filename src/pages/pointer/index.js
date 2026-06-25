@@ -19,7 +19,7 @@ import PointerRow, { PROJECTION_METADATA } from './row';
 // Set ID names for the different references
 const ID_NAMES = {
   proteins: 'UniProt ID',
-  ligands: 'PubChem ID',
+  inchikeys: 'InChI Key',
   pdbs: 'PDB code'
 };
 
@@ -56,11 +56,13 @@ const Pointer = () => {
   if (loading) return <Loading />;
   if (error) return error.message;
   if (!payload) return 'Something went wrong';
+  // Set the name of the referece id
+  const idName = ID_NAMES[reference] || `${reference} ID`;
   // Render the page
   return (<Card>
     <CardContent>
       <Typography variant="h5" style={{ marginBottom: '0.6em' }}>
-        {`Entries including ${referenceId} ${ID_NAMES[reference]} (${payload.length} results)`}
+        {`Entries including "${referenceId}" ${idName} (${payload.length} results)`}
       </Typography>
       {Object.entries(groupedData).map(([group, projects]) =>
         <PointerRow key={group} group={group} projects={projects} />
