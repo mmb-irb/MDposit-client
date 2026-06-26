@@ -57,7 +57,7 @@ const HOST = window.location.hostname;
 // Set default values for every host config fields
 // These values are used to fill missing values
 const DEFAUL_HOST_CONFIGURATION = {
-    api: `https://${HOST}/api/rest/`,
+    api: HOST === 'localhost' ? 'http://localhost:8000/rest/' : `https://${HOST}/api/rest/`,
     production: false,
     name: 'MDposit',
     favicon: 'mdposit_favicon',
@@ -285,7 +285,6 @@ const nostrumConfig = {
 const HOST_CONFIGURATIONS = {
     // Testing
     'localhost': {
-        api: 'http://localhost:8000/rest/',
         palette: {
             primary: {
             light: '#eeeeee',
