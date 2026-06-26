@@ -3,7 +3,7 @@ import { Button, ButtonGroup, Typography } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 
 import { BASE_PATH_PROJECTS, BASE_VERSIONED_PATH, HOST_CONFIG } from '../../utils/constants';
-import { buildProjectionQuery, createPalette } from '../../utils/auxiliar-functions';
+import { buildProjectionQuery, createPalette, formatBytes } from '../../utils/auxiliar-functions';
 import useAPI from '../../hooks/use-api';
 import useBatchAPI from '../../hooks/use-batch-api';
 
@@ -286,8 +286,14 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
     });
 
     const dataSizeValue = useMemo(() => {
-        if (!isGlobalSummary) {
-            return statsPayload ? `${statsPayload?.realDataSizeInTB.toFixed(2)} TB` : 'Loading...';
+        if (!isGlobalSummary && statsPayload) {
+            if (statsPayload.totalSize !== undefined)
+                return formatBytes(statsPayload.totalSize);
+            // Backwards compatibility for API<0.0.13
+            else if (statsPayload.realDataSizeInTB !== undefined)
+                return `${statsPayload?.realDataSizeInTB.toFixed(2)} TB`;
+            else
+                return 'Loading...';
         }
         if (!Array.isArray(nodeData) || nodeData.length === 0) return 'Loading...';
         if (bsPayload) return `${bsPayload.dataSizeInTB.toLocaleString()} TB`;

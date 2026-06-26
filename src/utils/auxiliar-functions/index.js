@@ -167,3 +167,12 @@ export const areSetsEqual = (a, b) => a.size === b.size && [...a].every(v => b.h
 // Compare arrays for having the same values
 // Note that we do not care about duplicates or order
 export const sameValues = (a, b) => areSetsEqual(new Set(a), new Set(b));
+
+// Format bytes to human-readable string
+export const formatBytes = (bytes) => {
+    if (bytes === 0) return '0 bytes';
+    const k = 1000;
+    const sizes = ['bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
