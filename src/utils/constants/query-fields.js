@@ -322,18 +322,18 @@ export default {
     ],
     "Molecular Dynamics": [
         {
-            "name": "Program",
-            "path": "metadata.PROGRAM",
-            "type": "string",
-            "example": "Gromacs",
-            "options": true,
-            "checkbox" : true
-        },
-        {
             "name": "Type",
             "path": "metadata.TYPE",
             "type": "string",
             "example": "ensemble",
+            "options": true,
+            "checkbox" : true
+        },
+        {
+            "name": "Program",
+            "path": "metadata.PROGRAM",
+            "type": "string",
+            "example": "Gromacs",
             "options": true,
             "checkbox" : true
         },
@@ -346,10 +346,18 @@ export default {
             "checkbox" : true
         },
         {
-            "name": "Timestep (fs)",
-            "path": "metadata.TIMESTEP",
+            "name": "Ensemble",
+            "path": "metadata.ENSEMBLE",
+            "type": "string",
+            "example": "NPT",
+            "options": true,
+            "checkbox" : true
+        },
+        {
+            "name": "Temperature (K)",
+            "path": "metadata.TEMP",
             "type": "float",
-            "example": "2",
+            "example": "300",
             "options": true,
             "checkbox" : true
         },
@@ -370,26 +378,18 @@ export default {
             "checkbox" : true
         },
         {
-            "name": "Temperature (K)",
-            "path": "metadata.TEMP",
-            "type": "float",
-            "example": "300",
-            "options": true,
-            "checkbox" : true
-        },
-        {
-            "name": "Ensemble",
-            "path": "metadata.ENSEMBLE",
-            "type": "string",
-            "example": "NPT",
-            "options": true,
-            "checkbox" : true
-        },
-        {
             "name": "Boxtype",
             "path": "metadata.BOXTYPE",
             "type": "string",
             "example": "Triclinic",
+            "options": true,
+            "checkbox" : true
+        },
+        {
+            "name": "Timestep (fs)",
+            "path": "metadata.TIMESTEP",
+            "type": "float",
+            "example": "2",
             "options": true,
             "checkbox" : true
         },
@@ -405,6 +405,13 @@ export default {
             "path": "mds.frames",
             "type": "int",
             "example": "any integer number",
+            "options": false
+        },
+        {
+            "name": "Simulation time (ns)",
+            "path": "mds.time",
+            "type": "float",
+            "example": "any number",
             "options": false
         },
     ],

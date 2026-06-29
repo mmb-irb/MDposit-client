@@ -602,6 +602,7 @@ if (!HOST_CONFIG.production) HOST_CONFIG.queryFields["Other"].push({
     "checkbox": true,
 });
 
+// Put all the sub options of each field on a plane list
 HOST_CONFIG.availableFields = Object.values(HOST_CONFIG.queryFields).reduce((acc, curr) => acc.concat(curr), []);
 
 export default HOST_CONFIG;
