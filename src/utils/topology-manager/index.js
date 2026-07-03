@@ -23,6 +23,8 @@ import {
 import getDefaultRepresentations from './get-default-reprensetations';
 import getEpitopesRepresentations from './get-epitopes-representations';
 import getMutationsRepresentations from './get-mutations-representations';
+// Import the Selection class to better handle atom selections
+import { Selection } from './selections';
 
 // Topology manager
 // Many functions to handle atom/residue/chain numeration conversions and more
@@ -42,6 +44,10 @@ const ELEMENT_COLORS = {
 // Set a flag which may be found in atom bonds to represent irremediably missing bonds
 // These como from coarse grain simulations with no topology
 const MISSING_BONDS_FLAG = 'MB';
+
+// Set available residue classifications
+const AVAILABLE_CLASSIFICATIONS = [ 'protein', 'dna', 'rna', 'carbohydrate',
+  'fatty', 'steroid', 'ion', 'solvent', 'acetyl', 'amide', 'other' ];
 
 // Set an atom handler
 class Atom {
@@ -78,6 +84,7 @@ class Atom {
   }
   // Check if the resiude is coarse grained
   get isCg () {
+    if (this.selections) return Boolean(this.selctions.cg) && this.selctions.cg.has(this.index);
     return this.element === CG_ATOM_ELEMENT;
   }
 }
@@ -148,6 +155,11 @@ class Residue {
   get classification () {
     // If the classification was previously found then return the stored value
     if (this._classification !== undefined) return this._classification;
+    // If the topology has selections then there will be an available classification map
+    if (this.topology.classificationsMap) {
+      const classificationIndex = this.topology.classificationsMap[this.index];
+      return AVAILABLE_CLASSIFICATIONS[classificationIndex];
+    }
     // If this is a coarse grain residue then we can not classify it through the smart way
     // We can only rely in residue names
     if (this.isCg) {
@@ -391,6 +403,11 @@ class Chain {
     // Chains are stored as and object (e.g. { 'A': 'ACE2', 'B': 'RBD' })
     else return metadataChainNames[this.name] || '';
   }
+  // Get atom indcies
+  get atomIndices () {
+    return this.iterresidues.reduce((atomIndices, nextResidue) =>
+      atomIndices.concat(nextResidue.atomIndices), []);
+  }
   // Get residue indcies
   get residueIndices () {
     return this.topology.chainResidueIndices[this.index];
@@ -452,8 +469,28 @@ export class Topology {
     this.atomBonds = topology.atom_bonds && topology.atom_bonds.map(bonds => 
       bonds === MISSING_BONDS_FLAG ? [] : bonds
     )
+    // Parse and save custom selections
+    if (topology.selections) {
+      this.selections = {};
+      Object.entries(topology.selections).forEach(([ selectionName, rawSelection ]) => {
+        this.selections[selectionName] = this.parseApiSelection(rawSelection);
+      });
+      // Assign residue classifications out of selections
+      this.classificationsMap = new Array(this.residueCount);
+      AVAILABLE_CLASSIFICATIONS.forEach((classification, classificationIndex) => {
+        const selection = this.selections[classification];
+        if (!selection) return;
+        // Get residue indices from the atom indices
+        // We save classifications as indices to save memory
+        const residueIndices = this.atom2residueIndices([...selection.atomIndices]);
+        residueIndices.forEach(residueIndex => {
+          this.classificationsMap[residueIndex] = classificationIndex
+        })
+      });
+    }
     // Save the PBC (Priodic Boundary Conditions) residues
-    this.pbcResidues = topology.pbc_residues && new Set(topology.pbc_residues);
+    this.pbcResidues = (topology.pbc_residues && new Set(topology.pbc_residues))
+      || this.selections && this.selections.pbc;
     // Data is stored in a down-top structure according to atom-residue-chain indices
     // i.e. atoms know which residue they belong to and residues know which chain they belong to
     // Now set the top-down structure values
@@ -524,6 +561,32 @@ export class Topology {
     this._defaultRepresentations = undefined;
     this._epitopeRepresentations = undefined;
     this._mutationRepresentations = undefined;
+  }
+
+  // Set a function to parse database-formatted topology selections
+  // These selections are dicts with chain, residue and atom indices
+  // Alternatively they may be simple 'all' string meaning the whole system is selected
+  parseApiSelection = apiSelection => {
+    // If the selection does not exist then return null
+    if (apiSelection === undefined) return null;
+    // If the selection is the 'all' word then select the whole system
+    if (apiSelection === 'all') return new Selection([...Array(this.atomCount).keys()])
+    // Otherwise we must convert chain and residue indices to atom indices
+    const atomIndices = [];
+    // Start with chains
+    if (apiSelection.ch) apiSelection.ch.forEach(chainIndex => {
+      const chain = this.getChainByIndex(chainIndex);
+      atomIndices.push(...chain.atomIndices);
+    });
+    // Continue with residues
+    if (apiSelection.re) apiSelection.re.forEach(residueIndex => {
+      const residue = this.getResidueByIndex(residueIndex);
+      atomIndices.push(...residue.atomIndices);
+    });
+    // Finally add atoms
+    if (apiSelection.at) atomIndices.push(...apiSelection.at);
+    // Finally return the parsed selection
+    return new Selection(atomIndices);
   }
 
   // --------------------------------------------------------------------
