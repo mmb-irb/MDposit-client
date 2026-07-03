@@ -47,7 +47,7 @@ const MISSING_BONDS_FLAG = 'MB';
 
 // Set available residue classifications
 const AVAILABLE_CLASSIFICATIONS = [ 'protein', 'dna', 'rna', 'carbohydrate',
-  'fatty', 'steroid', 'ion', 'solvent', 'acetyl', 'amide', 'other' ];
+  'fatty', 'steroid', 'ion', 'solvent', 'acetyl', 'amide', 'unknown' ];
 
 // Set an atom handler
 class Atom {
