@@ -168,6 +168,15 @@ export const areSetsEqual = (a, b) => a.size === b.size && [...a].every(v => b.h
 // Note that we do not care about duplicates or order
 export const sameValues = (a, b) => areSetsEqual(new Set(a), new Set(b));
 
+// Format option labels: capitalize first word, uppercase known acronyms (DNA, RNA)
+export const formatOptionLabel = (option) =>
+  option.split(' ').map((word, i) => {
+    const lower = word.toLowerCase();
+    if (lower === 'rna' || lower === 'dna') return lower.toUpperCase();
+    if (i === 0) return lower.charAt(0).toUpperCase() + lower.slice(1);
+    return lower;
+  }).join(' ');
+
 // Format bytes to human-readable string
 export const formatBytes = (bytes) => {
     if (bytes === 0) return '0 bytes';

@@ -24,7 +24,7 @@ import style from './style.module.css';
 
 // Constants
 import { BASE_PATH_PROJECTS, HOST_CONFIG } from '../../../utils/constants';
-import { buildProjectionQuery } from '../../../utils/auxiliar-functions';
+import { buildProjectionQuery, formatOptionLabel } from '../../../utils/auxiliar-functions';
 const SEARCH_DELAY = 500; // Half a second delay, same as in search component
 
 // Hooks
@@ -493,7 +493,7 @@ const CustomSearch = () => {
                                           inputProps={{ 'data-key': option }}
                                         />
                                       }
-                                      label={`${option} (${count})`}
+                                      label={`${formatOptionLabel(option)} (${count})`}
                                       style={{ color: 'black' }}
                                     />
                                   );
@@ -562,7 +562,7 @@ const CustomSearch = () => {
                                 
                                 return (<>
                                   <div className={style.aligned}>
-                                    <span style={{padding: '3px'}}>greater than</span>
+                                    <span style={{padding: '3px'}}>Greater than</span>
                                     <TextField
                                       title={'Type here the value for the specified field'}
                                       value={minValue}
@@ -585,7 +585,7 @@ const CustomSearch = () => {
                                     />
                                   </div>
                                   <div className={style.aligned}>
-                                    <span style={{padding: '3px'}}>lower than</span>
+                                    <span style={{padding: '3px'}}>Lower than</span>
                                     <TextField
                                       title={'Type here the value for the specified field'}
                                       value={maxValue}

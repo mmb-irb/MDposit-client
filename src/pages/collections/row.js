@@ -10,6 +10,7 @@ import Highlight from '../../components/highlight';
 import Loading from '../../components/loading'; // Displays an animated "loading" circle
 // Utils
 import { BASE_PATH_PROJECTS } from '../../utils/constants';
+import { formatOptionLabel } from '../../utils/auxiliar-functions';
 // CSS style
 import style from './style.module.css';
 
@@ -58,7 +59,7 @@ const Row = ({ data, highlight, index }) => {
         {optionsLoading && <Loading />}
         {optionsError && optionsError.toString()}
         {optionsPayload && Object.keys(optionsPayload["metadata.SYSKEYS"]).map(keyword => 
-          <Chip key={keyword} className={style.chips} label={keyword} variant={'outlined'} />
+          <Chip key={keyword} className={style.chips} label={formatOptionLabel(keyword)} variant={'outlined'} />
         )}
       </TableCell>
       {/* preview */}
