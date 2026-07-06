@@ -27,6 +27,7 @@ import {
     Mail as MailIcon,
     Storage as StorageIcon,
     Assignment as AssignmentIcon,
+    ArrowDropDown as ArrowDropDownIcon,
 } from '@mui/icons-material';
 // Import constants
 import { BASE_PATH, HOST_CONFIG, MDPOSIT_URL } from '../../utils/constants';
@@ -87,11 +88,13 @@ const HeaderMenu = () => {
             </Button>
 
             <Button
-                onClick={() => openData(!isDataOpen)}
                 color="inherit"
                 startIcon={<StorageIcon />}
+                endIcon={<ArrowDropDownIcon style={{ marginLeft: '-4px' }} />}
                 className={style.button}
                 ref={dataRef}
+                onMouseEnter={() => openData(true)}
+                onMouseLeave={() => openData(false)}
             >
                 Data
             </Button>
@@ -101,6 +104,8 @@ const HeaderMenu = () => {
                 transition
                 placement={'bottom'}
                 className={style.popper}
+                onMouseEnter={() => openData(true)}
+                onMouseLeave={() => openData(false)}
             >
                 {({ TransitionProps }) => (
                 <Grow
@@ -108,7 +113,6 @@ const HeaderMenu = () => {
                     style={{ transformOrigin: 'center top' }}
                 >
                     <Paper sx={{ backgroundColor: primaryColor }}>
-                    <ClickAwayListener onClickAway={() => openData(false)}>
                         <MenuList>
                             <MenuItem
                                 onClick={() => openData(false)}
@@ -147,7 +151,6 @@ const HeaderMenu = () => {
                                 Meta-analysis
                             </MenuItem>
                         </MenuList>
-                    </ClickAwayListener>
                     </Paper>
                 </Grow>
                 )}
