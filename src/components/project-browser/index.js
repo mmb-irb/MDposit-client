@@ -1,5 +1,5 @@
 // React logic
-import React, { useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useMemo, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Row from './row';
 import Pagination from './pagination';
@@ -109,14 +109,6 @@ const ProjectBrowser = ({ internalQuery }) => {
         return stringify(searchParameters);
     }, [search, sorting, internalQuery]);
 
-    // Set a reference for the project browser component
-    const componentRef = useRef();
-    // Smoothly scroll up when the page is changed
-    useEffect(() => {
-        const component = componentRef.current;
-        if (!component) return;
-        window.scrollTo({ top: component.offsetTop, behavior: 'smooth' });
-    }, [search.page]);
 
     // Unified sort handler for both dropdown changes and column header clicks
     const handleSort = useCallback((field, direction) => {
@@ -176,8 +168,7 @@ const ProjectBrowser = ({ internalQuery }) => {
     // When success
     return (
 
-        <div ref={componentRef}>
-
+        <div>
             {/* Render a 'no results' card when there are no results for the last search */}
             {!queryLoading && !queryPayload ? (
             <Card className={style['no-results-card']}>
@@ -191,7 +182,6 @@ const ProjectBrowser = ({ internalQuery }) => {
             {/*className={cn({ [style['invalid-results']]: !queryPayload })} */}
             {/* Table head with the names of each colum */}
             <TableHead className={style['table-head']}>
-                {/* RUBEN: I want to put some pagination at the top but at the moment this looks ugly
                 <Pagination
                 matchCount={matchCount}
                 mdCount={mdCount}
@@ -201,7 +191,7 @@ const ProjectBrowser = ({ internalQuery }) => {
                 queryPayload={queryPayload}
                 DEFAULT_LIMIT={DEFAULT_LIMIT}
                 DEFAULT_PAGE={DEFAULT_PAGE}
-                /> */}
+                />
                 <TableRow>
                 <TableCell className={style.center}>accession
                     <Button className={style.sort} onClick={() => onClickHeaderSorter('accession')}>
