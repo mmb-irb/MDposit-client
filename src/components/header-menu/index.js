@@ -85,16 +85,7 @@ const HeaderMenu = () => {
             >
                 Browse
             </Button>
-            <Button
-                component="a"
-                color="inherit"
-                href={`${BASE_PATH}docs/`}
-                target={"_blank"}
-                startIcon={<ChevronRightIcon />}
-                className={style.button}
-            >
-                REST API
-            </Button>
+
             <Button
                 onClick={() => openData(!isDataOpen)}
                 color="inherit"
@@ -161,6 +152,16 @@ const HeaderMenu = () => {
                 </Grow>
                 )}
             </Popper>
+            <Button
+                component="a"
+                color="inherit"
+                href={`${BASE_PATH}docs/`}
+                target={"_blank"}
+                startIcon={<ChevronRightIcon />}
+                className={style.button}
+            >
+                REST API
+            </Button>
             <Button
                 onClick={() => openAbout(!isAboutOpen)}
                 color="inherit"

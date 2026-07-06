@@ -1,5 +1,16 @@
 .toolbar {
   display: flex;
+  padding: 0;
+}
+
+/* Shares --content-max-width with Main so header content aligns with the page content below it */
+.container {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .logo {

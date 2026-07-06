@@ -22,15 +22,17 @@ const GradientAppBar = styled(AppBar)(({ theme }) => ({
 // Renders the logo and all the menu buttons next to it
 const Header = () => (
   <GradientAppBar position="sticky">
-    <Toolbar className={style.toolbar}>
-      <Link to="/" title="home" className={logoLabel ? style.logoffset : style.logo}>
-        <picture>
-          <source type="image/webp" srcSet={logoWebP} />
-          <LazyImg src={logo} loading="lazy" />
-          {logoLabel && <div className={style.label}>{logoLabel}</div>}
-        </picture>        
-      </Link>
-      <Menu />
+    <Toolbar className={style.toolbar} disableGutters>
+      <div className={style.container}>
+        <Link to="/" title="home" className={logoLabel ? style.logoffset : style.logo}>
+          <picture>
+            <source type="image/webp" srcSet={logoWebP} />
+            <LazyImg src={logo} loading="lazy" />
+            {logoLabel && <div className={style.label}>{logoLabel}</div>}
+          </picture>
+        </Link>
+        <Menu />
+      </div>
     </Toolbar>
   </GradientAppBar>
 );

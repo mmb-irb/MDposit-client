@@ -1,28 +1,8 @@
 .main {
   flex: 1;
-  max-width: 100%;
-  margin: 1em 10em;
-  width: 90%; 
-  max-width: 1280px;
-}
-
-
-/* Media query for larger screens */
-@media screen and (min-width: 1920px) {
-  .main {
-    max-width: 1600px; /* Increased for larger displays */
-  }
-}
-
-/* Media query for 4K displays */
-@media screen and (min-width: 2560px) {
-  .main {
-    max-width: 1920px; /* Further increased for 4K */
-    margin: 1.5em auto; /* Slightly increased margins for better proportions */
-  }
-}
-
-/* Optional: Add smooth transitions */
-.main {
+  width: 100%;
+  max-width: var(--content-max-width);
+  margin: 1em auto;
+  box-sizing: border-box;
   transition: max-width 0.3s ease, margin 0.3s ease;
 }

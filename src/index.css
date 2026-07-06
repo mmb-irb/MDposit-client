@@ -1,5 +1,19 @@
 html {
   box-sizing: border-box;
+  /* Shared content width so the header and main layouts stay aligned */
+  --content-max-width: 1280px;
+}
+
+@media screen and (min-width: 1920px) {
+  html {
+    --content-max-width: 1600px;
+  }
+}
+
+@media screen and (min-width: 2560px) {
+  html {
+    --content-max-width: 1920px;
+  }
 }
 
 *,
