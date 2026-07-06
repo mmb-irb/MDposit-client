@@ -60,7 +60,17 @@ const Collection = () => {
     if (optionsError) return optionsError.toString();
     
     // Return the accession routes
-    return (<Card>
+    return (<>
+        <Button
+            component={Link}
+            to="/collections"
+            variant="outlined"
+            size="small"
+            style={{ marginBottom: '1em' }}
+        >
+            ← Back to collections
+        </Button>
+        <Card>
         <CardContent>
             <div style={{
                     display: 'flex',
@@ -132,7 +142,8 @@ const Collection = () => {
         <hr style={{ color: 'lightGrey' }} />
         
         <ProjectBrowser internalQuery={browserInternalQuery} />
-    </Card> );
+        </Card>
+    </> );
 };
 
 export default Collection;
