@@ -437,7 +437,7 @@ const CustomSearch = () => {
               <AccordionSummary 
                 className={style.categorySummary}
               >
-                <Typography variant='h6' className={style.margined}>{category}</Typography>
+                <Typography variant='h6' >{category}</Typography>
               </AccordionSummary>
               <AccordionDetails className={style.section}>
                 <div>
@@ -489,12 +489,12 @@ const CustomSearch = () => {
                                       control={
                                         <Checkbox
                                           checked={isChecked}
-                                          style={{ color: 'black' }}
+                                          style={{ color: 'rgb(110, 110, 110)', padding: '4px 9px' }}
                                           inputProps={{ 'data-key': option }}
                                         />
                                       }
                                       label={`${formatOptionLabel(option)} (${count})`}
-                                      style={{ color: 'black' }}
+                                      style={{ color: '#303030' }}
                                     />
                                   );
                                 });

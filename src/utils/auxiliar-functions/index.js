@@ -169,13 +169,19 @@ export const areSetsEqual = (a, b) => a.size === b.size && [...a].every(v => b.h
 export const sameValues = (a, b) => areSetsEqual(new Set(a), new Set(b));
 
 // Format option labels: capitalize first word, uppercase known acronyms (DNA, RNA)
-export const formatOptionLabel = (option) =>
-  option.split(' ').map((word, i) => {
-    const lower = word.toLowerCase();
-    if (lower === 'rna' || lower === 'dna') return lower.toUpperCase();
-    if (i === 0) return lower.charAt(0).toUpperCase() + lower.slice(1);
-    return lower;
-  }).join(' ');
+// Handles '-' and '/' within tokens (e.g. 'Dna-dna/mix (1)' → 'DNA-DNA/mix (1)')
+export const formatOptionLabel = (option) => {
+  let isFirstSegment = true;
+  return option.split(' ').map((word) =>
+    word.split(/([-/])/).map((part) => {
+      if (part === '-' || part === '/') return part;
+      const lower = part.toLowerCase();
+      if (lower === 'rna' || lower === 'dna') { isFirstSegment = false; return lower.toUpperCase(); }
+      if (isFirstSegment) { isFirstSegment = false; return lower.charAt(0).toUpperCase() + lower.slice(1); }
+      return lower;
+    }).join('')
+  ).join(' ');
+};
 
 // Format bytes to human-readable string
 export const formatBytes = (bytes) => {

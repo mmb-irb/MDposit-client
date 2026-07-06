@@ -12,14 +12,6 @@
   border: 1px solid rgb(125, 125, 125);
   border-width: 0px 0 1px 0;
 }
-.margined {
-  margin: 0 0.5em;
-}
-
-h6.margined  {
-  font-size: 1.15rem;
-  font-weight: 600;
-}
 
 .spaced > div {
   font-size: 0.8em;
@@ -54,12 +46,13 @@ h6.margined  {
 
 .accordion{
   box-shadow: none;
-
+  margin-left: 10px;
 }
 
 .summary {
   cursor: pointer;
   min-height: 0;
+  font-size: 1.15em;
 }
 
 .summary > div {
