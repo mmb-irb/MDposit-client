@@ -1,28 +1,16 @@
-import React, { useLayoutEffect, useRef } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import cn from 'classnames';
-import { TableRow, TableCell, Chip } from '@mui/material';
+import { TableCell, Chip } from '@mui/material';
+import AnimatedTableRow from '../animated-table-row';
 import LazyImg from '../../components/lazy-img';
 import Highlight from '../../components/highlight';
-import reducedMotion from '../../utils/reduced-motion';
 import { NICE_NAMES } from '../../utils/constants';
 import style from './style.module.css';
 import { Project } from '../../utils/project-manager';
 
 const na = 'Not available';
 
-// These keyframes are used for an animate()
-// An image opacity is iterated between 0 (invisible) and 1 (visible)
-const keyframes = {
-  opacity: [0, 1],
-};
-
-// Same image vertical position is iterated between 0 and 50 pixels (It may have no effect)
-// This is only set when user has not activated the reduced motion option from the navigator
-if (!reducedMotion()) {
-  keyframes.transform = ['translateX(2.5%)', 'translateX(0)'];
-}
-  
 const Row = ({ projectData, highlight, index, previewUrl }) => {
   // Parse the project data using the project manager
   const project = new Project(projectData);
@@ -36,27 +24,10 @@ const Row = ({ projectData, highlight, index, previewUrl }) => {
     mdCount,
     directions
   } = project;
-  // Declare a hook from a type called "useRef"
-  const ref = useRef(null);
-  // This type of hook is like a "useEffect" but it runs after the layout is calculated and before it is painted
-  // useEffect here would re-render the whole page, thus creating "load hesitation" and a delay
-  useLayoutEffect(() => {
-    if (!(ref.current && ref.current.animate)) return;
-    // Animate the rows to move from right to left when they appear
-    const animation = ref.current.animate(keyframes, {
-      fill: 'both',
-      easing: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-      duration: 750,
-      // Set a delay which depends on the index to create a cascade effect
-      delay: 100 + index * 75,
-    });
-
-    return () => animation.cancel();
-  }, [index]);
 
   // In case we retrieve an errored entry
   if (project.error) return (
-    <TableRow ref={ref} className={style['error-row']}>
+    <AnimatedTableRow index={index} className={style['error-row']}>
       {/* accession */}
       <TableCell className={style.center}> {project.accession} </TableCell>
       {/* name */}
@@ -65,14 +36,14 @@ const Row = ({ projectData, highlight, index, previewUrl }) => {
       <TableCell className={style.center}> - </TableCell>
       {/* analyses */}
       <TableCell className={style.center}> - </TableCell>
-    </TableRow>
+    </AnimatedTableRow>
   );
 
   // Returns a table with multiple rows
   // The 3 first rows: accession, PDB accession and name are searchable. Search text is highlighted when found
   return (
-    <TableRow
-      ref={ref} // "ref" is a method from TableRow and many other rendered elements
+    <AnimatedTableRow
+      index={index}
       className={cn({ [style['not-published']]: !published })}
     >
       {/* accession */}
@@ -135,7 +106,7 @@ const Row = ({ projectData, highlight, index, previewUrl }) => {
         </div>
       </TableCell>
       {/* date */}
-    </TableRow>
+    </AnimatedTableRow>
   );
 };
 
