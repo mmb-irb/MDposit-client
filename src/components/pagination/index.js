@@ -13,17 +13,24 @@ import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import { stringify } from 'qs';
 import style from './style.module.css';
 
-const rowsPerPageOptions = [10, 25, 50, 100];
+const DEFAULT_ROWS_PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
+// Table footer/header used to change the page and the amount of results shown per page
+// Reused by every URL-driven, server-paginated table (project browser, collections, ...)
 const Pagination = ({
 	matchCount,
-	mdCount,
+	// Optional secondary count rendered next to the item count, e.g. the amount of MDs behind a set of projects
+	extraCount,
+	extraLabel,
+	// Label describing what is being counted, e.g. 'projects' or 'references'
+	itemLabel = 'results',
 	search,
 	location,
 	history,
-	queryPayload,
 	DEFAULT_LIMIT,
 	DEFAULT_PAGE,
+	rowsPerPageOptions = DEFAULT_ROWS_PER_PAGE_OPTIONS,
+	colSpan = 6,
 }) => {
 	const rowsPerPage = +search.limit || DEFAULT_LIMIT;
 	const page = (+search.page || DEFAULT_PAGE) - 1; // 0-indexed
@@ -76,7 +83,7 @@ const Pagination = ({
 
 	return (
 		<TableRow>
-			<TableCell colSpan={6} className={style['pagination-cell']}>
+			<TableCell colSpan={colSpan} className={style['pagination-cell']}>
 				<div className={style['pagination-layout']}>
 
 					{/* Left: rows-per-page control */}
@@ -102,9 +109,14 @@ const Pagination = ({
 						<strong style={{ color: 'inherit', fontWeight: 600 }}>{from}–{to}</strong>
 						{' of '}
 						<strong style={{ color: 'inherit', fontWeight: 600 }}>{matchCount.toLocaleString()}</strong>
-						{' projects ('}
-						<strong style={{ color: 'inherit', fontWeight: 600 }}>{mdCount?.toLocaleString()}</strong>
-						{' MDs)'}
+						{` ${itemLabel}`}
+						{extraCount != null && (
+							<>
+								{' ('}
+								<strong style={{ color: 'inherit', fontWeight: 600 }}>{extraCount.toLocaleString()}</strong>
+								{` ${extraLabel})`}
+							</>
+						)}
 					</Typography>
 
 					{/* Right: page navigation */}

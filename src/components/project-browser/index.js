@@ -2,7 +2,7 @@
 import React, { useMemo, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Row from './row';
-import Pagination from './pagination';
+import Pagination from '../pagination';
 
 // String managers
 import { stringify } from 'qs';
@@ -184,11 +184,12 @@ const ProjectBrowser = ({ internalQuery }) => {
             <TableHead className={style['table-head']}>
                 <Pagination
                 matchCount={matchCount}
-                mdCount={mdCount}
+                extraCount={mdCount}
+                extraLabel="MDs"
+                itemLabel="projects"
                 search={search}
                 location={location}
                 history={history}
-                queryPayload={queryPayload}
                 DEFAULT_LIMIT={DEFAULT_LIMIT}
                 DEFAULT_PAGE={DEFAULT_PAGE}
                 />
@@ -230,11 +231,12 @@ const ProjectBrowser = ({ internalQuery }) => {
             <TableFooter>
                 <Pagination
                     matchCount={matchCount}
-                    mdCount={mdCount}
+                    extraCount={mdCount}
+                    extraLabel="MDs"
+                    itemLabel="projects"
                     search={search}
                     location={location}
                     history={history}
-                    queryPayload={queryPayload}
                     DEFAULT_LIMIT={DEFAULT_LIMIT}
                     DEFAULT_PAGE={DEFAULT_PAGE}
                 />

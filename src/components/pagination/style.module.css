@@ -1,0 +1,54 @@
+.pagination-cell {
+  padding: 6px 8px;
+}
+
+.pagination-layout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pagination-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.pagination-center {
+  text-align: center;
+  padding: 0 8px;
+}
+
+.pagination-right {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.pagination-select {
+  font-size: 0.875rem;
+}
+
+/* Collapses the fieldset notch that causes the white-dot artifact */
+.pagination-select :global(legend) {
+  letter-spacing: 0;
+}
+
+.pagination-page-input {
+  font-size: 0.875rem;
+  border: 1px solid rgba(0, 0, 0, 0.23);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .pagination-page-input {
+    border-color: rgba(255, 255, 255, 0.23);
+  }
+}
+
+.pagination-page-input :global(input) {
+  text-align: center;
+  padding: 0;
+}
