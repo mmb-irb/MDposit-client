@@ -7,7 +7,6 @@ import {
     Popper,
     Grow,
     Paper,
-    ClickAwayListener,
     MenuList,
     MenuItem,
     ListItemIcon,
@@ -166,11 +165,13 @@ const HeaderMenu = () => {
                 REST API
             </Button>
             <Button
-                onClick={() => openAbout(!isAboutOpen)}
                 color="inherit"
                 startIcon={<InfoIcon />}
+                endIcon={<ArrowDropDownIcon style={{ marginLeft: '-4px' }} />}
                 className={style.button}
                 ref={aboutRef}
+                onMouseEnter={() => openAbout(true)}
+                onMouseLeave={() => openAbout(false)}
             >
                 About
             </Button>
@@ -180,6 +181,8 @@ const HeaderMenu = () => {
                 transition
                 placement={'bottom'}
                 className={style.popper}
+                onMouseEnter={() => openAbout(true)}
+                onMouseLeave={() => openAbout(false)}
             >
                 {({ TransitionProps }) => (
                 <Grow
@@ -187,13 +190,11 @@ const HeaderMenu = () => {
                     style={{ transformOrigin: 'center top' }}
                 >
                     <Paper sx={{ backgroundColor: primaryColor }}>
-                    <ClickAwayListener onClickAway={() => openAbout(false)}>
                         <MenuList>
                             <MenuItem
                                 onClick={() => openAbout(false)}
                                 component={Link}
                                 to="/documents"
-                                // If this is the current tab then use a different style
                                 style={(isCurrent("documents") && selectedTabStyle) || normalTabStyle}
                             >
                                 <ListItemIcon >
@@ -205,7 +206,6 @@ const HeaderMenu = () => {
                                 onClick={() => openAbout(false)}
                                 component={Link}
                                 to="/software"
-                                // If this is the current tab then use a different style
                                 style={(isCurrent("software") && selectedTabStyle) || normalTabStyle}
                             >
                                 <ListItemIcon >
@@ -217,7 +217,6 @@ const HeaderMenu = () => {
                                 onClick={() => openAbout(false)}
                                 component={Link}
                                 to="/help"
-                                // If this is the current tab then use a different style
                                 style={(isCurrent("help") && selectedTabStyle) || normalTabStyle}
                             >
                                 <ListItemIcon>
@@ -229,7 +228,6 @@ const HeaderMenu = () => {
                                 onClick={() => openAbout(false)}
                                 component={Link}
                                 to="/contact"
-                                // If this is the current tab then use a different style
                                 style={(isCurrent("contact") && selectedTabStyle) || normalTabStyle}
                             >
                                 <ListItemIcon>
@@ -238,7 +236,6 @@ const HeaderMenu = () => {
                                 Contact
                             </MenuItem>
                         </MenuList>
-                    </ClickAwayListener>
                     </Paper>
                 </Grow>
                 )}
