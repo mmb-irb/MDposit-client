@@ -303,7 +303,18 @@ const HOST_CONFIGURATIONS = {
     // MDposit development
     'mdposit-dev.mddbr.eu': {
         global: true,
-        primaryColor: '#5c6bc0', // Light indigo
+        palette: {
+            primary: {
+                main: '#5c6bc0', // Light indigo
+                dark: '#1400ca', // R65 G22 B163
+                contrastText: '#ffffff', 
+            },
+            secondary: {
+                main: '#4d4d4d;', // R58 G41 9915E7
+                dark: '#2c2c2c', // R153 G21 B231 not used
+                contrastText: 'rgb(255, 255, 255)',
+            },
+        },
         queryFields: queryFieldsWithNodes,
         footers: irbFooters,
     },
@@ -311,7 +322,18 @@ const HOST_CONFIGURATIONS = {
     'mdposit.mddbr.eu': {
         production: true,
         global: true,
-        primaryColor: '#5c6bc0', // Light indigo
+        palette: {
+            primary: {
+                main: '#5c6bc0', // Light indigo
+                dark: '#1400ca', // R65 G22 B163
+                contrastText: '#ffffff', 
+            },
+            secondary: {
+                main: '#4d4d4d', // R58 G41 9915E7
+                dark: '#2c2c2c', // R153 G21 B231 not used
+                contrastText: '#ffffff',
+            },
+        },
         queryFields: queryFieldsWithNodes,
         footers: irbFooters,
     },
@@ -370,8 +392,18 @@ const HOST_CONFIGURATIONS = {
     'irb.mddbr.eu': {
         production: true,
         logoLabel: 'IRB node',
-        primaryColor: '#BB00BB', // Purple
-        secondaryColor: '#4116a3', // Dark Purple
+        palette: {
+            primary: {
+            main: '#cf05ca', // R207 G5 B202
+            dark: '#4116a3', // R65 G22 B163
+            contrastText: '#fff', 
+            },
+            secondary: {
+            main: '#aa00ff', // R58 G41 9915E7
+            dark: '#9915E7', // R153 G21 B231 not used
+            contrastText: 'rgb(236, 236, 236)',
+            },
+        },
         description: <>
             {DEFAUL_HOST_CONFIGURATION.description}<br/>
             This node contains simulations stored at the MMB group at IRB Barcelona.
