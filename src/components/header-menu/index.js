@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 // Import MUI components
 import {
     Button,
@@ -32,7 +32,7 @@ import {
 import { BASE_PATH, HOST_CONFIG, MDPOSIT_URL } from '../../utils/constants';
 // Import CSS style
 import style from './style.module.css';
-import { useTheme } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 
 // Render all buttons in the superior header and manage the user redirection when they are clicked
 const HeaderMenu = () => {
@@ -42,15 +42,21 @@ const HeaderMenu = () => {
     // Set references for the buttos which open panels, so we can further anchor the pop up menus
     const dataRef = useRef();
     const aboutRef = useRef();
-    const currentLocation = window.location.hash;
-    const isCurrent = useCallback(dir => currentLocation.endsWith(dir), [ currentLocation ]);
+    // Read the location through the router (instead of window.location.hash directly) so this
+    // component re-renders, and the active-tab highlighting updates, on every client-side navigation
+    const { pathname } = useLocation();
+    const isCurrent = useCallback(dir => pathname.endsWith(dir), [ pathname ]);
+    const isHomeCurrent = pathname === '/';
+    // Whether one of the pages grouped under the Data/About dropdowns is the current page
+    const isDataCurrent = isCurrent('statistics') || (!HOST_CONFIG.singleCollection && isCurrent('collections')) || isCurrent('meta');
+    const isAboutCurrent = isCurrent('documents') || isCurrent('help') || isCurrent('contact');
     // Get the provided theme
     const theme = useTheme();
     // Set some style-related values
     const primaryColor = theme.palette.primary.light;
-    const secondaryColor = theme.palette.secondary.main;
+    const secondaryColor = theme.palette.primary.dark;
     const contrastText = theme.palette.secondary.contrastText;
-    const selectedTabStyle = { color: contrastText, backgroundColor: secondaryColor };
+    const selectedTabStyle = {  color: contrastText, backgroundColor: alpha(secondaryColor, 0.8) };
     const normalTabStyle= { color: contrastText };
     // Set components in the menu
     return (<menu className={style.menu}>
@@ -61,8 +67,8 @@ const HeaderMenu = () => {
                 href={MDPOSIT_URL}
                 target={"_blank"}
                 startIcon={<PublicIcon />}
-                className={style.button}
-                style={{'marginRight': '1.5em'}}
+                className={`${style.button} ${style.global}`}
+                style={normalTabStyle}
                 variant='outlined'
             >
                 Global
@@ -73,6 +79,7 @@ const HeaderMenu = () => {
                 to="/"
                 startIcon={<HomeIcon />}
                 className={style.button}
+                style={(isHomeCurrent && selectedTabStyle) || normalTabStyle}
             >
                 Home
             </Button>
@@ -82,6 +89,7 @@ const HeaderMenu = () => {
                 to="/browse"
                 startIcon={<SearchIcon />}
                 className={style.button}
+                style={(isCurrent('browse') && selectedTabStyle) || normalTabStyle}
             >
                 Browse
             </Button>
@@ -91,6 +99,7 @@ const HeaderMenu = () => {
                 startIcon={<StorageIcon />}
                 endIcon={<ArrowDropDownIcon style={{ marginLeft: '-4px' }} />}
                 className={style.button}
+                style={(isDataCurrent && selectedTabStyle) || normalTabStyle}
                 ref={dataRef}
                 onMouseEnter={() => openData(true)}
                 onMouseLeave={() => openData(false)}
@@ -112,13 +121,13 @@ const HeaderMenu = () => {
                     style={{ transformOrigin: 'center top' }}
                 >
                     <Paper sx={{ backgroundColor: primaryColor }}>
-                        <MenuList>
+                        <MenuList sx={{ color: contrastText }}>
                             <MenuItem
                                 onClick={() => openData(false)}
                                 component={Link}
                                 to="/statistics"
                                 // If this is the current tab then use a different style
-                                style={(isCurrent("statistics") && selectedTabStyle) || normalTabStyle}
+                                style={(isCurrent("statistics") && selectedTabStyle) || null}
                             >
                                 <ListItemIcon >
                                     <BarChartIcon fontSize="small" sx={{ color: contrastText }} />
@@ -161,6 +170,7 @@ const HeaderMenu = () => {
                 target={"_blank"}
                 startIcon={<ChevronRightIcon />}
                 className={style.button}
+                style={normalTabStyle}
             >
                 REST API
             </Button>
@@ -169,6 +179,7 @@ const HeaderMenu = () => {
                 startIcon={<InfoIcon />}
                 endIcon={<ArrowDropDownIcon style={{ marginLeft: '-4px' }} />}
                 className={style.button}
+                style={(isAboutCurrent && selectedTabStyle) || normalTabStyle}
                 ref={aboutRef}
                 onMouseEnter={() => openAbout(true)}
                 onMouseLeave={() => openAbout(false)}
@@ -190,7 +201,7 @@ const HeaderMenu = () => {
                     style={{ transformOrigin: 'center top' }}
                 >
                     <Paper sx={{ backgroundColor: primaryColor }}>
-                        <MenuList>
+                        <MenuList sx={{ color: contrastText }}>
                             <MenuItem
                                 onClick={() => openAbout(false)}
                                 component={Link}

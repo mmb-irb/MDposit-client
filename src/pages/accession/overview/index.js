@@ -220,7 +220,7 @@ const Overview = React.memo(() => {
                         marginTop: '1em',
                         backgroundColor: secondaryColor.dark,
                         border: `1px solid ${secondaryColor.dark}`,
-                        color: '#000',
+                        color: secondaryColor.contrastText,
                         '&:hover': {
                             backgroundColor: secondaryColor.main,
                             border: `1px solid ${secondaryColor.main}`,
