@@ -64,7 +64,7 @@ const Home = () => {
         <Typography variant="h5">
           {HOST_CONFIG.description}
         </Typography>
-        <Typography variant="h5">
+        <Typography variant="subtitle1" className={style['search-label']}>
           Search simulations by their title, authors or group names:
         </Typography>
         <span className={style.searchbar}>

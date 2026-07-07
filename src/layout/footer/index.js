@@ -24,7 +24,7 @@ const logoConfigurations = [
 // Show two images which are also links: Human Brain Project and IRB Barcelona
 const Footer = React.memo(() => (
   <footer>
-    <Paper>
+    <Paper elevation={0} square className={style.paper}>
       <Toolbar className={style.footer}>
         {logoConfigurations.map(logoConfig => (
           <a
