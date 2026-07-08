@@ -56,7 +56,7 @@ const HeaderMenu = () => {
     const primaryColor = theme.palette.primary.light;
     const secondaryColor = theme.palette.primary.dark;
     const contrastText = theme.palette.secondary.contrastText;
-    const selectedTabStyle = {  color: contrastText, backgroundColor: alpha(secondaryColor, 0.8) };
+    const selectedTabStyle = {  color: contrastText, backgroundColor: secondaryColor };
     const normalTabStyle= { color: contrastText };
     // Set components in the menu
     return (<menu className={style.menu}>
