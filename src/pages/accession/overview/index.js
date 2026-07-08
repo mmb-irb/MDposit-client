@@ -56,11 +56,11 @@ const Overview = React.memo(() => {
   const typeSettings = {
     trajectory: {
       label: 'Trajectory',
-      color: theme.palette.secondary.main, // light blue
+      color: theme.palette.secondary.main,
     },
     ensemble: {
       label: 'Ensemble',
-      color: theme.palette.secondary.dark, // light yellow
+      color: theme.palette.secondary.dark,
     },
   };
 
