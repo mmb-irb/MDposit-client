@@ -372,8 +372,8 @@ const HOST_CONFIGURATIONS = {
         logoLabel: 'IRB dev',
         palette: {
             primary: {
-            main: '#cf05ca', // R207 G5 B202
-            dark: '#4116a3', // R65 G22 B163
+            main: '#CF44CB', // R207 G5 B202
+            dark: '#6529CF', // R65 G22 B163
             contrastText: '#fff', 
             },
             secondary: {
@@ -394,8 +394,8 @@ const HOST_CONFIGURATIONS = {
         logoLabel: 'IRB node',
         palette: {
             primary: {
-            main: '#cf05ca', // R207 G5 B202
-            dark: '#4116a3', // R65 G22 B163
+            main: '#CF44CB', // R207 G5 B202
+            dark: '#6529CF', // R65 G22 B163
             contrastText: '#fff', 
             },
             secondary: {
