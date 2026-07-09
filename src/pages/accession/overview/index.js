@@ -174,13 +174,12 @@ const Overview = React.memo(() => {
                   let url = link.url;
                   if (!url.startsWith('http')) url = 'https://' + url;
                   return (<div key={l}>
-                    {link.name}:{' '}
                     <a
                       href={url}
                       target="_blank"
                       rel="noreferrer noopener"
                     >
-                      {link.url}
+                      {link.name}
                     </a>
                   </div>)
                 })}
