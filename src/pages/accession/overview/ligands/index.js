@@ -138,9 +138,12 @@ const LigandsOverview = () => {
                     const reference = record.Reference;
                     const chemblReference = reference.find(ref => ref.SourceName === 'ChEMBL');
                     if (chemblReference) {
-                        data.chemblURL = chemblReference.URL;
                         const chemblSplits = chemblReference.URL.split('/');
-                        data.chemblID = chemblSplits[chemblSplits.length - 1];
+                        const compound = chemblSplits[chemblSplits.length - 1];
+                        if (compound !== 'targets') {
+                            data.chemblID = chemblSplits[chemblSplits.length - 1];
+                            data.chemblURL = chemblReference.URL;
+                        }
                     }
                     // Get drugbank id and url
                     const drugbankReference = reference.find(ref => ref.SourceName === 'DrugBank');
@@ -474,7 +477,7 @@ const LigandsOverview = () => {
                                 sx={{
                                     backgroundColor: secondaryColor.dark,
                                     border: `1px solid ${secondaryColor.dark}`,
-                                    color: '#000',
+                                    color: theme.palette.secondary.contrastText,
                                     '&:hover': {
                                         backgroundColor: secondaryColor.main,
                                         border: `1px solid ${secondaryColor.main}`,
