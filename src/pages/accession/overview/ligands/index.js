@@ -366,7 +366,7 @@ const LigandsOverview = () => {
                                     sx={{
                                         backgroundColor: secondaryColor.main,
                                         border: `1px solid ${secondaryColor.dark}`,
-                                        color: '#000',
+                                        color: theme.palette.secondary.contrastText,
                                         '&:hover': {
                                             backgroundColor: secondaryColor.light,
                                             border: `1px solid ${secondaryColor.dark}`,
@@ -408,7 +408,7 @@ const LigandsOverview = () => {
                                                                 sx={{
                                                                     backgroundColor: secondaryColor.main,
                                                                     border: `1px solid ${secondaryColor.dark}`,
-                                                                    color: '#000',
+                                                                    color: theme.palette.secondary.contrastText,
                                                                     '&:hover': {
                                                                         backgroundColor: secondaryColor.light,
                                                                         border: `1px solid ${secondaryColor.dark}`,
@@ -454,7 +454,7 @@ const LigandsOverview = () => {
                                 sx={{
                                     backgroundColor: secondaryColor.dark,
                                     border: `1px solid ${secondaryColor.dark}`,
-                                    color: '#000',
+                                    color: theme.palette.secondary.contrastText,
                                     '&:hover': {
                                         backgroundColor: secondaryColor.main,
                                         border: `1px solid ${secondaryColor.main}`,
