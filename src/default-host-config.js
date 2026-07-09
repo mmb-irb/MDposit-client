@@ -1,6 +1,6 @@
 // Import auxiliar functions
 import { copyObject } from "src/utils/auxiliar-functions";
-
+import axios from 'axios';
 // Import default query fields
 import defaultQueryFields from "src/utils/constants/query-fields";
 
@@ -636,5 +636,40 @@ if (!HOST_CONFIG.production) HOST_CONFIG.queryFields["Other"].push({
 
 // Put all the sub options of each field on a plane list
 HOST_CONFIG.availableFields = Object.values(HOST_CONFIG.queryFields).reduce((acc, curr) => acc.concat(curr), []);
+
+// Get the collections list from the API once at startup and store their names
+// as nice names. This way components (e.g. the accession overview and the
+// collection statistics page) can map a collection id to its name straight from
+// HOST_CONFIG.optionsNiceNames without firing their own requests.
+if (HOST_CONFIG.optionsField === 'metadata.COLLECTIONS') {
+    // RUBEN: como en el browse, estamos lejos de llegar a las 100, en un futuro habría que paginar
+    axios(`${HOST_CONFIG.api}current/references/collections?limit=100`, {
+        headers: { ['X-MDDB-Request-Source']: 'mdposit-client' },
+    })
+        .then(response => {
+            const collectionNames = {};
+            response.data.references.forEach(reference => {
+                collectionNames[reference.id] = reference.name;
+            });
+            HOST_CONFIG.collectionNiceNames = collectionNames;
+        })
+        // If the request fails we just keep the ids as fallback names
+        .catch(() => {});
+    if (HOST_CONFIG.global) {
+        // If this is a global client then also get the nodes
+        axios(`${HOST_CONFIG.api}current/nodes`, {
+            headers: { ['X-MDDB-Request-Source']: 'mdposit-client' },
+        })
+            .then(response => {
+                const nodeNames = {};
+                response.data.forEach(node => {
+                    nodeNames[node.alias] = node.name;
+                });
+                HOST_CONFIG.nodeNiceNames = nodeNames;
+            })
+            // If the request fails we just keep the ids as fallback names
+            .catch(() => {});
+    }
+}
 
 export default HOST_CONFIG;

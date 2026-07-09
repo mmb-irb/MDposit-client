@@ -132,7 +132,6 @@ const Collection = () => {
             <Button
                 component={Link}
                 to={`/collection/${collectionId}/statistics`}
-                state={{ collectionName: referenceData.name }}
                 variant="outlined"
                 size="small"
             >

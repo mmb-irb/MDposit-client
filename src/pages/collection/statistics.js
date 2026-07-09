@@ -1,23 +1,14 @@
 import React, { useMemo } from 'react';
-import { useParams, useLocation, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { Button } from '@mui/material';
 import DataSummary from 'src/components/data-summary';
-import useAPI from 'src/hooks/use-api';
-import { BASE_VERSIONED_PATH } from 'src/utils/constants';
+import { HOST_CONFIG } from 'src/utils/constants';
+
 
 const CollectionStatistics = () => {
     const { id: collectionId } = useParams();
-    // The collection name is passed via router state from the collection page to avoid
-    // an extra API call here. If the page was opened directly (e.g. a bookmarked URL),
-    // there is no state, so fetch the reference data ourselves as a fallback.
-    const { state } = useLocation();
-    const stateCollectionName = state?.collectionName;
-    const referenceURL = stateCollectionName
-        ? null
-        : `${BASE_VERSIONED_PATH}/references/collections/${collectionId}`;
-    const { payload: referenceData } = useAPI(referenceURL);
-    const collectionName = stateCollectionName || referenceData?.name || collectionId;
-
+    // Collection names are loaded into HOST_CONFIG.collectionNiceNames at startup
+    const collectionName = HOST_CONFIG.collectionNiceNames[collectionId] || collectionId;
 
     const internalQuery = useMemo(
         () => ({ 'metadata.COLLECTIONS': collectionId }), [collectionId]);

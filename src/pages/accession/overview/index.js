@@ -142,7 +142,7 @@ const Overview = React.memo(() => {
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <div className={style['decorated-list-item__title']}>Node</div>
                 <div className={style['decorated-list-item__content']} style={{ wordBreak: 'break-word', borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                  {HOST_CONFIG.optionsNiceNames[node] || node}
+                  {HOST_CONFIG.nodeNiceNames[node] || node}
                 </div>
               </div>}
               {metadata.CONTACT && metadata.CONTACT.length > 0 &&
