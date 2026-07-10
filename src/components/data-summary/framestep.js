@@ -472,17 +472,17 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
 
     const fmtDensity = v => v >= 1 ? d3.format(',.0f')(v) : v.toFixed(1);
 
-    // Shared tooltip helper
-    function showTooltip(targetGroup, customLines) {
+    // Shared tooltip helper.
+    // Coordinates are measured against gPlot, whose local space is already the
+    // plot area (gMain is translated by (ox, oy)), so no margin offset is needed.
+    function showTooltip(customLines) {
         customLines = customLines || [];
-        const [mx, my] = d3.mouse(targetGroup.node());
-        const adjustedX = mx - ox;
-        const adjustedY = my - oy;
+        const [mx, my] = d3.mouse(gPlot.node());
         const textLines = [];
 
-        if (adjustedX >= 0 && adjustedX <= MAIN_W && adjustedY >= 0 && adjustedY <= MAIN_H) {
-            const timeNs = xSc.invert(adjustedX);
-            const frames = ySc.invert(adjustedY);
+        if (mx >= 0 && mx <= MAIN_W && my >= 0 && my <= MAIN_H) {
+            const timeNs = xSc.invert(mx);
+            const frames = ySc.invert(my);
             textLines.push(`Time: ${fmtScientific(timeNs)} ns`);
             textLines.push(`Frames: ${fmtScientific(frames)}`);
         }
@@ -515,7 +515,7 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
         .attr('height', MAIN_H)
         .attr('fill', 'transparent')
         .style('pointer-events', 'visible')
-        .on('mousemove', () => showTooltip(svg, []))
+        .on('mousemove', () => showTooltip([]))
         .on('mouseout', () => tooltip.style('opacity', 0));
 
     // Filled contours (alpha 0.2 so scatter dots show through)
@@ -531,7 +531,7 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
             }
         })
         .on('mousemove', function() {
-            showTooltip(gPlot,
+            showTooltip(
                 [`Density: ${fmtDensity(d3.select(this).datum().value)} MD/decade²`,
                 `MDs in contour: ${d3.format(',.0f')(d3.select(this).datum().pointCount)}`
                 ]);
