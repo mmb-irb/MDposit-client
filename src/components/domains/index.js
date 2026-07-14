@@ -230,7 +230,13 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
         // By marking the domain as redundant it will be removed further
         overallDomain.redundant = true;
       }
+      // Get the default representations for the ligands alone
       const ligandRepresentations = getDefaultRepresentations(topology, residueIndices);
+      // But then change the parameters of these default representations
+      ligandRepresentations.forEach(representation => {
+        representation.type = 'ball+stick';
+        representation.color = 'element';
+      })
       // Set the ligand domain
       const ligandDomain = {
         name: domainName,
