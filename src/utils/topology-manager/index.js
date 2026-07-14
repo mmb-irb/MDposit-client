@@ -47,7 +47,7 @@ const MISSING_BONDS_FLAG = 'MB';
 
 // Set available residue classifications
 const AVAILABLE_CLASSIFICATIONS = [ 'protein', 'dna', 'rna', 'carbohydrate',
-  'fatty', 'steroid', 'ion', 'solvent', 'acetyl', 'amide', 'unknown' ];
+  'fatty', 'steroid', 'ion', 'solvent', 'acetyl', 'amide', 'other', 'unknown' ];
 
 // Set an atom handler
 class Atom {
@@ -405,7 +405,7 @@ class Chain {
   }
   // Get atom indcies
   get atomIndices () {
-    return this.iterresidues.reduce((atomIndices, nextResidue) =>
+    return [ ...this.iterresidues() ].reduce((atomIndices, nextResidue) =>
       atomIndices.concat(nextResidue.atomIndices), []);
   }
   // Get residue indcies
@@ -469,28 +469,6 @@ export class Topology {
     this.atomBonds = topology.atom_bonds && topology.atom_bonds.map(bonds => 
       bonds === MISSING_BONDS_FLAG ? [] : bonds
     )
-    // Parse and save custom selections
-    if (topology.selections) {
-      this.selections = {};
-      Object.entries(topology.selections).forEach(([ selectionName, rawSelection ]) => {
-        this.selections[selectionName] = this.parseApiSelection(rawSelection);
-      });
-      // Assign residue classifications out of selections
-      this.classificationsMap = new Array(this.residueCount);
-      AVAILABLE_CLASSIFICATIONS.forEach((classification, classificationIndex) => {
-        const selection = this.selections[classification];
-        if (!selection) return;
-        // Get residue indices from the atom indices
-        // We save classifications as indices to save memory
-        const residueIndices = this.atom2residueIndices([...selection.atomIndices]);
-        residueIndices.forEach(residueIndex => {
-          this.classificationsMap[residueIndex] = classificationIndex
-        })
-      });
-    }
-    // Save the PBC (Priodic Boundary Conditions) residues
-    this.pbcResidues = (topology.pbc_residues && new Set(topology.pbc_residues))
-      || this.selections && this.selections.pbc;
     // Data is stored in a down-top structure according to atom-residue-chain indices
     // i.e. atoms know which residue they belong to and residues know which chain they belong to
     // Now set the top-down structure values
@@ -512,6 +490,36 @@ export class Topology {
     this.sequences = this.chainResidueIndices.map(residueIndices => 
       residueIndices.map(residueIndex => this.getResidueByIndex(residueIndex).letter).join('')
     );
+    // Parse and save custom selections
+    // WARNING: Do this late in the constructor
+    // WARNING: We need functional chains, residues an atoms to parse API selections
+    if (topology.selections) {
+      this.selections = {};
+      Object.entries(topology.selections).forEach(([ selectionName, rawSelection ]) => {
+        this.selections[selectionName] = this.parseApiSelection(rawSelection);
+      });
+      // Assign residue classifications out of selections
+      this.classificationsMap = new Array(this.residueCount);
+      AVAILABLE_CLASSIFICATIONS.forEach((classification, classificationIndex) => {
+        const selection = this.selections[classification];
+        if (!selection) return;
+        // Get residue indices from the atom indices
+        // We save classifications as indices to save memory
+        const residueIndices = this.atom2residueIndices([...selection.atomIndices]);
+        residueIndices.forEach(residueIndex => {
+          this.classificationsMap[residueIndex] = classificationIndex
+        })
+      });
+      // Set the PBC (Priodic Boundary Conditions) residues
+      const pbcAtomIndices = this.selections.pbc && Array.from(this.selections.pbc.atomIndices);
+      const pbcResidueIndices = pbcAtomIndices && this.atom2residueIndices(pbcAtomIndices);
+      this.pbcResidues = pbcResidueIndices && new Set(pbcResidueIndices);
+    }
+    // LEGACY: If there is no selections available then some things must be done differently
+    else {
+      // Set the PBC (Priodic Boundary Conditions) residues
+      this.pbcResidues = topology.pbc_residues && new Set(topology.pbc_residues)
+    }
     // Save metadata chain names
     // They are not letters ('A', 'B', etc.) but actual names ('Spike', 'Glycans', etc.)
     this.metadataChainNames = metadata.CHAINNAMES;
