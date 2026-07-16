@@ -220,6 +220,11 @@ const ContentSwitch = ({ subPage }) => {
       return `The federated node "${nodeName}" is having an unknown problem with project "${project.accession}": ${problems.message}`;
     }
   }, [project, problems, nodesPayload]);
+  // Memoize the lazy component so its reference stays stable across rerenders of ContentSwitch.
+  // Without this, every rerender (e.g. triggered by the checkProblems topology fetch on global)
+  // would create a new lazy() type, causing React to unmount and remount the entire subpage.
+  const PageComponent = useMemo(() => lazy(() => import(`./${subPage}`)), [subPage]);
+
   // The overview page is prepared to work even when no additional data from the federated node is available
   // For this reason we let the render proceed only if the subpage is the overview page
   // Note that the overview page will also show the problems banner anyway
@@ -227,10 +232,6 @@ const ContentSwitch = ({ subPage }) => {
 
   // Make sure the requested subpage exists among the available directions
   if (project.directions[subPage] === undefined) return `Subpage "${subPage}" is not recognized`;
-
-  // Get the component to be rendered according to the subpage name
-  //const Component = pageComponents[subPage];
-  const PageComponent = lazy(() => import(`./${subPage}`));
 
   // Render the accession
   return (

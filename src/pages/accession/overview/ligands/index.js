@@ -130,13 +130,14 @@ const LigandsOverview = () => {
                     const data = {};
                     // First get the ligand name
                     const record = sourceData.Record;
+                    if (!record) return;
                     data.name = record.RecordTitle;
                     // If there is a forced name then use add it to the name
                     const forcedLigandName = metadata.LIGANDNAMES && metadata.LIGANDNAMES[pubchemId];
                     if (forcedLigandName && forcedLigandName !== data.name) data.name += ` (${forcedLigandName})`;
                     // Get chembl id and url
                     const reference = record.Reference;
-                    const chemblReference = reference.find(ref => ref.SourceName === 'ChEMBL');
+                    const chemblReference = reference && reference.find(ref => ref.SourceName === 'ChEMBL');
                     if (chemblReference) {
                         const chemblSplits = chemblReference.URL.split('/');
                         const compound = chemblSplits[chemblSplits.length - 1];
