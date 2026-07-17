@@ -53,4 +53,6 @@
   padding: 8px;
   font-family: sans-serif;
   white-space: pre-line;
+  /* Stay above the floating settings-controls overlay (z-index: 1) */
+  z-index: 10;
 }
