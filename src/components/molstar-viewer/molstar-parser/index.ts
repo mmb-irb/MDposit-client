@@ -2,7 +2,7 @@ import { StateTransformer } from 'molstar/lib/mol-state';
 import { PluginStateObject } from 'molstar/lib/mol-plugin-state/objects';
 import { Task } from 'molstar/lib/mol-task';
 import { ParamDefinition as PD } from 'molstar/lib/mol-util/param-definition';
-import { Coordinates, Time } from 'molstar/lib/mol-model/structure';
+import { Coordinates, Frame, Time } from 'molstar/lib/mol-model/structure';
 
 const CreateTransformer = StateTransformer.builderFactory('custom-namespace');
 
@@ -19,13 +19,23 @@ export const TrajectoryFromCustomData = CreateTransformer({
     apply({ params }) {
         return Task.create('Parse atom coordinates', async (ctx) => {
             //ctx.update({ canAbort: true, message: 'Parsing trajectory...' });
-            return await customParse(params.data, params.natoms);
+            const frames = parseCoordinateFrames(params.data, params.natoms);
+            const molstarCoords = Coordinates.create(
+                frames,
+                Time(1, 'step'), // deltaTime
+                Time(0, 'step') // offsetTime
+            );
+            return new PluginStateObject.Molecule.Coordinates(molstarCoords, { label: 'label' });
         });
     },
 });
 
-// Parse binary atom coordinates
-async function customParse (data: Uint8Array, natoms: number) {
+// Parse binary atom coordinates into molstar per-frame coordinate objects
+// Exported (and kept synchronous/task-free) so the viewer can also call it directly to parse just the
+// newly downloaded bytes of a trajectory that is still streaming in, without going through the
+// state-tree transform machinery for every single downloaded chunk
+// 'frameOffset' lets the resulting frames' Time values stay monotonic when parsing a later chunk
+export function parseCoordinateFrames(data: Uint8Array, natoms: number, frameOffset: number = 0): Frame[] {
     // Check the number of atoms to not be 0 (the default)
     if (natoms === 0) throw new Error('Number of atoms is 0');
     // Each coordinates is a float32 an thus it takes 4 bytes of space
@@ -41,7 +51,7 @@ async function customParse (data: Uint8Array, natoms: number) {
     // Convert binary data to coordinates
     const coordinates = new Float32Array(data);
     // Set a list with the already read coordinates
-    const frameCoordinates = [];
+    const frameCoordinates: Frame[] = [];
     // Keep track of the coordinate we are reading
     let count = 0;
     // Iterate over each frame number
@@ -66,15 +76,9 @@ async function customParse (data: Uint8Array, natoms: number) {
             z: z_coords,
             // Add a few extra parameters on each frame
             elementCount: natoms,
-            time: Time(frame, 'step'),
+            time: Time(frameOffset + frame, 'step'),
             xyzOrdering: { isIdentity: true }
         });
     }
-    // Set the molstar object for coordinates
-    const molstarCoords = Coordinates.create(
-        frameCoordinates,
-        Time(1, 'step'), // deltaTime
-        Time(0, 'step') // offsetTime
-    );
-    return new PluginStateObject.Molecule.Coordinates(molstarCoords, { label: 'label' });
+    return frameCoordinates;
 }
