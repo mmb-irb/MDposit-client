@@ -21,6 +21,8 @@ import { TrajectoryFromModelAndCoordinates } from 'molstar/lib/mol-plugin-state/
 import { AnimateModelIndex } from 'molstar/lib/mol-plugin-state/animation/built-in/model-index';
 import { createStructureRepresentationParams } from 'molstar/lib/mol-plugin-state/helpers/structure-representation-params';
 import { StateTransforms } from 'molstar/lib/mol-plugin-state/transforms';
+import { MolScriptBuilder as MS } from 'molstar/lib/mol-script/language/builder';
+import { Color } from 'molstar/lib/mol-util/color';
 /*  Might require extra configuration,
 see https://webpack.js.org/loaders/sass-loader/ for example.
 create-react-app should support this natively. */
@@ -30,6 +32,8 @@ create-react-app should support this natively. */
 import { TrajectoryFromCustomData } from './molstar-parser';
 
 import { ProjectCtx } from '../../contexts';
+
+import { rangedSelectionParser } from '../../utils/auxiliar-functions';
 
 //import { setTooltipPosition } from '../../utils/tooltip-position-manager';
 
@@ -99,6 +103,83 @@ const defaultHighlightTypes = {
   selections: 'ball+stick',
 };
 
+// Map this app's NGL-style representation type names (set in get-default-representations)
+// to molstar representation type names
+// Molstar has no dedicated 'licorice' or 'base' type, so those are approximated with ball-and-stick
+const REPRESENTATION_TYPES = {
+  cartoon: { type: 'cartoon' },
+  'ball+stick': { type: 'ball-and-stick' },
+  licorice: { type: 'line' },
+  spacefill: { type: 'spacefill' },
+  surface: { type: 'molecular-surface' },
+  line: { type: 'line' },
+  point: { type: 'point' },
+  base: { type: 'ball-and-stick' },
+};
+const DEFAULT_REPRESENTATION_TYPE = { type: 'ball-and-stick' };
+const getRepresentationType = typeName =>
+  REPRESENTATION_TYPES[typeName] || DEFAULT_REPRESENTATION_TYPE;
+
+// Map this app's NGL-style color names to molstar color themes
+const COLOR_THEMES = {
+  chainid: 'chain-id',
+  element: 'element-symbol',
+  resname: 'residue-name',
+};
+// Plain color names/values with no direct molstar theme equivalent are rendered as a uniform color
+const NAMED_COLORS = {
+  grey: 0x808080,
+  gray: 0x808080,
+  purple: 0x800080,
+};
+const getColorTheme = colorName => {
+  const themeName = COLOR_THEMES[colorName];
+  if (themeName) return { name: themeName };
+  const namedColor = NAMED_COLORS[colorName];
+  if (namedColor !== undefined)
+    return { name: 'uniform', params: { value: Color(namedColor) } };
+  return { name: 'chain-id' };
+};
+
+// Matches the "(:chain and (ranges))" chunks produced by topology.residueIndices2Ngl
+// e.g. "(:A and (1, 3-5)) or (:B and (1))"
+const NGL_CHAIN_SELECTION_REGEX = /\(:(\S+) and \(([^)]+)\)\)/g;
+
+// Translate one of this app's NGL selection strings into a flat list of atom indices
+// Returns null when the selection targets the whole structure (no filtering needed)
+// Only understands the chain/residue-range grammar produced by topology.residueIndices2Ngl,
+// which is what every default representation (protein, ligands, membrane/lipids, ions, ...) uses
+// Arbitrary/custom NGL selections are not supported and fall back to representing the whole structure
+const nglSelectionToAtomIndices = (selection, topologyManager) => {
+  if (!selection || selection === 'all') return null;
+  const atomIndices = [];
+  let matched = false;
+  let match;
+  NGL_CHAIN_SELECTION_REGEX.lastIndex = 0;
+  while ((match = NGL_CHAIN_SELECTION_REGEX.exec(selection))) {
+    matched = true;
+    const [, chainName, ranges] = match;
+    for (const residueNumber of rangedSelectionParser(ranges)) {
+      try {
+        const residue = topologyManager.getResidueByParameters(chainName, residueNumber);
+        atomIndices.push(...residue.atomIndices);
+      } catch (error) {
+        console.warn('Molstar viewer: could not resolve residue for selection', selection, error);
+      }
+    }
+  }
+  if (!matched) return null;
+  return atomIndices;
+};
+
+// Build a molstar expression selecting exactly the given atom indices
+// This relies on 'sourceIndex', the 0-based index of the atom in the loaded topology file,
+// which matches the atom indices used everywhere else in this app (topology, trajectory coordinates)
+const atomIndicesToExpression = atomIndices =>
+  MS.struct.generator.atomGroups({
+    'atom-test': MS.core.set.has([MS.core.type.set(atomIndices), MS.acp('sourceIndex')]),
+  });
+
 const MolstarViewer = memo(
   forwardRef(
     (
@@ -127,6 +208,7 @@ const MolstarViewer = memo(
         coloringMethods,
         opacities,
         components,
+        representations,
         showRepresentations,
         nglSelections,
         // Viewer data incluting both structure and coordinates
@@ -193,6 +275,10 @@ const MolstarViewer = memo(
 
       // Set the molstar model reference
       const [modelReference, setModelReference] = useState(null);
+
+      // Track the root node of the previously built trajectory/structure/representations
+      // so it can be discarded before rebuilding, instead of stacking duplicates on every rerun
+      const previousTrajectoryRootRef = useRef(null);
 
       // Load topologies in molstar
       useEffect(() => {
@@ -293,6 +379,16 @@ const MolstarViewer = memo(
             totalFrames === trajectoryFinalExpectedFrames;
           if (!completedTrajectory) return;
 
+          // Discard the previously built trajectory/structure/representations, if any
+          // Otherwise every rerun of this effect would stack a new duplicate on top of the previous one
+          if (previousTrajectoryRootRef.current) {
+            await molstar
+              .build()
+              .delete(previousTrajectoryRootRef.current)
+              .commit();
+            previousTrajectoryRootRef.current = null;
+          }
+
           // Load coordinates as they are parsed
           const coords = await molstar
             .build()
@@ -302,12 +398,7 @@ const MolstarViewer = memo(
               natoms: trajectory.atoms,
             })
             .commit();
-
-          // Get the current loaded trajectories
-          // DANI: No te fies de este número
-          // DANI: Aquí aparecen todas las trayectorias declaradas, incluido aquellas que no han sido 'aplicadas'
-          const loadedTrajectories =
-            molstar.managers.structure.hierarchy.current.trajectories;
+          previousTrajectoryRootRef.current = coords.ref;
 
           const molstarTrajectory = await molstar
             .build()
@@ -328,58 +419,80 @@ const MolstarViewer = memo(
             molstarTrajectory,
           );
 
-          // Set the default representation
-          // Use a lightweighted representation type
+          // Set the default representations
           const structure = await molstar.builders.structure.createStructure(
             newModel,
           );
-          const components = molstar.build().to(structure);
-          const lightRepresentation = createStructureRepresentationParams(
-            molstar,
-            void 0,
-            {
-              type: 'cartoon',
-              typeParams: {
-                // Quality options: custom, auto, highest, higher, high, medium, low, lower, lowest
-                // https://github.com/molstar/molstar/blob/0e197b18857d59c27f51d4aa0226cd772bc872ca/src/mol-geo/geometry/base.ts
-                // DANI: 'lowest' se ve muy feo y no mejora mucho el rendimiento
-                quality: 'lower',
-                ignoreHydrogens: 'all',
-                ignoreHydrogensVariant: 'all',
-                ignoreLight: true,
+
+          // Build one molstar component + representation per data representation
+          // (mirrors what the NGL viewer does with the same `representations`/`components` props)
+          // Fall back to a single lightweight cartoon over the whole structure when there is
+          // no representations data yet (e.g. still loading) or none was provided at all
+          const reps = representations && representations.length > 0
+            ? representations
+            : [{ selection: 'all', type: 'cartoon', color: 'chainid' }];
+
+          for (const representation of reps) {
+            if (representation.show === false) continue;
+
+            // Resolve which atoms this representation targets, and build a component for them
+            let component;
+            const atomIndices = nglSelectionToAtomIndices(representation.selection, topologyManager);
+            if (atomIndices === null) {
+              // No filtering needed: represent the whole structure
+              component = structure;
+            } else {
+              if (atomIndices.length === 0) continue;
+              component = await molstar.builders.structure.tryCreateComponentFromExpression(
+                structure,
+                atomIndicesToExpression(atomIndices),
+                representation.name || representation.selection,
+              );
+              // The selection matched no atoms in the loaded structure
+              if (!component) continue;
+            }
+
+            const { type, typeParams } = getRepresentationType(representation.type);
+            const colorTheme = getColorTheme(representation.color);
+            const reprParams = createStructureRepresentationParams(
+              molstar,
+              void 0,
+              {
+                type,
+                typeParams: {
+                  // Quality options: custom, auto, highest, higher, high, medium, low, lower, lowest
+                  // https://github.com/molstar/molstar/blob/0e197b18857d59c27f51d4aa0226cd772bc872ca/src/mol-geo/geometry/base.ts
+                  // DANI: 'lowest' se ve muy feo y no mejora mucho el rendimiento
+                  quality: 'lower',
+                  ignoreHydrogens: 'all',
+                  ignoreHydrogensVariant: 'all',
+                  ignoreLight: true,
+                  ...typeParams,
+                },
+                color: colorTheme.name,
+                colorParams: colorTheme.params,
               },
-            },
-          );
+            );
 
-          components.apply(
-            StateTransforms.Representation.StructureRepresentation3D,
-            lightRepresentation,
-          );
-          await components.commit();
-
-          // DANI: Hay 2 presets: 'default' y 'all-models'. Aparecen siempre, aunque tu no los hayas creado
-          //const currentPresets = molstar.builders.structure.hierarchy.getPresetsWithOptions(molstarTrajectory);
-          //console.log(currentPresets);
-
-          // DANI: El apply preset puede hacerse a 'default' o a 'all-models'
-          // DANI: El 'all-models' te representa todas las frames superpuestas (y tarda)
-          // await molstar.builders.structure.hierarchy.applyPreset(
-          //   molstarTrajectory,
-          //   'default',
-          // );
-
-          // If there is a trajectory already update it with new data
-          if (loadedTrajectories.length > 0) {
-            //if (loadedTrajectories.length > 1) throw new Error('Molstar error: There should be only 1 trajectory');
-            //console.log('already loaded traj!!');
-          }
-          // If there is not trajectory yet then create a new trajectory
-          else {
-            //console.log('loading for the first time');
+            const update = molstar.build();
+            update.to(component).apply(
+              StateTransforms.Representation.StructureRepresentation3D,
+              reprParams,
+            );
+            await update.commit();
           }
         };
         wrap();
-      }, [molstar, modelReference, topologies, trajectories, comps, noTrajectory]);
+      }, [
+        molstar,
+        modelReference,
+        topologies,
+        trajectories,
+        comps,
+        representations,
+        topologyManager,
+        noTrajectory,
+      ]);
 
       // play/pause button effect
       useEffect(() => {
