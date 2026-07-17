@@ -24,6 +24,7 @@ import LigandTable from './ligand-table';
 import { docs } from 'src/pages/help/documentation';
 // Import other tools
 import https from 'https-browserify';
+import Version from 'src/utils/version';
 
 // Set mordred and morgan documentation
 const mordredDoc = docs.find(doc => doc.id === 'mordred-descriptors');
@@ -119,46 +120,60 @@ const LigandsOverview = () => {
         ligandAndLipidReferences.forEach(ligandReference => {
             const pubchemId = ligandReference.pubchem;
             if (typeof pubchemId !== 'string') return;
-            const pubchemAPIurl = `https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/${pubchemId}/JSON/`;
-            let body = '';
-            const request = https.get(pubchemAPIurl, response => {
-                response.on('data', chunk => { body += chunk });
-                response.on('end', () => {
-                    // Get the original API response data
-                    const sourceData = JSON.parse(body);
-                    // Mine all data we want to display
-                    const data = {};
-                    // First get the ligand name
-                    const record = sourceData.Record;
-                    data.name = record.RecordTitle;
-                    // If there is a forced name then use add it to the name
-                    const forcedLigandName = metadata.LIGANDNAMES && metadata.LIGANDNAMES[pubchemId];
-                    if (forcedLigandName && forcedLigandName !== data.name) data.name += ` (${forcedLigandName})`;
-                    // Get chembl id and url
-                    const reference = record.Reference;
-                    const chemblReference = reference.find(ref => ref.SourceName === 'ChEMBL');
-                    if (chemblReference) {
-                        const chemblSplits = chemblReference.URL.split('/');
-                        const compound = chemblSplits[chemblSplits.length - 1];
-                        if (compound !== 'targets') {
-                            data.chemblID = chemblSplits[chemblSplits.length - 1];
-                            data.chemblURL = chemblReference.URL;
+            const version = new Version(ligandReference.version);
+            // Mine all data we want to display
+            const data = {};
+            if (version.greaterThan('0.0.0')) {
+                // Use the data already mined by the workflow
+                data.name = ligandReference.name;
+                data.chemblID = ligandReference.chembl;
+                data.chemblURL = 'https://www.ebi.ac.uk/chembl/explore/compound/' + ligandReference.chembl;
+                data.drugbankID = ligandReference.drugbank;
+                data.drugbankURL = 'https://go.drugbank.com/drugs/' + ligandReference.drugbank;
+                setPubchemInfo(previous => {
+                    return { ...previous, [pubchemId]: data };
+                });
+            } else {
+                const pubchemAPIurl = `https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/${pubchemId}/JSON/`;
+                let body = '';
+                const request = https.get(pubchemAPIurl, response => {
+                    response.on('data', chunk => { body += chunk });
+                    response.on('end', () => {
+                        // Get the original API response data
+                        const sourceData = JSON.parse(body);
+                        // First get the ligand name
+                        const record = sourceData.Record;
+                        if (!record) return;
+                        data.name = record.RecordTitle;
+                        // If there is a forced name then use add it to the name
+                        const forcedLigandName = metadata.LIGANDNAMES && metadata.LIGANDNAMES[pubchemId];
+                        if (forcedLigandName && forcedLigandName !== data.name) data.name += ` (${forcedLigandName})`;
+                        // Get chembl id and url
+                        const reference = record.Reference;
+                        const chemblReference = reference && reference.find(ref => ref.SourceName === 'ChEMBL');
+                        if (chemblReference) {
+                            const chemblSplits = chemblReference.URL.split('/');
+                            const compound = chemblSplits[chemblSplits.length - 1];
+                            if (compound !== 'targets') {
+                                data.chemblID = chemblSplits[chemblSplits.length - 1];
+                                data.chemblURL = chemblReference.URL;
+                            }
                         }
-                    }
-                    // Get drugbank id and url
-                    const drugbankReference = reference.find(ref => ref.SourceName === 'DrugBank');
-                    if (drugbankReference) {
-                        data.drugbankURL = drugbankReference.URL;
-                        const drugbankSplits = drugbankReference.URL.split('/');
-                        data.drugbankID = drugbankSplits[drugbankSplits.length - 1];
-                    }
-                    // Add current ligand data to the overall ligands data object
-                    setPubchemInfo(previous => {
-                        return { ...previous, [pubchemId]: data };
+                        // Get drugbank id and url
+                        const drugbankReference = reference.find(ref => ref.SourceName === 'DrugBank');
+                        if (drugbankReference) {
+                            data.drugbankURL = drugbankReference.URL;
+                            const drugbankSplits = drugbankReference.URL.split('/');
+                            data.drugbankID = drugbankSplits[drugbankSplits.length - 1];
+                        }
+                        // Add current ligand data to the overall ligands data object
+                        setPubchemInfo(previous => {
+                            return { ...previous, [pubchemId]: data };
+                        });
                     });
                 });
-            });
-            requests.push(request);
+                requests.push(request);
+            }
         });
         // DANI: No he comprovado que esto funcione debidamente
         return () => {

@@ -1,9 +1,0 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
-
-exports[`<Body /> should render 1`] = `
-<div
-  className="body"
->
-  <section />
-</div>
-`;

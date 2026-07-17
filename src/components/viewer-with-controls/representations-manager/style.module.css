@@ -1,21 +1,114 @@
+/* Wrapper */
+.container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* Fixed layout so every column takes a fixed proportion of the panel and they
+   all shrink/grow together as the panel is resized (no horizontal scroll) */
+.table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+/* Proportional column widths (Name, Show, Selection, Drawing, Coloring, Opacity) */
+.table .headerCell:nth-child(1),
+.table .row .nameCell {
+  width: 18%;
+}
+.table .headerCell:nth-child(2),
+.table .row .cell:nth-child(2) {
+  width: 9%;
+}
+.table .headerCell:nth-child(3),
+.table .row .cell:nth-child(3) {
+  width: 21%;
+}
+.table .headerCell:nth-child(4),
+.table .row .cell:nth-child(4) {
+  width: 18%;
+}
+.table .headerCell:nth-child(5),
+.table .row .cell:nth-child(5) {
+  width: 18%;
+}
+.table .headerCell:nth-child(6),
+.table .row .cell:nth-child(6) {
+  width: 16%;
+}
+
+/* Header cells */
+.table .headerCell {
+  font-weight: 600;
+  font-size: 0.66rem;
+  line-height: 1.25;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #5a5a5a;
+  background: #f7f7f8;
+  border-bottom: 1px solid #e2e2e5;
+  vertical-align: middle;
+  padding: 8px 6px;
+}
+
+/* Keep the Selection label and its info icon on the same baseline as the
+   other headers */
+.selectionHeader {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Body cells */
+.table .cell,
+.table .nameCell {
+  padding: 6px 6px;
+  vertical-align: middle;
+  border-bottom: 1px solid #f0f0f2;
+}
+
+.table .nameCell {
+  font-weight: 500;
+  font-size: 0.8rem;
+  color: #2a2a2a;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+/* Subtle row hover for readability */
+.table .row:hover .cell,
+.table .row:hover .nameCell {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+/* Controls fill their (proportional) column and shrink with it */
+.selectionField,
+.select {
+  width: 100%;
+  min-width: 0;
+}
+
+.select {
+  font-size: 0.8rem;
+}
+
+/* Opacity slider fills its column, padded so the thumb never overflows */
+.sliderWrap {
+  width: 100%;
+  padding: 0 8px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+}
+
 .popover-slider {
-  display: inline-block;
-  margin-top: 1em;
+  display: block;
+  width: 100%;
 }
 
-.tablecard {
-  display: inline-block;
-  width: 60%;
-}
-
-.nglcard {
-  display: inline-block;
-  width: 40%;
-}
-
-.paper {
-  max-height: 500px;
-  overflow-y: scroll;
+/* "Add representation" row */
+.addCell {
+  border-bottom: none;
+  padding: 4px;
 }
 
 .info {
@@ -25,5 +118,5 @@
 }
 
 .info > svg {
-  width:0.5em !important;
+  width: 0.5em !important;
 }

@@ -15,18 +15,10 @@ import screenfull from 'screenfull';
 import {
   Card,
   CardContent,
-  Grid,
   LinearProgress,
-  Icon,
   IconButton,
-  Slider,
 } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  faDotCircle,
-  faImages,
-  faSquare,
-} from '@fortawesome/free-regular-svg-icons';
 import {
   faStepBackward,
   faStepForward,
@@ -34,26 +26,19 @@ import {
   faPlay,
   faExpand,
   faCompress,
-  faSyncAlt,
-  faVideo,
-  faAdjust,
   faCog,
-  faCube,
-  faWalking,
-  faBiking,
   faTimes,
   faLock,
   faUnlock,
-  faStarOfLife,
-  faShareAlt, // It looks like connected atoms
 } from '@fortawesome/free-solid-svg-icons';
 // Load components used specifically in the viewer with controls
 import RepresentationsManager from './representations-manager';
+import SettingsControls from './settings-controls';
 
 import { get, setAsync } from '../../utils/storage';
 
 // The main component of the viewer itself
-import MolstarViewer from '../molstar-viewer';
+// NGL is the default backend; the viewer switch itself lives in SettingsControls
 import NGLViewer from '../ngl-viewer';
 
 // Hooks
@@ -368,6 +353,11 @@ const ViewerWithControls = forwardRef(
     );
     const [speed, setSpeed] = useState(useMemo(() => get('speed', 50), []));
     const [settings, openSettings] = useState(false);
+    // Width (in px) of the settings panel, resizable by dragging its left border
+    // Cap the initial width to at most half of the window so it never opens oversized
+    const [settingsWidth, setSettingsWidth] = useState(
+      useMemo(() => Math.min(get('settings-width', 480), window.innerWidth * 0.5), []),
+    );
 
     // handlers
 
@@ -455,6 +445,35 @@ const ViewerWithControls = forwardRef(
       window.removeEventListener('mouseup', stopDraggingProgress);
       window.removeEventListener('mousemove', handleManualProgress);
     }, []);
+
+    // Resize the settings panel by dragging its left border
+    // The panel is docked to the right, so its right edge stays fixed while dragging
+    const settingsRightRef = useRef(null);
+    const settingsRightEdge = useRef(0);
+    const handleSettingsResize = useCallback(event => {
+      const width = settingsRightEdge.current - event.clientX;
+      // Clamp so the panel and the viewer always keep a usable width
+      // (never wider than half the window, never narrower than 280px)
+      const clamped = Math.min(Math.max(width, 280), window.innerWidth * 0.5);
+      setSettingsWidth(clamped);
+      // Keep the viewer canvas fitted to its shrinking/growing container
+      if (viewerRef.current) viewerRef.current.autoResize();
+    }, []);
+    const stopResizingSettings = useCallback(() => {
+      window.removeEventListener('mouseup', stopResizingSettings);
+      window.removeEventListener('mousemove', handleSettingsResize);
+      document.body.style.userSelect = '';
+      if (settingsRightRef.current)
+        setAsync('settings-width', settingsRightRef.current.offsetWidth);
+    }, [handleSettingsResize]);
+    const startResizingSettings = useCallback(event => {
+      if (settingsRightRef.current)
+        settingsRightEdge.current = settingsRightRef.current.getBoundingClientRect().right;
+      // Avoid selecting text while dragging
+      document.body.style.userSelect = 'none';
+      window.addEventListener('mouseup', stopResizingSettings);
+      window.addEventListener('mousemove', handleSettingsResize);
+    }, [handleSettingsResize, stopResizingSettings]);
 
     // Frame change handler to interact with the child viewer
     const handleFrameChange = useCallback(
@@ -610,160 +629,46 @@ const ViewerWithControls = forwardRef(
                 {...props}
               />
               {settings && (
-                <div className={style['settings-controls']}>
-                  <div className={style['stacked-icons']}>
-                    <IconButton
-                      title="Toggle spin"
-                      onClick={toggleSpinning}
-                      size="large"
-                    >
-                      <FontAwesomeIcon icon={faSyncAlt} />
-                    </IconButton>
-
-                    <IconButton
-                      title="Center focus"
-                      onClick={event => {
-                        if (!viewerRef.current) return;
-                        // When the keys control, shift or command (ios) are hold while clicking
-                        const getFocus = event.shiftKey || event.ctrlKey || event.metaKey;
-                        if (getFocus) viewerRef.current.displayFocus();
-                        else viewerRef.current.centerFocus();
-                      }}
-                      size="large"
-                    >
-                      <FontAwesomeIcon icon={faDotCircle} />
-                    </IconButton>
-
-                    {noTrajectory || (
-                      <div className={style['stacked-icons']} title={hasPbcResidues ?
-                        'Smooth interpolation is not allowed since there are residues under Periodic Boundary Conditions. ' +
-                        'The smoothing may result in misleading artifacts for those atoms jumping across boundaries.' : undefined}>
-                        <IconButton
-                          title={`Toggle smooth interpolation ${smooth ? 'off' : 'on'}`}
-                          onClick={() => setSmooth(previous => !previous)}
-                          // If there are PBC residues then forbid the smooth to prevent misleads
-                          // Note that the smoothing may result in artifacts for those atoms jumping across boundaries
-                          // This is very clear for solvent/counter ions (breathing effect) and also visible in membrane residues
-                          disabled={hasPbcResidues}
-                          size="large"
-                        >
-                          <FontAwesomeIcon icon={smooth ? faImages : faVideo} />
-                        </IconButton>
-                      </div>
-                    )}
-
-                    <IconButton
-                      title="Invert background color"
-                      onClick={() => {
-                        toggleDarkBackground();
-                        setAsync('dark-background', !darkBackground);
-                      }}
-                      size="large"
-                    >
-                      <div
-                        className={cn(style['background-toggle'], {
-                          [style.dark]: darkBackground,
-                        })}
-                      >
-                        <FontAwesomeIcon icon={faAdjust} />
-                      </div>
-                    </IconButton>
-
-                    <IconButton
-                      title={`Switch to ${
-                        perspective ? 'ortographic' : 'perspective'
-                      } view`}
-                      onClick={() => {
-                        togglePerspective();
-                        setAsync('perspective', !perspective);
-                      }}
-                      size="large"
-                    >
-                      <FontAwesomeIcon icon={perspective ? faSquare : faCube} />
-                    </IconButton>
-
-                    <IconButton
-                      title={`Switch viwer to ${
-                        Viewer === NGLViewer ? 'MolStar' : 'NGL'
-                      }`}
-                      onClick={() => {
-                        setViewer(currentViewer => {
-                          if (currentViewer === NGLViewer) return MolstarViewer;
-                          if (currentViewer === MolstarViewer) return NGLViewer;
-                          throw new Error('Unrecognized current viewer');
-                        });
-                      }}
-                      size="large"
-                    >
-                      <FontAwesomeIcon
-                        icon={Viewer === NGLViewer ? faStarOfLife : faShareAlt}
-                      />
-                    </IconButton>
-                  </div>
-                  {noTrajectory || (
-                    <div>
-                      Speed:
-                      <Grid
-                        container
-                        spacing={2}
-                        className={style['extra-top-margin']}
-                      >
-                        <Grid item>
-                          <Icon>
-                            <FontAwesomeIcon icon={faWalking} />
-                          </Icon>
-                        </Grid>
-                        <Grid item xs>
-                          <Slider
-                            title="Change player speed"
-                            value={speed}
-                            aria-labelledby="continuous-slider"
-                            onChange={(_, value) => {
-                              setSpeed(value);
-                              setAsync('speed', value);
-                            }}
-                          />
-                        </Grid>
-                        <Grid item>
-                          <Icon>
-                            <FontAwesomeIcon icon={faBiking} />
-                          </Icon>
-                        </Grid>
-                      </Grid>
-                    </div>
-                  )}
-                  {noTrajectory || (
-                    <div>
-                      Frames:
-                      {framesSelect ? (
-                        <Slider
-                          title="Select frame number"
-                          value={requestedFramesNumber}
-                          onChange={(_, value) =>
-                            setRequestedFramesNumber(value)
-                          }
-                          aria-labelledby="discrete-slider-restrict"
-                          step={null}
-                          valueLabelDisplay="auto"
-                          marks={frameNumbers}
-                          max={frameNumbers[frameNumbers.length - 1].value}
-                        />
-                      ) : (
-                        // DANI: Esto puede que no esté bien. Deberían ser 20 frames cuando es una PCA projection
-                        ' ' + viewerRef.current.totalExpectedFrames
-                      )}
-                    </div>
-                  )}
-                </div>
+                <SettingsControls
+                  viewerRef={viewerRef}
+                  noTrajectory={noTrajectory}
+                  hasPbcResidues={hasPbcResidues}
+                  toggleSpinning={toggleSpinning}
+                  smooth={smooth}
+                  setSmooth={setSmooth}
+                  darkBackground={darkBackground}
+                  toggleDarkBackground={toggleDarkBackground}
+                  perspective={perspective}
+                  togglePerspective={togglePerspective}
+                  Viewer={Viewer}
+                  setViewer={setViewer}
+                  speed={speed}
+                  setSpeed={setSpeed}
+                  framesSelect={framesSelect}
+                  requestedFramesNumber={requestedFramesNumber}
+                  setRequestedFramesNumber={setRequestedFramesNumber}
+                  frameNumbers={frameNumbers}
+                />
               )}
             </Card>
             {settings && (
-              <div className={style['settings-right']}>
-                <RepresentationsManager
-                  components={finalComponents}
-                  representations={finalRepresentations}
-                  setRepresentations={setFinalRepresentations}
+              <div
+                className={style['settings-right']}
+                ref={settingsRightRef}
+                style={{ width: settingsWidth }}
+              >
+                <div
+                  className={style['settings-resizer']}
+                  onMouseDown={startResizingSettings}
+                  title="Drag to resize the panel"
                 />
+                <div className={style['settings-right-content']}>
+                  <RepresentationsManager
+                    components={finalComponents}
+                    representations={finalRepresentations}
+                    setRepresentations={setFinalRepresentations}
+                  />
+                </div>
               </div>
             )}
           </Card>

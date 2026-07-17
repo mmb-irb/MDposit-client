@@ -37,6 +37,14 @@ const DrawingMethodExists = value => {
 // Return a word but with the first letter in upper case
 const firstLetterUpper = word => word[0].toUpperCase() + word.slice(1);
 
+// Styling for the native select dropdown arrow: transparent background and
+// the arrow itself painted with the theme's primary color
+const selectSx = {
+  '& .MuiNativeSelect-icon': {
+    color: 'primary.main',
+  },
+};
+
 // Display a huge panel to select which representations must be shown or hidden
 // In addition the user can manage the way these representatios are shown
 const RepresentationsManager = memo(
@@ -46,44 +54,48 @@ const RepresentationsManager = memo(
     setRepresentations, // Representations setter
   }) => {
     return (
-      <>
+      <div className={style.container}>
         <Table
-          aria-label="simple table"
+          aria-label="representations table"
           size="small"
-          padding="checkbox"
           stickyHeader
+          className={style.table}
         >
           <TableHead>
             <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell align="right">Show</TableCell>
-              <TableCell style={{ whiteSpace: 'nowrap' }} align="right">
-                Selection <Info     tooltip={
-                <>
-                  Using{' '}
-                  <a href="https://nglviewer.org/ngl/api/manual/selection-language.html" 
-                    target="_blank" 
-                    rel="noopener noreferrer">
-                    NGL selection language
-                  </a>.
-                </>
-              }  className={style.info} />
+              <TableCell className={style.headerCell}>Name</TableCell>
+              <TableCell className={style.headerCell} align="center">Show</TableCell>
+              <TableCell className={style.headerCell}>
+                <span className={style.selectionHeader}>
+                  Selection
+                  <Info tooltip={
+                    <>
+                      Using{' '}
+                      <a href="https://nglviewer.org/ngl/api/manual/selection-language.html"
+                        target="_blank"
+                        rel="noopener noreferrer">
+                        NGL selection language
+                      </a>.
+                    </>
+                  } className={style.info} />
+                </span>
               </TableCell>
-              <TableCell align="right">Drawing method</TableCell>
-              <TableCell align="right">Coloring method</TableCell>
-              <TableCell align="right">Opacity</TableCell>
+              <TableCell className={style.headerCell}>Drawing method</TableCell>
+              <TableCell className={style.headerCell}>Coloring method</TableCell>
+              <TableCell className={style.headerCell}>Opacity</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {representations && representations.map((representation, index) => (
-              <TableRow key={representation.reference || index}>
+              <TableRow key={representation.reference || index} className={style.row}>
                 {/* Name */}
-                <TableCell component="th" scope="row">
+                <TableCell component="th" scope="row" className={style.nameCell}>
                   {representation.name}
                 </TableCell>
                 {/* Show */}
-                <TableCell align="right">
+                <TableCell align="center" className={style.cell}>
                   <IconButton
+                    size="small"
                     title="Show/Hide representation"
                     onClick={() =>
                       setRepresentations(previousRepresentations => {
@@ -99,8 +111,9 @@ const RepresentationsManager = memo(
                   </IconButton>
                 </TableCell>
                 {/* Selection */}
-                <TableCell align="right">
+                <TableCell className={style.cell}>
                   <TextField
+                    className={style.selectionField}
                     value={representation.custom ? undefined : representation.selection}
                     defaultValue={representation.custom ? representation.selection : undefined}
                     title={representation.selection}
@@ -119,9 +132,11 @@ const RepresentationsManager = memo(
                   />
                 </TableCell>
                 {/* Drawing method */}
-                <TableCell align="right">
+                <TableCell className={style.cell}>
                   <Select
                     native
+                    className={style.select}
+                    sx={selectSx}
                     value={representation.type}
                     onChange={({ target: { value } }) => {
                       setRepresentations(previousRepresentations => {
@@ -143,9 +158,11 @@ const RepresentationsManager = memo(
                   </Select>
                 </TableCell>
                 {/* Coloring method */}
-                <TableCell align="right">
+                <TableCell className={style.cell}>
                   <Select
                     native
+                    className={style.select}
+                    sx={selectSx}
                     value={representation.color}
                     onChange={({ target: { value } }) => {
                       setRepresentations(previousRepresentations => {
@@ -173,24 +190,27 @@ const RepresentationsManager = memo(
                   </Select>
                 </TableCell>
                 {/* Opacity */}
-                <TableCell align="right">
-                  <Slider
-                    value={representation.opacity * 100}
-                    onChange={(_, value) => {
-                      setRepresentations(previousRepresentations => {
-                        previousRepresentations[index].opacity = value / 100;
-                        return [...previousRepresentations];
-                      })
-                    }}
-                    className={style['popover-slider']}
-                  />
+                <TableCell className={style.cell}>
+                  <div className={style.sliderWrap}>
+                    <Slider
+                      size="small"
+                      value={representation.opacity * 100}
+                      onChange={(_, value) => {
+                        setRepresentations(previousRepresentations => {
+                          previousRepresentations[index].opacity = value / 100;
+                          return [...previousRepresentations];
+                        })
+                      }}
+                      className={style['popover-slider']}
+                    />
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
           <TableBody>
             <TableRow key={'addCustom'}>
-              <TableCell align="center" colSpan={6}>
+              <TableCell align="center" colSpan={6} className={style.addCell}>
                 <Chip
                   icon={<FontAwesomeIcon icon={faPlusCircle} />}
                   label={'Add representation'}
@@ -217,7 +237,7 @@ const RepresentationsManager = memo(
             </TableRow>
           </TableBody>
         </Table>
-      </>
+      </div>
     );
   },
 );

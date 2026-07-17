@@ -1,10 +1,11 @@
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render, screen } from '@testing-library/react';
 
 import Contact from '.';
 
 describe('<Contact />', () => {
-  it('should render', () => {
-    expect(shallow(<Contact />)).toMatchSnapshot();
+  it('should render the "Get in touch" heading', () => {
+    render(<Contact />);
+    expect(screen.getByText('Get in touch')).toBeInTheDocument();
   });
 });

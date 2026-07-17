@@ -38,6 +38,18 @@ class Version {
         if (other.patch !== undefined && other.patch !== this.patch) return false;
         return true;
     }
+
+    // Check if this version is greater than the other version    
+    greaterThan (other) {
+        // If this is a string instead of a version the parse it
+        if (typeof other === 'string') return this.greaterThan(new Version(other));
+        // Check if versions are greater for all major, minor and patch versions
+        // If other version has not explicit patch or minor version then they are not compared
+        if (other.major !== undefined && other.major > this.major) return false;
+        if (other.minor !== undefined && other.minor > this.minor) return false;
+        if (other.patch !== undefined && other.patch > this.patch) return false;
+        return true;
+    }
 }
 
 // This allows version comparision in the classic JS notation

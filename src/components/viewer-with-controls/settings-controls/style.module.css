@@ -1,0 +1,56 @@
+.settings-controls {
+  display: flex;
+  justify-content: space-between;
+  flex-direction: column;
+  padding: 0.5em 2em;
+  /* Float over the viewer so the structure stays visible behind the menu */
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  /* Translucent background: the protein shows through the menu */
+  background-color: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+/* Slightly darker tint when the viewer background is dark so controls stay legible */
+.settings-controls.dark {
+  background-color: rgba(0, 0, 0, 0.35);
+  color: white;
+}
+
+/* MUI icon buttons carry their own (dark) color, so they don't inherit the
+   panel color above. Invert them explicitly when the background is dark. */
+.settings-controls.dark button {
+  color: white;
+}
+
+.stacked-icons {
+  display: flex;
+  justify-content: space-around;
+}
+
+.extra-top-margin {
+  margin-top: 0.2em;
+}
+
+.background-toggle {
+  perspective: 18px;
+}
+
+.background-toggle > * {
+  transform: rotateY(0);
+  transition: transform cubic-bezier(0.5, 0.57, 0.44, 1.44) 0.5s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .background-toggle > * {
+    transition-duration: 0;
+  }
+}
+
+.background-toggle.dark > * {
+  transform: rotateY(0.5turn);
+}
