@@ -1,16 +1,17 @@
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render } from '@testing-library/react';
 
 import Body from '.';
 
 describe('<Body />', () => {
-  it('should render', () => {
-    expect(
-      shallow(
-        <Body>
-          <section />
-        </Body>,
-      ),
-    ).toMatchSnapshot();
+  it('should render its children inside a <div>', () => {
+    const { container } = render(
+      <Body>
+        <section>content</section>
+      </Body>,
+    );
+    const div = container.firstChild;
+    expect(div.tagName).toBe('DIV');
+    expect(div.querySelector('section')).not.toBeNull();
   });
 });

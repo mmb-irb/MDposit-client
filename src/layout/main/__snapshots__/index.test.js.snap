@@ -1,9 +1,0 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
-
-exports[`<Main /> should render 1`] = `
-<main
-  className="main"
->
-  <section />
-</main>
-`;
