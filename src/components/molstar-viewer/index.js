@@ -105,6 +105,21 @@ const defaultHighlightTypes = {
   selections: 'ball+stick',
 };
 
+// DEV-ONLY badge showing the measured playback framerate (see 'recordFrameTick')
+// Fixed positioning keeps this independent from the viewer's own layout/CSS
+const debugFpsBadgeStyle = {
+  position: 'fixed',
+  top: 4,
+  right: 4,
+  zIndex: 10000,
+  background: 'rgba(0, 0, 0, 0.7)',
+  color: '#0f0',
+  font: '11px monospace',
+  padding: '2px 6px',
+  borderRadius: 4,
+  pointerEvents: 'none',
+};
+
 // Map this app's NGL-style representation type names (set in get-default-representations)
 // to molstar representation type names
 // Molstar has no dedicated 'licorice' or 'base' type, so those are approximated with ball-and-stick
@@ -254,6 +269,10 @@ const MolstarViewer = memo(
 
       // Set the molstar instance
       const [molstar, setMolstar] = useState(null);
+      // Mirrors 'molstar' for the cleanup function below, which otherwise closes over the stale
+      // (always null) value from this effect's one-time initial render, since 'setMolstar' only
+      // resolves asynchronously - meaning dispose() below would never actually run without it
+      const molstarRef = useRef(null);
 
       // Setup molstar
       useEffect(() => {
@@ -265,15 +284,15 @@ const MolstarViewer = memo(
             render: renderReact18,
             spec: molstarSpec,
           });
+          molstarRef.current = molstarInstance;
           setMolstar(molstarInstance);
         };
         wrap();
         // Cleanup function
         return () => {
           progressSubscriptionRef.current?.unsubscribe();
-          if (!molstar) return;
-          molstar.dispose();
-          molstar = null;
+          molstarRef.current?.dispose();
+          molstarRef.current = null;
         };
       }, []);
 
@@ -296,15 +315,49 @@ const MolstarViewer = memo(
       // caught up, by the growth path on the next chunk instead of starting a second parallel rebuild)
       const buildingRef = useRef(false);
 
+      // DEV-ONLY: measured actual playback framerate, shown in a small on-screen badge so the
+      // 'speed' slider's effect can be visually verified. Stripped in production builds since
+      // process.env.NODE_ENV is statically known then, so this whole branch is dead-code-eliminated
+      const frameTimesRef = useRef([]);
+      const lastRecordedModelIndexRef = useRef(null);
+      const [debugFps, setDebugFps] = useState(0);
+      // 'stateUpdated' fires more than once per real frame advance (representation/render
+      // bookkeeping also touches this cell), so only count a tick when modelIndex actually changed
+      const recordFrameTick = useCallback(modelIndex => {
+        if (process.env.NODE_ENV !== 'development') return;
+        if (modelIndex === lastRecordedModelIndexRef.current) return;
+        lastRecordedModelIndexRef.current = modelIndex;
+        const now = Date.now();
+        const times = frameTimesRef.current;
+        times.push(now);
+        if (times.length > 10) times.shift();
+        if (times.length < 2) return;
+        const elapsedSeconds = (times[times.length - 1] - times[0]) / 1000;
+        if (elapsedSeconds <= 0) return;
+        setDebugFps((times.length - 1) / elapsedSeconds);
+      }, []);
+
+      // Latest 'speed' value, readable from getAnimationParams below without needing it as a
+      // dependency (kept stable so it never forces the play/pause or streaming effects to rerun)
+      const speedRef = useRef(speed);
+      speedRef.current = speed;
+
       // Animation parameters shared by the play/pause effect and the streaming resume logic below
       // Loop once the full trajectory is downloaded, otherwise stop at the last downloaded frame
       // (mirrors the NGL viewer's 'loop'/'once' player mode switch in payload-to-ngl-file)
-      const getAnimationParams = useCallback(() => ({
-        duration: { name: 'sequential', params: { maxFps: 10 } },
-        mode: isCompleteRef.current
-          ? { name: 'loop', params: { direction: 'forward' } }
-          : { name: 'once', params: { direction: 'forward' } },
-      }), []);
+      // The 'speed' input ranges 0-100; interpolateSpeed turns it into the same per-frame timeout
+      // (in ms) that the NGL viewer uses, which is then expressed as molstar's fps-cap equivalent
+      // ('sequential' duration re-applies the animation at most every 1000/maxFps ms)
+      const getAnimationParams = useCallback(() => {
+        const timeout = interpolateSpeed(speedRef.current);
+        const maxFps = Math.max(1, Math.min(60, Math.round(1000 / timeout)));
+        return {
+          duration: { name: 'sequential', params: { maxFps } },
+          mode: isCompleteRef.current
+            ? { name: 'loop', params: { direction: 'forward' } }
+            : { name: 'once', params: { direction: 'forward' } },
+        };
+      }, []);
 
       // Load topologies in molstar
       useEffect(() => {
@@ -533,10 +586,12 @@ const MolstarViewer = memo(
               if (progressSubscriptionRef.current) progressSubscriptionRef.current.unsubscribe();
               progressSubscriptionRef.current = molstar.state.data.events.cell.stateUpdated.subscribe(
                 event => {
-                  if (!onProgress || event.ref !== newModel.ref) return;
+                  if (event.ref !== newModel.ref) return;
+                  const modelIndex = (newModel.cell && newModel.cell.transform.params.modelIndex) || 0;
+                  recordFrameTick(modelIndex);
+                  if (!onProgress) return;
                   const total = expectedFramesRef.current;
                   if (total <= 1) return;
-                  const modelIndex = (newModel.cell && newModel.cell.transform.params.modelIndex) || 0;
                   onProgress(Math.min(1, Math.max(0, modelIndex / (total - 1))));
                 },
               );
@@ -574,10 +629,21 @@ const MolstarViewer = memo(
             pipeline.parsedBytes = totalPayload.byteLength;
           }
 
-          // Resume playback if it had stopped because it ran out of downloaded frames
-          // ('once' mode stops the animation outright when it reaches the last frame)
-          if (playing && isInView && molstar.managers.animation.state.animationState !== 'playing') {
-            molstar.managers.animation.play(AnimateModelIndex, getAnimationParams());
+          // Keep the animation's params in sync with the latest download state on every chunk
+          // This is the only place the 'once' -> 'loop' mode switch happens once the trajectory
+          // finishes downloading, and it must happen here, proactively, rather than only when
+          // playback has already stalled: if completion happens while still mid-playback (still
+          // in 'once' mode), nothing else would ever catch it once it later hits the last frame
+          // and stops for good, since there is no further chunk left to rerun this effect and
+          // resume it - this was the exact scenario that got stuck playing to a halt
+          if (playing && isInView) {
+            if (molstar.managers.animation.state.animationState === 'playing') {
+              molstar.managers.animation.updateCurrentParams(getAnimationParams());
+            } else {
+              // Resume playback if it had already stopped, e.g. because it ran out of
+              // downloaded frames ('once' mode stops the animation outright at the last frame)
+              molstar.managers.animation.play(AnimateModelIndex, getAnimationParams());
+            }
           }
         };
         wrap();
@@ -594,6 +660,7 @@ const MolstarViewer = memo(
         isInView,
         onProgress,
         getAnimationParams,
+        recordFrameTick,
       ]);
 
       // play/pause button effect
@@ -611,6 +678,15 @@ const MolstarViewer = memo(
           molstar.managers.animation.stop();
         }
       }, [molstar, playing, isInView, noTrajectory, bounce, getAnimationParams]);
+
+      // Handle the speed
+      // Live-update the fps cap of the already-running animation, without restarting it
+      // (mirrors the NGL viewer's nglPlayer.setParameters({ timeout }) in the equivalent effect)
+      useEffect(() => {
+        if (!molstar) return;
+        if (molstar.managers.animation.state.animationState !== 'playing') return;
+        molstar.managers.animation.updateCurrentParams(getAnimationParams());
+      }, [molstar, speed, getAnimationParams]);
 
       // Resize logic
       // declare handler
@@ -702,6 +778,9 @@ const MolstarViewer = memo(
           <div ref={tooltipRef} className={style.tooltip}>
             {tooltipContent}
           </div>
+          {process.env.NODE_ENV === 'development' && (
+            <div style={debugFpsBadgeStyle}>{debugFps.toFixed(1)} fps</div>
+          )}
         </>
       );
     },

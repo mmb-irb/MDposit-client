@@ -65,6 +65,21 @@ const interpolateSpeed = currentSpeed => (
   ((fastestTimeout - slowestTimeout) / (maximumSpeed - minimumSpeed))
 );
 
+// DEV-ONLY badge showing the measured playback framerate (see 'recordFrameTick')
+// Fixed positioning keeps this independent from the viewer's own layout/CSS
+const debugFpsBadgeStyle = {
+  position: 'fixed',
+  top: 4,
+  right: 4,
+  zIndex: 10000,
+  background: 'rgba(0, 0, 0, 0.7)',
+  color: '#0f0',
+  font: '11px monospace',
+  padding: '2px 6px',
+  borderRadius: 4,
+  pointerEvents: 'none',
+};
+
 // Set representation types for the different types of highlights
 const defaultHighlightTypes = {
   atoms: 'spacefill',
@@ -315,6 +330,30 @@ const NGLViewer = memo(
           mainNglFile.signals.frameChanged.remove(frameHandler);
         };
       }, [mainNglFile, noTrajectory, onProgress]);
+
+      // DEV-ONLY: measure the actual playback framerate, shown in a small on-screen badge so the
+      // 'speed' slider's effect can be visually verified. Kept independent from the onProgress
+      // effect above since onProgress may not be passed. Stripped in production builds since
+      // process.env.NODE_ENV is statically known then, so this whole effect is dead-code-eliminated
+      const [debugFps, setDebugFps] = useState(0);
+      useEffect(() => {
+        if (process.env.NODE_ENV !== 'development') return;
+        if (noTrajectory || !mainNglFile) return;
+        const frameTimes = [];
+        const frameHandler = () => {
+          const now = Date.now();
+          frameTimes.push(now);
+          if (frameTimes.length > 10) frameTimes.shift();
+          if (frameTimes.length < 2) return;
+          const elapsedSeconds = (frameTimes[frameTimes.length - 1] - frameTimes[0]) / 1000;
+          if (elapsedSeconds <= 0) return;
+          setDebugFps((frameTimes.length - 1) / elapsedSeconds);
+        };
+        mainNglFile.signals.frameChanged.add(frameHandler);
+        return () => {
+          mainNglFile.signals.frameChanged.remove(frameHandler);
+        };
+      }, [mainNglFile, noTrajectory]);
 
       // Resize logic
       // declare handler
@@ -1510,6 +1549,9 @@ const NGLViewer = memo(
               {tooltipContent}
             </div>
           </div>
+          {process.env.NODE_ENV === 'development' && (
+            <div style={debugFpsBadgeStyle}>{debugFps.toFixed(1)} fps</div>
+          )}
         </>
       );
     },
