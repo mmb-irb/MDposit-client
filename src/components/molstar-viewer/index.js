@@ -16,6 +16,7 @@ import cn from 'classnames';
 // Load molstar logic
 //import { PluginUIContext } from "molstar/lib/mol-plugin-ui/context";
 import { createPluginUI } from 'molstar/lib/mol-plugin-ui/index';
+import { renderReact18 } from 'molstar/lib/mol-plugin-ui/react18';
 import { DefaultPluginUISpec } from 'molstar/lib/mol-plugin-ui/spec';
 import { TrajectoryFromModelAndCoordinates } from 'molstar/lib/mol-plugin-state/transforms/model';
 import { AnimateModelIndex } from 'molstar/lib/mol-plugin-state/animation/built-in/model-index';
@@ -73,9 +74,9 @@ molstarSpec.components = {
     // Hide left panel (this panels is offsetting and deforming the main viewer very bad)
     // DANI: Hay un botón pero funciona mal: intenta abrir un desplegable con más botones pero colapsa al momento
     left: 'none',
-    // DANI: No se que hace esto pero he visto que alguien lo ponía así que yo también
-    remoteState: 'none',
   },
+  // DANI: No se que hace esto pero he visto que alguien lo ponía así que yo también
+  remoteState: 'none',
 };
 
 // Set the number of bytes per element in trajectory data
@@ -258,10 +259,11 @@ const MolstarViewer = memo(
         // This wrapper function is the most correct way to call awaits inside a use effect
         const wrap = async () => {
           // Create the plugin
-          const molstarInstance = await createPluginUI(
-            parentRef.current,
-            molstarSpec,
-          );
+          const molstarInstance = await createPluginUI({
+            target: parentRef.current,
+            render: renderReact18,
+            spec: molstarSpec,
+          });
           setMolstar(molstarInstance);
         };
         wrap();
