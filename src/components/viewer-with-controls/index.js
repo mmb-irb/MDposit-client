@@ -368,6 +368,8 @@ const ViewerWithControls = forwardRef(
     );
     const [speed, setSpeed] = useState(useMemo(() => get('speed', 50), []));
     const [settings, openSettings] = useState(false);
+    // Width (in px) of the settings panel, resizable by dragging its left border
+    const [settingsWidth, setSettingsWidth] = useState(useMemo(() => get('settings-width', 480), []));
 
     // handlers
 
@@ -455,6 +457,34 @@ const ViewerWithControls = forwardRef(
       window.removeEventListener('mouseup', stopDraggingProgress);
       window.removeEventListener('mousemove', handleManualProgress);
     }, []);
+
+    // Resize the settings panel by dragging its left border
+    // The panel is docked to the right, so its right edge stays fixed while dragging
+    const settingsRightRef = useRef(null);
+    const settingsRightEdge = useRef(0);
+    const handleSettingsResize = useCallback(event => {
+      const width = settingsRightEdge.current - event.clientX;
+      // Clamp so the panel and the viewer always keep a usable width
+      const clamped = Math.min(Math.max(width, 280), window.innerWidth - 200);
+      setSettingsWidth(clamped);
+      // Keep the viewer canvas fitted to its shrinking/growing container
+      if (viewerRef.current) viewerRef.current.autoResize();
+    }, []);
+    const stopResizingSettings = useCallback(() => {
+      window.removeEventListener('mouseup', stopResizingSettings);
+      window.removeEventListener('mousemove', handleSettingsResize);
+      document.body.style.userSelect = '';
+      if (settingsRightRef.current)
+        setAsync('settings-width', settingsRightRef.current.offsetWidth);
+    }, [handleSettingsResize]);
+    const startResizingSettings = useCallback(event => {
+      if (settingsRightRef.current)
+        settingsRightEdge.current = settingsRightRef.current.getBoundingClientRect().right;
+      // Avoid selecting text while dragging
+      document.body.style.userSelect = 'none';
+      window.addEventListener('mouseup', stopResizingSettings);
+      window.addEventListener('mousemove', handleSettingsResize);
+    }, [handleSettingsResize, stopResizingSettings]);
 
     // Frame change handler to interact with the child viewer
     const handleFrameChange = useCallback(
@@ -758,12 +788,23 @@ const ViewerWithControls = forwardRef(
               )}
             </Card>
             {settings && (
-              <div className={style['settings-right']}>
-                <RepresentationsManager
-                  components={finalComponents}
-                  representations={finalRepresentations}
-                  setRepresentations={setFinalRepresentations}
+              <div
+                className={style['settings-right']}
+                ref={settingsRightRef}
+                style={{ width: settingsWidth }}
+              >
+                <div
+                  className={style['settings-resizer']}
+                  onMouseDown={startResizingSettings}
+                  title="Drag to resize the panel"
                 />
+                <div className={style['settings-right-content']}>
+                  <RepresentationsManager
+                    components={finalComponents}
+                    representations={finalRepresentations}
+                    setRepresentations={setFinalRepresentations}
+                  />
+                </div>
               </div>
             )}
           </Card>

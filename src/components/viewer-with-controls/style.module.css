@@ -34,7 +34,9 @@
 }
 
 .settings-left {
-  width: 45%;
+  /* Fill whatever width the resizable settings panel leaves free */
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
 }
@@ -61,10 +63,30 @@
 }
 
 .settings-right {
-  display: inline-block;
-  width: 55%;
+  display: flex;
+  /* Keep the explicit (drag-controlled) width instead of shrinking to fit */
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* Draggable left border of the settings panel */
+.settings-resizer {
+  width: 6px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: rgba(0, 0, 0, 0.08);
+  transition: background 150ms ease;
+}
+
+.settings-resizer:hover,
+.settings-resizer:active {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.settings-right-content {
   flex: 1;
-  overflow-y: scroll;
+  min-width: 0;
+  overflow-y: auto;
 }
 
 .hidden {
