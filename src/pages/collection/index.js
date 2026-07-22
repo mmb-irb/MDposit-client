@@ -105,13 +105,12 @@ const Collection = () => {
                         <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                         {referenceData.links.map((link, l) => (
                         <div key={l}>
-                            {link.name}:{' '}
                             <a
                             href={link.url}
                             target="_blank"
                             rel="noreferrer noopener"
                             >
-                            {link.url}
+                            {link.name}
                             </a>
                         </div>
                         ))}
