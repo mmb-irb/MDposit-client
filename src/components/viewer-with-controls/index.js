@@ -185,6 +185,11 @@ const ViewerWithControls = forwardRef(
       preventTrajectory = false,
       // Set a state setter to handle the frame progress
       onProgress,
+      // Membrane simulations: toggle (in the settings panel) for the reduced membrane view
+      // "showMembraneToggle" enables the control, the state/setter drive it (managed by the parent page)
+      showMembraneToggle = false,
+      membraneReduced,
+      setMembraneReduced,
       // The rest of properties paased to the NGLViewer
       ...props
     },
@@ -648,6 +653,9 @@ const ViewerWithControls = forwardRef(
                   requestedFramesNumber={requestedFramesNumber}
                   setRequestedFramesNumber={setRequestedFramesNumber}
                   frameNumbers={frameNumbers}
+                  showMembraneToggle={showMembraneToggle}
+                  membraneReduced={membraneReduced}
+                  setMembraneReduced={setMembraneReduced}
                 />
               )}
             </Card>

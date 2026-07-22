@@ -566,6 +566,7 @@ export class Topology {
     }
     // Set internal values
     this._pbcAtoms = undefined;
+    this._membraneViewerSelection = undefined;
     this._defaultRepresentations = undefined;
     this._epitopeRepresentations = undefined;
     this._mutationRepresentations = undefined;
@@ -815,6 +816,51 @@ export class Topology {
     if (this._defaultRepresentations !== undefined) return this._defaultRepresentations;
     this._defaultRepresentations = getDefaultRepresentations(this);
     return this._defaultRepresentations;
+  }
+
+  // Reduced atom selection used to lighten the trajectory of membrane simulations
+  // Membrane trajectories are dominated by lipid tails, water and ions, which are heavy to download
+  // and rarely useful to look at. We keep the protein/solute atoms plus the membrane polar
+  // (headgroup) atoms coming from the membrane map, dropping everything else.
+  // Returns { atomIndices, residueIndices } (both sorted, whole-system indices) or null when this
+  // is not a membrane simulation or there is nothing to gain by reducing the selection.
+  get membraneViewerSelection () {
+    if (this._membraneViewerSelection !== undefined) return this._membraneViewerSelection;
+    // This only applies to membrane simulations, which are the ones having a membrane map
+    if (!this.membraneMapping || !this.membraneMapping.mems) {
+      this._membraneViewerSelection = null;
+      return null;
+    }
+    // Residue classifications whose atoms are dropped from the reduced selection
+    // Note that lipid polar atoms are added back afterwards from the membrane map
+    const droppedClasses = new Set(['lipid', 'fatty', 'steroid', 'solvent', 'ion']);
+    const atomIndices = new Set();
+    // Keep every atom belonging to a residue which is not in a dropped class
+    // (proteins, nucleic acids, ligands, carbohydrates, etc.)
+    for (let residueIndex = 0; residueIndex < this.residueCount; residueIndex++) {
+      const residue = this.getResidueByIndex(residueIndex);
+      if (droppedClasses.has(residue.classification)) continue;
+      residue.atomIndices.forEach(atomIndex => atomIndices.add(atomIndex));
+    }
+    // Add the membrane polar (headgroup) atoms of every membrane, per leaflet
+    for (const memData of Object.values(this.membraneMapping.mems)) {
+      const polarAtoms = memData.polar_atoms;
+      if (!polarAtoms) continue;
+      (polarAtoms.top || []).forEach(atomIndex => atomIndices.add(atomIndex));
+      (polarAtoms.bot || []).forEach(atomIndex => atomIndices.add(atomIndex));
+    }
+    // The API and the viewer expect sorted atom indices
+    const sortedAtomIndices = [...atomIndices].sort((a, b) => a - b);
+    // If we ended up keeping everything (or nothing) then there is nothing to gain, so skip the reduction
+    if (sortedAtomIndices.length === 0 || sortedAtomIndices.length >= this.atomCount) {
+      this._membraneViewerSelection = null;
+      return null;
+    }
+    this._membraneViewerSelection = {
+      atomIndices: sortedAtomIndices,
+      residueIndices: this.atom2residueIndices(sortedAtomIndices),
+    };
+    return this._membraneViewerSelection;
   }
 
   get epitopesRepresentations () {

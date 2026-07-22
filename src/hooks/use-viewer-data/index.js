@@ -253,6 +253,18 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
                 // Set the first component as the 'principal' component
                 const isPrincipal = c === 0;
                 const requestedFrame = comp.frame;
+                // Atom subset for this component, if any
+                // This is used to request a lighter trajectory containing only the desired atoms
+                // Note that the trajectory endpoint filters atoms through an NGL 'selection' string
+                // (unlike the structure endpoint, it does not accept a list of atom indices)
+                // WARNING: Atom indices must be sorted (same CORS workaround as for topologies)
+                const atomIndices = comp.atomIndices
+                    ? [...comp.atomIndices].sort((a, b) => a - b)
+                    : null;
+                // Build the NGL atom selection to be sent to the API
+                // Prefer an explicit atom selection, otherwise derive it from the atom indices
+                const atomSelection = comp.atomSelection
+                    || (atomIndices ? '@' + atomIndices.join(',') : null);
                 // Get the trajectory urls
                 // If the component has no trajectory urlpath specified then use the default trajectory
                 const urlpaths = comp.trajectoryURLs || [ defaultUrlpath ];
@@ -323,7 +335,10 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
                             urlpath: finalUrlpath,
                             frames: returnedFrames,
                             // Add also the atoms number, which is used further
-                            atoms: trajectoryMetadata.atoms,
+                            // When requesting an atom subset the returned trajectory has only those atoms
+                            atoms: atomIndices ? atomIndices.length : trajectoryMetadata.atoms,
+                            // Atom selection to be requested to the API (sent in the POST body further)
+                            atomSelection: atomSelection,
                             loading: true,
                             requested: false,
                         });
@@ -352,10 +367,12 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
             // Set the loading status as true
             trajectory.loading = true;
             trajectory.progress = 0;
-            // DANI: Todavía no me ha hecho falta hacer una selección larga de atomos/frames
-            // DANI: Todo está listo a nivel de API
-            // DANI: Solo hará falta reformar un poco el viewer-with-controls y este script
-            const postData = JSON.stringify({});
+            // Send the atom selection (if any) so the API streams only the requested atoms
+            // We use the POST body (instead of a GET query) to allow long atom selections
+            // When no subset is requested the field is undefined and the body is just "{}"
+            const postData = JSON.stringify({
+                selection: trajectory.atomSelection || undefined,
+            });
             // Request the API
             // http exception is added for local testing in http://localhost
             const protocol = BASE_PATH_PROJECTS.substring(0, 5) === 'https' ? https : http;

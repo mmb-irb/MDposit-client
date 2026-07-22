@@ -21,7 +21,9 @@ import getDefaultRepresentations from '../../utils/topology-manager/get-default-
 
 // Show floatting bubles with domain names
 // When a bubble is selected the domain is represented
-const Domains = ({ setRepresentations, setInitialFocus }) => {
+// "membraneReduced" (membrane simulations only) restricts the "Overall" representations to the
+// reduced atom subset and shows the membrane as spacefill, matching the reduced atom set loaded in the viewer
+const Domains = ({ setRepresentations, setInitialFocus, membraneReduced = false }) => {
   // Get the current project data
   const {
     metadata,
@@ -63,10 +65,22 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
   // ]
   const domains = useMemo(() => {
     if (!topology) return;
+    // For membrane simulations with the reduced view enabled the viewer loads a reduced atom subset
+    // (protein/solute + headgroups) so the "Overall" representations must be restricted to the residues
+    // present in that subset. Otherwise the representations for dropped atoms (lipid tails, water, ions)
+    // would show nothing. The membrane itself is shown as spacefill in this mode.
+    const membraneSelection = topology.membraneViewerSelection;
+    const useReducedMembrane = membraneSelection && membraneReduced;
+    const overallRepresentations = useReducedMembrane
+      ? getDefaultRepresentations(topology, membraneSelection.residueIndices).map(representation =>
+          representation.name.toLowerCase().includes('lipid')
+            ? { ...representation, type: 'spacefill', opacity: 0.3 }
+            : representation)
+      : defaultRepresentations;
     // Set the overall domain
-    const overallDomain = {
+    const overallDomain = { 
       name: 'Overall',
-      representations: defaultRepresentations,
+      representations: overallRepresentations,
     };
     // Get custom domains in metadata
     const customDomains = metadata.CUSTOMS || [];
@@ -285,6 +299,7 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
     topology,
     proteinReferences,
     interactions,
+    membraneReduced,
   ]);
 
   // Add the selected domain (if any) configuration to the viewer

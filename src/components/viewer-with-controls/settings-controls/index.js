@@ -18,6 +18,7 @@ import {
   faBiking,
   faStarOfLife,
   faShareAlt, // It looks like connected atoms
+  faLayerGroup, // It looks like membrane leaflets
 } from '@fortawesome/free-solid-svg-icons';
 
 import { setAsync } from '../../../utils/storage';
@@ -64,6 +65,10 @@ const SettingsControls = ({
   setRequestedFramesNumber,
   // Available frame-number options (marks) for the frames slider
   frameNumbers,
+  // Membrane simulations only: enable + drive the reduced membrane view toggle
+  showMembraneToggle,
+  membraneReduced,
+  setMembraneReduced,
 }) => (
   <div
     className={cn(style['settings-controls'], {
@@ -154,6 +159,21 @@ const SettingsControls = ({
       >
         <FontAwesomeIcon icon={Viewer === NGLViewer ? faStarOfLife : faShareAlt} />
       </IconButton>
+
+      {/* Membrane simulations: toggle the reduced membrane view (protein/solute + headgroups) */}
+      {/* When active only the membrane headgroups are loaded and shown as spacefill */}
+      {showMembraneToggle && (
+        <IconButton
+          title={membraneReduced
+            ? 'Simplified membrane view is ON: only the membrane headgroups (shown as spacefill) and the protein/solute are loaded. Click to load the whole membrane.'
+            : 'Simplified membrane view is OFF: the whole system is loaded. Click to show only the membrane headgroups as spacefill.'}
+          onClick={() => setMembraneReduced(previous => !previous)}
+          color={membraneReduced ? 'primary' : 'default'}
+          size="large"
+        >
+          <FontAwesomeIcon icon={faLayerGroup} />
+        </IconButton>
+      )}
     </div>
     {noTrajectory || (
       <div>
