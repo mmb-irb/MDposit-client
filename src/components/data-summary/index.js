@@ -25,6 +25,11 @@ const HIDDEN_FIELDS = new Set([
     'files.name', 'mds.files.name', 'mds.analyses.name'
 ]);
 
+// Fields excluded from the constants section (too context-specific to be useful there)
+const CONSTANTS_HIDDEN_FIELDS = new Set([
+    'metadata.AUTHORS', 'metadata.COLLECTIONS', 'published', 'metadata.GROUPS',
+]);
+
 import style from './style.module.css';
 
 const formatFieldValue = value => value.charAt(0).toUpperCase() + value.slice(1);
@@ -103,20 +108,52 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
             });
     }, [optionsPayload]);
 
-    // Set default selected field when optionsPayload loads
-    useEffect(() => {
-        if (availableOptionsFields.length > 0 && !selectedOptionsField) {
-            // Defaults: collections for general statistics, node for central node and METHOD for collections
-            if (internalQuery) {
-                setSelectedOptionsField('metadata.METHOD');
-            } else if (availableOptionsFields.includes('node')) {
-                setSelectedOptionsField('node');
+    // Classify fields: single-value (constants), all-equal-count (uniform), or variable
+    const { constantFields, uniformFields, variableOptionsFields } = useMemo(() => {
+        if (!optionsPayload || availableOptionsFields.length === 0)
+            return { constantFields: [], uniformFields: [], variableOptionsFields: [] };
+        const constantFields = [], uniformFields = [], variableOptionsFields = [];
+        for (const field of availableOptionsFields) {
+            const entries = Object.entries(optionsPayload[field])
+                .filter(([key]) => key !== 'null')
+                .map(([key, value]) => [key, getOptionCount(value)]);
+            if (entries.length === 0) continue;
+            if (entries.length === 1) {
+                constantFields.push({ field, entries });
             } else {
-                setSelectedOptionsField('metadata.COLLECTIONS');
+                const firstCount = entries[0][1];
+                if (entries.every(([, v]) => v === firstCount)) {
+                    uniformFields.push({ field, entries });
+                } else {
+                    variableOptionsFields.push(field);
+                }
             }
-
         }
-    }, [availableOptionsFields, internalQuery, selectedOptionsField]);
+        return { constantFields, uniformFields, variableOptionsFields };
+    }, [availableOptionsFields, optionsPayload, getOptionCount]);
+
+    // Set default selected field when variableOptionsFields is first populated
+    useEffect(() => {
+        if (variableOptionsFields.length > 0 && !selectedOptionsField) {
+            if (internalQuery && variableOptionsFields.includes('metadata.METHOD')) {
+                setSelectedOptionsField('metadata.METHOD');
+            } else if (!internalQuery && variableOptionsFields.includes('node')) {
+                setSelectedOptionsField('node');
+            } else if (!internalQuery && variableOptionsFields.includes('metadata.COLLECTIONS')) {
+                setSelectedOptionsField('metadata.COLLECTIONS');
+            } else {
+                setSelectedOptionsField(variableOptionsFields[0]);
+            }
+        }
+    }, [variableOptionsFields, internalQuery, selectedOptionsField]);
+
+    // Reset selection if current field moves to constant/uniform (e.g. after MDs/Projects toggle)
+    useEffect(() => {
+        if (!selectedOptionsField || variableOptionsFields.length === 0) return;
+        if (!variableOptionsFields.includes(selectedOptionsField)) {
+            setSelectedOptionsField(variableOptionsFields[0]);
+        }
+    }, [variableOptionsFields]);
     // Use the API to get the real data size from the stats endpoint
     const statsUrl = !isGlobalSummary ? `${BASE_VERSIONED_PATH}/stats${summaryQueryParam}` : null;
     const { payload: statsPayload, error: statsError } = useAPI(statsUrl, { name: 'stats', cacheOn: true });
@@ -278,6 +315,30 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
     const mdCountUrl = `${BASE_PATH_PROJECTS}/options?${queryPrefix}projection=mdcount`;
     const { payload: mdCountPayload, error: mdCountError } = useAPI(mdCountUrl);
 
+    const framesBinCount = Object.keys(frameCounts).length;
+    const atomsBinCount = Object.keys(atomsPayload?.["metadata.SYSTATS"] ?? {}).length;
+    const mdsBinCount = Object.keys(mdCountPayload?.["mdcount"] ?? {}).length;
+
+    // For the time distribution: hide when both axis marginals are single-decade
+    const [framestepPoints, setFramestepPoints] = useState(null);
+
+    const showTimeDistribution = useMemo(() => {
+        if (!framestepPoints) return true; // show while loading
+        if (framestepPoints.length === 0) return false;
+        const tDecades = new Set(framestepPoints.map(([t]) => Math.floor(Math.log10(t))));
+        const fDecades = new Set(framestepPoints.map(([, f]) => Math.floor(Math.log10(f))));
+        return tDecades.size > 1 || fDecades.size > 1;
+    }, [framestepPoints]);
+
+    // Single unique framestep value (ns), or null if multiple / not yet loaded
+    const framestepConstant = useMemo(() => {
+        if (!framestepPoints || framestepPoints.length === 0) return null;
+        const unique = new Set(framestepPoints.map(([,, fs]) => fs));
+        if (unique.size !== 1) return null;
+        const v = [...unique][0];
+        return v < 1 ? `${Number(v.toPrecision(4))} ns` : `${Number(v.toPrecision(6))} ns`;
+    }, [framestepPoints]);
+
     // Handle possible errors by just showing a log error in the console
     // Thus we allow the rest of the page to keep loading
     const errorMap = { summaryError, optionsError, snapshotsError, oldSnapshotsError, atomsError, mdCountError, growthError, statsError, bsError };
@@ -337,6 +398,53 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
                 )}
             </div>
         </div>}
+        {(() => {
+            const formatVal = (field, key) => field === 'node'
+                ? formatNodeDisplayName(key, nodeNameMap)
+                : formatFieldValue(key);
+            const allConstantItems = [
+                ...constantFields.filter(({ field }) => !CONSTANTS_HIDDEN_FIELDS.has(field))
+                    .map(({ field, entries }) => ({
+                        key: field,
+                        displayName: findFieldByTitleOrLabel(queryFields, field)?.name || field,
+                        displayValue: formatVal(field, entries[0][0]),
+                    })),
+                ...uniformFields.filter(({ field }) => !CONSTANTS_HIDDEN_FIELDS.has(field))
+                    .map(({ field, entries }) => ({
+                        key: field,
+                        displayName: findFieldByTitleOrLabel(queryFields, field)?.name || field,
+                        displayValue: entries.map(([key]) => formatVal(field, key)).join(' · '),
+                    })),
+            ];
+            if (framesBinCount === 1)
+                allConstantItems.push({ key: '__frames__', displayName: 'Frames', displayValue: Number(Object.keys(frameCounts)[0]).toLocaleString() });
+            if (atomsBinCount === 1) {
+                const v = Object.keys(atomsPayload["metadata.SYSTATS"])[0];
+                allConstantItems.push({ key: '__atoms__', displayName: 'Atoms', displayValue: Number(v).toLocaleString() });
+            }
+            if (mdsBinCount === 1) {
+                const v = Object.keys(mdCountPayload["mdcount"])[0];
+                allConstantItems.push({ key: '__mds__', displayName: 'MDs per project', displayValue: Number(v).toLocaleString() });
+            }
+            if (framestepConstant)
+                allConstantItems.push({ key: '__framestep__', displayName: 'Framestep', displayValue: framestepConstant });
+            allConstantItems.sort((a, b) => a.displayName.localeCompare(b.displayName));
+            if (allConstantItems.length === 0) return null;
+            return (
+                <div className={style.constantsSection}>
+                    <Typography variant="h5">Constant fields</Typography>
+                    <div className={style.constantsGrid}>
+                        {allConstantItems.map(({ key, displayName, displayValue }) => (
+                            <div key={key} className={style.constantItem}>
+                                <span className={style.constantLabel}>{displayName}</span>
+                                <span className={style.constantValue}>{displayValue}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        })()}
+        {(availableOptionsFields.length === 0 || variableOptionsFields.length > 0) && (
         <div className={style.fieldStats}>
             <div className={style.fieldStatsHeader}>
                 <Typography variant="h5">Statistics per field</Typography>
@@ -355,8 +463,10 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
                     </Button>
                 </ButtonGroup>
             </div>
-            {availableOptionsFields.length > 0 ? (
-                <>
+            {availableOptionsFields.length === 0 ? (
+                <div style={{ textAlign: 'center' }}>Loading field data...</div>
+            ) : (
+                <>{variableOptionsFields.length > 0 && (<>
                     <div style={{ marginBottom: 18, width: '33%' }}>
                         <select
                             id="options-field-select"
@@ -364,7 +474,7 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
                             onChange={e => setSelectedOptionsField(e.target.value)}
                             style={{ fontSize: '1rem', padding: '4px 8px', width: '99%' }}
                         >
-                            {availableOptionsFields.map(field => {
+                            {variableOptionsFields.map(field => {
                                 const fieldObj = findFieldByTitleOrLabel(queryFields, field);
                                 return (
                                     <option key={field} value={field}>
@@ -387,51 +497,54 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
                                     }))} />
                             </div>
                     )}
-                </>
-            ) : (
-                <div style={{ textAlign: 'center' }}>Loading field data...</div>
+                </>)}</>
             )}
         </div>
-        <Typography variant="h5">Data distributions</Typography>
-        <div className={style.histograms}>
-            <div className={style.histogram}>
-                <Histogram
-                    data={frameCounts}
-                    xAxisLabelText={'Frames'}
-                    yAxisLabelText={'Projects'}
-                    color={primaryColor}
-                    binMethod={'sturges'}
-                    onHover={d => `There are ${d.length} MDs with a number of frames between ${Math.floor(d.x0)} and ${Math.floor(d.x1)}`}
-                />
+        )}
+        {(framesBinCount > 1 || atomsBinCount > 1 || mdsBinCount > 1) && <>
+            <Typography variant="h5">Data distributions</Typography>
+            <div className={style.histograms}>
+                {framesBinCount > 1 && <div className={style.histogram}>
+                    <Histogram
+                        data={frameCounts}
+                        xAxisLabelText={'Frames'}
+                        yAxisLabelText={'Projects'}
+                        color={primaryColor}
+                        binMethod={'sturges'}
+                        onHover={d => `There are ${d.length} MDs with a number of frames between ${Math.floor(d.x0)} and ${Math.floor(d.x1)}`}
+                    />
+                </div>}
+                {atomsBinCount > 1 && <div className={style.histogram}>
+                    <Histogram
+                        data={atomsPayload && atomsPayload["metadata.SYSTATS"]}
+                        xAxisLabelText={'Atoms'}
+                        yAxisLabelText={'Projects'}
+                        color={secondaryColor}
+                        binMethod={'sturges'}
+                        onHover={d => `There are ${d.length} MDs with a number of atoms between ${Math.floor(d.x0)} and ${Math.floor(d.x1)}`}
+                    />
+                </div>}
+                {mdsBinCount > 1 && <div className={style.histogram}>
+                    <Histogram
+                        data={mdCountPayload && mdCountPayload["mdcount"]}
+                        xAxisLabelText={'MDs'}
+                        yAxisLabelText={'Projects'}
+                        color={primaryColor}
+                        binMethod={'linear'}
+                        binCount={mdCountPayload && mdCountPayload["mdcount"]
+                            ? Math.max(...Object.keys(mdCountPayload["mdcount"]).map(Number))
+                            : 10}
+                        onHover={d => `There are ${d.length} MDs with a number of MDs between ${Math.floor(d.x0)} and ${Math.floor(d.x1)}`}
+                    />
+                </div>}
             </div>
-            <div className={style.histogram}>
-                <Histogram
-                    data={atomsPayload && atomsPayload["metadata.SYSTATS"]}
-                    xAxisLabelText={'Atoms'}
-                    yAxisLabelText={'Projects'}
-                    color={secondaryColor}
-                    binMethod={'sturges'}
-                    onHover={d => `There are ${d.length} MDs with a number of atoms between ${Math.floor(d.x0)} and ${Math.floor(d.x1)}`}
-                />
+        </>}
+        {showTimeDistribution && <>
+            <Typography variant="h5">Time distribution</Typography>
+            <div style={{ display: 'flex', justifyContent: 'center', margin: '20px 10%' }}>
+                <FramestepPlot jsonUrl={framestepUrl} onPoints={setFramestepPoints} />
             </div>
-            <div className={style.histogram}>
-                <Histogram
-                    data={mdCountPayload && mdCountPayload["mdcount"]}
-                    xAxisLabelText={'MDs'}
-                    yAxisLabelText={'Projects'}
-                    color={primaryColor}
-                    binMethod={'linear'}
-                    binCount={mdCountPayload && mdCountPayload["mdcount"]
-                        ? Math.max(...Object.keys(mdCountPayload["mdcount"]).map(Number))
-                        : 10}
-                    onHover={d => `There are ${d.length} MDs with a number of MDs between ${Math.floor(d.x0)} and ${Math.floor(d.x1)}`}
-                />
-            </div>
-        </div>
-        <Typography variant="h5">Time distribution</Typography>
-        <div style={{ display: 'flex', justifyContent: 'center', margin: '20px 10%' }}>
-            <FramestepPlot jsonUrl={framestepUrl} />
-        </div>
+        </>}
     </>);
 };
 
