@@ -54,6 +54,10 @@
   flex: 1;
   min-width: 0;
   overflow-y: auto;
+  /* Column layout so the docked settings controls can be pushed to the bottom
+     (they use margin-top: auto) while the representations table stays on top */
+  display: flex;
+  flex-direction: column;
 }
 
 .hidden {

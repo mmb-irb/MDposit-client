@@ -27,15 +27,48 @@
   color: white;
 }
 
+/* Docked variant: the controls live at the bottom of the (always light)
+   representations panel instead of floating over the viewer. Drop the overlay
+   positioning/translucency and undo the dark-background inversion so they read
+   correctly on the light panel. */
+.settings-controls.docked,
+.settings-controls.docked.dark {
+  position: static;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  z-index: auto;
+  /* Stick to the bottom of the (flex-column) right panel, leaving the free
+     white space between the representations table and the controls */
+  margin-top: auto;
+  padding: 0.75em 1em;
+  background-color: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  color: inherit;
+  border-top: 1px solid #e2e2e5;
+}
+
+.settings-controls.docked.dark button {
+  color: inherit;
+}
+
+/* The MUI Icon box is 1em square with overflow: hidden, which clips the wider
+   FontAwesome speed endpoint icons (the biking glyph is ~1.25em wide). Let these
+   icons size to their content so they are never cut off. */
+.settings-controls :global(.MuiIcon-root) {
+  width: auto;
+  height: auto;
+}
+
 .stacked-icons {
   display: flex;
   justify-content: space-around;
 }
 
-.extra-top-margin {
-  margin-top: 0.2em;
+.stacked-icons > button {
+  padding: 8px;
 }
-
 .background-toggle {
   perspective: 18px;
 }

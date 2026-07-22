@@ -62,6 +62,14 @@ import { copyObject, round2cents } from 'src/utils/auxiliar-functions';
 // screens (as a proxy for performance and low-end device detection)
 const DEFAULT_STARTS_PLAYING = !reducedMotion() && window.innerWidth > 750;
 
+// Estimated height (in px) the settings controls need once docked at the bottom
+// of the right-hand panel. Used to decide whether there is enough free vertical
+// room below the representations table to dock them (instead of floating them
+// over the viewer). Trajectory viewers also show the speed/frames sliders, so
+// they need more room than the topology-only case.
+const DOCKED_CONTROLS_HEIGHT = 200;
+const DOCKED_CONTROLS_HEIGHT_NO_TRAJECTORY = 96;
+
 const DEFAULT_FRAME_NUMBER = (() => {
   switch (connectionLevel()) {
     case HIGH:
@@ -336,6 +344,10 @@ const ViewerWithControls = forwardRef(
     // references
     const containerRef = useRef(null);
     const viewerRef = useRef(null);
+    // Right-panel scroll container and the representations-table wrapper, measured
+    // to decide whether the settings controls can be docked below the table
+    const settingsContentRef = useRef(null);
+    const representationsRef = useRef(null);
 
     // toggle states
     const [nailed, toggleNailed] = useToggleState(false);
@@ -358,6 +370,10 @@ const ViewerWithControls = forwardRef(
     );
     const [speed, setSpeed] = useState(useMemo(() => get('speed', 50), []));
     const [settings, openSettings] = useState(false);
+    // Whether there is enough free vertical room in the right-hand panel below the
+    // representations table to dock the settings controls there rather than float
+    // them over the viewer. Kept up to date by a ResizeObserver (see effect below).
+    const [roomBelow, setRoomBelow] = useState(false);
     // Width (in px) of the settings panel, resizable by dragging its left border
     // Cap the initial width to at most half of the window so it never opens oversized
     const [settingsWidth, setSettingsWidth] = useState(
@@ -589,6 +605,61 @@ const ViewerWithControls = forwardRef(
       anyLoadingTrajectory
     } = useViewerData(finalComponents, requestedFramesNumber, handleLoad);
 
+    // Decide where the settings controls live: docked at the bottom of the right
+    // panel when there is enough free vertical room below the representations
+    // table, otherwise floating over the viewer. Measure the right-panel scroll
+    // container height and the table height, and re-measure whenever either
+    // resizes (window/fullscreen resize, adding/removing representations, ...).
+    // The table wrapper is measured independently of the docked controls, so
+    // there is no feedback loop between docking and the measurement.
+    const neededControlsHeight = noTrajectory
+      ? DOCKED_CONTROLS_HEIGHT_NO_TRAJECTORY
+      : DOCKED_CONTROLS_HEIGHT;
+    useEffect(() => {
+      if (!settings) return setRoomBelow(false);
+      const content = settingsContentRef.current;
+      const table = representationsRef.current;
+      if (!content || !table || typeof ResizeObserver === 'undefined') return;
+      const measure = () =>
+        setRoomBelow(content.clientHeight - table.offsetHeight >= neededControlsHeight);
+      measure();
+      const observer = new ResizeObserver(measure);
+      observer.observe(content);
+      observer.observe(table);
+      return () => observer.disconnect();
+    }, [settings, neededControlsHeight, finalRepresentations]);
+
+    // Dock the settings controls under the representations panel only when the
+    // panel is open and there is enough free vertical room below the table;
+    // otherwise float them over the viewer as a translucent overlay
+    const settingsDocked = settings && roomBelow;
+
+    // Shared props for SettingsControls so it can be rendered in either location
+    // (floating overlay or docked in the right panel) without duplication
+    const settingsControlsProps = {
+      viewerRef,
+      noTrajectory,
+      hasPbcResidues,
+      toggleSpinning,
+      smooth,
+      setSmooth,
+      darkBackground,
+      toggleDarkBackground,
+      perspective,
+      togglePerspective,
+      Viewer,
+      setViewer,
+      speed,
+      setSpeed,
+      framesSelect,
+      requestedFramesNumber,
+      setRequestedFramesNumber,
+      frameNumbers,
+      showMembraneToggle,
+      membraneReduced,
+      setMembraneReduced,
+    };
+
     // DANI: Si no quieres buscarte problemas no cambies las "Card"s de aquí abajo por "div"s o similar
     return (
       <Card
@@ -633,30 +704,8 @@ const ViewerWithControls = forwardRef(
                 anyLoadingTrajectory={anyLoadingTrajectory}
                 {...props}
               />
-              {settings && (
-                <SettingsControls
-                  viewerRef={viewerRef}
-                  noTrajectory={noTrajectory}
-                  hasPbcResidues={hasPbcResidues}
-                  toggleSpinning={toggleSpinning}
-                  smooth={smooth}
-                  setSmooth={setSmooth}
-                  darkBackground={darkBackground}
-                  toggleDarkBackground={toggleDarkBackground}
-                  perspective={perspective}
-                  togglePerspective={togglePerspective}
-                  Viewer={Viewer}
-                  setViewer={setViewer}
-                  speed={speed}
-                  setSpeed={setSpeed}
-                  framesSelect={framesSelect}
-                  requestedFramesNumber={requestedFramesNumber}
-                  setRequestedFramesNumber={setRequestedFramesNumber}
-                  frameNumbers={frameNumbers}
-                  showMembraneToggle={showMembraneToggle}
-                  membraneReduced={membraneReduced}
-                  setMembraneReduced={setMembraneReduced}
-                />
+              {settings && !settingsDocked && (
+                <SettingsControls {...settingsControlsProps} docked={false} />
               )}
             </Card>
             {settings && (
@@ -670,12 +719,17 @@ const ViewerWithControls = forwardRef(
                   onMouseDown={startResizingSettings}
                   title="Drag to resize the panel"
                 />
-                <div className={style['settings-right-content']}>
-                  <RepresentationsManager
-                    components={finalComponents}
-                    representations={finalRepresentations}
-                    setRepresentations={setFinalRepresentations}
-                  />
+                <div className={style['settings-right-content']} ref={settingsContentRef}>
+                  <div ref={representationsRef}>
+                    <RepresentationsManager
+                      components={finalComponents}
+                      representations={finalRepresentations}
+                      setRepresentations={setFinalRepresentations}
+                    />
+                  </div>
+                  {settingsDocked && (
+                    <SettingsControls {...settingsControlsProps} docked={true} />
+                  )}
                 </div>
               </div>
             )}

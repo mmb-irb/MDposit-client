@@ -69,10 +69,14 @@ const SettingsControls = ({
   showMembraneToggle,
   membraneReduced,
   setMembraneReduced,
+  // When true, the controls are docked at the bottom of the representations panel
+  // (normal flow) instead of floating as a translucent overlay over the viewer
+  docked = false,
 }) => (
   <div
     className={cn(style['settings-controls'], {
       [style.dark]: darkBackground,
+      [style.docked]: docked,
     })}
   >
     <div className={style['stacked-icons']}>
@@ -178,7 +182,7 @@ const SettingsControls = ({
     {noTrajectory || (
       <div>
         Speed:
-        <Grid container spacing={2} className={style['extra-top-margin']}>
+        <Grid container spacing={2}>
           <Grid item>
             <Icon>
               <FontAwesomeIcon icon={faWalking} />
