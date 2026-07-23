@@ -24,6 +24,9 @@ import { frame } from 'timing-functions';
 
 import { setNGLFile, updateNGLFile } from './payload-to-ngl-file';
 
+// Improved 'element' color scheme (distinguishes coarse-grain beads instead of white)
+import getElementColorSchemeId from './element-colormaker';
+
 import { ProjectCtx } from '../../contexts';
 
 import { setTooltipPosition } from '../../utils/tooltip-position-manager';
@@ -456,8 +459,12 @@ const NGLViewer = memo(
                       [[color, 'all']],
                       'custom label',
                     )
-                  // Otherwise let the color scheme as it is
-                  : color;
+                  // Use our improved element scheme so non-standard atom names
+                  // (e.g. coarse-grain beads) get distinct colors instead of white
+                  : color === 'element'
+                    ? getElementColorSchemeId()
+                    // Otherwise let the color scheme as it is
+                    : color;
 
             // Set some additional parameters which are to be modified depending on the type
             const colorDomain = type === 'surface' ? [-200, 200] : undefined;
