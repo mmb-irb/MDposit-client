@@ -1,4 +1,4 @@
-import React, { useState, useContext, useMemo } from 'react';
+import React, { useState, useContext, useMemo, useCallback } from 'react';
 // A hook to track whenever some element is on screen
 import { useInView } from 'react-intersection-observer';
 
@@ -45,11 +45,24 @@ const Trajectory = () => {
   // Whether this is a membrane simulation (i.e. there is a reduced membrane selection available)
   const isMembrane = !!(topology && topology.membraneViewerSelection);
 
-  // Toggle for the reduced membrane view (on by default for membrane simulations)
-  // When active, the viewer only loads the protein/solute atoms plus the membrane headgroups
-  // instead of the whole system, which is dominated by heavy lipid tails, water and ions
-  // RUBEN: desactivado de momento hasta que pueda probar en A01IR cuando este la topologia actualizada
-  const [ membraneReduced, setMembraneReduced ] = useState(false);
+  // Reduced membrane view: the viewer only loads the protein/solute atoms plus the
+  // membrane headgroups instead of the whole system, which is dominated by heavy lipid
+  // tails, water and ions. It defaults to on for very large membrane systems, where
+  // loading the whole set of lipid atoms would be too heavy for the viewer.
+  //
+  // The default depends on the topology, which loads asynchronously, so we derive the
+  // effective value instead of seeding state (which would mount the viewer in the wrong
+  // mode and force a remount once the topology arrives, interrupting playback). The only
+  // stored bit is the user's explicit toggle choice (null while they have not touched it).
+  const [ membraneReducedOverride, setMembraneReducedOverride ] = useState(null);
+  const membraneDefault = !!(topology && topology.lipidAtomsCount > 100000);
+  const membraneReduced = membraneReducedOverride ?? membraneDefault;
+  // Setter passed to the SettingsControls toggle, which uses a function to toggle
+  const setMembraneReduced = useCallback(value =>
+    setMembraneReducedOverride(previousOverride => {
+      const current = previousOverride ?? membraneDefault;
+      return typeof value === 'function' ? value(current) : value;
+    }), [membraneDefault]);
 
   // For membrane simulations, load a reduced atom subset (protein/solute + membrane headgroups)
   // For every other simulation (or when the toggle is off) this is null and the whole system is loaded

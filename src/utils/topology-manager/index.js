@@ -525,6 +525,8 @@ export class Topology {
     this.metadataChainNames = metadata.CHAINNAMES;
     // Save metadata forced ligand names
     this.metadataLigandNames = metadata.LIGANDNAMES;
+    // Save lipid atoms count to know if we need to display the reduced membrane
+    this.lipidAtomsCount = metadata.LIPIATS;
     // Save the references so we can further return reference data from here
     this.proteinReferences = references.proteins;
     this.ligandReferences = references.ligands;
