@@ -613,6 +613,19 @@ const HOST_CONFIGURATIONS = {
         api: `https://mddb.nostrumbiodiscovery.com/api/rest/`,
         ...nostrumConfig,
     },
+    // it4i.mddbr.eu
+    'it4i.mddbr.eu': {
+        primaryColor: '#00aca0', // I got this blue from https://www.it4i.cz/en
+        logoLabel: 'IT4I node',
+        name:'MDposit IT4I',
+        searchExample: 'e.g. Banáš',
+        footers: [
+            {
+                image: "https://www.it4i.cz/cs/file/222f01b61ad06cfe6183ba03b7fc2567/1251/IT4I-EN.png",
+                url: "https://www.it4i.cz/en",
+            },
+        ]
+    },
 };
 
 // Set the current host configuration
