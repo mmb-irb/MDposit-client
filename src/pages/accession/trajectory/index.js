@@ -1,4 +1,4 @@
-import React, { useState, useContext, useMemo, useCallback } from 'react';
+import React, { useState, useContext } from 'react';
 // A hook to track whenever some element is on screen
 import { useInView } from 'react-intersection-observer';
 
@@ -42,58 +42,22 @@ const Trajectory = () => {
   // Set the viewer initial focus
   const [ initialFocus, setInitialFocus ] = useState(null);
 
-  // Whether this is a membrane simulation (i.e. there is a reduced membrane selection available)
-  const isMembrane = !!(topology && topology.membraneViewerSelection);
-
-  // Reduced membrane view: the viewer only loads the protein/solute atoms plus the
-  // membrane headgroups instead of the whole system, which is dominated by heavy lipid
-  // tails, water and ions. It defaults to on for very large membrane systems, where
-  // loading the whole set of lipid atoms would be too heavy for the viewer.
-  //
-  // The default depends on the topology, which loads asynchronously, so we derive the
-  // effective value instead of seeding state (which would mount the viewer in the wrong
-  // mode and force a remount once the topology arrives, interrupting playback). The only
-  // stored bit is the user's explicit toggle choice (null while they have not touched it).
-  const [ membraneReducedOverride, setMembraneReducedOverride ] = useState(null);
-  const membraneDefault = !!(topology && topology.lipidAtomsCount > 100000);
-  const membraneReduced = membraneReducedOverride ?? membraneDefault;
-  // Setter passed to the SettingsControls toggle, which uses a function to toggle
-  const setMembraneReduced = useCallback(value =>
-    setMembraneReducedOverride(previousOverride => {
-      const current = previousOverride ?? membraneDefault;
-      return typeof value === 'function' ? value(current) : value;
-    }), [membraneDefault]);
-
-  // For membrane simulations, load a reduced atom subset (protein/solute + membrane headgroups)
-  // For every other simulation (or when the toggle is off) this is null and the whole system is loaded
-  const startingComponents = useMemo(() => {
-    const membraneSelection = topology && topology.membraneViewerSelection;
-    if (!membraneSelection || !membraneReduced) return undefined;
-    return [{ name: 'Main', atomIndices: membraneSelection.atomIndices }];
-  }, [topology, membraneReduced]);
-
   return (
     <>
       <Domains
         setRepresentations={setRepresentations}
         setInitialFocus={setInitialFocus}
-        membraneReduced={membraneReduced}
       />
       <Card className={style['ngl-card']} ref={nglRef}>
-        {/* Render the NGL viewer when it is on screen and the topology is ready */}
-        {/* We wait for the topology so the membrane atom subset (if any) is set before mounting */}
-        {/* The key forces a remount when the membrane view is toggled, so the new atom set is fetched */}
-        {/* The membrane toggle itself lives in the viewer settings panel (SettingsControls) */}
+        {/* Render once on screen and the topology is ready (so the reduced-membrane subset is known at */}
+        {/* mount, avoiding a full-then-reduced double download). The reduced-membrane view is handled */}
+        {/* internally by ViewerWithControls, enabled here via allowMembraneReduced. */}
         {isNglVisible && topology ? (
           <ViewerWithControls
-            key={`viewer-membrane-${membraneReduced}`}
             className={style.container}
-            startingComponents={startingComponents}
             representationsState={representationsState}
             initialFocus={initialFocus}
-            showMembraneToggle={isMembrane}
-            membraneReduced={membraneReduced}
-            setMembraneReduced={setMembraneReduced}
+            allowMembraneReduced
           />
         ) : (
           <div style={{ height: '50vh' }} />

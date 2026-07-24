@@ -45,6 +45,9 @@ import NGLViewer from '../ngl-viewer';
 import useToggleState from '../../hooks/use-toggle-state';
 import useViewerData from '../../hooks/use-viewer-data';
 
+// Used to build the reduced-membrane-subset representations
+import getDefaultRepresentations from '../../utils/topology-manager/get-default-reprensetations';
+
 import connectionLevel, {
   LOW,
   MEDIUM,
@@ -130,6 +133,45 @@ const completeMissingFields = (targetObject, defaultValuesObject) => {
   return anyChange;
 }
 
+// Viewer backend wrapper that owns the data-download hook, kept separate from ViewerWithControls so a
+// parent key can remount just this subtree to load a different atom subset. The remount is what forces
+// the reload: neither useViewerData (dedupes by URL) nor the NGL backend (dedupes stage components by
+// name) re-fetches when a live component's atom subset changes. This is how the reduced membrane view
+// swaps its atoms without tearing down the surrounding controls (settings panel, backend, speed, ...).
+const ManagedViewer = forwardRef(
+  (
+    {
+      Viewer, // The viewer backend component (NGL/MolStar)
+      components,
+      requestedFramesNumber,
+      onLoad,
+      ...props // Forwarded as-is to the viewer backend
+    },
+    ref,
+  ) => {
+    // Download viewer data (topologies + trajectories) from the API per the components configuration
+    const {
+      topologies,
+      trajectories,
+      anyLoadingTopology,
+      anyLoadingTrajectory,
+    } = useViewerData(components, requestedFramesNumber, onLoad);
+    return (
+      <Viewer
+        ref={ref}
+        components={components}
+        // Viewer data including both structure and coordinates
+        topologies={topologies}
+        trajectories={trajectories}
+        anyLoadingTopology={anyLoadingTopology}
+        anyLoadingTrajectory={anyLoadingTrajectory}
+        {...props}
+      />
+    );
+  },
+);
+ManagedViewer.displayName = 'ManagedViewer';
+
 // Set an NGL view window which is managed by some controls
 // There are different ways to call this script
 // 1 - With components: Used for situations where more than a topology or trajectory are required
@@ -193,11 +235,9 @@ const ViewerWithControls = forwardRef(
       preventTrajectory = false,
       // Set a state setter to handle the frame progress
       onProgress,
-      // Membrane simulations: toggle (in the settings panel) for the reduced membrane view
-      // "showMembraneToggle" enables the control, the state/setter drive it (managed by the parent page)
-      showMembraneToggle = false,
-      membraneReduced,
-      setMembraneReduced,
+      // Opt in to the reduced membrane view (settings-panel toggle loading only protein/solute +
+      // membrane headgroups). Handled entirely internally; only appears for membrane simulations.
+      allowMembraneReduced = false,
       // The rest of properties paased to the NGLViewer
       ...props
     },
@@ -340,6 +380,80 @@ const ViewerWithControls = forwardRef(
       //   https://reactjs.org/link/setstate-in-render
       if (changes.some(v => v === true)) setFinalRepresentations([...finalRepresentations]);
     }, [finalRepresentations, defaultRepresentations, completeRepresentationMissingFields]);
+
+    // Reduced membrane view ------------------------------------------------------------------------
+    // For heavy membrane trajectories (lots of lipid tails, water, ions), load only protein/solute +
+    // membrane headgroups. Lives here rather than in the parent page / Domains so toggling reloads only
+    // the viewer's data (via the ManagedViewer remount, see viewerReloadKey) instead of the whole page.
+
+    // The reduced atom subset for this topology, or null when it is not a membrane simulation
+    const membraneSelection = topology && topology.membraneViewerSelection;
+    // Whether the reduced view is available at all (opt-in and an actual membrane simulation)
+    const canReduceMembrane = allowMembraneReduced && !!membraneSelection;
+    // Default on for very large membranes, where loading every lipid atom is too heavy
+    const membraneReducedDefault = !!(topology && topology.lipidAtomsCount > 100000);
+    // Store only the user's explicit choice (null until they toggle) and derive the effective value,
+    // so it stays correct as soon as the topology (and its default) arrives.
+    const [membraneReducedOverride, setMembraneReducedOverride] = useState(null);
+    const membraneReduced = canReduceMembrane && (membraneReducedOverride ?? membraneReducedDefault);
+    // Toggle setter passed to SettingsControls (it always calls it with a function updater).
+    // Resolve the null "untouched" override to the effective default before handing it to the updater.
+    const setMembraneReduced = useCallback(updater =>
+      setMembraneReducedOverride(previous => updater(previous ?? membraneReducedDefault)),
+      [membraneReducedDefault]);
+
+    // The default representations restricted to the reduced subset, with the membrane as spacefill
+    const membraneReducedRepresentations = useMemo(() => {
+      if (!canReduceMembrane) return null;
+      return getDefaultRepresentations(topology, membraneSelection.residueIndices).map(representation =>
+        representation.name.toLowerCase().includes('lipid')
+          ? { ...representation, type: 'spacefill', opacity: 0.3 }
+          : representation);
+    }, [canReduceMembrane, topology, membraneSelection]);
+
+    // Keep the "Overall" default representations in sync with the reduced view. Domains always emits
+    // the FULL default set for "Overall", so we swap it to the reduced set (and back) on toggle or
+    // re-selection. We match by name + selection + type (the fields distinguishing the two default
+    // sets) so we only touch a default set — other domains and manual edits (opacity, color, show) are
+    // left alone.
+    useEffect(() => {
+      if (!canReduceMembrane) return;
+      if (!finalRepresentations || !defaultRepresentations || !membraneReducedRepresentations) return;
+      const repsMatch = (reps, other) =>
+        reps.length === other.length && reps.every((rep, r) =>
+          rep.name === other[r].name
+          && rep.selection === other[r].selection
+          && rep.type === other[r].type);
+      const currentIsFull = repsMatch(finalRepresentations, defaultRepresentations);
+      const currentIsReduced = repsMatch(finalRepresentations, membraneReducedRepresentations);
+      // Only touch a default set, and only when it isn't already in the toggled mode
+      if (!currentIsFull && !currentIsReduced) return;
+      if (membraneReduced ? currentIsReduced : currentIsFull) return;
+      const target = membraneReduced ? membraneReducedRepresentations : defaultRepresentations;
+      setFinalRepresentations(target.map(rep => ({ ...rep })));
+    }, [
+      canReduceMembrane,
+      membraneReduced,
+      finalRepresentations,
+      defaultRepresentations,
+      membraneReducedRepresentations,
+      setFinalRepresentations,
+    ]);
+
+    // The components actually loaded by the viewer. When the reduced view is on we inject the reduced
+    // atom subset into the main component so only those atoms are downloaded and displayed.
+    const effectiveComponents = useMemo(() => {
+      if (!finalComponents || !membraneReduced) return finalComponents;
+      return finalComponents.map((comp, c) =>
+        c === 0 ? { ...comp, atomIndices: membraneSelection.atomIndices } : comp);
+    }, [finalComponents, membraneReduced, membraneSelection]);
+
+    // Key remounting the ManagedViewer to reload the data when the atom subset changes (i.e. on toggle).
+    // WARNING: depend only on the membrane mode, never on finalComponents. Keying on the components would
+    // flip on the initial null -> ready transition and remount mid-load; useViewerData transitively holds
+    // useAPI subscriptions (fileDescriptors, structureData) that a remount tears down and can't re-establish
+    // while a request is in flight, leaving fileDescriptors stuck loading so the trajectory never downloads.
+    const viewerReloadKey = membraneReduced ? 'membrane-reduced' : 'full';
 
     // references
     const containerRef = useRef(null);
@@ -546,16 +660,16 @@ const ViewerWithControls = forwardRef(
     // If there are PBC residues then stop the smooth to prevent misleading artifacts
     const hasPbcResidues = useMemo(() => {
       if (!topology || !topology.pbcResidues) return;
-      if (!finalComponents) return;
+      if (!effectiveComponents) return;
       // Check if there is at least one residue in PBC
       const anyPbcResidues = topology.pbcResidues.size > 0;
       if (anyPbcResidues === false) return false;
       // If there is at least one PBC residue...
       // Check if we have atom indices in all components
-      const haveAllAtomIndices = finalComponents.every(comp => comp.atomIndices);
+      const haveAllAtomIndices = effectiveComponents.every(comp => comp.atomIndices);
       if (haveAllAtomIndices) {
         // Check if any atom index is included among PBC residues
-        const allAtomIndices = finalComponents.reduce((acc, comp) => acc.concat(comp.atomIndices), []);
+        const allAtomIndices = effectiveComponents.reduce((acc, comp) => acc.concat(comp.atomIndices), []);
         const anyPbcAtom = allAtomIndices.some(atomIndex => {
           const atom = topology.getAtomByIndex(atomIndex);
           return topology.pbcResidues.has(atom.residueIndex);
@@ -564,7 +678,7 @@ const ViewerWithControls = forwardRef(
       }
       setSmooth(false);
       return true;
-    }, [topology, finalComponents]);
+    }, [topology, effectiveComponents]);
 
     // This allows parent components to interact with this component
     useImperativeHandle(ref,
@@ -593,17 +707,9 @@ const ViewerWithControls = forwardRef(
     // The flag 'onlyTopology' is passed
     // there is a selected unique frame to load from the main trajectory
     // The main trajectory only has 1 frame (e.g. average.xtc)
-    const mainComponent = finalComponents && finalComponents[0];
+    const mainComponent = effectiveComponents && effectiveComponents[0];
     const noTrajectory = preventTrajectory || (mainComponent && (mainComponent.onlyTopology ||
       Number.isFinite(mainComponent.frame))); // May be 0
-
-    // Download viewer data from the API according to the components configuration
-    const {
-      topologies,
-      trajectories,
-      anyLoadingTopology,
-      anyLoadingTrajectory
-    } = useViewerData(finalComponents, requestedFramesNumber, handleLoad);
 
     // Decide where the settings controls live: docked at the bottom of the right
     // panel when there is enough free vertical room below the representations
@@ -655,7 +761,7 @@ const ViewerWithControls = forwardRef(
       requestedFramesNumber,
       setRequestedFramesNumber,
       frameNumbers,
-      showMembraneToggle,
+      showMembraneToggle: !!canReduceMembrane,
       membraneReduced,
       setMembraneReduced,
     };
@@ -685,25 +791,30 @@ const ViewerWithControls = forwardRef(
               }
               style={{ border: 'none', boxShadow: 'none' }}
             >
-              <Viewer
-                playing={playing}
-                spinning={spinning}
-                smooth={smooth}
-                onProgress={handleProgress}
-                ref={viewerRef}
-                noTrajectory={noTrajectory}
-                darkBackground={darkBackground}
-                perspective={perspective}
-                speed={speed}
-                components={finalComponents}
-                representations={finalRepresentations}
-                // Viewer data incluting both structure and coordinates
-                topologies={topologies}
-                trajectories={trajectories}
-                anyLoadingTopology={anyLoadingTopology}
-                anyLoadingTrajectory={anyLoadingTrajectory}
-                {...props}
-              />
+              {/* Gate the mount on this component's own topology when the reduced-membrane feature is on. */}
+              {/* topology is a getter running useAPI hooks, so it starts undefined here and settles a few */}
+              {/* renders later; mounting earlier would start in 'full' mode then flip viewerReloadKey once */}
+              {/* topology (and its mem-map) resolves, remounting mid-load and stranding in-flight requests. */}
+              {(!allowMembraneReduced || topology) && (
+                <ManagedViewer
+                  key={viewerReloadKey}
+                  Viewer={Viewer}
+                  ref={viewerRef}
+                  components={effectiveComponents}
+                  requestedFramesNumber={requestedFramesNumber}
+                  onLoad={handleLoad}
+                  playing={playing}
+                  spinning={spinning}
+                  smooth={smooth}
+                  onProgress={handleProgress}
+                  noTrajectory={noTrajectory}
+                  darkBackground={darkBackground}
+                  perspective={perspective}
+                  speed={speed}
+                  representations={finalRepresentations}
+                  {...props}
+                />
+              )}
               {settings && !settingsDocked && (
                 <SettingsControls {...settingsControlsProps} docked={false} />
               )}

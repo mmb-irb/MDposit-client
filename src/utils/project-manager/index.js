@@ -297,6 +297,10 @@ export class Project {
         const membraneMapping = this.membraneMapping;
         // Make sure data is available
         if (response.loading) return undefined;
+        // Wait for the mem-map to resolve before building the (built-once, cached) Topology; building it
+        // now would bake in missing membrane data, making getters like membraneViewerSelection flip
+        // mid-load. 'undefined' = still loading; resolved is either the payload or null (no membrane).
+        if (membraneMapping === undefined) return undefined;
         if (response.error) {
             // We handle this problem for the topology so the overview page can still request it and not crash
             if (response.error.noResponse) return undefined;

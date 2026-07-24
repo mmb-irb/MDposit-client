@@ -556,13 +556,14 @@ export class Topology {
       if (this.membraneMapping.no_mem_lipid && this.membraneMapping.no_mem_lipid.length > 0) {
         this.membraneMapping.no_mem_lipid = this.atom2residueIndices(this.membraneMapping.no_mem_lipid);
       }
-      // Build a flat list of all residue indices that are part of any membrane leaflet
+      // Flatten every membrane leaflet's atoms into one list.
+      // WARNING: append one by one, never push(...leaflet): large membranes have hundreds of thousands
+      // of lipid atoms and spreading them as function arguments overflows the call stack.
       const membraneLipidAtoms = [];
       for (const memData of Object.values(this.membraneMapping.mems || {})) {
-        if (memData.leaflets) {
-          membraneLipidAtoms.push(...(memData.leaflets.top || []));
-          membraneLipidAtoms.push(...(memData.leaflets.bot || []));
-        }
+        if (!memData.leaflets) continue;
+        for (const atomIndex of (memData.leaflets.top || [])) membraneLipidAtoms.push(atomIndex);
+        for (const atomIndex of (memData.leaflets.bot || [])) membraneLipidAtoms.push(atomIndex);
       }
       this.membraneMapping.lipid = this.atom2residueIndices(membraneLipidAtoms);
     }
