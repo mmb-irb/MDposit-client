@@ -4,25 +4,25 @@
 // interpreted it differently then the same slider position would play at different rates depending
 // on which viewer you happened to have selected
 
-// Highest frame rate the slider can ask for, at its maximum
-// Both backends cap out here: molstar passes it as its animation's maxFps, and NGL reaches it via
-// the per-frame timeout below. Note this is a ceiling on what is *requested*, not a promise - a
-// large system whose per-frame cost exceeds the budget will simply play slower
+// Frame rates the slider maps onto, at its two ends
+// These are what is *requested*, not a promise: a large system whose per-frame cost exceeds the
+// budget will simply play slower than asked. molstar passes the rate as its animation's maxFps,
+// NGL reaches it via the per-frame timeout below
+export const MINIMUM_PLAYER_FPS = 1;
 export const MAXIMUM_PLAYER_FPS = 60;
 
 // The 'speed' slider's own range
 const MINIMUM_SPEED = 0;
 const MAXIMUM_SPEED = 100;
 
-// Both backends drive playback off a timeout: the time to wait before advancing a frame, in ms
-const SLOWEST_TIMEOUT = 1000; // 1 fps
-const FASTEST_TIMEOUT = 1000 / MAXIMUM_PLAYER_FPS;
-
-// Turn a 0-100 slider value into that per-frame timeout
-// The interpolation is linear in the timeout, so the frame rate it produces is not linear in the
-// slider position: most of the travel covers the slow end, and the high frame rates are bunched up
-// near the maximum
-export const interpolateSpeed = currentSpeed => (
-  SLOWEST_TIMEOUT + (currentSpeed - MINIMUM_SPEED) *
-  ((FASTEST_TIMEOUT - SLOWEST_TIMEOUT) / (MAXIMUM_SPEED - MINIMUM_SPEED))
+// Turn a 0-100 slider value into the frame rate it is asking for
+// Deliberately linear in frame rate rather than in the timeout below: interpolating the timeout
+// instead would bunch every usable frame rate into the last few percent of the slider's travel
+// (with a 60 fps maximum, the whole 20-60 range would live above slider 98)
+export const speedToFps = currentSpeed => (
+  MINIMUM_PLAYER_FPS + (currentSpeed - MINIMUM_SPEED) *
+  ((MAXIMUM_PLAYER_FPS - MINIMUM_PLAYER_FPS) / (MAXIMUM_SPEED - MINIMUM_SPEED))
 );
+
+// Both backends drive playback off a timeout: the time to wait before advancing a frame, in ms
+export const interpolateSpeed = currentSpeed => 1000 / speedToFps(currentSpeed);
