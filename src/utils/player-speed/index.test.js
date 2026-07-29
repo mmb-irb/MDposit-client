@@ -7,14 +7,25 @@ import {
 
 describe('speedToFps', () => {
   it('should map the slider ends onto the frame rate limits', () => {
-    expect(speedToFps(0)).toBe(MINIMUM_PLAYER_FPS);
-    expect(speedToFps(100)).toBe(MAXIMUM_PLAYER_FPS);
+    expect(speedToFps(0)).toBeCloseTo(MINIMUM_PLAYER_FPS);
+    expect(speedToFps(100)).toBeCloseTo(MAXIMUM_PLAYER_FPS);
   });
 
-  // The point of being linear in frame rate: the middle of the slider is the middle of the range,
-  // rather than the ~2 fps that interpolating the timeout would give
-  it('should put the middle of the range at the middle of the slider', () => {
-    expect(speedToFps(50)).toBeCloseTo((MINIMUM_PLAYER_FPS + MAXIMUM_PLAYER_FPS) / 2);
+  // The defining property of the logarithmic mapping: the middle of the slider lands on the
+  // geometric mean rather than the arithmetic one, i.e. 10 fps between 1 and 100 rather than 50
+  it('should put the geometric mean of the limits at the middle of the slider', () => {
+    expect(speedToFps(50)).toBeCloseTo(
+      Math.sqrt(MINIMUM_PLAYER_FPS * MAXIMUM_PLAYER_FPS),
+    );
+    expect(speedToFps(50)).toBeCloseTo(10);
+  });
+
+  // Equal steps of the slider multiply the frame rate by an equal factor
+  it('should scale by a constant factor per equal slider step', () => {
+    const factor = speedToFps(25) / speedToFps(0);
+    for (const speed of [25, 50, 75]) {
+      expect(speedToFps(speed + 25) / speedToFps(speed)).toBeCloseTo(factor);
+    }
   });
 
   it('should increase monotonically across the slider', () => {
@@ -27,6 +38,7 @@ describe('speedToFps', () => {
 describe('interpolateSpeed', () => {
   it('should give the per-frame timeout, in milliseconds, for that frame rate', () => {
     expect(interpolateSpeed(0)).toBeCloseTo(1000);
+    expect(interpolateSpeed(50)).toBeCloseTo(100);
     expect(interpolateSpeed(100)).toBeCloseTo(1000 / MAXIMUM_PLAYER_FPS);
   });
 
