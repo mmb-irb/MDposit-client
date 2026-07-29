@@ -32,7 +32,7 @@ create-react-app should support this natively. */
 //import "molstar/lib/mol-plugin-ui/skin/light.scss";
 
 // Load the parser for trajectory coordinates in our format to molstar format
-import { TrajectoryFromCustomData, parseCoordinateFrames } from './molstar-parser';
+import { TrajectoryFromCustomData, FrozenSecondaryStructure, parseCoordinateFrames } from './molstar-parser';
 
 import { ProjectCtx } from '../../contexts';
 
@@ -145,7 +145,18 @@ const debugFpsBadgeStyle = {
 const REPRESENTATION_TYPES = {
   cartoon: { type: 'cartoon' },
   'ball+stick': { type: 'ball-and-stick' },
-  licorice: { type: 'line', typeParams: { aromaticBonds: false, multipleBonds: 'off' } },
+  // Bond lines only. Molstar's 'line' also draws a point and a cross at every atom by default,
+  // which on A01IP's 80k-atom membrane cost ~20 ms/frame - two thirds of the whole representation -
+  // while being invisible under the bond lines. NGL's 'line' draws bond lines only too, so this
+  // also makes the two backends agree
+  // The one thing this gives up is atoms with no bonds at all, which would now not be drawn. Every
+  // selection this app renders as licorice is a covalently bonded molecule (short polymer ranges
+  // and membranes - see get-default-reprensetations); unbonded things like ions go to ball+stick,
+  // which keeps its element-sphere visual
+  licorice: {
+    type: 'line',
+    typeParams: { aromaticBonds: false, multipleBonds: 'off', visuals: ['intra-bond'] },
+  },
   // Deliberately NOT requesting the 'structure-*' visual variants ('structure-element-sphere',
   // 'structure-intra-bond'). They batch everything into a single draw call, which sounds like a
   // win, but they are ComplexVisuals, and a ComplexVisual force-sets updateColor and updateSize
@@ -328,10 +339,11 @@ const MolstarViewer = memo(
             renderer: { colorMarker: false },
           });
           molstarRef.current = molstarInstance;
-          // TEMPORARY (playback performance investigation) - remove before merge
-          // Exposes the plugin so the measurement ladder can be driven from the browser console
-          // (state census, manual modelIndex commits, state.data.events.log subscription) without
-          // needing any further instrumentation in this file
+          // DEV-ONLY: expose the plugin for debugging from the browser console, alongside the
+          // debug/timing query params above and the framerate badge below. Useful for inspecting the
+          // state tree, driving modelIndex by hand, and subscribing to state.data.events.log, which
+          // reports how long each state node took to update - which is how the per-frame costs in
+          // the comments throughout this file were attributed
           if (process.env.NODE_ENV === 'development') window.__molstar = molstarInstance;
           setMolstar(molstarInstance);
         };
@@ -570,10 +582,19 @@ const MolstarViewer = memo(
               // Ask for the model as-is: the default is 'assembly', which for an MD topology
               // searches for symmetry that isn't there, logs a warning, and falls back to exactly
               // this anyway
-              const structure = await molstar.builders.structure.createStructure(
+              const rootStructure = await molstar.builders.structure.createStructure(
                 newModel,
                 { name: 'model', params: {} },
               );
+
+              // Hold secondary structure at the first frame, so cartoon representations stop
+              // recomputing DSSP on every frame. Must sit above the components so it re-plants the
+              // cached result before the representations below it update
+              const frozenSecondaryStructure = molstar.build()
+                .to(rootStructure)
+                .apply(FrozenSecondaryStructure, {});
+              await frozenSecondaryStructure.commit();
+              const structure = frozenSecondaryStructure.selector;
 
               // Build one molstar component + representation per data representation
               // (mirrors what the NGL viewer does with the same `representations`/`components` props)
