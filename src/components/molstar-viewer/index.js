@@ -24,7 +24,8 @@ import { createStructureRepresentationParams } from 'molstar/lib/mol-plugin-stat
 import { StateTransforms } from 'molstar/lib/mol-plugin-state/transforms';
 import { MolScriptBuilder as MS } from 'molstar/lib/mol-script/language/builder';
 import { Color } from 'molstar/lib/mol-util/color';
-import { Coordinates, Model, Time } from 'molstar/lib/mol-model/structure';
+import { Coordinates, Model, StructureElement, Time } from 'molstar/lib/mol-model/structure';
+import { setDebugMode, setTimingMode } from 'molstar/lib/mol-util/debug';
 /*  Might require extra configuration,
 see https://webpack.js.org/loaders/sass-loader/ for example.
 create-react-app should support this natively. */
@@ -46,6 +47,24 @@ import { sleep } from 'timing-functions';
 
 // Load the molstar plugin context in a global and accessible place
 //window.molstar = PluginUIContext;
+
+// Support the same debug/timing query params as molstar's own official viewer app, e.g.
+// ?timing-mode=1 to get per-render-pass GPU timing dumped to the console for spotting
+// bottlenecks (see https://github.com/molstar/molstar/issues/1880). Query params are read
+// before the '#' of this app's hash-router URLs, e.g. http://host/?timing-mode=1#/id/XXXX
+// Debug mode is what actually triggers the periodic console dump (on scene changes) - timing
+// mode alone only collects the numbers without ever printing them - so requesting timing
+// implies debug too, matching what a plain '?timing-mode=1' is expected to show
+// Only honoured in development, so production deployments can never be put into molstar's
+// debug/timing mode (which is slower and dumps to the console) through the URL
+if (process.env.NODE_ENV === 'development') {
+  const molstarDebugParams = new URLSearchParams(window.location.search);
+  const molstarTimingMode = molstarDebugParams.get('timing-mode') === '1';
+  const molstarDebugMode =
+    molstarDebugParams.get('debug-mode') === '1' || molstarTimingMode;
+  setDebugMode(molstarDebugMode);
+  setTimingMode(molstarTimingMode);
+}
 
 // Customize molstar specifications
 // Here you can see more clues about molstar options:
@@ -126,8 +145,25 @@ const debugFpsBadgeStyle = {
 const REPRESENTATION_TYPES = {
   cartoon: { type: 'cartoon' },
   'ball+stick': { type: 'ball-and-stick' },
-  licorice: { type: 'line' },
-  spacefill: { type: 'spacefill' },
+  licorice: { type: 'line', typeParams: { aromaticBonds: false, multipleBonds: 'off' } },
+  // Deliberately NOT requesting the 'structure-*' visual variants ('structure-element-sphere',
+  // 'structure-intra-bond'). They batch everything into a single draw call, which sounds like a
+  // win, but they are ComplexVisuals, and a ComplexVisual force-sets updateColor and updateSize
+  // whenever it rebuilds geometry - which for a trajectory is every single frame, since the
+  // coordinates always differ. The default per-unit visuals are UnitsVisuals, which rebuild only
+  // the geometry and skip colour/size unless the structure hash changes (it doesn't) or the colour
+  // theme is vertex/volume granularity (ours are group/uniform)
+  // The draw-call argument does not apply here either: Structure.ofModel makes roughly one unit
+  // per chain, so we are in the single digits, nowhere near the >5000 unitSymmetryGroups at which
+  // molstar itself switches these on (getSpacefillParams in
+  // mol-repr/structure/representation/spacefill.js)
+  // 'approximate' trades some impostor-sphere shading accuracy (visible mostly on overlaps)
+  // for faster fragment shading - kept paired with the default tryUseImpostor: true, since
+  // it only affects the impostor path (mol-geo/geometry/spheres/spheres.js)
+  spacefill: {
+    type: 'spacefill',
+    typeParams: { approximate: true },
+  },
   surface: { type: 'molecular-surface' },
   line: { type: 'line' },
   point: { type: 'point' },
@@ -284,7 +320,19 @@ const MolstarViewer = memo(
             render: renderReact18,
             spec: molstarSpec,
           });
+          // Drop render passes we don't need, to help with large trajectories
+          // (see https://github.com/molstar/molstar/issues/1880)
+          molstarInstance.canvas3d?.setProps({
+            multiSample: { mode: 'off' },
+            marking: { enabled: false },
+            renderer: { colorMarker: false },
+          });
           molstarRef.current = molstarInstance;
+          // TEMPORARY (playback performance investigation) - remove before merge
+          // Exposes the plugin so the measurement ladder can be driven from the browser console
+          // (state census, manual modelIndex commits, state.data.events.log subscription) without
+          // needing any further instrumentation in this file
+          if (process.env.NODE_ENV === 'development') window.__molstar = molstarInstance;
           setMolstar(molstarInstance);
         };
         wrap();
@@ -519,8 +567,12 @@ const MolstarViewer = memo(
               );
 
               // Set the default representations
+              // Ask for the model as-is: the default is 'assembly', which for an MD topology
+              // searches for symmetry that isn't there, logs a warning, and falls back to exactly
+              // this anyway
               const structure = await molstar.builders.structure.createStructure(
                 newModel,
+                { name: 'model', params: {} },
               );
 
               // Build one molstar component + representation per data representation
@@ -531,7 +583,11 @@ const MolstarViewer = memo(
                 ? representations
                 : [{ selection: 'all', type: 'cartoon', color: 'chainid' }];
 
-              for (const representation of reps) {
+              // Built bundle components, kept only so the dev-only sanity check below can notice if
+              // one of them ever silently empties out during playback (see the check for why)
+              const builtBundleComponents = [];
+
+              for (const [repIndex, representation] of reps.entries()) {
                 if (representation.show === false) continue;
 
                 // Resolve which atoms this representation targets, and build a component for them
@@ -542,13 +598,47 @@ const MolstarViewer = memo(
                   component = structure;
                 } else {
                   if (atomIndices.length === 0) continue;
-                  component = await molstar.builders.structure.tryCreateComponentFromExpression(
-                    structure,
+                  // Resolve the selection into a 'bundle' (a plain list of unit ids + element
+                  // index ranges/sets) ONCE, here, rather than letting molstar re-resolve it on
+                  // every single playback frame
+                  // Every frame replaces the structure with a coordinate-only remap, so molstar
+                  // re-runs each component's update. For a component built from an expression
+                  // there is no cheap path: 'a === cache.source' is never true for the fresh
+                  // structure, so updateStructureComponent re-executes the compiled query, and an
+                  // atom-test-only atomGroups query scans EVERY atom of EVERY unit. That is why
+                  // the cost tracked the whole structure rather than the selection: on A01IP the
+                  // 220-atom glycans component cost as much per frame as the 80k-atom membrane one
+                  // A 'bundle' component instead updates via Bundle.toStructure, which just maps
+                  // the stored index ranges through the (unchanged) unit element arrays
+                  // See mol-plugin-state/helpers/structure-component.js, updateStructureComponent
+                  const bundle = StructureElement.Bundle.fromExpression(
+                    structure.data,
                     atomIndicesToExpression(atomIndices),
-                    representation.name || representation.selection,
+                  );
+                  // 'label' is what molstar names this node in the state tree and in its per-node
+                  // update timing log; without it every component is just 'Selection'
+                  const label = representation.name || representation.selection;
+                  component = await molstar.builders.structure.tryCreateComponent(
+                    structure,
+                    {
+                      type: { name: 'bundle', params: bundle },
+                      nullIfEmpty: true,
+                      label,
+                    },
+                    // The key is what tryCreateComponent tags the node with, and equal keys
+                    // UPDATE the same node instead of adding a second one. Names are not
+                    // guaranteed unique (a representation with no name falls back to its
+                    // selection, and different representations may share a selection), so
+                    // disambiguate with the index
+                    `${label}#${repIndex}`,
                   );
                   // The selection matched no atoms in the loaded structure
                   if (!component) continue;
+                  builtBundleComponents.push({
+                    label,
+                    component,
+                    elementCount: component.data.elementCount,
+                  });
                 }
 
                 const { type, typeParams } = getRepresentationType(representation.type);
@@ -581,6 +671,33 @@ const MolstarViewer = memo(
                 await update.commit();
               }
 
+              // DEV-ONLY: bundle components address atoms by unit id + element index, and molstar
+              // only reuses a bundle while its stored hash still matches the structure's. The hash
+              // covers unit ids and element arrays but not coordinates, and a coordinate-only remap
+              // preserves both, so it should hold for every frame of a trajectory. If that ever
+              // stopped being true the component would be quietly replaced by an EMPTY structure
+              // and its representation would just vanish - no error, nothing in the console - so
+              // check it explicitly rather than relying on someone noticing a missing membrane
+              let bundleCheckDone = false;
+              const checkBundleComponents = () => {
+                if (bundleCheckDone) return;
+                for (const built of builtBundleComponents) {
+                  const current = built.component.data;
+                  if (current && current.elementCount === built.elementCount) continue;
+                  bundleCheckDone = true; // Report once, not once per frame
+                  console.error(
+                    'Molstar viewer: bundle component "%s" changed from %d to %d atoms during ' +
+                      'playback. Its representation has most likely disappeared. The structure ' +
+                      'hash is no longer stable across frames, so components must go back to ' +
+                      'being built from expressions (slower, but correct).',
+                    built.label,
+                    built.elementCount,
+                    current ? current.elementCount : 0,
+                  );
+                  return;
+                }
+              };
+
               // Notify onProgress/currentFrame consumers whenever the current frame changes
               // (playback tick or manual scrub), by watching the frame-index-controlling node
               if (progressSubscriptionRef.current) progressSubscriptionRef.current.unsubscribe();
@@ -589,6 +706,7 @@ const MolstarViewer = memo(
                   if (event.ref !== newModel.ref) return;
                   const modelIndex = (newModel.cell && newModel.cell.transform.params.modelIndex) || 0;
                   recordFrameTick(modelIndex);
+                  if (process.env.NODE_ENV !== 'production') checkBundleComponents();
                   if (!onProgress) return;
                   const total = expectedFramesRef.current;
                   if (total <= 1) return;
