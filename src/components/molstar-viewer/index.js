@@ -38,6 +38,8 @@ import { ProjectCtx } from '../../contexts';
 
 import { rangedSelectionParser } from '../../utils/auxiliar-functions';
 
+import { MAXIMUM_PLAYER_FPS, interpolateSpeed } from '../../utils/player-speed';
+
 //import { setTooltipPosition } from '../../utils/tooltip-position-manager';
 
 import style from './style.module.css';
@@ -104,17 +106,6 @@ const BYTES_PER_COORDINATE = 4; // float 32
 const COORDINATES_PER_ATOM = 3; // x, y and z
 const BYTES_PER_ATOM = BYTES_PER_COORDINATE * COORDINATES_PER_ATOM;
 
-// Set the viewer player speed limits
-// The actual 'speed' input limits are 0-100
-// The speed set as the time to wait before moving to the next frame in miliseconds
-const minimumSpeed = 0;
-const maximumSpeed = 100;
-const slowestTimeout = 1000;
-const fastestTimeout = 50;
-const interpolateSpeed = currentSpeed => (
-  slowestTimeout + (currentSpeed - minimumSpeed) *
-  ((fastestTimeout - slowestTimeout) / (maximumSpeed - minimumSpeed))
-);
 
 // Set representation types for the different types of highlights
 const defaultHighlightTypes = {
@@ -410,7 +401,7 @@ const MolstarViewer = memo(
       // ('sequential' duration re-applies the animation at most every 1000/maxFps ms)
       const getAnimationParams = useCallback(() => {
         const timeout = interpolateSpeed(speedRef.current);
-        const maxFps = Math.max(1, Math.min(60, Math.round(1000 / timeout)));
+        const maxFps = Math.max(1, Math.min(MAXIMUM_PLAYER_FPS, Math.round(1000 / timeout)));
         return {
           duration: { name: 'sequential', params: { maxFps } },
           mode: isCompleteRef.current

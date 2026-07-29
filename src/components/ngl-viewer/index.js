@@ -30,6 +30,8 @@ import { setTooltipPosition } from '../../utils/tooltip-position-manager';
 
 import { appendBuffer } from '../../utils/auxiliar-functions';
 
+import { interpolateSpeed } from '../../utils/player-speed';
+
 import style from './style.module.css';
 
 // Make a deep copy of an object even with cyclic references
@@ -53,17 +55,6 @@ const BYTES_PER_COORDINATE = 4; // float 32
 const COORDINATES_PER_ATOM = 3; // x, y and z
 const BYTES_PER_ATOM = BYTES_PER_COORDINATE * COORDINATES_PER_ATOM;
 
-// Set the NGL player speed limits
-// The actual 'currentSpeed' input limits are 0-100
-// The speed set as the time to wait before moving to the next frame in miliseconds
-const minimumSpeed = 0;
-const maximumSpeed = 100;
-const slowestTimeout = 1000;
-const fastestTimeout = 50;
-const interpolateSpeed = currentSpeed => (
-  slowestTimeout + (currentSpeed - minimumSpeed) *
-  ((fastestTimeout - slowestTimeout) / (maximumSpeed - minimumSpeed))
-);
 
 // DEV-ONLY badge showing the measured playback framerate (see 'recordFrameTick')
 // Fixed positioning keeps this independent from the viewer's own layout/CSS
