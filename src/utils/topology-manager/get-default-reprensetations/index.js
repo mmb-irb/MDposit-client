@@ -3,6 +3,9 @@ import { generateRanges } from 'src/utils/auxiliar-functions';
 // Set the default opacity value por PBC representations
 const PBC_OPACITY = 0.3;
 
+// Membranes are drawn slightly transparent so it is possible to see what sits inside them
+const MEMBRANE_OPACITY = 0.5;
+
 // Get NGL predefined default representations
 // You may pass a residue indices selection of the only region to be represented
 const getDefaultRepresentations = (topology, selectedResidueIndices = null) => {
@@ -143,6 +146,7 @@ const getDefaultRepresentations = (topology, selectedResidueIndices = null) => {
                 selection: nglSelection,
                 type: 'licorice',
                 color: 'grey',
+                opacity: MEMBRANE_OPACITY,
                 residueIndices: lipidResidueIndices,
             });
         }

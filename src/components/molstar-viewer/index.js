@@ -655,6 +655,14 @@ const MolstarViewer = memo(
 
                 const { type, typeParams } = getRepresentationType(representation.type);
                 const colorTheme = getColorTheme(representation.color);
+                // Molstar calls opacity 'alpha'. Representations only carry an opacity when
+                // something asked for one (currently PBC regions, which are drawn faded so it is
+                // clear they have jumped across a periodic boundary), so leave molstar's own
+                // default alone otherwise rather than passing an explicit 1
+                const { opacity } = representation;
+                const alphaParams = opacity === undefined || opacity === null
+                  ? undefined
+                  : { alpha: opacity };
                 const reprParams = createStructureRepresentationParams(
                   molstar,
                   void 0,
@@ -669,6 +677,7 @@ const MolstarViewer = memo(
                       ignoreHydrogensVariant: 'all',
                       ignoreLight: true,
                       ...typeParams,
+                      ...alphaParams,
                     },
                     color: colorTheme.name,
                     colorParams: colorTheme.params,
