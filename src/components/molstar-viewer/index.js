@@ -565,6 +565,11 @@ const MolstarViewer = memo(
 
               // Get the current trajectory model
               // From now on, this is the model to be modified and not the model in modelReference
+              // NOTE: keep this as molstar's own ModelFromTrajectory. AnimateModelIndex finds the
+              // node to advance by selecting that exact transformer, so replacing it with a custom
+              // equivalent (as interpolating between frames would need) leaves the animation with
+              // nothing to drive: playback then silently does nothing, with no error anywhere.
+              // Such a replacement has to land together with its own playback driver
               const newModel = await molstar.builders.structure.createModel(
                 molstarTrajectory,
               );
@@ -675,7 +680,7 @@ const MolstarViewer = memo(
                       quality: 'lower',
                       ignoreHydrogens: 'all',
                       ignoreHydrogensVariant: 'all',
-                      ignoreLight: true,
+                      // ignoreLight: true,
                       ...typeParams,
                       ...alphaParams,
                     },
