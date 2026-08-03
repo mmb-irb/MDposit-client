@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState, useContext, useMemo, useEffect, useCallback } from 'react';
+import React, { lazy, Suspense, useState, useContext, useMemo, useEffect, useCallback, useRef } from 'react';
 // Import tools to retrieve data using the API
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 import useAPI from '../../../hooks/use-api';
@@ -41,6 +41,7 @@ const Energies = () => {
   // Get the current project data
   const {
     accessionAndMdNumber,
+    hasInteractions,
     topology,
     interactions,
     loading: isProjectLoading,
@@ -53,6 +54,14 @@ const Energies = () => {
 
   // The interaction to be displayed
   const [selectedInteraction, setSelectedInteraction] = useState(0);
+
+  // Make sure the selected interaction is in range
+  // The selection is kept when changing MD, but the new MD may have less interactions
+  useEffect(() => {
+    if (!interactions) return;
+    setSelectedInteraction(previous =>
+      previous < interactions.length ? previous : 0);
+  }, [interactions]);
 
   // Set the target interaction name
   const { interactionName, analysisName } = useMemo(() => {
@@ -72,23 +81,31 @@ const Energies = () => {
   const interactionAnalysisUrl = analysisName ? `${analysesUrlBase}/${analysisName}` : null;
   const { loading: isAnalysisLoading, payload, error } = useAPI(interactionAnalysisUrl);
 
+  // Keep track of the MD which the retained dataset belongs to
+  const datasetMdNumber = useRef(null);
+
   // Now set the actual dataset to be used
   // Note that this is a compatibility layer between the old and the new energies system
   const dataset = useRemfo(previous => {
+    // The previous dataset is retained while new data is being downloaded
+    // However it must be discarded when it belongs to a different MD
+    // Otherwise we would display energies from the previously selected MD
+    const retained = datasetMdNumber.current === accessionAndMdNumber ? previous : undefined;
+    datasetMdNumber.current = accessionAndMdNumber;
     // Wait for the download to finish
-    if (!indexPayload) return previous;
+    if (!indexPayload) return retained;
     // Check if the analysis is in the old or the new format
     const isOld = indexPayload.data !== undefined;
     // If this is the new system then the dataset is the payload itself
     if (!isOld) {
-      if (!payload) return previous;
+      if (!payload) return retained;
       return payload;
     }
     // If this is the old system then the dataset is in the index payload
     const interactionData = indexPayload.data.find(entry => entry.name === interactionName);
     if (!interactionData) return { error: `Dataset for interaction "${interactionName}" not found` };
     return interactionData;
-  }, [indexPayload, payload, interactionName]);
+  }, [accessionAndMdNumber, indexPayload, payload, interactionName]);
 
   // This is a toggle state for which agent data is shown
   const [selectedOrder, setSelectedOrder] = useState(true);
@@ -105,6 +122,7 @@ const Energies = () => {
     if (!topology || !interactions) return {}
     // Get the selected interaction
     const interaction = interactions[selectedInteraction];
+    if (!interaction) return {};
     // Get host atom indices
     const hostAtomIndices = selectedOrder
       ? interaction.atom_indices_1
@@ -364,16 +382,20 @@ const Energies = () => {
   }, []);
 
   // Check if anything is still beeing loaded
-  const anyLoading = isIndexLoading || isAnalysisLoading || isProjectLoading;
+  // Note that both the topology and the interactions are undefined while downloading
+  // This is the case, for instance, when changing MD, since the whole project is requested again
+  const isProjectDataMissing = !topology || (hasInteractions && !interactions);
+  const anyLoading = isIndexLoading || isAnalysisLoading || isProjectLoading || isProjectDataMissing;
 
   // Render loading or error messages according with the API response
   if (indexError) return indexError.toString();
   if (error) return error.toString();
   if (dataset && dataset.error) return dataset.error;
-  if (!dataset) {
+  if (!hasInteractions) return 'There are no interactions';
+  // Note that having a dataset does not mean the graph data is ready
+  // The dataset may be retained from a previous render while the rest of the data is downloaded
+  if (!dataset || (!data && !dataError)) {
     if (anyLoading) return <Loading />;
-    if (!interactions) return 'There are no interactions';
-    if (!topology) return 'There is no topology';
     return 'Something bad happened';
   }
 
