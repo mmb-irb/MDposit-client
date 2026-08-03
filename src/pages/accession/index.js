@@ -1,5 +1,5 @@
 // React logic
-import React, { lazy, Suspense, useContext, useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Routes, Route, useLocation, useParams, useNavigate } from 'react-router-dom';
 
 // Visual assets
@@ -85,8 +85,16 @@ const AccessionHeader = ({ page, primaryDarkColor }) => {
   // Get the collection reference for the first collection id in the metadata
   // First collection is consider the "main representative" collection
   const mainCollection = showCollections && metadata.COLLECTIONS && metadata.COLLECTIONS[0];
-  const mainCollectionReference = mainCollection && collectionReferences &&
+  const currentMainCollectionReference = mainCollection && collectionReferences &&
     collectionReferences.find(collectionReference => collectionReference.id === mainCollection);
+  // Retain the last reference so the logo image is not unmounted (and thus reloaded)
+  // while references are requested again on replica change
+  const retainedMainCollectionReference = useRef(null);
+  if (currentMainCollectionReference)
+    retainedMainCollectionReference.current = currentMainCollectionReference;
+  const retained = retainedMainCollectionReference.current;
+  const mainCollectionReference = currentMainCollectionReference ||
+    (retained && retained.id === mainCollection && retained);
   const mainCollectionHoverText = mainCollectionReference && `The current simulation belongs to the ${
     mainCollectionReference.name} collection.\n` + mainCollectionReference.description;
 
