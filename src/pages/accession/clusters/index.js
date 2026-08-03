@@ -25,9 +25,10 @@ const MarkovGraph = lazy(() =>
 // Set the maximum number of nodes
 // Note that the hard limit of nodes is the number of values in data (now 20)
 const defaultNodeNumber = 14;
-// Set the maximum number of nodes
+// Set the maximum number of links
 // Note that the hard limit of links is the possible combinations of pairs of nodes
-const defaultLinksNumber = 20;
+// Note also that it is kept low to avoid a cluttered graph, but the user may raise it
+const defaultLinksNumber = 10;
 
 // Set the maximum node area in the graph, which is the area of the node with the highest population
 // Note that the rest of node areas are proportional, so there is no need to set the minimum node area
@@ -36,6 +37,9 @@ const maxNodeArea = 10000;
 // Note that both are to be defined since width values are interpolated
 const maxLinkWidth = 10;
 const minLinkWidth = 1;
+// Set the width for a direction with no transitions
+// Note that a 0 width means this direction gets no arrow
+const zeroLinkWidth = 0;
 
 const Clusters = () => {
 
@@ -170,48 +174,66 @@ const Clusters = () => {
       nodes.push(node);
     });
     // Set the transitions between clusters as the links
-    const links = [];
-    // Find transitions between available nodes
-    const availableTransitions = clustersData.transitions.filter(
-      transition => clusterIndices.includes(transition.from) && clusterIndices.includes(transition.to));
-    // Save the number of available links with the given available nodes
-    const availableLinks = availableTransitions.length;
-    // Sort transitions depending on their counts
-    const transitionSortingFunction = (transitionA, transitionB) => transitionB.count - transitionA.count;
-    const sortedTransitions = availableTransitions.sort(transitionSortingFunction);
-    // Find the maximum and minimum transition counts
-    const allCounts = sortedTransitions.map(transition => transition.count);
-    const maxCount = allCounts[0];
-    const minCount = allCounts[allCounts.length - 1];
-    // Calculate the normalizer for the interpolation process
-    const normalizer = maxCount === minCount
-      ? 1 // If there is only one possible width then set it to the maximum width
-      : (maxLinkWidth - minLinkWidth) / (minCount - maxCount);
-    // Process as many links as requested by the user
-    // Note that, with the current implementation, transitions between  pairs of nodes are merged
-    // So we may have less links than transitions
-    sortedTransitions.forEach((transition, i) => {
-      if (i >= linksLimit) return;
+    // Find transitions between available nodes, discarding self transitions since they are not drawable
+    const availableTransitions = clustersData.transitions.filter(transition =>
+      transition.from !== transition.to &&
+      clusterIndices.includes(transition.from) && clusterIndices.includes(transition.to));
+    // Merge both transitions between every pair of nodes in a single link, but keeping their counts apart
+    // Then the link is drawn as two arrows, each one as wide as the transitions in its direction
+    const linksMap = new Map();
+    availableTransitions.forEach(transition => {
       // Translate cluster indices to node indices
-      const source = clusterIndices.indexOf(transition.from);
-      if (source === -1) throw new Error('Not found source cluster index');
-      const target = clusterIndices.indexOf(transition.to);
-      if (target === -1) throw new Error('Not found target cluster index');
-      // Set the width from the number of transitions count
-      // Interpolate the current transitions count to obtain the corresponding width
-      const width = maxLinkWidth - (transition.count - maxCount) * normalizer;
-      // Check if we already have the opposite link
-      const oppositeLink = links.find(link => link.source === target && link.target === source);
-      // If so, merge their width
-      if (oppositeLink) {
-        // DANI: Esto es muy cutre y rompe incluso la interpolación, pero al ser temporal no merece la pena hacerlo mejor
-        oppositeLink.width += width;
+      const from = clusterIndices.indexOf(transition.from);
+      if (from === -1) throw new Error('Not found source cluster index');
+      const to = clusterIndices.indexOf(transition.to);
+      if (to === -1) throw new Error('Not found target cluster index');
+      // Set the link nodes in a direction independent way, so both directions fall in the same link
+      const source = Math.min(from, to);
+      const target = Math.max(from, to);
+      // Get the already existing link between these nodes or set a new one
+      const key = `${source}-${target}`;
+      let link = linksMap.get(key);
+      if (!link) {
+        link = { source: source, target: target, sourceCount: 0, targetCount: 0 };
+        linksMap.set(key, link);
       }
-      // Otherwise create new link
-      else {
-        const link = { source: source, target: target, width: width };
-        links.push(link);
-      }
+      // Add the counts to the direction they belong to
+      // Note that the 'source count' is the number of transitions leaving the source node
+      if (from === source) link.sourceCount += transition.count;
+      else link.targetCount += transition.count;
+    });
+    const allLinks = [ ...linksMap.values() ];
+    // Save the number of available links with the given available nodes
+    const availableLinks = allLinks.length;
+    // Find the maximum and minimum counts among all drawable directions
+    // Note that they do not depend on the links limit, thus widths do not change when using the slider
+    const allCounts = allLinks
+      .flatMap(link => [ link.sourceCount, link.targetCount ])
+      .filter(count => count > 0);
+    const maxCount = Math.max(...allCounts);
+    const minCount = Math.min(...allCounts);
+    // Set a function to interpolate a transitions count to its corresponding width
+    const countToWidth = count => {
+      // A direction with no transitions gets no arrow
+      if (count === 0) return zeroLinkWidth;
+      // If there is only one possible width then set it to the maximum width
+      if (maxCount === minCount) return maxLinkWidth;
+      return minLinkWidth + (count - minCount) * (maxLinkWidth - minLinkWidth) / (maxCount - minCount);
+    };
+    // Sort links by their overall number of transitions and keep as many as requested by the user
+    const linkSortingFunction = (linkA, linkB) =>
+      (linkB.sourceCount + linkB.targetCount) - (linkA.sourceCount + linkA.targetCount);
+    const links = allLinks.sort(linkSortingFunction).slice(0, linksLimit);
+    // Set the width and the tooltip of both arrows of every displayed link
+    links.forEach(link => {
+      link.sourceWidth = countToWidth(link.sourceCount);
+      link.targetWidth = countToWidth(link.targetCount);
+      // Set the overall width, which is used to calculate the link force strength
+      link.width = link.sourceWidth + link.targetWidth;
+      const sourceFrame = mainFrames[link.source];
+      const targetFrame = mainFrames[link.target];
+      link.sourceText = `Transitions ${sourceFrame} → ${targetFrame}: ${link.sourceCount}`;
+      link.targetText = `Transitions ${targetFrame} → ${sourceFrame}: ${link.targetCount}`;
     });
     // Mine also the step and analysis version from the cluster data
     const version = new Version(clustersData.version);

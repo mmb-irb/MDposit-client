@@ -13,7 +13,7 @@ import {
 import ErrorBoundary from '../components/error-boundary';
 
 import Base from '../base';
-// The fade out half of the animation used when the location changes
+// The fade out half of the location change animation
 import { fadeSectionOut, fadeOutTime } from '../utils/page-transition';
 // Constants
 import { HOST_CONFIG } from '../utils/constants';
