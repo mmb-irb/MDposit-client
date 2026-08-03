@@ -13,8 +13,8 @@ import {
 import ErrorBoundary from '../components/error-boundary';
 
 import Base from '../base';
-// It is used to check if the user has the reduced motion setting active
-import reducedMotion from '../utils/reduced-motion';
+// The fade out half of the animation used when the location changes
+import { fadeSectionOut, fadeOutTime } from '../utils/page-transition';
 // Constants
 import { HOST_CONFIG } from '../utils/constants';
 
@@ -30,17 +30,6 @@ window.process = window.process || require('process');
 // Get the Google Analytics id
 const googleAnalyticsId = process.env.REACT_APP_GOOGLE_ANALYTICS_ID;
 
-// These keyframes are used for an animate()
-// An image opacity is iterated between 0 (invisible) and 1 (visible)
-const KEYFRAMES = {
-  opacity: [1, 0],
-};
-
-// Same image vertical position is iterated between 0 and 50 pixels
-// This is only set when user has not activated the reduced motion option from the navigator
-if (!reducedMotion()) {
-  KEYFRAMES.transform = ['translateY(0)', 'translateY(50px)'];
-}
 // Set the header colors (standard model colors)
 let palette;
 if (HOST_CONFIG.palette) {
@@ -110,19 +99,12 @@ const CustomRouter = ({ history, ...props }) => {
           document.querySelectorAll('main section'),
         ).reverse();
         // Trigger animation out
-        let animated = false;
+        let animatedCount = 0;
         sections.forEach((section, index) => {
-          if (!section.animate) return;
-          animated = true;
-          section.animate(KEYFRAMES, {
-            fill: 'both',
-            easing: 'cubic-bezier(.33,-0.65,.56,1.1)',
-            duration: 500,
-            delay: Math.min(250, index * 100),
-          });
+          if (fadeSectionOut(section, index)) animatedCount += 1;
         });
-        // If animations were triggered then wait a bit for it to happen
-        if (animated) await sleep(500);
+        // If animations were triggered then wait for them to happen
+        if (animatedCount) await sleep(fadeOutTime(animatedCount));
       }
       // Go to the new location
       return setState(newState);
