@@ -200,6 +200,8 @@ const Energies = () => {
     // Return if the dataset is not ready yet
     if (!dataset || !topology) return {};
     if (dataset.error) return {};
+    // Wait also for the interaction-derived selections
+    if (!hostAtomIndices || !hostResidueIndices) return {};
     // Get the dataset version
     const datasetVersion = new Version(dataset.version);
     // Old versions of energies have only residue data, not atom data
@@ -340,12 +342,14 @@ const Energies = () => {
 
   // Memoize the marks
   const marks = useMemo(() => {
-    if (selectedX === null) return strongBondMarks;
+    // Note that the strong bond marks may be missing while data is being downloaded
+    const bondMarks = strongBondMarks || [];
+    if (selectedX === null) return bondMarks;
     const selectedMark = {
       x: selectedX,
       attr: { fill: '#c8c8c8' },
     };
-    return [selectedMark, ...strongBondMarks];
+    return [selectedMark, ...bondMarks];
   }, [selectedX, strongBondMarks]);
 
   // Set the selected residue indices (only one index with the current implmementation)
@@ -354,6 +358,8 @@ const Energies = () => {
     if (selectedX === null) return null;
     // If we are representing data by atom, not by residue, then exit
     if (!perResidue) return null;
+    // Selections are missing while interactions are being downloaded (e.g. on MD change)
+    if (!hostResidueIndices) return null;
     // Get the selected residue index
     const residueIndex = hostResidueIndices[selectedX];
     return [residueIndex];
@@ -365,6 +371,8 @@ const Energies = () => {
     if (selectedX === null) return null;
     // If we are representing data by residue, not by atom, then exit
     if (perResidue) return null;
+    // Selections are missing while interactions are being downloaded (e.g. on MD change)
+    if (!hostAtomIndices) return null;
     // Get the selected residue index
     const atomIndex = hostAtomIndices[selectedX];
     return [atomIndex];
