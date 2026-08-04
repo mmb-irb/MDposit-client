@@ -28,7 +28,10 @@ export const getTextSizeDOM = (text, font = 'bold 10px sans-serif') => {
     'white-space': 'nowrap',
   });
   document.body.appendChild(element);
-  return { width: element.clientWidth, height: element.clientHeight };
+  const size = { width: element.clientWidth, height: element.clientHeight };
+  // Remove the element so it does not affect the page layout
+  element.remove();
+  return size;
 };
 
 // Get the whole body width
