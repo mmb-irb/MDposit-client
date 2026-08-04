@@ -244,7 +244,7 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
             }
         }
         const colors = option && createPalette(option.length);
-        // Cycle through the colors array in steps of 20% of its length
+        // Cycle through the colors array in steps of 15% of its length
         if (colors) {
             const step = Math.max(1, Math.floor(colors.length * 0.15));
             const cycledColors = [];

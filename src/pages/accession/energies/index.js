@@ -64,16 +64,23 @@ const Energies = () => {
   }, [interactions]);
 
   // Set the target interaction name
-  const { interactionName, analysisName } = useMemo(() => {
+  const { interactionName, analysisName, indexMissError } = useMemo(() => {
     // Wait for main data to be downloaded
     if (!interactions || !indexPayload) return {};
     // Get the selected interaction
+    // Note that it may be missing when the selection is out of range
+    // This happens right after changing MD, before the selection is reset
     const interaction = interactions[selectedInteraction];
+    if (!interaction) return {};
     // Check if the analysis is in the old or the new format
     const isOld = indexPayload.data !== undefined;
     // If so, there is no target analysis name, but the whole data is already in the payload
     if (isOld) return { interactionName: interaction.name };
     const targetEntry = indexPayload.find(entry => entry.name === interaction.name);
+    if (!targetEntry) return {
+      interactionName: interaction.name,
+      indexMissError: `Energies analysis for interaction "${interaction.name}" not found`
+    };
     return { interactionName: interaction.name, analysisName: targetEntry.analysis }
   }, [interactions, selectedInteraction, indexPayload]);
 
@@ -94,10 +101,14 @@ const Energies = () => {
     datasetMdNumber.current = accessionAndMdNumber;
     // Wait for the download to finish
     if (!indexPayload) return retained;
+    // The interaction may not be resolved yet, since interactions are downloaded apart
+    // Note that we must not claim the dataset is missing while this is the case
+    if (!interactionName) return indexMissError ? { error: indexMissError } : retained;
     // Check if the analysis is in the old or the new format
     const isOld = indexPayload.data !== undefined;
     // If this is the new system then the dataset is the payload itself
     if (!isOld) {
+      if (indexMissError) return { error: indexMissError };
       if (!payload) return retained;
       return payload;
     }
@@ -105,7 +116,7 @@ const Energies = () => {
     const interactionData = indexPayload.data.find(entry => entry.name === interactionName);
     if (!interactionData) return { error: `Dataset for interaction "${interactionName}" not found` };
     return interactionData;
-  }, [accessionAndMdNumber, indexPayload, payload, interactionName]);
+  }, [accessionAndMdNumber, indexPayload, payload, interactionName, indexMissError]);
 
   // This is a toggle state for which agent data is shown
   const [selectedOrder, setSelectedOrder] = useState(true);
