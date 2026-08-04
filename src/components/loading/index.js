@@ -5,6 +5,7 @@ import cn from 'classnames';
 import { CircularProgress } from '@mui/material';
 
 import useToggleState from '../../hooks/use-toggle-state';
+import { useHoldsHeight } from '../height-holder';
 
 import style from './style.module.css';
 
@@ -16,6 +17,8 @@ const WAIT_DELAY = 750; // 750ms
 // In the best of cases this component will *never* even have to be displayed
 const Loading = ({ wait = WAIT_DELAY }) => {
   const [flag, toggleFlag] = useToggleState(false);
+  // Tell the closest height holder, if any, that the content it had is missing while this lasts
+  useHoldsHeight();
   // This is a hook
   useLayoutEffect(() => {
     const timer = setTimeout(() => {

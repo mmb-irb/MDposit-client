@@ -14,6 +14,7 @@ import useAPI from '../../hooks/use-api'; // API acces
 // Additional components
 import ErrorBoundary from '../../components/error-boundary'; // Catch errors in React components
 import Loading from '../../components/loading'; // Displays an animated "loading" circle
+import HeightHolder from '../../components/height-holder'; // Keeps the content height while loading
 import Info from '../../components/info';
 import LazyImg from 'src/components/lazy-img';
 
@@ -324,8 +325,12 @@ const Accession = () => {
     <ProjectCtx.Provider value={project}>
       <ProjectMenu accessionAndMdNumber={accessionAndMdNumber} subPage={page} />
       <AccessionHeader page={page} primaryDarkColor={primaryDarkColor} />
+      {/* Maintain the height of the current when the next is loading */}
+      {/*so the footer does not blink in and out meanwhile */}
+      <HeightHolder>
       {/* Load the main data summary */}
-      <ContentSwitch subPage={page} />
+        <ContentSwitch subPage={page} />
+      </HeightHolder>
     </ProjectCtx.Provider>
   );
 };

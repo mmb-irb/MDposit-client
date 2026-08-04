@@ -1,0 +1,6 @@
+/* Both the measured box and the one holding the height must contain the margins of whatever is
+inside them, otherwise child margins escape and the height which is measured is not the same one
+which is held back, which displaces the content below by the difference */
+.holder {
+  display: flow-root;
+}
