@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, cleanup, act } from '@testing-library/react';
+import { render, cleanup, act, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ProjectCtx } from '../../../contexts';
 
@@ -10,15 +10,26 @@ jest.mock('../../../hooks/use-api', () => ({
 }));
 
 // Mock the heavy components which are not the target of this test
+// Note that the graph exposes both its marks and a way to select a point in the x axis
 jest.mock('../../../components/graph', () => ({
   __esModule: true,
-  default: ({ title, xAxisValues }) => (
-    <div data-testid="graph" data-title={title} data-xtags={xAxisValues.join(',')} />
+  default: ({ title, xAxisValues, onSelect, marks }) => (
+    <div
+      data-testid="graph"
+      data-title={title}
+      data-xtags={xAxisValues.join(',')}
+      data-marks={JSON.stringify((marks || []).map(mark => mark.x))}
+    >
+      <button data-testid="select-x" onClick={() => onSelect(0)} />
+    </div>
   ),
 }));
+// Note that the viewer spawner exposes whether it was given a viewer to spawn
 jest.mock('../../../components/viewer-spawner', () => ({
   __esModule: true,
-  default: () => <div data-testid="viewer-spawner" />,
+  default: ({ newViewer }) => (
+    <div data-testid="viewer-spawner" data-open={newViewer ? 'true' : 'false'} />
+  ),
 }));
 // Mock the interaction selector so we can select interactions by index
 jest.mock('../../../components/interaction-selector', () => ({
@@ -57,13 +68,13 @@ const fakeTopology = {
 };
 
 // Build an interaction whose host covers every atom in the fake topology
-const fakeInteraction = name => ({
+const fakeInteraction = (name, strongBonds = []) => ({
   name,
   atom_indices_1: [0, 1, 2, 3],
   atom_indices_2: [0, 1, 2, 3],
   interface_atom_indices_1: [0, 1],
   interface_atom_indices_2: [2, 3],
-  strong_bonds: [],
+  strong_bonds: strongBonds,
 });
 
 const TWO_INTERACTIONS = [fakeInteraction('first'), fakeInteraction('second')];
@@ -149,6 +160,17 @@ const renderEnergies = async project => {
   return wrapper;
 };
 
+// Click a point in the graph, which is what spawns a viewer
+const selectGraphPoint = async wrapper => {
+  await act(async () => {
+    fireEvent.click(wrapper.getAllByTestId('select-x')[0]);
+  });
+};
+
+// Get the x positions of the marks handed to the first graph
+const getMarks = wrapper =>
+  JSON.parse(wrapper.getAllByTestId('graph')[0].dataset.marks);
+
 const rerenderEnergies = async (wrapper, project) => {
   await act(async () => {
     wrapper.rerender(
@@ -203,6 +225,71 @@ describe('<Energies />', () => {
     global.__apiResponder = respondLoaded;
     await rerenderEnergies(wrapper, loadedProject('MD-A004VX.2'));
     expect(wrapper.getAllByTestId('graph').length).toBe(3);
+  });
+
+  it('should mark the selected point and spawn a viewer when the graph is clicked', async () => {
+    global.__apiResponder = respondLoaded;
+    const wrapper = await renderEnergies(loadedProject('MD-A004VX.1'));
+    expect(getMarks(wrapper)).toEqual([]);
+    expect(wrapper.getByTestId('viewer-spawner').dataset.open).toBe('false');
+
+    await selectGraphPoint(wrapper);
+
+    expect(getMarks(wrapper)).toEqual([0]);
+    expect(wrapper.getByTestId('viewer-spawner').dataset.open).toBe('true');
+  });
+
+  it('should keep the strong bond marks along with the selected mark', async () => {
+    // Atoms 0 and 2 are covalently bonded, and they belong to residues 0 and 1
+    const strongBonded = [fakeInteraction('first', [[0, 2]])];
+    global.__apiResponder = respondLoaded;
+    const wrapper = await renderEnergies(loadedProject('MD-A004VX.1', strongBonded));
+    expect(getMarks(wrapper)).toEqual([0, 1]);
+
+    // The selected mark is added on top of the strong bond ones
+    await selectGraphPoint(wrapper);
+    expect(getMarks(wrapper)).toEqual([0, 0, 1]);
+  });
+
+  it('should not crash when changing MD while a viewer is open', async () => {
+    global.__apiResponder = respondLoaded;
+    const wrapper = await renderEnergies(loadedProject('MD-A004VX.1'));
+
+    // Select a point in the graph so a viewer is spawned
+    // This keeps the 'selectedX' set, which used to break the marks on MD change
+    await selectGraphPoint(wrapper);
+    expect(wrapper.getByTestId('viewer-spawner').dataset.open).toBe('true');
+
+    // Now change MD, so both the project data and the analyses are requested again
+    // The dataset is retained meanwhile, but the topology derived data is gone
+    global.__apiResponder = respondLoading;
+    await rerenderEnergies(wrapper, loadingProject('MD-A004VX.2'));
+
+    // The component must survive and just display the loading indicator
+    expect(wrapper.queryAllByTestId('graph').length).toBe(0);
+    expect(wrapper.getByTitle('loading...')).toBeInTheDocument();
+
+    // And it must recover once the new MD data is available
+    global.__apiResponder = respondLoaded;
+    await rerenderEnergies(wrapper, loadedProject('MD-A004VX.2'));
+    expect(wrapper.getAllByTestId('graph').length).toBe(3);
+  });
+
+  it('should keep loading with a viewer open when only the topology is ready', async () => {
+    global.__apiResponder = respondLoaded;
+    const wrapper = await renderEnergies(loadedProject('MD-A004VX.1'));
+    await selectGraphPoint(wrapper);
+
+    // The topology and the interactions are downloaded apart, so the topology may
+    // be ready while the interactions are still missing
+    global.__apiResponder = respondLoading;
+    await rerenderEnergies(wrapper, {
+      ...loadingProject('MD-A004VX.2'),
+      topology: fakeTopology,
+    });
+
+    expect(wrapper.queryAllByTestId('graph').length).toBe(0);
+    expect(wrapper.getByTitle('loading...')).toBeInTheDocument();
   });
 
 });
