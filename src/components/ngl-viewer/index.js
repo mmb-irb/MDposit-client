@@ -217,7 +217,11 @@ const NGLViewer = memo(
       // Stage creation and removal on mounting and unmounting
       useEffect(() => {
         // set-up
-        const stage = new Stage(containerRef.current);
+        // NGL defaults its background to black, which would be painted for a
+        // frame or two before the background effect below gets a chance to run
+        const stage = new Stage(containerRef.current, {
+          backgroundColor: darkBackground ? 'black' : 'white',
+        });
         // wait for a render to screen, then
         frame().then(() => {
           if (!stage) return;
@@ -257,9 +261,11 @@ const NGLViewer = memo(
       useEffect(() => {
         const beginning = Date.now();
         let duration = 1000;
+        // The very first background is already set in the Stage parameters
+        // Do not animate it, or we would wait a frame before painting it
         if (firstTime.current) {
-          duration = 0;
           firstTime.current = false;
+          return;
         }
         (async () => {
           while (true) {
