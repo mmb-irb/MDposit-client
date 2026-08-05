@@ -25,8 +25,8 @@ const MarkovGraph = lazy(() =>
 // Set the maximum number of nodes
 // Note that the hard limit of nodes is the number of values in data (now 20)
 const defaultNodeNumber = 14;
-// Set the maximum number of links
-// Note that the hard limit of links is the possible combinations of pairs of nodes
+// Set the maximum number of transitions, each one drawn as an arrow
+// Note that the hard limit is the number of transitions between the displayed clusters
 // Note also that it is kept low to avoid a cluttered graph, but the user may raise it
 const defaultLinksNumber = 10;
 
@@ -36,7 +36,7 @@ const maxNodeArea = 10000;
 // Set the maximum and minimum link widths in the graph
 // Note that both are to be defined since width values are interpolated
 const maxLinkWidth = 10;
-const minLinkWidth = 1;
+const minLinkWidth = 2;
 // Set the width for a direction with no transitions
 // Note that a 0 width means this direction gets no arrow
 const zeroLinkWidth = 0;
@@ -137,7 +137,7 @@ const Clusters = () => {
   // Set the nodes and links to be represented in the Markov graph
   // For every node, set its area according to its population value and then calculate its radius
   // For every link, set is thickness according to the RMSD between the two frames it is connecting
-  const { graphData, availableLinks, clusterIndices, version, step } = useMemo(() => {
+  const { graphData, availableTransitionsNumber, representedPercent, clusterIndices, version, step } = useMemo(() => {
     if (!clustersData) return {};
     // Add the index to every cluster in the original data
     // This allos us to sorth them without loosing track of cluster indices, which are used in transitions
@@ -150,8 +150,9 @@ const Clusters = () => {
     const filteredClusters = sortedClusters.slice(0, nodesLimit);
     // Mine data from the sorted clusters
     const mainFrames = filteredClusters.map(cluster => cluster.main)
-    const totalFrames = filteredClusters.reduce((acc, curr) => acc + curr.frames.length, 0);
-    const populations = filteredClusters.map(cluster => cluster.frames.length / totalFrames);
+    const clusterSizes = filteredClusters.map(cluster => cluster.frames.length);
+    const totalFrames = clusterSizes.reduce((acc, curr) => acc + curr, 0);
+    const populations = clusterSizes.map(size => size / totalFrames);
     const clusterIndices = filteredClusters.map(cluster => cluster.index);
     // Set the populations cutoff according to the maximum populations value to remove nodes
     const maximumPopulation = populations[0];
@@ -169,47 +170,32 @@ const Clusters = () => {
         value: mainFrames[i],
         // Set the text to be displayed as a tooltip when the node is hovered
         // Populations is a percent in a 0 to 1 format, so we multipley by an extra 100 to get the actual percent
-        text: `Population: ${Math.round(population * 10000) / 100} %\nFrame: ${mainFrames[i]}`,
+        text: `Cluster: ${i}\nPopulation: ${Math.round(population * 10000) / 100} %\nFrame: ${mainFrames[i]}`,
       };
       nodes.push(node);
     });
     // Set the transitions between clusters as the links
-    // Find transitions between available nodes, discarding self transitions since they are not drawable
-    const availableTransitions = clustersData.transitions.filter(transition =>
-      transition.from !== transition.to &&
+    // Discard self transitions, since they are not drawable, and count the rest
+    // Note that this total includes clusters which are not displayed, thus it does not depend on the limits
+    const drawableTransitions = clustersData.transitions.filter(
+      transition => transition.from !== transition.to);
+    const totalTransitionsCount = drawableTransitions.reduce((acc, curr) => acc + curr.count, 0);
+    // Find transitions between available nodes
+    const availableTransitions = drawableTransitions.filter(transition =>
       clusterIndices.includes(transition.from) && clusterIndices.includes(transition.to));
-    // Merge both transitions between every pair of nodes in a single link, but keeping their counts apart
-    // Then the link is drawn as two arrows, each one as wide as the transitions in its direction
-    const linksMap = new Map();
-    availableTransitions.forEach(transition => {
-      // Translate cluster indices to node indices
+    // Translate cluster indices to node indices, keeping also the size of the connected clusters
+    const nodeTransitions = availableTransitions.map(transition => {
       const from = clusterIndices.indexOf(transition.from);
       if (from === -1) throw new Error('Not found source cluster index');
       const to = clusterIndices.indexOf(transition.to);
       if (to === -1) throw new Error('Not found target cluster index');
-      // Set the link nodes in a direction independent way, so both directions fall in the same link
-      const source = Math.min(from, to);
-      const target = Math.max(from, to);
-      // Get the already existing link between these nodes or set a new one
-      const key = `${source}-${target}`;
-      let link = linksMap.get(key);
-      if (!link) {
-        link = { source: source, target: target, sourceCount: 0, targetCount: 0 };
-        linksMap.set(key, link);
-      }
-      // Add the counts to the direction they belong to
-      // Note that the 'source count' is the number of transitions leaving the source node
-      if (from === source) link.sourceCount += transition.count;
-      else link.targetCount += transition.count;
+      return { from: from, to: to, count: transition.count, size: clusterSizes[from] + clusterSizes[to] };
     });
-    const allLinks = [ ...linksMap.values() ];
-    // Save the number of available links with the given available nodes
-    const availableLinks = allLinks.length;
-    // Find the maximum and minimum counts among all drawable directions
+    // Save the number of available transitions with the given available nodes
+    const availableTransitionsNumber = nodeTransitions.length;
+    // Find the maximum and minimum counts among all available transitions
     // Note that they do not depend on the links limit, thus widths do not change when using the slider
-    const allCounts = allLinks
-      .flatMap(link => [ link.sourceCount, link.targetCount ])
-      .filter(count => count > 0);
+    const allCounts = nodeTransitions.map(transition => transition.count);
     const maxCount = Math.max(...allCounts);
     const minCount = Math.min(...allCounts);
     // Set a function to interpolate a transitions count to its corresponding width
@@ -220,27 +206,51 @@ const Clusters = () => {
       if (maxCount === minCount) return maxLinkWidth;
       return minLinkWidth + (count - minCount) * (maxLinkWidth - minLinkWidth) / (maxCount - minCount);
     };
-    // Sort links by their overall number of transitions and keep as many as requested by the user
-    const linkSortingFunction = (linkA, linkB) =>
-      (linkB.sourceCount + linkB.targetCount) - (linkA.sourceCount + linkA.targetCount);
-    const links = allLinks.sort(linkSortingFunction).slice(0, linksLimit);
+    // Keep as many transitions as requested by the user, the most transited ones first
+    // Note that the size of the connected clusters is used as a tie breaker
+    const transitionSortingFunction = (transitionA, transitionB) =>
+      (transitionB.count - transitionA.count) || (transitionB.size - transitionA.size);
+    const displayedTransitions = nodeTransitions.sort(transitionSortingFunction).slice(0, linksLimit);
+    // Calculate the percent of the overall transitions which is represented by the displayed arrows
+    const displayedTransitionsCount = displayedTransitions.reduce((acc, curr) => acc + curr.count, 0);
+    const representedPercent = totalTransitionsCount === 0
+      ? 0
+      : Math.round(displayedTransitionsCount * 1000 / totalTransitionsCount) / 10;
+    // Merge both transitions between a pair of nodes in a single link, but keeping their counts apart
+    // Then the link is drawn as two arrows, each one as wide as the transitions in its direction
+    const linksMap = new Map();
+    displayedTransitions.forEach(transition => {
+      // Set the link nodes in a direction independent way, so both directions fall in the same link
+      const source = Math.min(transition.from, transition.to);
+      const target = Math.max(transition.from, transition.to);
+      // Get the already existing link between these nodes or set a new one
+      const key = `${source}-${target}`;
+      let link = linksMap.get(key);
+      if (!link) {
+        link = { source: source, target: target, sourceCount: 0, targetCount: 0 };
+        linksMap.set(key, link);
+      }
+      // Add the counts to the direction they belong to
+      // Note that the 'source count' is the number of transitions leaving the source node
+      if (transition.from === source) link.sourceCount += transition.count;
+      else link.targetCount += transition.count;
+    });
+    const links = [ ...linksMap.values() ];
     // Set the width and the tooltip of both arrows of every displayed link
     links.forEach(link => {
       link.sourceWidth = countToWidth(link.sourceCount);
       link.targetWidth = countToWidth(link.targetCount);
       // Set the overall width, which is used to calculate the link force strength
       link.width = link.sourceWidth + link.targetWidth;
-      const sourceFrame = mainFrames[link.source];
-      const targetFrame = mainFrames[link.target];
-      link.sourceText = `Transitions ${sourceFrame} → ${targetFrame}: ${link.sourceCount}`;
-      link.targetText = `Transitions ${targetFrame} → ${sourceFrame}: ${link.targetCount}`;
+      link.sourceText = `Transitions ${link.source} → ${link.target}: ${link.sourceCount}`;
+      link.targetText = `Transitions ${link.target} → ${link.source}: ${link.targetCount}`;
     });
     // Mine also the step and analysis version from the cluster data
     const version = new Version(clustersData.version);
     const step = clustersData.step;
     // Return both nodes and links inside an object
     const graphData = { nodes: nodes, links: links };
-    return { graphData, availableLinks, clusterIndices, version, step };
+    return { graphData, availableTransitionsNumber, representedPercent, clusterIndices, version, step };
   }, [clustersData, nodesLimit, linksLimit]);
 
   // Set the displayed screenshots in the right order
@@ -269,23 +279,25 @@ const Clusters = () => {
 
   return (
     <>
-      <Card className={style['vertical-margin']}>
-        <Selector
-          label={'Clusters analysis'}
-          options={availableAnalyses}
-          selection={selectedAnalysis}
-          setter={setSelectedAnalysis}
-        />
-      </Card>
       <Card>
         <div className={clustersAnalysis.loading ? style.disabled : style.enabled}>
-          <MarkovGraph
-            data={graphData}
-            images={displayedScreenshots}
-            selectedNodeValue={selectedFrame}
-            onSelectNode={handleNodeSelect}
-            className={style.graph}
-          />
+          {/* The selector floats over the graph, which has plenty of empty space in its corners */}
+          <div className={style['graph-holder']}>
+            <MarkovGraph
+              data={graphData}
+              images={displayedScreenshots}
+              selectedNodeValue={selectedFrame}
+              onSelectNode={handleNodeSelect}
+              className={style.graph}
+            />
+            <div className={style['floating-selector']}>
+              <Selector
+                options={availableAnalyses}
+                selection={selectedAnalysis}
+                setter={setSelectedAnalysis}
+              />
+            </div>
+          </div>
           <CardContent>
             <div className={style.horizontal}>
               <Typography variant="h7" className={style.wide25}>{'Number of nodes: '}</Typography>
@@ -301,17 +313,26 @@ const Clusters = () => {
               />
             </div>
             <div className={style.horizontal}>
-              <Typography variant="h7" className={style.wide25}>{'Number of links: '}</Typography>
+              <Typography variant="h7" className={style.wide25}>{'Number of transitions: '}</Typography>
               <Slider
-                title="Change the RMSD cutoff"
+                title="Change the number of transitions"
                 value={linksLimit}
                 aria-labelledby="continuous-slider"
                 onChange={(_, value) => { setLinksLimit(value) }}
                 min={0}
-                max={availableLinks}
+                max={availableTransitionsNumber}
                 valueLabelDisplay="auto"
                 className={style.wide75}
               />
+            </div>
+            <div className={style.horizontal}>
+              <Typography variant="h7" className={style.wide25}>{'Represented transitions: '}</Typography>
+              <Typography
+                variant="h7"
+                title="Percent of the overall transitions which is represented by the displayed arrows"
+              >
+                {`${representedPercent} %`}
+              </Typography>
             </div>
           </CardContent>
         </div>

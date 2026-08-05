@@ -1,5 +1,24 @@
 .graph {
-  height: 75vh;
+  height: 59vh;
+}
+
+/* Hold the graph and the selector floating over it */
+.graph-holder {
+  position: relative;
+}
+
+.floating-selector {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* Keep the selector over the graph, which is absolutely positioned as well */
+  z-index: 1;
+}
+
+/* Do not let the graph be seen through the selector, but only through its surroundings */
+.floating-selector :global(.MuiInputBase-root) {
+  background-color: #fff;
+  margin: 0.3em;
 }
 
 .horizontal {
@@ -28,8 +47,4 @@
   opacity: 0.3;
   transition-property: opacity;
   transition-duration: 1s;
-}
-
-.vertical-margin {
-  margin: 0.5em 0;
 }

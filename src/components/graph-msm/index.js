@@ -20,13 +20,27 @@ import imagePlaceholder from '../../images/random_molecule.png';
 
 const dataPlaceholder = { nodes: [], links: [] };
 
+// Set a function to calculate the control point which bends a curve between two points
+// Note that the point is displaced always to the same side of the start to end direction
+// Thus curves between the same two points, but in opposite directions, are bent to opposite sides
+const bentControlPoint = (startX, startY, endX, endY, bendFraction) => {
+  const chordX = endX - startX;
+  const chordY = endY - startY;
+  const chord = Math.sqrt(chordX * chordX + chordY * chordY) || 1;
+  const bend = chord * bendFraction;
+  return [
+    (startX + endX) / 2 - (chordY / chord) * bend,
+    (startY + endY) / 2 + (chordX / chord) * bend,
+  ];
+};
+
 // Set display colors
 const colors = {
   default: "black",
   hovered: "blue",
   selected: "green",
   link: "#aaa",
-  hoveredLink: "#555"
+  hoveredLink: "#333"
 }
 const strokeWidths = {
   default: 2,
@@ -35,21 +49,30 @@ const strokeWidths = {
 }
 
 // Set how much opposite arrows are bent apart, as a fraction of the internode distance
-const arrowBend = 0.08;
+const arrowBend = 0.1;
 // Set the arrow head size, which is proportional to the arrow width but limited
 const arrowHeadRatio = 2.2;
 const minArrowHead = 5;
 const maxArrowHead = 22;
 // Set the gap left between an arrow head and the node it points to
 const arrowHeadGap = 0.0;
+// Set how far apart opposite arrows are displaced in the node borders, added to half their widths
+const arrowSideStep = 1;
 // Set the arrow opacity limits, which are proportional to the arrow width
-const minArrowOpacity = 0.25;
+const minArrowOpacity = 0.1;
 const maxArrowOpacity = 1;
+// Set the arrow greys, so the widest arrows are also the darkest ones
+const minArrowGrey = 170;
+const maxArrowGrey = 100;
 // Set the opacity for arrows not connected to the hovered node
 const fadedArrowOpacity = 0.06;
 // Set how far apart linked nodes are kept: a ratio of their radii plus a margin
 const linkDistanceRatio = 1.5;
-const linkDistanceMargin = 30;
+const linkDistanceMargin = 15;
+// Set the margin left between the nodes cloud and the graph borders
+const viewportMargin = 50;
+// Set how much the nodes cloud may be zoomed in to fill the graph
+const maxViewportScale = 2;
 
 // This graph has been done by adapting the example from https://d3-graph-gallery.com/graph/network_basic.html
 
@@ -118,14 +141,44 @@ const MarkovGraph = forwardRef(({
     const graph = select(containerRef.current).append('svg');
     const defs = graph.append('svg:defs');
 
+    // Set a 'g' element holding everything which is drawn, so it may be scaled to fit the graph
+    const viewport = graph.append("g");
+
     // Set two 'g' elements for nodes and links to be attached to them instead of to the graph element itself
     // Then declare links before nodes to ensure nodes will be drawn over links in the 'z' dimension and not the opposite
-    const linksParent = graph.append("g")
-    const nodesParent = graph.append("g")
+    const linksParent = viewport.append("g")
+    const nodesParent = viewport.append("g")
 
     // Initiate the forces handler
     // This runs the logic which sets the nodes positions
     const simulation = forceSimulation();
+
+    // Set the graph size, which is kept updated by the size updating function below
+    let graphWidth = 0;
+    let graphHeight = 0;
+
+    // Set a function to scale the nodes cloud so it fills the graph instead of leaving white space around
+    const fitViewport = nodes => {
+      if (!nodes.length || !graphWidth || !graphHeight) return;
+      // Find the boundaries of the nodes cloud, node radii included
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      nodes.forEach(node => {
+        minX = Math.min(minX, node.x - node.radius);
+        maxX = Math.max(maxX, node.x + node.radius);
+        minY = Math.min(minY, node.y - node.radius);
+        maxY = Math.max(maxY, node.y + node.radius);
+      });
+      // Set the scale which makes the cloud fill the graph, but never zooming in beyond the limit
+      const scale = Math.min(
+        (graphWidth - viewportMargin * 2) / (maxX - minX),
+        (graphHeight - viewportMargin * 2) / (maxY - minY),
+        maxViewportScale,
+      );
+      // Displace the scaled cloud to the graph center
+      const x = graphWidth / 2 - (minX + maxX) / 2 * scale;
+      const y = graphHeight / 2 - (minY + maxY) / 2 * scale;
+      viewport.attr("transform", `translate(${x},${y}) scale(${scale})`);
+    };
 
     // --------------------------------------------------------------------------------------------------
 
@@ -136,27 +189,25 @@ const MarkovGraph = forwardRef(({
       const linkNodeId = linkNode => linkNode.id === undefined ? linkNode : linkNode.id;
       return linkNodeId(arrow.link.source) === node.id || linkNodeId(arrow.link.target) === node.id;
     };
+    // Note that the opacity is set in the whole arrow element, heads included
+    // Otherwise a head would stack over the end of its own shaft and thus look darker
     const focusNodeArrows = node => {
-      const focusedOpacity = arrow => isArrowConnected(arrow, node) ? maxArrowOpacity : fadedArrowOpacity;
-      linksParent.selectAll("path").style("stroke-opacity", focusedOpacity);
-      defs.selectAll("marker").select("path").style("fill-opacity", focusedOpacity);
+      linksParent.selectAll("path")
+        .style("opacity", arrow => isArrowConnected(arrow, node) ? maxArrowOpacity : fadedArrowOpacity);
     };
     const resetArrowsFocus = () => {
-      linksParent.selectAll("path").style("stroke-opacity", arrow => arrow.opacity);
-      defs.selectAll("marker").select("path").style("fill-opacity", arrow => arrow.opacity);
+      linksParent.selectAll("path").style("opacity", arrow => arrow.opacity);
     };
 
     // Set a function to restyle a single arrow
-    // Note that the head is a definition apart, so it does not inherit the arrow styles
+    // Note that the head is a definition apart, so it does not inherit the arrow color
     const styleArrow = (arrowElement, arrow, color, opacity) => {
       select(arrowElement)
         .style("stroke", color)
-        .style("stroke-opacity", opacity);
+        .style("opacity", opacity);
       // Undirectional arrows have no head at all
       if (!arrow.head) return;
-      defs.select(`#${arrow.head}`).select("path")
-        .style("fill", color)
-        .style("fill-opacity", opacity);
+      defs.select(`#${arrow.head}`).select("path").style("fill", color);
     };
 
     // --------------------------------------------------------------------------------------------------
@@ -181,7 +232,7 @@ const MarkovGraph = forwardRef(({
       dataLinks.forEach((link, l) => {
         const bidirectional = link.sourceWidth !== undefined || link.targetWidth !== undefined;
         if (!bidirectional) {
-          dataArrows.push({ link: link, width: link.width, reverse: false, bend: 0, head: null });
+          dataArrows.push({ link: link, width: link.width, reverse: false, bend: 0, head: null, headSize: 0 });
           return;
         }
         // The 'source arrow' leaves the source node and the 'target arrow' the other way around
@@ -196,21 +247,25 @@ const MarkovGraph = forwardRef(({
             bend: arrowBend,
             // Set the id of the marker holding the head, unique for every arrow
             head: `arrow-head-${l}-${reverse ? 'target' : 'source'}`,
-            headWidth: Math.min(Math.max(width * arrowHeadRatio, minArrowHead), maxArrowHead),
+            // Note that the head is as long as it is wide
+            headSize: Math.min(Math.max(width * arrowHeadRatio, minArrowHead), maxArrowHead),
             text: reverse ? link.targetText : link.sourceText,
           });
         });
       });
 
-      // Set the opacity of every arrow according to its width, so thin arrows do not clutter the graph
+      // Set the opacity and the color of every arrow according to its width
+      // This way thin arrows do not clutter the graph while wide arrows stand out
       const arrowWidths = dataArrows.map(arrow => arrow.width);
       const minArrowWidth = Math.min(...arrowWidths);
       const maxArrowWidth = Math.max(...arrowWidths);
       dataArrows.forEach(arrow => {
-        arrow.opacity = minArrowWidth === maxArrowWidth
-          ? maxArrowOpacity
-          : minArrowOpacity + (arrow.width - minArrowWidth) *
-            (maxArrowOpacity - minArrowOpacity) / (maxArrowWidth - minArrowWidth);
+        const ratio = minArrowWidth === maxArrowWidth
+          ? 1
+          : (arrow.width - minArrowWidth) / (maxArrowWidth - minArrowWidth);
+        arrow.opacity = minArrowOpacity + ratio * (maxArrowOpacity - minArrowOpacity);
+        const grey = Math.round(minArrowGrey + ratio * (maxArrowGrey - minArrowGrey));
+        arrow.color = `rgb(${grey},${grey},${grey})`;
       });
 
       // Set the arrow heads ------------------------------------------------------------------------------
@@ -236,19 +291,19 @@ const MarkovGraph = forwardRef(({
       arrowHeads = defs.selectAll("marker");
 
       // Update definitive arrow head markers according to new data
-      // Note that heads are anchored in their tip, so they are drawn behind the arrow end
+      // Note that heads are anchored in their base, so they are drawn beyond the arrow end
+      // Otherwise the tip of the head would be buried inside the shaft, which is wider than the tip
       arrowHeads
         .attr("id", arrow => arrow.head)
-        .attr("viewBox", arrow => `0 0 ${arrow.headWidth} ${arrow.headWidth}`)
-        .attr("markerWidth", arrow => arrow.headWidth)
-        .attr("markerHeight", arrow => arrow.headWidth)
-        .attr("refX", arrow => arrow.headWidth)
-        .attr("refY", arrow => arrow.headWidth / 2);
+        .attr("viewBox", arrow => `0 0 ${arrow.headSize} ${arrow.headSize}`)
+        .attr("markerWidth", arrow => arrow.headSize)
+        .attr("markerHeight", arrow => arrow.headSize)
+        .attr("refX", 0)
+        .attr("refY", arrow => arrow.headSize / 2);
       arrowHeads.select("path")
-        .attr("d", arrow => `M0,0 L${arrow.headWidth},${arrow.headWidth / 2} L0,${arrow.headWidth} Z`)
-        // Set styles here, and not on enter, to restore heads left highlighted by a hover
-        .style("fill", colors.link)
-        .style("fill-opacity", arrow => arrow.opacity);
+        .attr("d", arrow => `M0,0 L${arrow.headSize},${arrow.headSize / 2} L0,${arrow.headSize} Z`)
+        // Set the color here, and not on enter, to restore heads left highlighted by a hover
+        .style("fill", arrow => arrow.color);
 
       // Set the arrows -----------------------------------------------------------------------------------
 
@@ -265,6 +320,8 @@ const MarkovGraph = forwardRef(({
       newArrowPathsData.enter().append("path")
         .style("fill", "none")
         .style("stroke", colors.link)
+        // Make the shaft end round, so it reaches under the head base and leaves no seam between them
+        .style("stroke-linecap", "round")
         // Set the tooltip holder here, and not on update, or old texts would remain
         .append("svg:title");
 
@@ -275,15 +332,15 @@ const MarkovGraph = forwardRef(({
       arrowPaths
         .attr("stroke-width", arrow => arrow.width)
         .attr("marker-end", arrow => arrow.head ? `url(#${arrow.head})` : null)
-        .style("stroke", colors.link)
-        .style("stroke-opacity", arrow => arrow.opacity)
+        .style("stroke", arrow => arrow.color)
+        .style("opacity", arrow => arrow.opacity)
         // Make the hovered arrow stand out, so even the faintest may be inspected
         // WARNING: Here you need to use 'function' instead of an arrow function or 'this' does not work
         .on("mouseover", function(arrow) {
           styleArrow(this, arrow, colors.hoveredLink, maxArrowOpacity);
         })
         .on("mouseout", function(arrow) {
-          styleArrow(this, arrow, colors.link, arrow.opacity);
+          styleArrow(this, arrow, arrow.color, arrow.opacity);
         });
       arrowPaths.select("title").text(arrow => arrow.text || '');
 
@@ -408,21 +465,47 @@ const MarkovGraph = forwardRef(({
             const distanceX = to.x - from.x;
             const distanceY = to.y - from.y;
             const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY) || 1;
-            // Set the curve control point, displaced perpendicularly to bend the arrow
-            // Note that the displacement is always to the same side of the arrow direction
-            // Thus opposite arrows are bent to opposite sides
-            const bend = distance * arrow.bend;
-            const controlX = (from.x + to.x) / 2 - (distanceY / distance) * bend;
-            const controlY = (from.y + to.y) / 2 + (distanceX / distance) * bend;
-            // Set both arrow ends in the node borders, following the curve instead of the straight line
-            const startDistance = Math.sqrt((controlX - from.x) ** 2 + (controlY - from.y) ** 2) || 1;
-            const startX = from.x + (controlX - from.x) / startDistance * from.radius;
-            const startY = from.y + (controlY - from.y) / startDistance * from.radius;
-            const endDistance = Math.sqrt((to.x - controlX) ** 2 + (to.y - controlY) ** 2) || 1;
-            const endMargin = to.radius + arrowHeadGap;
-            const endX = to.x - (to.x - controlX) / endDistance * endMargin;
-            const endY = to.y - (to.y - controlY) / endDistance * endMargin;
-            arrow.path = `M${startX},${startY} Q${controlX},${controlY} ${endX},${endY}`;
+            const directionX = distanceX / distance;
+            const directionY = distanceY / distance;
+            // Set the side the arrow is bent to, which is the opposite one for the opposite arrow
+            const sideX = -directionY;
+            const sideY = directionX;
+            // Displace both arrow ends to that side, so opposite arrows do not overlap near the nodes
+            // Note that displacements are limited, since small nodes have little room in their borders
+            const startStep = Math.min(arrow.width / 2 + arrowSideStep, from.radius / 2);
+            const endStep = Math.min(arrow.width / 2 + arrowSideStep, to.radius / 2);
+            // Set where the shaft starts and where the head tip must land: both node borders
+            // Note that displaced ends are brought back to the borders by normalizing their directions
+            const startVectorX = directionX * from.radius + sideX * startStep;
+            const startVectorY = directionY * from.radius + sideY * startStep;
+            const startVector = Math.sqrt(startVectorX * startVectorX + startVectorY * startVectorY) || 1;
+            const startX = from.x + (startVectorX / startVector) * from.radius;
+            const startY = from.y + (startVectorY / startVector) * from.radius;
+            const tipVectorX = -directionX * to.radius + sideX * endStep;
+            const tipVectorY = -directionY * to.radius + sideY * endStep;
+            const tipVector = Math.sqrt(tipVectorX * tipVectorX + tipVectorY * tipVectorY) || 1;
+            const tipX = to.x + (tipVectorX / tipVector) * (to.radius + arrowHeadGap);
+            const tipY = to.y + (tipVectorY / tipVector) * (to.radius + arrowHeadGap);
+            // Leave room for the head, which is drawn beyond the shaft end
+            // Note that the room is limited when the two nodes are close, or the arrow would be reversed
+            const room = distance - from.radius - to.radius - arrowHeadGap;
+            const headRoom = Math.max(Math.min(arrow.headSize, room * 0.6), 0);
+            // Set where the shaft ends and the control point which bends the curve
+            // Note that the head follows the shaft direction, which depends on the shaft end itself
+            // Thus both are refined a few times so the head ends up pointing to the node border
+            let endX = tipX;
+            let endY = tipY;
+            let control = [ tipX, tipY ];
+            for (let refinement = 0; refinement < 3; refinement++) {
+              control = bentControlPoint(startX, startY, endX, endY, arrow.bend);
+              const headX = endX - control[0];
+              const headY = endY - control[1];
+              const head = Math.sqrt(headX * headX + headY * headY) || 1;
+              endX = tipX - (headX / head) * headRoom;
+              endY = tipY - (headY / head) * headRoom;
+            }
+            control = bentControlPoint(startX, startY, endX, endY, arrow.bend);
+            arrow.path = `M${startX},${startY} Q${control[0]},${control[1]} ${endX},${endY}`;
           });
           arrowPaths.attr("d", arrow => arrow.path);
           nodeCircles
@@ -431,6 +514,7 @@ const MarkovGraph = forwardRef(({
           nodeImagePatterns
             .attr("x", d => d.x + d.radius)
             .attr("y", d => d.y + d.radius);
+          fitViewport(dataNodes);
         });
 
       // Restart forces in case they were stopped already
@@ -469,6 +553,9 @@ const MarkovGraph = forwardRef(({
       // Change the graph size according to the container size
       const { clientWidth: width, clientHeight: height } = containerRef.current;
       graph.attr('width', width).attr('height', height);
+      // Save the new size, since the fitting function depends on it
+      graphWidth = width;
+      graphHeight = height;
       // Update forces which depend on the graph size
       simulation
         .force("x", forceX(width / 2).strength(100 / width))
