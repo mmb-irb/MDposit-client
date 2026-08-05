@@ -16,8 +16,12 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Typography
+  Typography,
 } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
 
 // CSS styles
 import style from './style.module.css';
@@ -163,16 +167,24 @@ const parseQuery = (currentQuery, currentLocation) => {
       parsedQuery[key] = { $regex: parsedValue, $options: 'i' };
       return;
     }
-    // In case it has min or max propierties it comes from a number range pair of textfields
+    // In case it has min or max propierties it comes from a number/date range pair of textfields
     if (value.min || value.max) {
       const parsedValue = {};
       if (value.min) {
-        if (isNaN(+value.min)) return ++errors;
-        parsedValue['$gt'] = +value.min;
+        if (currentField.type === 'date') {
+          parsedValue['$gt'] = value.min;
+        } else {
+          if (isNaN(+value.min)) return ++errors;
+          parsedValue['$gt'] = +value.min;
+        }
       }
       if (value.max) {
-        if (isNaN(+value.max)) return ++errors;
-        parsedValue['$lt'] = +value.max;
+        if (currentField.type === 'date') {
+          parsedValue['$lt'] = value.max;
+        } else {
+          if (isNaN(+value.max)) return ++errors;
+          parsedValue['$lt'] = +value.max;
+        }
       }
       parsedQuery[key] = parsedValue;
       return;
@@ -456,6 +468,11 @@ const CustomSearch = () => {
                       >
                         <AccordionSummary className={style.summary}>{field.name}</AccordionSummary>
                         <AccordionDetails>
+                          {field.experimental && (
+                            <p style={{ color: '#e60000', fontSize: '0.8rem', margin: '0 0 6px' }}>
+                              ⚠ This field is experimental. Results may be inaccurate.
+                            </p>
+                          )}
                           {(() => {
                             // Get the corresponding payload
                             if (optionsLoading) return <Loading />;
@@ -555,7 +572,7 @@ const CustomSearch = () => {
                               }
                               // Otherwise it must be a number, since booleans will always be in options
                               // Then show two textfields: one for the minimum and one for the maximum
-                              else {
+                              else if (field.type === 'int' || field.type === 'float') {
                                 // Get min and max values from query if available
                                 const minValue = currentQuery[field.path] && currentQuery[field.path].min || '';
                                 const maxValue = currentQuery[field.path] && currentQuery[field.path].max || '';
@@ -609,6 +626,48 @@ const CustomSearch = () => {
                                   </div>
                                 </>);
                               }
+                              // If the field is a date then offer a specialized selector
+                              else if (field.type === 'date') {
+                                const minDate = currentQuery[field.path]?.min ? dayjs(currentQuery[field.path].min) : null;
+                                const maxDate = currentQuery[field.path]?.max ? dayjs(currentQuery[field.path].max) : null;
+                                return (
+                                  <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                    <div className={style.aligned}>
+                                      <span style={{padding: '3px'}}>From</span>
+                                      <DatePicker
+                                        value={minDate}
+                                        onChange={(date) => {
+                                          const value = date?.isValid() ? date.format('YYYY-MM-DD') : '';
+                                          updateQueryValue(field.path, value, { isRange: true, rangeSide: 'min' });
+                                        }}
+                                        slotProps={{
+                                          textField: {
+                                            size: 'small',
+                                            className: style.spaced,
+                                          }
+                                        }}
+                                      />
+                                    </div>
+                                    <div className={style.aligned}>
+                                      <span style={{padding: '3px'}}>To</span>
+                                      <DatePicker
+                                        value={maxDate}
+                                        onChange={(date) => {
+                                          const value = date?.isValid() ? date.format('YYYY-MM-DD') : '';
+                                          updateQueryValue(field.path, value, { isRange: true, rangeSide: 'max' });
+                                        }}
+                                        slotProps={{
+                                          textField: {
+                                            size: 'small',
+                                            className: style.spaced,
+                                          }
+                                        }}
+                                      />
+                                    </div>
+                                  </LocalizationProvider>
+                                );
+                              }
+                              else throw new Error(`Unknown field type ${field.type}`);
                             }
                           })()}
                         </AccordionDetails>
