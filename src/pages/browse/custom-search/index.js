@@ -18,10 +18,6 @@ import {
   AccordionDetails,
   Typography,
 } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import dayjs from 'dayjs';
 
 // CSS styles
 import style from './style.module.css';
@@ -628,44 +624,30 @@ const CustomSearch = () => {
                               }
                               // If the field is a date then offer a specialized selector
                               else if (field.type === 'date') {
-                                const minDate = currentQuery[field.path]?.min ? dayjs(currentQuery[field.path].min) : null;
-                                const maxDate = currentQuery[field.path]?.max ? dayjs(currentQuery[field.path].max) : null;
-                                return (
-                                  <LocalizationProvider dateAdapter={AdapterDayjs}>
-                                    <div className={style.aligned}>
-                                      <span style={{padding: '3px'}}>From</span>
-                                      <DatePicker
-                                        value={minDate}
-                                        onChange={(date) => {
-                                          const value = date?.isValid() ? date.format('YYYY-MM-DD') : '';
-                                          updateQueryValue(field.path, value, { isRange: true, rangeSide: 'min' });
-                                        }}
-                                        slotProps={{
-                                          textField: {
-                                            size: 'small',
-                                            className: style.spaced,
-                                          }
-                                        }}
-                                      />
-                                    </div>
-                                    <div className={style.aligned}>
-                                      <span style={{padding: '3px'}}>To</span>
-                                      <DatePicker
-                                        value={maxDate}
-                                        onChange={(date) => {
-                                          const value = date?.isValid() ? date.format('YYYY-MM-DD') : '';
-                                          updateQueryValue(field.path, value, { isRange: true, rangeSide: 'max' });
-                                        }}
-                                        slotProps={{
-                                          textField: {
-                                            size: 'small',
-                                            className: style.spaced,
-                                          }
-                                        }}
-                                      />
-                                    </div>
-                                  </LocalizationProvider>
-                                );
+                                return (<>
+                                  <div className={style.aligned}>
+                                    <span style={{padding: '3px'}}>From</span>
+                                    <TextField
+                                      type="date"
+                                      value={currentQuery[field.path]?.min || ''}
+                                      onChange={({ target: { value } }) =>
+                                        updateQueryValue(field.path, value, { isRange: true, rangeSide: 'min' })}
+                                      size="small"
+                                      className={style.spaced}
+                                    />
+                                  </div>
+                                  <div className={style.aligned}>
+                                    <span style={{padding: '3px'}}>To</span>
+                                    <TextField
+                                      type="date"
+                                      value={currentQuery[field.path]?.max || ''}
+                                      onChange={({ target: { value } }) =>
+                                        updateQueryValue(field.path, value, { isRange: true, rangeSide: 'max' })}
+                                      size="small"
+                                      className={style.spaced}
+                                    />
+                                  </div>
+                                </>);
                               }
                               else throw new Error(`Unknown field type ${field.type}`);
                             }
