@@ -7,12 +7,6 @@ const blank = {
   payload: null,
   error: null,
 };
-
-// Loading response
-const loading = {
-  loading: true,
-};
-
 // Get data from the API for multiple URLs
 const useBatchAPI = (urls, responseType = 'arraybuffer') => {
   // Set the 'data' state object, which is returned at the end of this function
@@ -37,7 +31,7 @@ const useBatchAPI = (urls, responseType = 'arraybuffer') => {
         const alreadySearchedResponse = oldData.find(response => response.url === url);
         if (alreadySearchedResponse) return alreadySearchedResponse;
         // Otherwise return the loading response
-        return loading;
+        return { url: url, loading: true };
       })
       return newData;
     });
