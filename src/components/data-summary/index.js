@@ -476,9 +476,13 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
                         >
                             {variableOptionsFields.map(field => {
                                 const fieldObj = findFieldByTitleOrLabel(queryFields, field);
+                                const optionCount = Object.keys(optionsPayload[field] || {})
+                                    .filter(key => key !== 'null').length;
                                 return (
                                     <option key={field} value={field}>
-                                        {fieldObj ? `${fieldObj.name} (${fieldObj.category})` : field}
+                                        {fieldObj
+                                            ? `${fieldObj.name} (${fieldObj.category}) - ${optionCount}`
+                                            : `${field} - ${optionCount}`}
                                     </option>
                                 );
                             })}
