@@ -32,6 +32,8 @@ const CONSTANTS_HIDDEN_FIELDS = new Set([
 
 import style from './style.module.css';
 
+const FEDERATED_STATS_TIMEOUT = 15000;
+
 const formatFieldValue = value => value.charAt(0).toUpperCase() + value.slice(1);
 
 const formatNodeDisplayName = (nodeAlias, nodeNameMap) => nodeNameMap[nodeAlias] || nodeAlias;
@@ -170,15 +172,61 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
     }, [nodeData]);
 
     // Aggregate data size across all nodes for the global view
-    const federatedStatsUrls = useMemo(() => {
+    const federatedNodeUrls = useMemo(() => {
         if (!isGlobalSummary || !Array.isArray(nodeData) || nodeData.length === 0) return [];
         return nodeData
-            .map(node => node && node.api_url)
-            .filter(Boolean)
-            .map(apiUrl => `${apiUrl}rest/current/stats`);
+            .map(node => node?.api_url)
+            .filter(Boolean);
     }, [isGlobalSummary, nodeData]);
 
-    const batchStatsResponses = useBatchAPI(federatedStatsUrls, 'json');
+    const federatedStatsUrls = useMemo(
+        () => federatedNodeUrls.map(apiUrl => `${apiUrl}rest/current/stats`),
+        [federatedNodeUrls],
+    );
+
+    const batchStatsResponses = useBatchAPI(federatedStatsUrls, 'json', FEDERATED_STATS_TIMEOUT);
+
+    // The global API may not expose /projects/summary. Query the federated nodes
+    // as a fallback so the summary can still show the data that is available.
+    const federatedSummaryUrls = useMemo(() => {
+        return federatedNodeUrls.map(apiUrl => `${apiUrl}rest/current/projects/summary`);
+    }, [federatedNodeUrls]);
+
+    const batchSummaryResponses = useBatchAPI(federatedSummaryUrls, 'json', FEDERATED_STATS_TIMEOUT);
+
+    const { displaySummaryPayload, summaryCoverage } = useMemo(() => {
+        if (!isGlobalSummary || summaryPayload)
+            return { displaySummaryPayload: summaryPayload, summaryCoverage: null };
+
+        const currentBatchSummaryResponses = batchSummaryResponses
+            .filter(response => federatedSummaryUrls.includes(response.url));
+        const successfulPayloads = currentBatchSummaryResponses
+            .filter(response => !response.loading && !response.error && response.payload)
+            .map(response => response.payload);
+
+        if (successfulPayloads.length === 0)
+            return { displaySummaryPayload: null, summaryCoverage: null };
+
+        const sumField = field => successfulPayloads.reduce((total, payload) => {
+            const value = Number(payload?.[field]);
+            return total + (Number.isFinite(value) ? value : 0);
+        }, 0);
+
+        return {
+            displaySummaryPayload: {
+                projectsCount: sumField('projectsCount'),
+                mdCount: sumField('mdCount'),
+                totalTime: sumField('totalTime'),
+                totalFrames: sumField('totalFrames'),
+                totalFiles: sumField('totalFiles'),
+                totalAnalyses: sumField('totalAnalyses'),
+            },
+            summaryCoverage: {
+                available: successfulPayloads.length,
+                total: federatedSummaryUrls.length,
+            },
+        };
+    }, [isGlobalSummary, summaryPayload, federatedSummaryUrls, batchSummaryResponses]);
 
     const { bsPayload, bsError, bsLoading } = useMemo(() => {
         if (!isGlobalSummary)
@@ -186,10 +234,14 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
         if (federatedStatsUrls.length === 0)
             return { bsPayload: null, bsError: null, bsLoading: true, };
 
-        const isLoading = batchStatsResponses.length !== federatedStatsUrls.length
-            || batchStatsResponses.some(response => response.loading);
+        // Match responses to the current URLs because useBatchAPI reuses responses
+        // for URLs that were already requested.
+        const currentBatchStatsResponses = batchStatsResponses
+            .filter(response => federatedStatsUrls.includes(response.url));
+        const isLoading = currentBatchStatsResponses.length !== federatedStatsUrls.length
+            || currentBatchStatsResponses.some(response => response.loading);
 
-        const successfulPayloads = batchStatsResponses
+        const successfulPayloads = currentBatchStatsResponses
             .filter(response => !response.loading && !response.error && response.payload)
             .map(response => response.payload);
 
@@ -212,7 +264,7 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
         if (isLoading)
             return { bsPayload: null, bsError: null, bsLoading: true, };
 
-        const firstError = batchStatsResponses.find(response => response.error)?.error;
+        const firstError = currentBatchStatsResponses.find(response => response.error)?.error;
         return {
             bsPayload: null,
             bsError: firstError || new Error('Unable to retrieve stats from any node'),
@@ -361,10 +413,17 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
         if (bsError) return 'Unavailable';
         return 'Loading...';
     }, [isGlobalSummary, nodeData, statsPayload, bsPayload, bsLoading, bsError]);
-
+    const summaryUnavailableValue = summaryError ? 'Unavailable' : 'Loading...';
     return (<>
         <div className={style.dataSummary}>
-            <Typography style={{ marginBottom: 10 }} variant="h5">{title}</Typography>
+            <Typography style={{ marginBottom: 10 }} variant="h5">
+                {title}
+                {summaryCoverage && summaryCoverage.available < summaryCoverage.total && (
+                    <Typography component="span" variant="body2">
+                        {' '}(summary based on {summaryCoverage.available}/{summaryCoverage.total} nodes)
+                    </Typography>
+                )}
+            </Typography>
             <table className={style.summaryTable}>
                 <tbody>
                     <tr>
@@ -377,12 +436,12 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
                         <td className={style.summaryTitle}>Data</td>
                     </tr>
                     <tr>
-                        <td className={style.summaryValue}>{summaryPayload ? summaryPayload.projectsCount.toLocaleString() : 'Loading...'}</td>
-                        <td className={style.summaryValue}>{summaryPayload ? summaryPayload.mdCount.toLocaleString() : 'Loading...'}</td>
-                        <td className={style.summaryValue}>{summaryPayload ? Math.round(summaryPayload.totalTime / 1000) : 'Loading...'}</td>
-                        <td className={style.summaryValue}>{summaryPayload ? summaryPayload.totalFrames.toLocaleString() : 'Loading...'}</td>
-                        <td className={style.summaryValue}>{summaryPayload ? summaryPayload.totalFiles.toLocaleString() : 'Loading...'}</td>
-                        <td className={style.summaryValue}>{summaryPayload ? summaryPayload.totalAnalyses.toLocaleString() : 'Loading...'}</td>
+                        <td className={style.summaryValue}>{displaySummaryPayload ? displaySummaryPayload.projectsCount.toLocaleString() : summaryUnavailableValue}</td>
+                        <td className={style.summaryValue}>{displaySummaryPayload ? displaySummaryPayload.mdCount.toLocaleString() : summaryUnavailableValue}</td>
+                        <td className={style.summaryValue}>{displaySummaryPayload ? Math.round(displaySummaryPayload.totalTime / 1000) : summaryUnavailableValue}</td>
+                        <td className={style.summaryValue}>{displaySummaryPayload ? displaySummaryPayload.totalFrames.toLocaleString() : summaryUnavailableValue}</td>
+                        <td className={style.summaryValue}>{displaySummaryPayload ? displaySummaryPayload.totalFiles.toLocaleString() : summaryUnavailableValue}</td>
+                        <td className={style.summaryValue}>{displaySummaryPayload ? displaySummaryPayload.totalAnalyses.toLocaleString() : summaryUnavailableValue}</td>
                         <td className={style.summaryValue}>{dataSizeValue}</td>
                     </tr>
                 </tbody>

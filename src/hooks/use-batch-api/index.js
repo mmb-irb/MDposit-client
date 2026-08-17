@@ -8,7 +8,7 @@ const blank = {
   error: null,
 };
 // Get data from the API for multiple URLs
-const useBatchAPI = (urls, responseType = 'arraybuffer') => {
+const useBatchAPI = (urls, responseType = 'arraybuffer', timeout = null) => {
   // Set the 'data' state object, which is returned at the end of this function
   const [data, setData] = useState(urls.map(url => ({ url: url, ...blank })));
 
@@ -43,6 +43,8 @@ const useBatchAPI = (urls, responseType = 'arraybuffer') => {
         cancelToken: source.token,
         // Send the start time so we can calculate the response time when we get the response
         startTime: new Date(),
+        // Allow callers to turn an unresponsive request into a settled error
+        timeout: timeout,
         responseType: responseType,
         headers: {
           ['X-MDDB-Request-Source']: 'mdposit-client',
