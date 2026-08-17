@@ -370,6 +370,8 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
     const framesBinCount = Object.keys(frameCounts).length;
     const atomsBinCount = Object.keys(atomsPayload?.["metadata.SYSTATS"] ?? {}).length;
     const mdsBinCount = Object.keys(mdCountPayload?.["mdcount"] ?? {}).length;
+    const histogramCount = [framesBinCount, atomsBinCount, mdsBinCount]
+        .filter(binCount => binCount > 1).length;
 
     // For the time distribution: hide when both axis marginals are single-decade
     const [framestepPoints, setFramestepPoints] = useState(null);
@@ -420,7 +422,7 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
                 {title}
                 {summaryCoverage && summaryCoverage.available < summaryCoverage.total && (
                     <Typography component="span" variant="body2">
-                        {' '}(summary based on {summaryCoverage.available}/{summaryCoverage.total} nodes)
+                        {' '}(based on {summaryCoverage.available}/{summaryCoverage.total} nodes)
                     </Typography>
                 )}
             </Typography>
@@ -566,7 +568,10 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
         )}
         {(framesBinCount > 1 || atomsBinCount > 1 || mdsBinCount > 1) && <>
             <Typography variant="h5">Data distributions</Typography>
-            <div className={style.histograms}>
+            <div
+                className={style.histograms}
+                style={{ gridTemplateColumns: `repeat(${histogramCount}, minmax(0, 1fr))` }}
+            >
                 {framesBinCount > 1 && <div className={style.histogram}>
                     <Histogram
                         data={frameCounts}
