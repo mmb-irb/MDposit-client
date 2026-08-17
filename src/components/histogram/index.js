@@ -284,6 +284,7 @@ const Histogram = forwardRef(({
 
     // This ref allows to update the graph without having to remake the whole graph
     updateSizeRef.current = () => {
+      if (!containerRef.current) return;
       // Change the graph size according to the container size
       const { clientWidth: width, clientHeight: height } = containerRef.current;
       if (width <= margin.left + margin.right || height <= margin.top + margin.bottom) return;

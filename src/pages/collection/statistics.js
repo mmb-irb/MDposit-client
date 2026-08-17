@@ -8,7 +8,7 @@ import { HOST_CONFIG } from 'src/utils/constants';
 const CollectionStatistics = () => {
     const { id: collectionId } = useParams();
     // Collection names are loaded into HOST_CONFIG.collectionNiceNames at startup
-    const collectionName = HOST_CONFIG.collectionNiceNames[collectionId] || collectionId;
+    const collectionName = HOST_CONFIG.collectionNiceNames?.[collectionId] || collectionId;
 
     const internalQuery = useMemo(
         () => ({ 'metadata.COLLECTIONS': collectionId }), [collectionId]);
