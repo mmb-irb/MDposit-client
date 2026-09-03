@@ -183,12 +183,12 @@ const SettingsControls = ({
       <div>
         Speed:
         <Grid container spacing={2}>
-          <Grid item>
+          <Grid>
             <Icon>
               <FontAwesomeIcon icon={faWalking} />
             </Icon>
           </Grid>
-          <Grid item xs>
+          <Grid size="grow">
             <Slider
               title="Change player speed"
               value={speed}
@@ -199,7 +199,7 @@ const SettingsControls = ({
               }}
             />
           </Grid>
-          <Grid item>
+          <Grid>
             <Icon>
               <FontAwesomeIcon icon={faBiking} />
             </Icon>
