@@ -33,6 +33,11 @@ const getElementColorSchemeId = () => {
   if (schemeId !== undefined) return schemeId;
   schemeId = ColormakerRegistry.addScheme(function () {
     this.atomColor = atom => {
+      // Make sure the atom has atomType
+      // Otherwise trying to get the element will raise a killing error
+      // DANI: El misterioso caso de https://mdposit-dev.mddbr.eu/#/embed/mmb-A05KX?resindices=0
+      // DANI: No entiendo que átomo causa esto, todos parecen estar bien
+      if (!atom.atomType) return DEFAULT_ELEMENT_COLOR;
       // Use the standard CPK color when the atom's element is recognised
       const color = elementColor(atom.element);
       if (color !== DEFAULT_ELEMENT_COLOR) return color;
