@@ -335,7 +335,7 @@ const Overview = React.memo(() => {
             <Typography variant="h6" sx={{ fontSize: '1.4rem', marginBottom: '10px' }}>UniProt References</Typography>
             <Grid container spacing={2}>
               {proteinReferences.map((reference, i) => (
-                <Grid item xs={12} md={proteinReferences.length > 1 ? 6 : 12} key={i}>
+                <Grid size={{ xs: 12, md: proteinReferences.length > 1 ? 6 : 12 }} key={i}>
                   <div className={`${style['card-background']} ${style['protein-reference-card']}`}>
                     <div className={style['summary-list']}>
                       <Typography variant="h6" sx={{ fontSize: '1.4rem' }}>{reference.name}</Typography>
