@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 
 import useAPI from '../../hooks/use-api';
 
@@ -16,11 +16,41 @@ import { BASE_PATH_PROJECTS, MAIN_STRUCTURE_FILENAME } from '../../utils/constan
 
 // Load the project class
 import { Project } from '../../utils/project-manager';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
+import { rangedSelectionParser } from '../../utils/auxiliar-functions';
+
+// Parse a selection query param supporting plain lists ("0,1,2") and ranges ("0-5,10").
+// Throws if any token is not a valid integer or range.
+const parseSelectionParam = (raw, name) => {
+  if (!raw) return null;
+  const parsed = rangedSelectionParser(raw);
+  if (parsed.some(n => !Number.isFinite(n)))
+    throw new Error(`Invalid query parameter "${name}": "${raw}"`);
+  return parsed.length > 0 ? parsed : null;
+};
 
 const Embed = () => {
   const { accession: accessionAndMdNumber } = useParams();
+  const [searchParams] = useSearchParams();
   const [project, setProject] = useState(null);
+
+  // Parse the four supported selection query params.
+  // All are combined into a single component as server-side filters.
+  const selectionParam    = searchParams.get('selection') || null;
+  const atomIndicesParam  = parseSelectionParam(searchParams.get('atomindices'),  'atomindices');
+  const resIndicesParam   = parseSelectionParam(searchParams.get('resindices'),   'resindices');
+  const chainIndicesParam = parseSelectionParam(searchParams.get('chaindices'),   'chaindices');
+
+  // Build a single startingComponent that combines all provided selection params.
+  const startingComponents = useMemo(() => {
+    if (!atomIndicesParam && !resIndicesParam && !chainIndicesParam && !selectionParam) return null;
+    const comp = { name: 'Main' };
+    if (atomIndicesParam)  comp.atomIndices   = atomIndicesParam;
+    if (resIndicesParam)   comp.resIndices    = resIndicesParam;
+    if (chainIndicesParam) comp.chainIndices  = chainIndicesParam;
+    if (selectionParam)    comp.atomSelection = selectionParam;
+    return [comp];
+  }, [atomIndicesParam, resIndicesParam, chainIndicesParam, selectionParam]);
 
   // Get project data from the API if the current context data is wrong. 'payload' contains the main data.
   const projectRequest = useAPI(`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/`);
@@ -48,7 +78,10 @@ const Embed = () => {
     <ErrorBoundary>
       <ProjectCtx.Provider value={project}>
         <Card className={style['ngl-card']}>
-          <ViewerWithControls className={style.container} />
+          <ViewerWithControls
+            className={style.container}
+            startingComponents={startingComponents || undefined}
+          />
         </Card>
       </ProjectCtx.Provider>
     </ErrorBoundary>

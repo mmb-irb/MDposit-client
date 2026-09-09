@@ -85,6 +85,8 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
                 const urlpath = comp.topologyURL || null;
                 const selection = comp.atomSelection || null;
                 const atomIndices = comp.atomIndices || null;
+                const resIndices = comp.resIndices || null;
+                const chainIndices = comp.chainIndices || null;
                 // Check if the url is new
                 // Else, skip this url since it has been requested already
                 const allRequestedTopologies = [
@@ -113,6 +115,8 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
                         urlpath: urlpath,
                         selection: selection,
                         atomindices: sortedAtomIndices,
+                        resindices: resIndices,
+                        chaindices: chainIndices,
                         loading: true,
                         requested: false,
                         error: null,
@@ -161,6 +165,8 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
                 const postData = JSON.stringify({
                     selection : topology.selection || undefined,
                     atomindices: topology.atomindices || undefined,
+                    resindices: topology.resindices || undefined,
+                    chaindices: topology.chaindices || undefined,
                 });
                 // Request the API
                 // http exception is added for local testing in http://localhost
@@ -255,12 +261,12 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
                 const requestedFrame = comp.frame;
                 // Atom subset for this component, if any
                 // This is used to request a lighter trajectory containing only the desired atoms
-                // Note that the trajectory endpoint filters atoms through an NGL 'selection' string
-                // (unlike the structure endpoint, it does not accept a list of atom indices)
                 // WARNING: Atom indices must be sorted (same CORS workaround as for topologies)
                 const atomIndices = comp.atomIndices
                     ? [...comp.atomIndices].sort((a, b) => a - b)
                     : null;
+                const resIndices = comp.resIndices || null;
+                const chainIndices = comp.chainIndices || null;
                 // Build the NGL atom selection to be sent to the API
                 // Prefer an explicit atom selection, otherwise derive it from the atom indices
                 const atomSelection = comp.atomSelection
@@ -334,10 +340,15 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
                         newTrajectories.push({
                             urlpath: finalUrlpath,
                             frames: returnedFrames,
-                            // Add also the atoms number, which is used further
-                            // When requesting an atom subset the returned trajectory has only those atoms
-                            atoms: atomIndices ? atomIndices.length : trajectoryMetadata.atoms,
-                            // Atom selection to be requested to the API (sent in the POST body further)
+                            // Atom count of the returned trajectory.
+                            // Known when atomIndices is explicit; null when the server resolves the subset
+                            // (resindices/chaindices) — ngl-viewer reads it from the parsed structure instead.
+                            // Atom selection / index params sent in the POST body
+                            atoms: atomIndices
+                                ? atomIndices.length
+                                : (resIndices || chainIndices) ? null : trajectoryMetadata.atoms,
+                            resindices: resIndices,
+                            chaindices: chainIndices,
                             atomSelection: atomSelection,
                             loading: true,
                             requested: false,
@@ -372,6 +383,8 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
             // When no subset is requested the field is undefined and the body is just "{}"
             const postData = JSON.stringify({
                 selection: trajectory.atomSelection || undefined,
+                resindices: trajectory.resindices || undefined,
+                chaindices: trajectory.chaindices || undefined,
             });
             // Request the API
             // http exception is added for local testing in http://localhost

@@ -932,8 +932,10 @@ const NGLViewer = memo(
             // If the trajectory is not downloaded yet then exit
             if (!trajectory) return;
             // Get atom counts from different trajectories and check they match
-            if (!trajectoryAtoms) trajectoryAtoms = trajectory.atoms;
-            if (trajectoryAtoms !== trajectory.atoms)
+            // If the trajectory has no atom count then read it from the already-parsed structure
+            // This may happen when we request coordinates using resindices or chaindices
+            if (!trajectoryAtoms) trajectoryAtoms = trajectory.atoms || topology.file.atomStore.count;
+            if (trajectoryAtoms !== (trajectory.atoms || topology.file.atomStore.count))
               throw new Error( `Atoms number in the different trajectories do not match`);
             // Add the final expected frames for all frames in the component
             trajectoryFinalExpectedFrames += trajectory.frames;

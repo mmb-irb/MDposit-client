@@ -102,6 +102,8 @@ const DEFAULT_COMPONENT_PARAMETERS = {
   trajectoryURLs: 'auto', // This is assigned further
   atomSelection: null,
   atomIndices: null,
+  resIndices: null,
+  chainIndices: null,
   frame: null,
   onlyTopology: false
 }

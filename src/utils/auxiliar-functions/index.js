@@ -52,7 +52,7 @@ export const appendBuffer = (buffer1, buffer2) => {
 const rangedSyntax = /^([0-9]*)-([0-9]*)$/;
 export const rangedSelectionParser = selection => {
   // Filter data
-  const units = selection.split(', ');
+  const units = selection.split(/\s*,\s*/);
   const parsedSelection = [];
   for (const u of units) {
     // If the ranged syntax is found, get all numbers in between
