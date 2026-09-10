@@ -99,6 +99,7 @@ const NGLViewer = memo(
         darkBackground,
         perspective,
         speed,
+        centering,
         xSelection, // To display planes for density analysis
         rotateX,   // To rotate the stage so the Z axis goes from bottom to top
         xAxisStep,
@@ -1016,6 +1017,7 @@ const NGLViewer = memo(
               trajectoryAtoms,
               totalFrames,
               trajectoryAtomIndices,
+              centering,
             );
             // Adjust some parameters after the trajectory data has been changed
             nglTrajectory._frameCount = totalFrames;
@@ -1049,6 +1051,7 @@ const NGLViewer = memo(
               trajectoryAtoms,
               totalFrames,
               trajectoryAtomIndices,
+              centering,
             );
             if (!file) return;
             const nglFile = stageComp.addTrajectory(file);
@@ -1071,6 +1074,9 @@ const NGLViewer = memo(
             // Set trajectory frame
             nglTrajectory.setFrame(0);
           }
+          // If the trajectory is to be centered then refocus now
+          // Otherwise we may loose the structure from outside the view of the camera
+          if (centering) setFocus({ comp: 0, sele: 'all' });
         });
       }, [
         parsedTopologies,
@@ -1078,6 +1084,8 @@ const NGLViewer = memo(
         components,
         noTrajectory,
         setMainNglFile,
+        setFocus,
+        centering,
         // This playing here is just to avoid the warning
         // I can't disable the warning with "// eslint-disable-line react-hooks/exhaustive-deps"
         // This is because the automatic formatter puts the warning one line down because it is stupid

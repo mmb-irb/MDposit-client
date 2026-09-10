@@ -12,7 +12,7 @@ import Loading from '../../components/loading';
 
 import style from './style.module.css';
 
-import { BASE_PATH_PROJECTS, MAIN_STRUCTURE_FILENAME } from '../../utils/constants';
+import { BASE_PATH_PROJECTS } from '../../utils/constants';
 
 // Load the project class
 import { Project } from '../../utils/project-manager';
@@ -40,6 +40,14 @@ const Embed = () => {
   const atomIndicesParam  = parseSelectionParam(searchParams.get('atomindices'),  'atomindices');
   const resIndicesParam   = parseSelectionParam(searchParams.get('resindices'),   'resindices');
   const chainIndicesParam = parseSelectionParam(searchParams.get('chaindices'),   'chaindices');
+  // Check if the user wants the trajectory to be centered constantly
+  const centering = (() => {
+    const originalInput = searchParams.get('center');
+    if (originalInput === null) return false;
+    const lowerInput = originalInput.toLowerCase();
+    if (lowerInput === 'false' || lowerInput === 'no') return false;
+    return true; // If the argument is passed alone then we will have an empty string
+  })();
 
   // Build a single startingComponent that combines all provided selection params.
   const startingComponents = useMemo(() => {
@@ -81,6 +89,7 @@ const Embed = () => {
           <ViewerWithControls
             className={style.container}
             startingComponents={startingComponents || undefined}
+            centering={centering}
           />
         </Card>
       </ProjectCtx.Provider>
