@@ -10,7 +10,8 @@ import {
     UNIPROTS_WITH_EPITOPES,
 } from '../constants';
 // Import the topology manager class
-import { Topology } from '../../utils/topology-manager';
+import { Topology } from '../topology-manager';
+import { Reference } from '../reference-manager';
 // Import the NGL structure parser
 import { autoLoad } from 'ngl';
 
@@ -268,7 +269,10 @@ export class Project {
     }
     get collectionReferences () {
         const references = this.references;
-        return useMemo(() => references && references.filter(ref => ref.ref_type === 'collections'), [references]);
+        return useMemo(() => references && references
+            .filter(ref => ref.ref_type === 'collections')
+            .map(ref => new Reference(ref.ref_type, ref)),
+        [references]);
     }
 
     get membraneMapping () {

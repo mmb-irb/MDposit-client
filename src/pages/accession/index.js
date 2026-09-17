@@ -28,7 +28,7 @@ import { Project } from '../../utils/project-manager';
 
 // Constants
 import {
-  BASE_PATH,
+  BASE_VERSIONED_PATH,
   BASE_PATH_PROJECTS,
   NICE_NAMES,
   HOST_CONFIG
@@ -85,9 +85,9 @@ const AccessionHeader = ({ page, primaryDarkColor }) => {
 
   // Get the collection reference for the first collection id in the metadata
   // First collection is consider the "main representative" collection
-  const mainCollection = showCollections && metadata.COLLECTIONS && metadata.COLLECTIONS[0];
-  const currentMainCollectionReference = mainCollection && collectionReferences &&
-    collectionReferences.find(collectionReference => collectionReference.id === mainCollection);
+  const mainCollectionId = showCollections && metadata.COLLECTIONS && metadata.COLLECTIONS[0];
+  const currentMainCollectionReference = mainCollectionId && collectionReferences &&
+    collectionReferences.find(collectionReference => collectionReference.id === mainCollectionId);
   // Retain the last reference so the logo image is not unmounted (and thus reloaded)
   // while references are requested again on replica change
   const retainedMainCollectionReference = useRef(null);
@@ -95,7 +95,7 @@ const AccessionHeader = ({ page, primaryDarkColor }) => {
     retainedMainCollectionReference.current = currentMainCollectionReference;
   const retained = retainedMainCollectionReference.current;
   const mainCollectionReference = currentMainCollectionReference ||
-    (retained && retained.id === mainCollection && retained);
+    (retained && retained.id === mainCollectionId && retained);
   const mainCollectionHoverText = mainCollectionReference && `The current simulation belongs to the ${
     mainCollectionReference.name} collection.\n` + mainCollectionReference.description;
 
@@ -135,7 +135,7 @@ const AccessionHeader = ({ page, primaryDarkColor }) => {
         )}
       </Typography>
       {/* Main collection image */}
-      {mainCollectionReference && <a href={`/#/collection/${mainCollection}`} target="_blank" rel="noreferrer noopener">
+      {mainCollectionReference && <a href={`/#/collection/${mainCollectionId}`} target="_blank" rel="noreferrer noopener">
         <LazyImg
           src={mainCollectionReference.image} loading="lazy" alt={`Collection logo`}
           title={mainCollectionHoverText}
@@ -178,7 +178,7 @@ const ContentSwitch = ({ subPage }) => {
   const problems = project.checkProblems(); // This is a hook
   // Get nodes info only if there are any problems with the federated node
   // This is just to know the node name, for the logs
-  const nodesUrl = problems ? `${BASE_PATH}/current/nodes` : null;
+  const nodesUrl = problems ? `${BASE_VERSIONED_PATH}/nodes` : null;
   const { payload: nodesPayload, error: nodesError } = useAPI(nodesUrl);
   // Silently report any problem with this call since we don't really need it
   if (nodesError) console.error(nodesError.message);
