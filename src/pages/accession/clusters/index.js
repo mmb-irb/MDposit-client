@@ -9,7 +9,7 @@ import { ProjectCtx } from '../../../contexts';
 // Constants
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 // Visual assets
-import { CardContent, Slider, Typography } from '@mui/material';
+import { CardContent, Slider, Switch, Typography } from '@mui/material';
 import Card from '../../../components/animated-card';
 import Loading from '../../../components/loading';
 // Analysis selector
@@ -31,8 +31,9 @@ const defaultNodeNumber = 14;
 const defaultLinksNumber = 10;
 
 // Set the maximum node area in the graph, which is the area of the node with the highest population
-// Note that the rest of node areas are proportional, so there is no need to set the minimum node area
 const maxNodeArea = 10000;
+// Set the minimum node area, so the least populated clusters are still visible/clickable
+const minNodeArea = 1000;
 // Set the maximum and minimum link widths in the graph
 // Note that both are to be defined since width values are interpolated
 const maxLinkWidth = 10;
@@ -40,6 +41,17 @@ const minLinkWidth = 2;
 // Set the width for a direction with no transitions
 // Note that a 0 width means this direction gets no arrow
 const zeroLinkWidth = 0;
+
+// Translate a (0-indexed, contiguous) frames group into the API frames query format: e.g. '5:9:1'
+const framesToQuery = frames => `${frames[0] + 1}:${frames[frames.length - 1] + 1}:1`;
+
+// Pad a (consecutive) frame group with one extra frame on each side
+// e.g. [4,5,6] => [3,4,5,6,7]
+const padFrameGroup = frameGroup => {
+  const first = frameGroup[0];
+  const last = frameGroup[frameGroup.length - 1];
+  return [ Math.max(first - 1, 0), ...frameGroup, last + 1 ];
+};
 
 const Clusters = () => {
 
@@ -49,11 +61,17 @@ const Clusters = () => {
   // Set when one point in the graph is selected
   const [selectedFrame, setSelectedFrame] = useState(null);
 
+  // Set when a transition arrow in the graph is selected
+  const [selectedTransitionFrames, setSelectedTransitionFrames] = useState(null);
+
   // Set the number of nodes to be displayed
   const [nodesLimit, setNodesLimit] = useState(defaultNodeNumber);
 
   // Set the number of nodes to be displayed
   const [linksLimit, setLinksLimit] = useState(defaultLinksNumber);
+
+  // Set whether excursion loops are shown in the graph, visible by default
+  const [showExcursions, setShowExcursions] = useState(true);
 
   // Set the selected clusters analysis
   // By default we will set the overall structure, which should be always found
@@ -137,7 +155,7 @@ const Clusters = () => {
   // Set the nodes and links to be represented in the Markov graph
   // For every node, set its area according to its population value and then calculate its radius
   // For every link, set is thickness according to the RMSD between the two frames it is connecting
-  const { graphData, availableTransitionsNumber, representedPercent, clusterIndices, version, step } = useMemo(() => {
+  const { graphData, availableTransitionsNumber, representedPercent, clusterIndices, version, step, hasExcursions } = useMemo(() => {
     if (!clustersData) return {};
     // Add the index to every cluster in the original data
     // This allos us to sorth them without loosing track of cluster indices, which are used in transitions
@@ -159,8 +177,8 @@ const Clusters = () => {
     // Set nodes: objects containing both the frame and the population
     const nodes = [];
     populations.forEach((population, i) => {
-      // Set the area of the current node
-      const area = population * maxNodeArea / maximumPopulation;
+      // Set the area of the current node, floored so low-population clusters stay visible
+      const area = Math.max(population * maxNodeArea / maximumPopulation, minNodeArea);
       // Calculate the radius from the area
       const radius = Math.sqrt(area / Math.PI);
       // Set the node and add it to the list
@@ -189,16 +207,48 @@ const Clusters = () => {
       if (from === -1) throw new Error('Not found source cluster index');
       const to = clusterIndices.indexOf(transition.to);
       if (to === -1) throw new Error('Not found target cluster index');
-      return { from: from, to: to, count: transition.count, size: clusterSizes[from] + clusterSizes[to] };
+      return {
+        from: from,
+        to: to,
+        count: transition.count,
+        size: clusterSizes[from] + clusterSizes[to],
+        // Only the first frame group is used, padded with one frame on each side
+        frames: transition.frames && transition.frames.length
+          ? padFrameGroup(transition.frames[0])
+          : undefined,
+      };
     });
     // Save the number of available transitions with the given available nodes
     const availableTransitionsNumber = nodeTransitions.length;
-    // Find the maximum and minimum counts among all available transitions
+    // Set excursions (frames leaving a cluster and coming back to it) as loops, one per cluster
+    const availableExcursions = (clustersData.excursions || []).filter(excursion =>
+      clusterIndices.includes(excursion.cluster));
+    const nodeExcursions = availableExcursions.map(excursion => ({
+      node: clusterIndices.indexOf(excursion.cluster),
+      // Only the first frame group is used, padded with one frame on each side
+      frames: excursion.frames && excursion.frames.length
+        ? padFrameGroup(excursion.frames[0])
+        : undefined,
+    }));
+    // Merge excursions belonging to the same cluster into a single loop
+    // Only the first excursion's frames are kept, so a click always loads a single contiguous range
+    const loopsMap = new Map();
+    nodeExcursions.forEach(excursion => {
+      let loop = loopsMap.get(excursion.node);
+      if (!loop) {
+        loop = { node: excursion.node, count: 0, frames: excursion.frames };
+        loopsMap.set(excursion.node, loop);
+      }
+      loop.count += 1;
+    });
+    const loops = [ ...loopsMap.values() ];
+    // Find the maximum and minimum counts among all available transitions and excursion loops
     // Note that they do not depend on the links limit, thus widths do not change when using the slider
-    const allCounts = nodeTransitions.map(transition => transition.count);
+    // Loops share this same scale with transitions, so both are drawn with comparably meaningful widths
+    const allCounts = [ ...nodeTransitions, ...loops ].map(item => item.count);
     const maxCount = Math.max(...allCounts);
     const minCount = Math.min(...allCounts);
-    // Set a function to interpolate a transitions count to its corresponding width
+    // Set a function to interpolate a transitions/excursions count to its corresponding width
     const countToWidth = count => {
       // A direction with no transitions gets no arrow
       if (count === 0) return zeroLinkWidth;
@@ -227,13 +277,18 @@ const Clusters = () => {
       const key = `${source}-${target}`;
       let link = linksMap.get(key);
       if (!link) {
-        link = { source: source, target: target, sourceCount: 0, targetCount: 0 };
+        link = { source: source, target: target, sourceCount: 0, targetCount: 0, sourceFrames: [], targetFrames: [] };
         linksMap.set(key, link);
       }
       // Add the counts to the direction they belong to
       // Note that the 'source count' is the number of transitions leaving the source node
-      if (transition.from === source) link.sourceCount += transition.count;
-      else link.targetCount += transition.count;
+      if (transition.from === source) {
+        link.sourceCount += transition.count;
+        if (transition.frames) link.sourceFrames.push(...transition.frames);
+      } else {
+        link.targetCount += transition.count;
+        if (transition.frames) link.targetFrames.push(...transition.frames);
+      }
     });
     const links = [ ...linksMap.values() ];
     // Set the width and the tooltip of both arrows of every displayed link
@@ -244,14 +299,31 @@ const Clusters = () => {
       link.width = link.sourceWidth + link.targetWidth;
       link.sourceText = `Transitions ${link.source} → ${link.target}: ${link.sourceCount}`;
       link.targetText = `Transitions ${link.target} → ${link.source}: ${link.targetCount}`;
+      // Drop empty frame lists so arrows with no frames data are not rendered as clickable
+      if (link.sourceFrames.length === 0) link.sourceFrames = undefined;
+      if (link.targetFrames.length === 0) link.targetFrames = undefined;
+    });
+    // Push excursion loops as links too, sharing the very same count-to-width scale as transitions
+    if (showExcursions) loops.forEach(loop => {
+      links.push({
+        source: loop.node,
+        target: loop.node,
+        width: countToWidth(loop.count),
+        text: `Excursions from ${loop.node}: ${loop.count}`,
+        frames: loop.frames,
+      });
     });
     // Mine also the step and analysis version from the cluster data
     const version = new Version(clustersData.version);
     const step = clustersData.step;
     // Return both nodes and links inside an object
     const graphData = { nodes: nodes, links: links };
-    return { graphData, availableTransitionsNumber, representedPercent, clusterIndices, version, step };
-  }, [clustersData, nodesLimit, linksLimit]);
+    return {
+      graphData, availableTransitionsNumber, representedPercent, clusterIndices, version, step,
+      // Older analysis versions have no excursions data at all, so there is nothing to toggle
+      hasExcursions: loops.length > 0,
+    };
+  }, [clustersData, nodesLimit, linksLimit, showExcursions]);
 
   // Set the displayed screenshots in the right order
   const displayedScreenshots = useMemo(() => {
@@ -259,13 +331,56 @@ const Clusters = () => {
     return clusterIndices.map(index => screenshots[index]);
   }, [clusterIndices, screenshots]);
 
+  const liveViewerRef = useRef(null);
+
   const handleNodeSelect = useCallback(node => {
     // DANI: En las primeras versiones de este análisis la frame de los nodos están mal
     // DANI: Es la frame de la trayectoria reducida, no de la completa
     // DANI: De manera que se arregla multiplicandola por el step
     const newFrame = version.equals('0.0') ? node.value * step : node.value;
+    // If the live viewer was showing a transition trajectory then close it so a fresh one mounts
+    if (liveViewerRef.current && liveViewerRef.current.frames) liveViewerRef.current.close();
+    setSelectedTransitionFrames(null);
     setSelectedFrame(newFrame);
   }, [setSelectedFrame, version, step]);
+
+  // Set when a transition arrow is clicked: load its frames in the viewer as a trajectory
+  const handleArrowSelect = useCallback(arrow => {
+    // Always close the live viewer: its 'startingComponents' would otherwise never be updated,
+    // be it because it was showing a single frame or a different transition altogether
+    if (liveViewerRef.current) liveViewerRef.current.close();
+    setSelectedFrame(null);
+    setSelectedTransitionFrames(arrow.frames);
+  }, [setSelectedFrame]);
+
+  // Build the viewer request for the currently selected node or transition arrow, if any
+  const newViewer = useMemo(() => {
+    if (selectedTransitionFrames) return {
+      frames: selectedTransitionFrames,
+      startingComponents: [
+        { trajectoryURLs: [ `/trajectory?frames=${framesToQuery(selectedTransitionFrames)}` ] },
+      ],
+      framesSelect: false,
+    };
+    // Provide 'startingComponents' explicitly here too (mirroring what ViewerWithControls would
+    // fill in by default), instead of leaving it undefined: that implicit default-filling path is
+    // the one that goes blank after a remount, while an explicit 'startingComponents' reliably works
+    if (selectedFrame !== null) return {
+      requestedFrame: selectedFrame,
+      startingComponents: [ { trajectoryURLs: [ '/trajectory' ] } ],
+    };
+    return null;
+  }, [selectedFrame, selectedTransitionFrames]);
+
+  // Keep track of the currently live (not nailed) viewer object, once ViewerSpawner has attached
+  // its 'close'/'nail' handlers to it, so it can be closed programmatically from above
+  // This is needed because ViewerWithControls only reacts to a changed 'startingComponents' prop
+  // by remounting: it never re-reads it once mounted. So switching in/out of a transition's
+  // trajectory (which uses 'startingComponents') requires closing the live viewer first, which
+  // frees up its id and forces ViewerSpawner to mount a brand new one for the new selection
+  useEffect(() => {
+    liveViewerRef.current = newViewer;
+  }, [newViewer]);
 
   // Render loading or error messages according with the API response as we wait for data
   if (!clustersData) {
@@ -288,6 +403,7 @@ const Clusters = () => {
               images={displayedScreenshots}
               selectedNodeValue={selectedFrame}
               onSelectNode={handleNodeSelect}
+              onSelectArrow={handleArrowSelect}
               className={style.graph}
             />
             <div className={style['floating-selector']}>
@@ -300,7 +416,7 @@ const Clusters = () => {
           </div>
           <CardContent>
             <div className={style.horizontal}>
-              <Typography variant="h7" className={style.wide25}>{'Number of nodes: '}</Typography>
+              <Typography variant="h7" className={style.wide30}>{'Number of nodes: '}</Typography>
               <Slider
                 title="Change number of nodes"
                 value={nodesLimit}
@@ -313,7 +429,7 @@ const Clusters = () => {
               />
             </div>
             <div className={style.horizontal}>
-              <Typography variant="h7" className={style.wide25}>{'Number of transitions: '}</Typography>
+              <Typography variant="h7" className={style.wide30}>{'Number of transitions: '}</Typography>
               <Slider
                 title="Change the number of transitions"
                 value={linksLimit}
@@ -325,8 +441,16 @@ const Clusters = () => {
                 className={style.wide75}
               />
             </div>
+            {hasExcursions && <div className={style.horizontal}>
+              <Typography variant="h7" className={style.wide30}>{'Show excursions: '}</Typography>
+              <Switch
+                title="Show/hide excursion loops"
+                checked={showExcursions}
+                onChange={(_, checked) => { setShowExcursions(checked) }}
+              />
+            </div>}
             <div className={style.horizontal}>
-              <Typography variant="h7" className={style.wide25}>{'Represented transitions: '}</Typography>
+              <Typography variant="h7" className={style.wide30}>{'Represented transitions: '}</Typography>
               <Typography
                 variant="h7"
                 title="Percent of the overall transitions which is represented by the displayed arrows"
@@ -339,23 +463,16 @@ const Clusters = () => {
       </Card>
       <ViewerSpawner
         // Set the new viewer or null if there is not a proper "selected" value
-        newViewer={selectedFrame !== null
-          ? { requestedFrame: selectedFrame }
-          : null
-        }
+        newViewer={newViewer}
         // If the nailed/closed viewer is the current viewer then reset the 'selected'
-        onNail={viewer =>
-          setSelectedFrame(previous => {
-            if (viewer.requestedFrame === previous) return null;
-            else return previous;
-          })
-        }
-        onClose={viewer =>
-          setSelectedFrame(previous => {
-            if (viewer.requestedFrame === previous) return null;
-            else return previous;
-          })
-        }
+        onNail={viewer => {
+          if (viewer.frames) setSelectedTransitionFrames(previous => viewer.frames === previous ? null : previous);
+          else setSelectedFrame(previous => viewer.requestedFrame === previous ? null : previous);
+        }}
+        onClose={viewer => {
+          if (viewer.frames) setSelectedTransitionFrames(previous => viewer.frames === previous ? null : previous);
+          else setSelectedFrame(previous => viewer.requestedFrame === previous ? null : previous);
+        }}
       />
     </>
   );

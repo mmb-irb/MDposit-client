@@ -59,7 +59,7 @@ const arrowHeadGap = 0.0;
 // Set how far apart opposite arrows are displaced in the node borders, added to half their widths
 const arrowSideStep = 1;
 // Set the arrow opacity limits, which are proportional to the arrow width
-const minArrowOpacity = 0.1;
+const minArrowOpacity = 0.6;
 const maxArrowOpacity = 1;
 // Set the arrow greys, so the widest arrows are also the darkest ones
 const minArrowGrey = 170;
@@ -69,6 +69,15 @@ const fadedArrowOpacity = 0.06;
 // Set how far apart linked nodes are kept: a ratio of their radii plus a margin
 const linkDistanceRatio = 1.5;
 const linkDistanceMargin = 15;
+// Set how loops (self-referencing arrows, i.e. excursions which leave and return to the same cluster) are drawn
+// They leave and return to two distinct points on top of the node, spread apart by this half-angle (radians)
+const loopHalfAngle = 0.35;
+// How far the loop's control points reach out from the node, in absolute pixels
+// Note this is independent of the node's own radius, so loops look the same size on every cluster
+const loopBaseReach = 45;
+// The loop's reach is also floored to this many times its own head size, so a wide arrow (which
+// gets a bigger head) always has enough room and its head never overlaps the curve underneath it
+const loopHeadReachRatio = 3;
 // Set the margin left between the nodes cloud and the graph borders
 const viewportMargin = 50;
 // Set how much the nodes cloud may be zoomed in to fill the graph
@@ -103,9 +112,21 @@ const maxViewportScale = 2;
 //        targetWidth: 1,
 //        // Optional tooltip per arrow
 //        sourceText: 'Transitions 0 -> 1: 12',
-//        targetText: 'Transitions 1 -> 0: 6'
+//        targetText: 'Transitions 1 -> 0: 6',
+//        // Optional list of frames per direction, which makes the arrow clickable (see 'onSelectArrow')
+//        sourceFrames: [ 3, 4, 8 ],
+//        targetFrames: [ 15, 16 ]
 //      },
 //      ...
+//      // A link whose 'source' and 'target' are the same node is drawn as a loop (e.g. an excursion)
+//      // It is a single, undirected arrow: no 'sourceWidth'/'targetWidth' split, just plain fields
+//      {
+//        source: 2,
+//        target: 2,
+//        width: 3,
+//        text: 'Excursions from 2: 5',
+//        frames: [ 40, 41, 42 ]
+//      }
 //    ]
 // }
 
@@ -118,6 +139,8 @@ const MarkovGraph = forwardRef(({
   selectedNodeValue,
   // Triggers for when the user selects a nodes
   onSelectNode,
+  // Triggers for when the user selects an arrow (i.e. a transition direction)
+  onSelectArrow,
   // Force a classname for the overall component element
   className,
 }, ref) => {
@@ -131,6 +154,7 @@ const MarkovGraph = forwardRef(({
   const updateImagesRef = useRef(noop);
   const updateSelectedNodeValueRef = useRef(noop);
   const updateOnSelectRef = useRef(noop);
+  const updateOnSelectArrowRef = useRef(noop);
   const updateSizeRef = useRef(noop);
 
   // ----------------------------------------------------------------------------------------
@@ -228,8 +252,22 @@ const MarkovGraph = forwardRef(({
       // Set the arrows to be drawn from the links
       // Bidirectional links become two arrows, bent apart so they do not overlap each other
       // Links with no directional widths become a single straight line
+      // A link whose source and target are the same node (i.e. an excursion) becomes a loop
       const dataArrows = [];
       dataLinks.forEach((link, l) => {
+        const isLoop = link.source === link.target;
+        if (isLoop) {
+          dataArrows.push({
+            link: link,
+            width: link.width,
+            isLoop: true,
+            head: `arrow-head-${l}-loop`,
+            headSize: Math.min(Math.max(link.width * arrowHeadRatio, minArrowHead), maxArrowHead),
+            text: link.text,
+            frames: link.frames,
+          });
+          return;
+        }
         const bidirectional = link.sourceWidth !== undefined || link.targetWidth !== undefined;
         if (!bidirectional) {
           dataArrows.push({ link: link, width: link.width, reverse: false, bend: 0, head: null, headSize: 0 });
@@ -250,6 +288,8 @@ const MarkovGraph = forwardRef(({
             // Note that the head is as long as it is wide
             headSize: Math.min(Math.max(width * arrowHeadRatio, minArrowHead), maxArrowHead),
             text: reverse ? link.targetText : link.sourceText,
+            // Frames belonging to this direction of the transition, if the input data provides them
+            frames: reverse ? link.targetFrames : link.sourceFrames,
           });
         });
       });
@@ -334,6 +374,8 @@ const MarkovGraph = forwardRef(({
         .attr("marker-end", arrow => arrow.head ? `url(#${arrow.head})` : null)
         .style("stroke", arrow => arrow.color)
         .style("opacity", arrow => arrow.opacity)
+        // Only arrows carrying frames are clickable, since there is nothing to load otherwise
+        .style("cursor", arrow => onSelectArrow && arrow.frames && arrow.frames.length ? "pointer" : null)
         // Make the hovered arrow stand out, so even the faintest may be inspected
         // WARNING: Here you need to use 'function' instead of an arrow function or 'this' does not work
         .on("mouseover", function(arrow) {
@@ -341,6 +383,9 @@ const MarkovGraph = forwardRef(({
         })
         .on("mouseout", function(arrow) {
           styleArrow(this, arrow, arrow.color, arrow.opacity);
+        })
+        .on("click", arrow => {
+          if (onSelectArrow && arrow.frames && arrow.frames.length) onSelectArrow(arrow);
         });
       arrowPaths.select("title").text(arrow => arrow.text || '');
 
@@ -354,6 +399,10 @@ const MarkovGraph = forwardRef(({
       // This was get from here https://observablehq.com/@d3/modifying-a-force-directed-graph
       const backup = new Map(nodeCircles.data().map(d => [d.id, d]));
       dataNodes = dataNodes.map(d => Object.assign(backup.get(d.id) || {}, d));
+
+      // Index nodes by id, so loops (whose link is never resolved by forceLink, see below) can find
+      // the actual, live node object to read its current position and radius from during ticks
+      const nodeById = new Map(dataNodes.map(node => [node.id, node]));
 
       // Load new nodes data in node circles
       const newNodeCirclesData = nodeCircles.data(dataNodes);
@@ -440,6 +489,10 @@ const MarkovGraph = forwardRef(({
       // Note that there is an additional force which is not data-dependent, but size-dependent
       // This force is not set here but in the updateSizeRef function
 
+      // Loops must be excluded from the link force: forceLink cannot resolve a meaningful distance
+      // between a node and itself, and feeding it self-links makes positions collapse to NaN
+      const forceLinks = dataLinks.filter(link => link.source !== link.target);
+
       simulation
         .nodes(dataNodes)
         // This force provides links between nodes
@@ -448,7 +501,7 @@ const MarkovGraph = forwardRef(({
           // Keep linked nodes apart according to their sizes, so arrows have room
           .distance(d => (d.source.radius + d.target.radius) * linkDistanceRatio + linkDistanceMargin)
           .id(d => d.id)
-          .links(dataLinks)
+          .links(forceLinks)
         )
         // This adds repulsion (negative force) between nodes
         .force("charge", forceManyBody().strength(d => d.radius * -40))
@@ -457,8 +510,55 @@ const MarkovGraph = forwardRef(({
         // Link the position updating function to the forces
         // It is important to run this line only in the first render
         .on("tick", () => {
+          // Compute the nodes' centroid, so loops can be pointed outward from the middle of the
+          // graph instead of always upward: the center tends to be crowded with transitions, while
+          // the outer area is mostly empty, so loops overlap less if they bulge out into it
+          let centroidX = 0, centroidY = 0;
+          dataNodes.forEach(node => { centroidX += node.x; centroidY += node.y; });
+          centroidX /= dataNodes.length || 1;
+          centroidY /= dataNodes.length || 1;
           // Set the curve of every arrow
           dataArrows.forEach(arrow => {
+            // Loops are drawn as a bulge attached to the outward side of their own node, not between
+            // two nodes. Note that the loop's link is never resolved by forceLink (it is excluded
+            // from it, see above), so its 'source'/'target' are still the raw node id and must be
+            // looked up
+            if (arrow.isLoop) {
+              const node = nodeById.get(arrow.link.source);
+              // Point the loop away from the graph's centroid, or upward if the node sits right on it
+              const baseAngle = (node.x === centroidX && node.y === centroidY)
+                ? -Math.PI / 2
+                : Math.atan2(node.y - centroidY, node.x - centroidX);
+              // The loop leaves and returns to two distinct points on the node's outward side, not
+              // the very same spot, so it reads as "leaves the cluster and comes back" rather than a stub
+              const startAngle = baseAngle - loopHalfAngle;
+              const endAngle = baseAngle + loopHalfAngle;
+              const startX = node.x + node.radius * Math.cos(startAngle);
+              const startY = node.y + node.radius * Math.sin(startAngle);
+              const rawEndX = node.x + node.radius * Math.cos(endAngle);
+              const rawEndY = node.y + node.radius * Math.sin(endAngle);
+              // Control points reach out along the very same angles as the start/end points (not
+              // swept sideways), so the curve bulges directly away from the node, forming a round loop
+              // 'loopBaseReach' is how far beyond the node's own border they reach, not an absolute
+              // distance from its center, or the loop would curl back inside a big enough node
+              // Also reach out further for wide arrows, so a big head always has room and never
+              // overlaps the curve it is drawn on top of
+              const loopReach = Math.max(node.radius + loopBaseReach, arrow.headSize * loopHeadReachRatio);
+              const control1X = node.x + loopReach * Math.cos(startAngle);
+              const control1Y = node.y + loopReach * Math.sin(startAngle);
+              const control2X = node.x + loopReach * Math.cos(endAngle);
+              const control2Y = node.y + loopReach * Math.sin(endAngle);
+              // Pull the end back along the incoming tangent, leaving room for the head to be drawn
+              // beyond it, so the head's tip lands exactly on the node border
+              const tangentX = rawEndX - control2X;
+              const tangentY = rawEndY - control2Y;
+              const tangent = Math.sqrt(tangentX * tangentX + tangentY * tangentY) || 1;
+              const endX = rawEndX - (tangentX / tangent) * arrow.headSize;
+              const endY = rawEndY - (tangentY / tangent) * arrow.headSize;
+              arrow.path =
+                `M${startX},${startY} C${control1X},${control1Y} ${control2X},${control2Y} ${endX},${endY}`;
+              return;
+            }
             // Get the nodes the arrow goes from and to
             const from = arrow.reverse ? arrow.link.target : arrow.link.source;
             const to = arrow.reverse ? arrow.link.source : arrow.link.target;
@@ -548,6 +648,15 @@ const MarkovGraph = forwardRef(({
         .on("click", onSelectNode);
     }
 
+    // Set a function to update when onSelectArrow changes
+    updateOnSelectArrowRef.current = ({ onSelectArrow }) => {
+      linksParent.selectAll("path")
+        .style("cursor", arrow => onSelectArrow && arrow.frames && arrow.frames.length ? "pointer" : null)
+        .on("click", arrow => {
+          if (onSelectArrow && arrow.frames && arrow.frames.length) onSelectArrow(arrow);
+        });
+    }
+
     // This ref allows to update the graph without having to remake the whole graph
     updateSizeRef.current = () => {
       // Change the graph size according to the container size
@@ -595,6 +704,11 @@ const MarkovGraph = forwardRef(({
   useEffect(() => {
     updateOnSelectRef.current({onSelectNode});
   }, [onSelectNode]);
+
+  // Handle when the on selected arrow changes
+  useEffect(() => {
+    updateOnSelectArrowRef.current({onSelectArrow});
+  }, [onSelectArrow]);
 
   return (
     <div className={className ? className : style.default}>
