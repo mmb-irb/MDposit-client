@@ -1,5 +1,7 @@
 .container {
   flex: 1;
+  /* Allow shrinking below content size instead of overflowing the parent */
+  min-height: 0;
   width: 100%;
   background: black;
   position: relative;

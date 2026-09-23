@@ -59,7 +59,7 @@ import style from './style.module.css';
 // Import context data
 import { ProjectCtx } from '../../contexts';
 // Import auxiliar functions
-import { copyObject, round2cents } from 'src/utils/auxiliar-functions';
+import { copyObject, round2cents, getTimeScale, getFramesSpan } from 'src/utils/auxiliar-functions';
 
 // Decide that the default should be to play the trajectory only on "big enough"
 // screens (as a proxy for performance and low-end device detection)
@@ -576,6 +576,8 @@ const ViewerWithControls = forwardRef(
 
     // Set callbacks for event listeners
     const startDraggingProgress = useCallback(event => {
+      // Avoid selecting page text while dragging the progress bar
+      event.preventDefault();
       handleManualProgress(event);
       window.addEventListener('mouseup', stopDraggingProgress);
       window.addEventListener('mousemove', handleManualProgress);
@@ -770,6 +772,23 @@ const ViewerWithControls = forwardRef(
       setMembraneReduced,
     };
 
+    // Pick a readable time unit (fs, ps, ns, µs, ms) based on the trajectory total length
+    const timeScale = useMemo(
+      () => getTimeScale(metadata.timeLength), [metadata.timeLength],
+    );
+
+    // Whether the loaded frames are spread across (almost) the whole trajectory, as opposed to
+    // a narrow, specific frame window (e.g. a single cluster transition). In the latter case the
+    // total trajectory time is not representative of what is loaded, so the time tooltip is hidden
+    const framesDistributed = useMemo(() => {
+      const mainComponent = finalComponents && finalComponents[0];
+      const urlpath = mainComponent && mainComponent.trajectoryURLs && mainComponent.trajectoryURLs[0];
+      const span = getFramesSpan(urlpath);
+      if (!span) return true;
+      if (!metadata.mdFrames) return true;
+      return (span.end - span.start) / metadata.mdFrames > 0.9;
+    }, [finalComponents, metadata.mdFrames]);
+
     // DANI: Si no quieres buscarte problemas no cambies las "Card"s de aquí abajo por "div"s o similar
     return (
       <Card
@@ -857,7 +876,7 @@ const ViewerWithControls = forwardRef(
               // Render the loading/progress bar in case there is a trajectory to be loaded
               : (<div className={style.progressContainer}>
                   <div
-                    className={cn(style.progress, { [style.dark]: darkBackground })}
+                    className={cn(style.progress, 'prevent-drag', { [style.dark]: darkBackground })}
                     onMouseDown={startDraggingProgress}
                     ref={progressRef}
                   >
@@ -869,9 +888,9 @@ const ViewerWithControls = forwardRef(
                       style={{ height: '1ch' }}
                     />
                   </div>
-                  {metadata.FRAMESTEP && (
-                    <div className={cn(style.timeInfo, { [style.dark]: darkBackground })}>
-                      Time: {currentFrameInfo.time} / {round2cents(metadata.timeLength)} ns 
+                  {metadata.FRAMESTEP && framesDistributed && (
+                    <div className={cn(style.timeInfo, 'prevent-drag', { [style.dark]: darkBackground })}>
+                      Time: {round2cents(currentFrameInfo.time * timeScale.factor)} / {round2cents(metadata.timeLength * timeScale.factor)} {timeScale.label}
                     </div>
                   )}
                 </div>)
