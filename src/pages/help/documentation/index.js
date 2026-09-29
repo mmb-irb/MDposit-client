@@ -300,21 +300,24 @@ export const documentation = [
             RMSD analyses are run over different atom selections.
             By default, it is computed for protein atoms, nucleics acid atoms and
             all atoms in every defined ligand. Some projects may contain additional
-            RMSD analyses for custom atom selections. First table displays the mean
-            and standard deviation values of each atoms selection in Ångstroms (Å).
+            RMSD analyses for custom atom selections. First table displays the mean,
+            standard deviation and maximum values of each atoms selection in Ångstroms (Å).
             In addition, there is a checkbox next to each atom selection name
             which allows to hide or show data in the graph below.
             <br />
             <br />
-            Graph displays the RMSD/TM score value in each frame along the
-            trajectory. The horizontal axis stands for the trajectory time in
-            nanoseconds. The vertical axis may stand for the RMSD in Ångstroms
-            (Å) or the TM score. The graph is{' '}
+            Graph displays the RMSD/TM score values along the trajectory. RMSD is
+            computed for every frame in the trajectory, but frames are grouped in
+            consecutive blocks and only a summary of each block is displayed: the
+            line stands for the block mean value and the colored area around it
+            stands for the block standard deviation. The horizontal axis stands for
+            the trajectory time in nanoseconds. The vertical axis may stand for the
+            RMSD in Ångstroms (Å) or the TM score. The graph is{' '}
             <span style={{ color: 'lightGreen' }}>interactive</span>. Use the
             mouse wheel to zoom in a specific region. Click and hold at any
             point in the graph to drag it left or right. Hover any point in the
-            graph to show the corresponding RMSD/TM score and time/frame values.
-            Click any point in the graph to open a{' '}
+            graph to show the corresponding RMSD/TM score value and the range of
+            frames in the block. Click any point in the graph to open a{' '}
             <a
               href="/help#/help#ngl-viewer"
               target="_blank"
@@ -322,7 +325,12 @@ export const documentation = [
             >
               viewer
             </a>{' '}
-            showing the structure conformation at the selected time frame.
+            showing the structure conformation at the frame with the maximum
+            RMSD in the selected block. This is useful to inspect sudden jumps
+            in the RMSD, which may happen in a few specific frames only. When
+            several atom selections are displayed, the frame is picked from
+            the selection whose maximum stands out the most. Hide the other
+            selections in the table above to inspect a specific selection.
           </>
         ),
       },
@@ -332,12 +340,12 @@ export const documentation = [
         body: (
           <>
             RMSD analyses have been run against the first frame and against the
-            average structure of the whole trajectory. RMSD analyses have been
-            run over different protein atom selections: all protein atoms
-            (protein), heavy atoms (protein-h), backbone and alpha carbon
-            (c-alpha). The RMSD value of the structure is stored for up to 5000
-            frames along the trajectory.
-            Only atoms not in periodic boundary conditions (PBC) are measured in this analysis.
+            average structure of the whole trajectory.
+            The RMSD is computed for every frame in the trajectory.
+            Then frames are grouped in consecutive blocks and the mean, standard
+            deviation and maximum values of each block are stored, together with
+            the frame where the maximum value is found.
+            Atoms under periodic boundary conditions (PBC) are ignored in this analysis.
             <br />
             <br />
             This analysis is powered by <TextLink name={'Gromacs'} id={'gromacs'} />
