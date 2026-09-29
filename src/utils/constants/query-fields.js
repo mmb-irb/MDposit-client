@@ -498,6 +498,30 @@ export default {
     ],
     "Other": [
         {
+            "name": "Mean global RMSD (Å)",
+            "path": "mds.rmsd_mean",
+            "type": "float",
+            "example": "any number",
+            "options": false,
+            "experimental": true,
+        },
+        {
+            "name": "Standard deviation of global RMSD (Å)",
+            "path": "mds.rmsd_stdv",
+            "type": "float",
+            "example": "any number",
+            "options": false,
+            "experimental": true,
+        },
+        {
+            "name": "Maximum global RMSD (Å)",
+            "path": "mds.rmsd_max",
+            "type": "float",
+            "example": "any number",
+            "options": false,
+            "experimental": true,
+        },
+        {
             "name": "Available MD analyses",
             "path": "mds.analyses.name",
             "type": "string",
