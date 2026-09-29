@@ -3,6 +3,7 @@ import React, {
     useState,
     useRef,
     useEffect,
+    useLayoutEffect,
 } from 'react';
 
 import { ProjectCtx } from '../../contexts';
@@ -37,7 +38,7 @@ const parseFrameRange = frameRange => {
 // This string is standarized in a API friendly format
 const getFrames = (trajectoryFrames, requestedFrames, requestedFrame) => {
     // only one specific frame loaded, as a projection
-    if (requestedFrame) return { range: (requestedFrame + 1).toString(), frames: 1 };
+    if (Number.isFinite(requestedFrame)) return { range: (requestedFrame + 1).toString(), frames: 1 };
     // multiple frames loaded, as a trajectory
     if (!trajectoryFrames) throw new Error('Missing number of frames in the trajectory');
     if (!requestedFrames) throw new Error('Missing number of requested frames');
@@ -235,7 +236,12 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
     // If the component has no trajectory specified use the main trajectory
     // If the component is not the main component and has no frame specified, use the first frame
     // Only the main component (the first) is allowed to load multiple frames by the moment
-    useEffect(() => {
+    // WARNING: This must be a layout effect and component framed URLs must be set outside the state updater
+    // WARNING: The viewer (a child component) reads the framed URLs in its own effects, which run before ours
+    // WARNING: If a framed URL was already downloaded then there is no state change and no further render
+    // WARNING: Thus the viewer would never notice the new framed URL and it would keep showing the previous frame
+    // WARNING: Layout effects run before any regular effect, so the viewer always reads updated framed URLs
+    useLayoutEffect(() => {
         // Make sure we already have components
         if (!components) return;
         // Send a request to the API with the file descriptor
@@ -245,118 +251,117 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
         // Throw it in case something went wrong with the donwload
         else if (error) throw error;
         else if (!payload) throw new Error('Something bad happened with file descriptors');
-        // Finally update the trajectories state
-        setRequestedTrajectories(currentTrajectories => {
-            // Save the new requetsed trajectories
-            const newTrajectories = [];
-            // Set the urlpath to ask the API
-            // Here, if you ask for the trajectory.bin instead of just trajectory, you get the whole file
-            // This is because the only route of the API accepting frames selection is the "trajectory" endpoint
-            // Other paths such as "trajectory.bin" will be processed as "/:files"
-            const defaultUrlpath = `/trajectory`;
-            components.forEach((comp, c) => {
-                if (comp.onlyTopology) return;
-                // Set the first component as the 'principal' component
-                const isPrincipal = c === 0;
-                const requestedFrame = comp.frame;
-                // Atom subset for this component, if any
-                // This is used to request a lighter trajectory containing only the desired atoms
-                // WARNING: Atom indices must be sorted (same CORS workaround as for topologies)
-                const atomIndices = comp.atomIndices
-                    ? [...comp.atomIndices].sort((a, b) => a - b)
-                    : null;
-                const resIndices = comp.resIndices || null;
-                const chainIndices = comp.chainIndices || null;
-                // Build the NGL atom selection to be sent to the API
-                // Prefer an explicit atom selection, otherwise derive it from the atom indices
-                const atomSelection = comp.atomSelection
-                    || (atomIndices ? '@' + atomIndices.join(',') : null);
-                // Get the trajectory urls
-                // If the component has no trajectory urlpath specified then use the default trajectory
-                const urlpaths = comp.trajectoryURLs || [ defaultUrlpath ];
-                // Add the frames number of all the component requested trajectories
-                comp.frameCount = 0;
-                urlpaths.forEach((urlpath, u) => {
-                    // Check if the urlpath is already framed
-                    const framed = parseFrameRange(urlpath);
-                    // Get the name of the trajectory file inside the database
-                    // i.e. the end of the requested URL
-                    // The exception is the API endpoint 'trajectory', which uses the 'trajectory.bin' file
-                    let trajectoryFilename = urlpath.split('/').slice(-1)[0];
-                    if (framed) trajectoryFilename = trajectoryFilename.split('?frames=')[0];
-                    if (trajectoryFilename === 'trajectory') trajectoryFilename = 'trajectory.bin';
-                    // Get the file descriptor of the required trajectory
-                    const trajectoryFileDescriptor = payload.find(file => 
-                        file.filename === trajectoryFilename);
-                    if (!trajectoryFileDescriptor)
-                        throw new Error( `Trajectory "${trajectoryFilename}" is missing`);
-                    const trajectoryMetadata = trajectoryFileDescriptor.metadata;
-                    // Get the number of frames in the whole trajectory
-                    const trajectoryFrames = trajectoryMetadata.frames;                
-                    // Set the number of frames to be requested from the whole trajectory
-                    let requestedFrames = requestedFramesNumber;
-                    if (requestedFramesNumber > trajectoryFrames) requestedFrames = trajectoryFrames;
-                    if (Number.isFinite(requestedFrame)) requestedFrames = 1;
-                    else if (framed) requestedFrames = framed.frames;
-                    // Components which are not the principal must include a 'frame' value
-                    if (!isPrincipal && requestedFrames > 1) 
-                        throw new Error(`Only the main component is allowed to load multiple frames`);
-                    // Frames are added to any urlpath which is missing the frames range according to requestedFramesNumber
-                    // The only exception are those trajectories whose frame number is lower than requestedFramesNumber
-                    let finalUrlpath = urlpath;
-                    // Get the expected number of frames returned, which may not be exactly the requested number
-                    let returnedFrames;
-                    // In case the urlpath is already framed
-                    if (framed) {
-                        // Find maximum number of frames to be returned (trajectory frames or requetsed frames)
-                        const maximumFrames = Math.min(trajectoryFrames, framed.end);
-                        returnedFrames = Math.ceil(maximumFrames / framed.step);
-                    }
-                    // Modify the urlpath if it is not framed yet
-                    else {
-                        // Get the string frames range according to requestedFramesNumber
-                        const { range: framesRange, frames: framesCount } = getFrames(
-                            trajectoryFrames,
-                            requestedFrames,
-                            requestedFrame,
-                        );
-                        returnedFrames = framesCount;
-                        // Add the frames range to the original urlpath
-                        if (framesRange) finalUrlpath = urlpath + `?frames=${framesRange}`;
-                    }
-                    // Set the component framed urlpath if it doesn't exists
-                    if (!comp.framedURLs) comp.framedURLs = [];
-                    // Save this final urlpath in the framedURL in the component
-                    // Overwrite the previous framed urlpath if exists
-                    comp.framedURLs[u] = finalUrlpath;
-                    // Add the requested frames number to the frame count
-                    comp.frameCount += requestedFrames;
-                    // Check if the requested urlpath is already in the list
-                    // If so, skip this request
-                    // If not, save the request urlpath and proceed
-                    const current = currentTrajectories.find(
-                        trajectory => trajectory.urlpath === finalUrlpath);
-                    if (!current) {
-                        newTrajectories.push({
-                            urlpath: finalUrlpath,
-                            frames: returnedFrames,
-                            // Atom count of the returned trajectory.
-                            // Known when atomIndices is explicit; null when the server resolves the subset
-                            // (resindices/chaindices) — ngl-viewer reads it from the parsed structure instead.
-                            // Atom selection / index params sent in the POST body
-                            atoms: atomIndices
-                                ? atomIndices.length
-                                : (resIndices || chainIndices) ? null : trajectoryMetadata.atoms,
-                            resindices: resIndices,
-                            chaindices: chainIndices,
-                            atomSelection: atomSelection,
-                            loading: true,
-                            requested: false,
-                        });
-                        setAnyLoadingTrajectory(true);
-                    }
+        // Save the trajectories requested by the components
+        const componentsTrajectories = [];
+        // Set the urlpath to ask the API
+        // Here, if you ask for the trajectory.bin instead of just trajectory, you get the whole file
+        // This is because the only route of the API accepting frames selection is the "trajectory" endpoint
+        // Other paths such as "trajectory.bin" will be processed as "/:files"
+        const defaultUrlpath = `/trajectory`;
+        components.forEach((comp, c) => {
+            if (comp.onlyTopology) return;
+            // Set the first component as the 'principal' component
+            const isPrincipal = c === 0;
+            const requestedFrame = comp.frame;
+            // Atom subset for this component, if any
+            // This is used to request a lighter trajectory containing only the desired atoms
+            // WARNING: Atom indices must be sorted (same CORS workaround as for topologies)
+            const atomIndices = comp.atomIndices
+                ? [...comp.atomIndices].sort((a, b) => a - b)
+                : null;
+            const resIndices = comp.resIndices || null;
+            const chainIndices = comp.chainIndices || null;
+            // Build the NGL atom selection to be sent to the API
+            // Prefer an explicit atom selection, otherwise derive it from the atom indices
+            const atomSelection = comp.atomSelection
+                || (atomIndices ? '@' + atomIndices.join(',') : null);
+            // Get the trajectory urls
+            // If the component has no trajectory urlpath specified then use the default trajectory
+            const urlpaths = comp.trajectoryURLs || [ defaultUrlpath ];
+            // Add the frames number of all the component requested trajectories
+            comp.frameCount = 0;
+            urlpaths.forEach((urlpath, u) => {
+                // Check if the urlpath is already framed
+                const framed = parseFrameRange(urlpath);
+                // Get the name of the trajectory file inside the database
+                // i.e. the end of the requested URL
+                // The exception is the API endpoint 'trajectory', which uses the 'trajectory.bin' file
+                let trajectoryFilename = urlpath.split('/').slice(-1)[0];
+                if (framed) trajectoryFilename = trajectoryFilename.split('?frames=')[0];
+                if (trajectoryFilename === 'trajectory') trajectoryFilename = 'trajectory.bin';
+                // Get the file descriptor of the required trajectory
+                const trajectoryFileDescriptor = payload.find(file => 
+                    file.filename === trajectoryFilename);
+                if (!trajectoryFileDescriptor)
+                    throw new Error( `Trajectory "${trajectoryFilename}" is missing`);
+                const trajectoryMetadata = trajectoryFileDescriptor.metadata;
+                // Get the number of frames in the whole trajectory
+                const trajectoryFrames = trajectoryMetadata.frames;                
+                // Set the number of frames to be requested from the whole trajectory
+                let requestedFrames = requestedFramesNumber;
+                if (requestedFramesNumber > trajectoryFrames) requestedFrames = trajectoryFrames;
+                if (Number.isFinite(requestedFrame)) requestedFrames = 1;
+                else if (framed) requestedFrames = framed.frames;
+                // Components which are not the principal must include a 'frame' value
+                if (!isPrincipal && requestedFrames > 1) 
+                    throw new Error(`Only the main component is allowed to load multiple frames`);
+                // Frames are added to any urlpath which is missing the frames range according to requestedFramesNumber
+                // The only exception are those trajectories whose frame number is lower than requestedFramesNumber
+                let finalUrlpath = urlpath;
+                // Get the expected number of frames returned, which may not be exactly the requested number
+                let returnedFrames;
+                // In case the urlpath is already framed
+                if (framed) {
+                    // Find maximum number of frames to be returned (trajectory frames or requetsed frames)
+                    const maximumFrames = Math.min(trajectoryFrames, framed.end);
+                    returnedFrames = Math.ceil(maximumFrames / framed.step);
+                }
+                // Modify the urlpath if it is not framed yet
+                else {
+                    // Get the string frames range according to requestedFramesNumber
+                    const { range: framesRange, frames: framesCount } = getFrames(
+                        trajectoryFrames,
+                        requestedFrames,
+                        requestedFrame,
+                    );
+                    returnedFrames = framesCount;
+                    // Add the frames range to the original urlpath
+                    if (framesRange) finalUrlpath = urlpath + `?frames=${framesRange}`;
+                }
+                // Set the component framed urlpath if it doesn't exists
+                if (!comp.framedURLs) comp.framedURLs = [];
+                // Save this final urlpath in the framedURL in the component
+                // Overwrite the previous framed urlpath if exists
+                comp.framedURLs[u] = finalUrlpath;
+                // Add the requested frames number to the frame count
+                comp.frameCount += requestedFrames;
+                // Save the request, which is only sent in case it is not in the requested list already
+                componentsTrajectories.push({
+                    urlpath: finalUrlpath,
+                    frames: returnedFrames,
+                    // Atom count of the returned trajectory.
+                    // Known when atomIndices is explicit; null when the server resolves the subset
+                    // (resindices/chaindices) — ngl-viewer reads it from the parsed structure instead.
+                    // Atom selection / index params sent in the POST body
+                    atoms: atomIndices
+                        ? atomIndices.length
+                        : (resIndices || chainIndices) ? null : trajectoryMetadata.atoms,
+                    resindices: resIndices,
+                    chaindices: chainIndices,
+                    atomSelection: atomSelection,
+                    loading: true,
+                    requested: false,
                 });
             });
+        });
+        // Finally update the trajectories state
+        setRequestedTrajectories(currentTrajectories => {
+            // Check if every requested urlpath is already in the list
+            // If so, skip this request
+            // If not, save the request urlpath and proceed
+            const newTrajectories = componentsTrajectories.filter(newTrajectory =>
+                !currentTrajectories.some(trajectory => trajectory.urlpath === newTrajectory.urlpath));
+            if (newTrajectories.length > 0) setAnyLoadingTrajectory(true);
             // In case there are new requested trajectories we return a new array to trigger dependencies
             if (newTrajectories.length > 0) return [...currentTrajectories, ...newTrajectories];
             // Otherwise we return the previous array to do no trigger dependencies
