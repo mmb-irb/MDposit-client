@@ -113,6 +113,9 @@ const NGLViewer = memo(
         anyLoadingTrajectory,
         // Set the highlight representations types
         highlightTypes = defaultHighlightTypes,
+        // Optional function to set the tooltip content when hovering a distance
+        // It receives both atom indices and returns JSX, or nothing to use the default content
+        distanceTooltip,
       },
       ref,
     ) => {
@@ -1251,6 +1254,10 @@ const NGLViewer = memo(
         return () => window.removeEventListener('change', handler);
       }, [mainComponent, topologyManager, curatedOrientation]);
 
+      // Keep the distance tooltip function in a reference so the hover handler is not reset
+      const distanceTooltipRef = useRef(distanceTooltip);
+      distanceTooltipRef.current = distanceTooltip;
+
       // Customize the NGL tooltip
       useEffect(() => {
         if (!topologyManager) return;
@@ -1328,8 +1335,25 @@ const NGLViewer = memo(
               let description;
               const bond = pickingProxy.bond;
               const atom = pickingProxy.atom;
+              const distance = pickingProxy.distance;
+              // When we hover a distance
+              if (distance) {
+                const atom1 = distance.atom1;
+                const atom2 = distance.atom2;
+                const custom = distanceTooltipRef.current &&
+                  distanceTooltipRef.current(atom1.index, atom2.index);
+                description = custom || (
+                  <>
+                    <div>{`Distance ${atom1.index} - ${atom2.index} (${atom1.distanceTo(atom2).toFixed(2)} Å)`}</div>
+                    <hr style={{ color: 'lightGrey' }} />
+                    {formatOutput(atom1)}
+                    <hr style={{ color: 'lightGrey' }} />
+                    {formatOutput(atom2)}
+                  </>
+                );
+              }
               // When we hover a bond
-              if (bond) {
+              else if (bond) {
                 const atom1 = bond.atom1;
                 const atom2 = bond.atom2;
                 description = (

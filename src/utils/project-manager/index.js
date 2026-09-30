@@ -79,6 +79,8 @@ export class Project {
             this.directions['populations'] = this.files && this.files.find(file => file === 'populations.json');
             this.directions['markov'] = this.analyses.includes('markov');
         }
+        // Set the allostery analysis, which is hidden unless available
+        if (this.analyses.includes('allostery')) this.directions['allostery'] = true;
         // Set an internal object to save loading status of every call
         this._apiQueriesLoading = {};
         // Save the topology manager apart so we do not have to re-instantiate the class every time

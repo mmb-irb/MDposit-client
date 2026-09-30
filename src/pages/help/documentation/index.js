@@ -1156,6 +1156,68 @@ export const documentation = [
         ),
       },
       {
+        id: 'allostery',
+        header: 'Allostery',
+        body: (
+          <>
+            Allosteric communication network analysis using{' '}
+            <a
+              href="https://github.com/yasamankarami/compass"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              ComPASS
+            </a>{' '}
+            (Communication Pathway Analysis within Protein-Nucleic Acid Complexes). 
+            This analysis is calculated using up to 1000 frames along the trajectory.
+            <br />
+            <br />
+            Residues are the nodes of a graph and links between them are weighted according to how
+            strongly they communicate along the trajectory. Link weights come from an adjacency matrix
+            which integrates three residue pairwise metrics: the generalized correlation of residue
+            motions (using CA atoms in proteins and C5' atoms in nucleic acids), the frequency of
+            interactions between residues (non-bonded contacts, salt bridges and hydrogen bonds) and
+            the communication propensity, which is derived from the variance of the distance between
+            residues along the trajectory. Only residues within a distance cutoff are linked in the graph.
+            <br />
+            <br />
+            Several graph theory properties are then calculated over the network. Allosteric hotspots
+            are the top 5% most important residues in the network according to their centrality
+            (betweenness, closeness and degree). Communities are clusters of residues which are densely
+            connected among themselves, and they are found using the Leiden algorithm. Cliques are fully
+            connected subgraphs, i.e. groups of residues where every residue is linked to every other
+            residue in the group.
+          </>
+        ),
+        page: (
+          <>
+            This is the allosteric communication network.
+            <br />
+            <br />
+            Links between residues are displayed in the{' '}
+            <a
+              href="/help#/help#ngl-viewer"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              molecular viewer
+            </a>
+            . Stronger links are thicker and more opaque. Link strengths range from 0% to 100%.
+            Hover any link to see the residues it connects and its strength.
+            <br />
+            <br />
+            Use the selector to paint hotspots, cliques or communities over the structure, or to color
+            links by their strength instead. Click any region in the legend to highlight its residues.
+            <br />
+            <br />
+            Use the sliders to hide links which are weaker than a minimum strength, or links between
+            residues of the same chain which are closer in sequence than a minimum step. For instance,
+            a minimum step of 2 hides links between consecutive residues, which are expected to be
+            strongly coupled anyway since they are covalently bonded.
+          </>
+        ),
+      },
+      {
         id: 'markov',
         header: 'Markov Graph',
         body: (
@@ -1794,6 +1856,17 @@ export const documentation = [
             potentials: Improved setup procedure in molecular dynamics
             simulations of proteins. Proteins, 45: 428-437.
             https://doi.org/10.1002/prot.1159
+          </>
+        ),
+      },
+      {
+        id: 'compass',
+        header: 'ComPASS',
+        body: (
+          <>
+            Bheemireddy S, González Alemán R, Bignon E, Karami Y. Communication pathway analysis
+            within protein-nucleic acid complexes. bioRxiv, 2025.
+            https://doi.org/10.1101/2025.02.14.638259
           </>
         ),
       },

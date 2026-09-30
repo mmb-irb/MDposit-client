@@ -83,6 +83,7 @@ const tabs = [
           'pockets',
           'populations',
           'markov', 
+          'allostery',
         ],
       },
     ],
