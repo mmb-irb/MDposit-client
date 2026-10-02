@@ -1218,6 +1218,55 @@ export const documentation = [
         ),
       },
       {
+        id: 'chemical-shifts',
+        header: 'Chemical shifts',
+        body: (
+          <>
+            Protein NMR chemical shifts predicted along the trajectory (up to 1000 frames) using{' '}
+            <a
+              href="https://github.com/roitberg-group/legolas"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              LEGOLAS
+            </a>
+            , a machine learning model built over TorchANI which predicts chemical shifts from
+            protein structures. Chemical shifts are predicted for backbone nitrogen (N), amide
+            hydrogen (H), alpha carbon (CA) and hydrogen (HA), beta carbon (CB) and carbonyl carbon
+            (C) atoms.
+            <br />
+            <br />
+            For every atom, the average chemical shift and its standard deviation along the
+            trajectory are provided. LEGOLAS predictions come from an ensemble of 5 models, and the
+            standard deviation between models is a measure of the prediction confidence. The mean
+            of this deviation along the trajectory (csmdv) is also provided for every atom, where
+            higher values stand for less reliable predictions.
+          </>
+        ),
+        page: (
+          <>
+            These are the predicted chemical shifts.
+            <br />
+            <br />
+            There is one graph for every atom element. Dots represent the average chemical shift of
+            every atom and vertical bars represent its standard deviation along the trajectory.
+            Dots are colored according to the reliability of their prediction, from blue (reliable)
+            to red (not reliable).
+            <br />
+            <br />
+            Click any atom in the graphs to display it in the{' '}
+            <a
+              href="/help#/help#ngl-viewer"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              molecular viewer
+            </a>
+            .
+          </>
+        ),
+      },
+      {
         id: 'markov',
         header: 'Markov Graph',
         body: (
@@ -1936,6 +1985,18 @@ export const documentation = [
             SCE, Wu CH, Bateman A and Finn RD The InterPro protein families and
             domains database: 20 years on. Nucleic Acids Research, Nov 2020,
             (doi: 10.1093/nar/gkaa977)
+          </>
+        ),
+      },
+      {
+        id: 'legolas',
+        header: 'LEGOLAS',
+        body: (
+          <>
+            Darrows MY, Kodituwakku D, Xue J, Pickering I, Terrel NS, Roitberg AE. LEGOLAS: a
+            Machine Learning method for rapid and accurate predictions of protein NMR chemical
+            shifts. J. Chem. Theory Comput. 2025, 21, 8, 4266–4275.
+            https://doi.org/10.1021/acs.jctc.5c00026
           </>
         ),
       },

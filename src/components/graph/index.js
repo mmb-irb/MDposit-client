@@ -102,6 +102,7 @@ const isCanvasPowered = type => type === 'dash' || type === 'dots';
 //      average: float,
 //      color: 'red',
 //      dash: "5, 5",
+//      errorBars: [... the error of every value ...] (only for 'dots' and 'dash' types)
 //    }
 //    dataset2:{...}
 // }
@@ -485,7 +486,11 @@ const Graph = forwardRef(({
         flatten(
           dataEntries
             .filter(([key]) => labels[key])
-            .map(([, { data }]) => extent(data)),
+            .map(([, { data, errorBars }]) => {
+              // Make sure error bars fit in the graph as well
+              if (!errorBars) return extent(data);
+              return extent(flatten(data.map((v, i) => [v - errorBars[i], v + errorBars[i]])));
+            }),
         ),
       );
       
@@ -678,9 +683,10 @@ const Graph = forwardRef(({
         const startAngle = 0;
         const endAngle = 2 * Math.PI;
         canvasContext.clearRect(0, 0, width, height);
-        for (const [key, { data: values, color }] of Object.entries(data)) {
+        for (const [key, { data: values, color, errorBars }] of Object.entries(data)) {
           if (!labels[key]) continue;
           canvasContext.fillStyle = color || '#000000';
+          canvasContext.lineWidth = dPR;
           const maxInView = Math.min(values.length - 1, maxIndex);
           // each atom in view
           for (
@@ -697,6 +703,21 @@ const Graph = forwardRef(({
               // The background is white so a white rectangle would be not visible
               canvasContext.fillStyle =
                 atomColor === 'white' ? '#eeeeee' : atomColor;
+            }
+            // Draw a vertical error bar, centered in the dash/dot, using the same color
+            if (errorBars) {
+              const error = errorBars[index];
+              const xCenter = type === 'dots'
+                ? x(index * step * precision) - dashWidth / 2
+                : x(index * step * precision);
+              const yOffset = type === 'dots' ? dashHeight / 2 : 0;
+              canvasContext.strokeStyle = canvasContext.fillStyle;
+              canvasContext.globalAlpha = 0.5;
+              canvasContext.beginPath();
+              canvasContext.moveTo(xCenter * dPR, (y(values[index] - error) - yOffset) * dPR);
+              canvasContext.lineTo(xCenter * dPR, (y(values[index] + error) - yOffset) * dPR);
+              canvasContext.stroke();
+              canvasContext.globalAlpha = 1;
             }
             // Draw a rectangle
             if (type === 'dash') {

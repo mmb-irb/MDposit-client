@@ -82,6 +82,7 @@ export const NICE_NAMES = new Map([
     ['lipid-inter', 'Lipid interactions'],
     ['dihenergies', 'Dihedral energies'],
     ['allostery', 'Allostery'],
+    ['chemical-shifts', 'Chemical shifts'],
 ]);
 
 // Set manually which references have entropies or epitopes

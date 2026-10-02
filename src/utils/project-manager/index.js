@@ -81,6 +81,8 @@ export class Project {
         }
         // Set the allostery analysis, which is hidden unless available
         if (this.analyses.includes('allostery')) this.directions['allostery'] = true;
+        // Set the chemical shifts analysis, which is hidden unless available
+        if (this.analyses.includes('chemical-shifts')) this.directions['chemical-shifts'] = true;
         // Set an internal object to save loading status of every call
         this._apiQueriesLoading = {};
         // Save the topology manager apart so we do not have to re-instantiate the class every time

@@ -84,6 +84,7 @@ const tabs = [
           'populations',
           'markov', 
           'allostery',
+          'chemical-shifts',
         ],
       },
     ],
