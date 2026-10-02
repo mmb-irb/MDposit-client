@@ -50,6 +50,8 @@ const NUMBER_OF_DATA_POINTS_ON_SCREEN = 100; // i.e. minimum number of points in
 
 // Set the separation between text labels which appear when we hover data points
 const HOVER_TEXT_SEPARATION = 25;
+// Minimum distance between the x axis tooltip and the graph left/right borders
+const X_TOOLTIP_MARGIN = 5;
 
 // Set a small offset to be added between normal labels and 90 degrees rotated labels
 // This offset is added between the y labels (normal) and the y title (rotated)
@@ -896,14 +898,26 @@ const Graph = forwardRef(({
           .attr('transform', `translate(0, ${height - offset.bottom})`)
           .attr('opacity', 1)
           .selectAll('text')
-          // Set the y position of the text under the dot
-          // This text size is similar to graph labels size so this is good enough
-          .attr('transform', `translate(0, ${labelsHeight})`)
           // Set the dot text in the x axis
           .text(() => {
             const number = closestIndex * step * xScaleFactor;
             if (number < 0) return;
             return xTooltip && xTooltip(number, closestIndex);
+          })
+          // Set the position of the text under the dot
+          .attr('transform', (_, i, textNodes) => {
+            // Get the text width once its content has been set
+            const textWidth = textNodes[i].getComputedTextLength();
+            // Keep the text inside the graph boundaries, since it is centered in the dot
+            const dotX = x(closestIndex * step);
+            const halfWidth = textWidth / 2 + X_TOOLTIP_MARGIN;
+            let shift = 0;
+            if (dotX - halfWidth < 0) shift = halfWidth - dotX;
+            else if (dotX + halfWidth > width) shift = width - halfWidth - dotX;
+            // If the text is wider than the whole graph then just center it
+            if (halfWidth * 2 > width) shift = width / 2 - dotX;
+            // This text size is similar to graph labels size so this is good enough
+            return `translate(${shift}, ${labelsHeight})`;
           });
 
         if (onHover) {
