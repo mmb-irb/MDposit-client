@@ -1241,6 +1241,11 @@ export const documentation = [
             standard deviation between models is a measure of the prediction confidence. The mean
             of this deviation along the trajectory (csmdv) is also provided for every atom, where
             higher values stand for less reliable predictions.
+            <br />
+            <br />
+            The trajectory is also split in 10 consecutive frame ranges and the average chemical
+            shift and its standard deviation are provided for every atom in every range, so changes
+            in the chemical shift along the trajectory can be followed.
           </>
         ),
         page: (
@@ -1248,13 +1253,13 @@ export const documentation = [
             These are the predicted chemical shifts.
             <br />
             <br />
-            There is one graph for every atom element. Dots represent the average chemical shift of
-            every atom and vertical bars represent its standard deviation along the trajectory.
-            Dots are colored according to the reliability of their prediction, from blue (reliable)
-            to red (not reliable).
+            Use the selector to choose which atom name (CA, CB, C, HA, H or N) is displayed in the
+            top graph. Dots represent the average chemical shift of every atom and vertical bars
+            represent its standard deviation along the trajectory. Dots are colored according to the
+            reliability of their prediction, from blue (reliable) to red (not reliable).
             <br />
             <br />
-            Click any atom in the graphs to display it in the{' '}
+            Click any atom in the top graph to highlight it in the{' '}
             <a
               href="/help#/help#ngl-viewer"
               target="_blank"
@@ -1262,7 +1267,14 @@ export const documentation = [
             >
               molecular viewer
             </a>
-            .
+            {' '}and see how its chemical shift changes along the trajectory in the bottom graph.
+            Atoms may also be selected by clicking them in the viewer.
+            The line represents the average chemical shift in every frame range and the shaded area
+            represents its standard deviation.
+            <br />
+            <br />
+            The viewer loads one frame for every frame range, which is the central frame of the
+            range. Click any frame range in the bottom graph to display its frame in the viewer.
           </>
         ),
       },

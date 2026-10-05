@@ -18,7 +18,7 @@ import cn from 'classnames';
 // Current versions of NGL do not load trajectory coordinates, starting at version 2.1.0
 // I don't know where the problem is, but there are no error logs and I have spent a few hours already
 // Previous version 2.0.1 had a bug not showing surfaces and returning "Worker.onerror molsurf"
-import { autoLoad, Stage, Shape, ColormakerRegistry, Matrix4 } from 'ngl';
+import { autoLoad, Stage, Shape, ColormakerRegistry, Matrix4, MouseActions } from 'ngl';
 
 import { frame } from 'timing-functions';
 
@@ -116,6 +116,15 @@ const NGLViewer = memo(
         // Optional function to set the tooltip content when hovering a distance
         // It receives both atom indices and returns JSX, or nothing to use the default content
         distanceTooltip,
+        // Optional function to modify the tooltip content when hovering an atom
+        // It receives the atom index and the original content and returns the new content
+        onHoverDisplay,
+        // Optional function to be called with the atom index when the user clicks an atom
+        // When passed, the cursor becomes a pointer over selectable atoms
+        onAtomSelect,
+        // Optional function which receives an atom index and returns true if the atom may be selected
+        // If missing, all atoms may be selected
+        isAtomSelectable,
       },
       ref,
     ) => {
@@ -647,6 +656,8 @@ const NGLViewer = memo(
           opacity: 0.5,
           scale: 1.5,
           name: nameHighlight,
+          // The enlarged highlight must not hide nearby atoms from mouse clicks
+          disablePicking: true,
         });
 
         const otherResidueAtomsSelection = Array.from(
@@ -1257,6 +1268,9 @@ const NGLViewer = memo(
       // Keep the distance tooltip function in a reference so the hover handler is not reset
       const distanceTooltipRef = useRef(distanceTooltip);
       distanceTooltipRef.current = distanceTooltip;
+      // Keep the hover display function in a reference for the same reason
+      const onHoverDisplayRef = useRef(onHoverDisplay);
+      onHoverDisplayRef.current = onHoverDisplay;
 
       // Customize the NGL tooltip
       useEffect(() => {
@@ -1369,6 +1383,8 @@ const NGLViewer = memo(
               // When we hover an atom
               else if (atom) {
                 description = formatOutput(atom);
+                if (onHoverDisplayRef.current)
+                  description = onHoverDisplayRef.current(atom.index, description);
               }
               setTooltipContent(description);
               // Handle tooltip position
@@ -1400,6 +1416,63 @@ const NGLViewer = memo(
           containerRef.current.removeEventListener('mouseleave', hideTooltip);
         };
       }, [topologyManager, setTooltipContent]);
+
+      // Keep the atom selection callback in a reference so the click handler is not reset every render
+      const onAtomSelectRef = useRef(onAtomSelect);
+      onAtomSelectRef.current = onAtomSelect;
+      const isAtomSelectableRef = useRef(isAtomSelectable);
+      isAtomSelectableRef.current = isAtomSelectable;
+      const atomsSelectable = Boolean(onAtomSelect);
+
+      // When atoms are selectable, change the cursor to a pointer when hovering a selectable atom
+      // Then report the atom index to the parent component when a selectable atom is clicked
+      useEffect(() => {
+        if (!atomsSelectable || !mainComponent) return;
+        const stage = stageRef.current;
+        const canvas = containerRef.current.querySelector('canvas');
+        // Find the selectable atom of the main component under the mouse, if any
+        // Bonds are also accepted, in which case the closest atom of the bond is used
+        const getPickedAtom = pickingProxy => {
+          if (!pickingProxy || pickingProxy.component !== mainComponent) return null;
+          const atom = pickingProxy.atom || pickingProxy.closestBondAtom;
+          if (!atom) return null;
+          const isSelectable = isAtomSelectableRef.current;
+          if (isSelectable && !isSelectable(atom.index)) return null;
+          return atom;
+        };
+        let hoveredAtomIndex = null;
+        const handleHover = pickingProxy => {
+          const atom = getPickedAtom(pickingProxy);
+          const atomIndex = atom ? atom.index : null;
+          if (atomIndex === hoveredAtomIndex) return;
+          hoveredAtomIndex = atomIndex;
+          if (canvas) canvas.style.cursor = atomIndex === null ? 'default' : 'pointer';
+        };
+        // Replace the default left click action, which moves the camera to the clicked element
+        // Selecting an atom already focuses it, and both camera movements together end in a sudden jump
+        // Note that this action is triggered by plain left clicks only
+        // Other clicks (e.g. right or ctrl + left clicks for measurements) keep their default actions
+        const handleClick = (stage, pickingProxy) => {
+          const atom = getPickedAtom(pickingProxy);
+          if (atom) onAtomSelectRef.current(atom.index);
+          else MouseActions.movePick(stage, pickingProxy);
+        };
+        // Reset the cursor when the mouse leaves the viewer
+        const handleLeave = () => handleHover(null);
+        stage.signals.hovered.add(handleHover);
+        stage.mouseControls.remove('clickPick-left', MouseActions.movePick);
+        stage.mouseControls.add('clickPick-left', handleClick);
+        containerRef.current.addEventListener('mouseleave', handleLeave, false);
+        // Cleaning function
+        return () => {
+          stage.signals.hovered.remove(handleHover);
+          stage.mouseControls.remove('clickPick-left', handleClick);
+          stage.mouseControls.add('clickPick-left', MouseActions.movePick);
+          if (containerRef.current)
+            containerRef.current.removeEventListener('mouseleave', handleLeave);
+          if (canvas) canvas.style.cursor = 'default';
+        };
+      }, [atomsSelectable, mainComponent]);
 
       // Track when the first focus has been performed, since first focus is instantaneous
       const firstFocus = useRef(true);

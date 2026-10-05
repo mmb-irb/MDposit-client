@@ -52,12 +52,13 @@ import logoNostrumWebP from 'src/images/logo-nostrum.webp';
 // options - Additional flags which may be used by the cliente
 
 // Get the requesting URL domain
-const HOST = window.location.hostname;
+//const HOST = window.location.hostname;
+const HOST = 'irb-dev.mddbr.eu';
 
 // Set default values for every host config fields
 // These values are used to fill missing values
 const DEFAUL_HOST_CONFIGURATION = {
-    api: HOST === 'localhost' ? 'http://localhost:8000/rest/' : `https://${HOST}/api/rest/`,
+    api: `https://${HOST}/api/rest/`,
     production: false,
     name: 'MDposit',
     favicon: 'mdposit_favicon',
@@ -285,6 +286,7 @@ const nostrumConfig = {
 const HOST_CONFIGURATIONS = {
     // Testing
     'localhost': {
+        api: 'http://localhost:8000/rest/',
         palette: {
             primary: {
             light: '#eeeeee',

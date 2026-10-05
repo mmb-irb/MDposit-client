@@ -53,6 +53,14 @@ const HOVER_TEXT_SEPARATION = 25;
 // Minimum distance between the x axis tooltip and the graph left/right borders
 const X_TOOLTIP_MARGIN = 5;
 
+// Set the limits of the number of ticks in every axis
+// The actual number of ticks depends on the graph size so labels do not overlap
+const MAX_X_TICKS = 7;
+const MAX_Y_TICKS = 10;
+// Set the minimum horizontal space for every x tick and the gap between x tick labels
+const MIN_X_TICK_SPACE = 60;
+const X_TICK_GAP = 20;
+
 // Set a small offset to be added between normal labels and 90 degrees rotated labels
 // This offset is added between the y labels (normal) and the y title (rotated)
 // This offset is added between the x labels (rotated) and the x title (normal)
@@ -171,6 +179,8 @@ const Graph = forwardRef(({
   const {
     offset,
     labelsHeight,
+    textHeight,
+    maxXLabelWidth,
     requiredBottomOffset,
     yAxisLabelHeight,
   } = useMemo(() => {
@@ -221,7 +231,9 @@ const Graph = forwardRef(({
       bottom: requiredBottomOffset + margin.bottom,
       left: requiredLeftOffset + margin.left,
     };
-    return { offset, labelsHeight, requiredBottomOffset, yAxisLabelHeight };
+    // Set the widest x label, which is used to decide how many ticks fit in the x axis
+    const maxXLabelWidth = xAxisValues ? maxXAxisWidth - roatatedTextOffset : 0;
+    return { offset, labelsHeight, textHeight, maxXLabelWidth, requiredBottomOffset, yAxisLabelHeight };
   }, [
     flippedXAxisValues,
     margin,
@@ -273,7 +285,10 @@ const Graph = forwardRef(({
     // Use canvas to display the dash blocks since d3 is not as efficient
     let canvas;
     let canvasContext;
+    // Marks are drawn in a background svg, under the canvas, so they do not hide canvas dots
+    let marksSvg;
     if (isCanvasPowered(type)) {
+      marksSvg = select(containerRef.current).append('svg');
       canvas = select(containerRef.current).append('canvas');
       canvasContext = canvas
         .node()
@@ -290,7 +305,7 @@ const Graph = forwardRef(({
     const [startMaskURL, endMaskURL] = addMasks(defs);
 
     // Set the marks node now, so they are not placed over the graph
-    const marksNode = graph.append('g');
+    const marksNode = (marksSvg || graph).append('g');
 
     const main = graph.append('g');
 
@@ -419,6 +434,7 @@ const Graph = forwardRef(({
       const bodyHeight = height - offset.top - offset.bottom;
 
       graph.attr('width', width).attr('height', height);
+      if (marksSvg) marksSvg.attr('width', width).attr('height', height);
       if (canvas) {
         canvas.attr('width', width * dPR).attr('height', height * dPR);
         canvas.style('width', `${width}px`).style('height', `${height}px`);
@@ -444,8 +460,10 @@ const Graph = forwardRef(({
       const xMaxIndex = dataEntries[0][1].data.length;
 
       // Set the x minimum and maximum limits
+      // The last x value is the last data point, so there is no empty space after it
+      // If there is only one data point then keep a minimum range to avoid a void domain
       const xMin = 0;
-      const xMax = xMaxIndex * step;
+      const xMax = Math.max(xMaxIndex - 1, 1) * step;
 
       // Save this values to further reference
       previousValues.current.xMin = xMin;
@@ -460,11 +478,20 @@ const Graph = forwardRef(({
       );
       previousValues.current.x = x;
 
+      // Set how many ticks fit in every axis according to the size of the graph body
+      // Labels in the x axis are horizontal so their width is the limiting factor
+      // When labels are rotated then their height is the limiting factor
+      const xTickSpace = flippedXAxisValues
+        ? textHeight * 2
+        : Math.max(maxXLabelWidth + X_TICK_GAP, MIN_X_TICK_SPACE);
+      const xTickCount = Math.max(2, Math.min(MAX_X_TICKS, Math.floor(bodyWidth / xTickSpace)));
+      const yTickCount = Math.max(2, Math.min(MAX_Y_TICKS, Math.floor(bodyHeight / (textHeight * 2))));
+
       const xAxis = g =>
         g.attr('transform', `translate(0, ${height - offset.bottom})`).call(
-          // DANI: Estos ticks los he puesto a mano tras comprobar que quedaban bien
+          // The number of ticks depends on the graph width so tick labels do not overlap
           axisBottom(x)
-            .ticks(7, '.2f')
+            .ticks(xTickCount, '.2f')
             .tickFormat(d => (xAxisValues ? xAxisValues[d] : d)),
         );
       axes.x.call(xAxis);
@@ -506,7 +533,7 @@ const Graph = forwardRef(({
         g
           .attr('transform', `translate(${offset.left}, 0)`)
           .transition()
-          .call(axisLeft(y));
+          .call(axisLeft(y).ticks(yTickCount));
       //.call(axisLeft(y).ticks(8, '.2f')); // Use this to force the number of decimals in labels
       axes.y.call(yAxis);
 
@@ -709,15 +736,12 @@ const Graph = forwardRef(({
             // Draw a vertical error bar, centered in the dash/dot, using the same color
             if (errorBars) {
               const error = errorBars[index];
-              const xCenter = type === 'dots'
-                ? x(index * step * precision) - dashWidth / 2
-                : x(index * step * precision);
-              const yOffset = type === 'dots' ? dashHeight / 2 : 0;
+              const xCenter = x(index * step * precision);
               canvasContext.strokeStyle = canvasContext.fillStyle;
               canvasContext.globalAlpha = 0.5;
               canvasContext.beginPath();
-              canvasContext.moveTo(xCenter * dPR, (y(values[index] - error) - yOffset) * dPR);
-              canvasContext.lineTo(xCenter * dPR, (y(values[index] + error) - yOffset) * dPR);
+              canvasContext.moveTo(xCenter * dPR, y(values[index] - error) * dPR);
+              canvasContext.lineTo(xCenter * dPR, y(values[index] + error) * dPR);
               canvasContext.stroke();
               canvasContext.globalAlpha = 1;
             }
@@ -732,10 +756,9 @@ const Graph = forwardRef(({
             }
             // Draw a circle
             if (type === 'dots') {
-              // Set the x y positions
-              const xPosition =
-                (x(index * step * precision) - dashWidth / 2) * dPR;
-              const yPosition = (y(values[index]) - dashHeight / 2) * dPR;
+              // Set the x y positions of the dot center
+              const xPosition = x(index * step * precision) * dPR;
+              const yPosition = y(values[index]) * dPR;
               // Set the radius, which may be affected by the x weights, when passed
               let radius = DEFAULT_DOT_RADIUS; // Its 3
               if (xNormalizedWeights) {
@@ -821,7 +844,7 @@ const Graph = forwardRef(({
         const closestIndex =
           Math.round(x.invert(xValue) / zoomPrecision / step) * zoomPrecision;
         // If the closest index is out of range then there is no tooltip to show
-        if (closestIndex < 0 || closestIndex > xMaxIndex) return;
+        if (closestIndex < 0 || closestIndex >= xMaxIndex) return;
         // Track the implicit position of all hovering dots
         // This is useful to know if dot texts would overlap
         const dotDownOffsets = {};
@@ -831,7 +854,7 @@ const Graph = forwardRef(({
           // Dots become invisible if the closest index is not between the minimum and the maximum
           .attr(
             'opacity',
-            closestIndex * step >= xMin && closestIndex * step < xMax ? 1 : 0,
+            closestIndex * step >= xMin && closestIndex * step <= xMax ? 1 : 0,
           );
         allDotGroups
           .selectAll('g.dot-group')
@@ -839,7 +862,7 @@ const Graph = forwardRef(({
           .attr('transform', d => {
             if (!labels[d]) return;
             // Just over the correspondong line for other values
-            const offsetDown = (y(data[d].data[closestIndex]) || 0) + 2.5;
+            const offsetDown = y(data[d].data[closestIndex]) || 0;
             // Record the current offset down
             dotDownOffsets[d] = offsetDown;
             return `translate(0, ${offsetDown})`;
@@ -892,7 +915,7 @@ const Graph = forwardRef(({
           // Set the x position of the dot
           .attr('transform', `translate(${x(closestIndex * step)}, 0)`)
           // Dots become invisible if the closest index is not between the minimum and the maximum
-          .attr('opacity', closestIndex * step >= xMin && closestIndex * step < xMax ? 1 : 0);
+          .attr('opacity', closestIndex * step >= xMin && closestIndex * step <= xMax ? 1 : 0);
         actualXDot
           // Set the y position of the dot
           .attr('transform', `translate(0, ${height - offset.bottom})`)
@@ -922,7 +945,7 @@ const Graph = forwardRef(({
 
         if (onHover) {
           onHover(
-            closestIndex * step >= xMin && closestIndex * step < xMax
+            closestIndex * step >= xMin && closestIndex * step <= xMax
               ? closestIndex
               : null,
           );
@@ -972,7 +995,7 @@ const Graph = forwardRef(({
         // Get the closest x axis index to the current mouse position
         const closestIndex =
           Math.round(x.invert(xValue) / precision / step) * precision;
-        if (closestIndex * step < xMin || closestIndex * step >= xMax) {
+        if (closestIndex * step < xMin || closestIndex * step > xMax) {
           return;
         }
         onSelect(closestIndex, xAxisValues ? xAxisValues[closestIndex] : null);
