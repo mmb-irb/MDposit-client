@@ -52,8 +52,7 @@ import logoNostrumWebP from 'src/images/logo-nostrum.webp';
 // options - Additional flags which may be used by the cliente
 
 // Get the requesting URL domain
-//const HOST = window.location.hostname;
-const HOST = 'irb-dev.mddbr.eu';
+const HOST = window.location.hostname;
 
 // Set default values for every host config fields
 // These values are used to fill missing values
