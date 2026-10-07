@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 // Function to request data through the API
 import useAPI from '../../hooks/use-api';
+import useBatchAPI from '../../hooks/use-batch-api';
 // Constants
 import {
     BASE_PATH_PROJECTS,
@@ -14,6 +15,31 @@ import { Topology } from '../topology-manager';
 import { Reference } from '../reference-manager';
 // Import the NGL structure parser
 import { autoLoad } from 'ngl';
+
+// Check if an interactions analysis payload is an index of interaction analyses (new format)
+// Index entries have the analysis name, while old entries have the whole interaction data
+const isInteractionsIndex = payload => payload.every(entry =>
+    entry.analysis !== undefined && !entry.atom_indices_1 && !entry.residue_indices_1);
+
+// Fill missing atom or residue indices in an interaction
+// Note that the interaction is modified in place, so this is done only once per interaction
+const completeInteraction = (interaction, topology) => {
+    // Old interactions have residue indices only, so add atom indices
+    if (!interaction.atom_indices_1) {
+        interaction.atom_indices_1 = topology.residue2atomIndices(interaction.residue_indices_1);
+        interaction.atom_indices_2 = topology.residue2atomIndices(interaction.residue_indices_2);
+        interaction.interface_atom_indices_1 = topology.residue2atomIndices(interaction.interface_indices_1);
+        interaction.interface_atom_indices_2 = topology.residue2atomIndices(interaction.interface_indices_2);
+    }
+    // New interactions have atom indices only, so add residue indices
+    if (!interaction.residue_indices_1) {
+        interaction.residue_indices_1 = topology.atom2residueIndices(interaction.atom_indices_1);
+        interaction.residue_indices_2 = topology.atom2residueIndices(interaction.atom_indices_2);
+        interaction.interface_indices_1 = topology.atom2residueIndices(interaction.interface_atom_indices_1);
+        interaction.interface_indices_2 = topology.atom2residueIndices(interaction.interface_atom_indices_2);
+    }
+    return interaction;
+};
 
 // Set the project class
 export class Project {
@@ -141,46 +167,77 @@ export class Project {
         if (response.payload) return;
     }
 
-    // Interactions getter
-    get interactions () {
+    // Interactions index getter
+    // Note that here coexist the old and the new interactions data format
+    // Old interactions contain all interactions data in the main analysis
+    // New interactions have an index in the main analysis and every interaction data in a separated analysis
+    // In both cases, every entry in the index has at least the interaction name
+    // Use getInteraction to get the whole data of a specific interaction
+    get interactionsIndex () {
         // Ask the API for the interactions analysis
         const response = this._apiQuery('interactions', this.hasInteractions);
-        const payload = response && response.payload;
-        // We will need the topology to make some corretions in old interactions
-        const topology = this.topology;
-        // Once we have interactions data, in case it is in the old format, adapt it to the new format
-        const interactions = useMemo(() => {
-            if (!payload || !topology) return;
-            // Fix old interaction by adding atom indices
-            // Iterate interactions in the payload
-            for (const interaction of response.payload) {
-                // If the interaction already has atom indices then there is nothing to do here
-                if (interaction.atom_indices_1) continue;
-                // If this is an old version then add atom indices
-                interaction.atom_indices_1 = topology.residue2atomIndices(interaction.residue_indices_1);
-                interaction.atom_indices_2 = topology.residue2atomIndices(interaction.residue_indices_2);
-                interaction.interface_atom_indices_1 = topology.residue2atomIndices(interaction.interface_indices_1);
-                interaction.interface_atom_indices_2 = topology.residue2atomIndices(interaction.interface_indices_1);
-            }
-            // Fill new interactions by adding residue indices
-            // Iterate interactions in the payload again
-            for (const interaction of response.payload) {
-                // If the interaction already has atom indices then there is nothing to do here
-                if (interaction.residue_indices_1) continue;
-                // If this is an old version then add atom indices
-                interaction.residue_indices_1 = topology.atom2residueIndices(interaction.atom_indices_1);
-                interaction.residue_indices_2 = topology.atom2residueIndices(interaction.atom_indices_2);
-                interaction.interface_indices_1 = topology.atom2residueIndices(interaction.interface_atom_indices_1);
-                interaction.interface_indices_2 = topology.atom2residueIndices(interaction.interface_atom_indices_2);
-            }
-            return response.payload;
-        }, [payload, topology]);
         // Response is undefined when there are no interactions
         if (response === undefined) return undefined;
         if (response.loading) return undefined;
         if (response.error) throw new Error('Error when downloading project interactions: ' + response.error.message);
         if (!response.payload) throw new Error('Something went wrong with project interactions');
-        return interactions;
+        return response.payload;
+    }
+
+    // Get the whole data of a specific interaction, given its index
+    // In the new format, only the data of the requested interaction is downloaded
+    // Note that this function uses hooks, so it must be called as a hook
+    // Pass a null index to get no interaction at all
+    getInteraction = (index = 0) => {
+        const interactionsIndex = this.interactionsIndex;
+        const isIndex = Boolean(interactionsIndex) && isInteractionsIndex(interactionsIndex);
+        // Get the requested entry
+        // Note that it may be missing when the index is out of range
+        // This happens, for instance, right after changing MD, if the new MD has less interactions
+        const entry = interactionsIndex && index !== null ? interactionsIndex[index] : undefined;
+        // In the new format, ask the API for the interaction analysis
+        const analysisUrl = isIndex && entry ? `${this._apiBaseUrl}/analyses/${entry.analysis}` : null;
+        const response = useAPI(analysisUrl);
+        // In the old format the entry already has all the interaction data
+        const interactionData = isIndex ? response.payload : entry;
+        // We will need the topology to complete the interaction
+        const topology = this.topology;
+        const interaction = useMemo(() => {
+            if (!interactionData || !topology) return;
+            return completeInteraction(interactionData, topology);
+        }, [interactionData, topology]);
+        if (response.error) throw new Error(`Error when downloading interaction "${entry.name}": ` + response.error.message);
+        return interaction;
+    }
+
+    // Get the whole data of all interactions
+    // Note that in the new format this means downloading every interaction analysis
+    // Use getInteraction instead when only one interaction is needed
+    // Interactions which fail to download are skipped
+    // Note that this function uses hooks, so it must be called as a hook
+    getAllInteractions = () => {
+        const interactionsIndex = this.interactionsIndex;
+        const isIndex = Boolean(interactionsIndex) && isInteractionsIndex(interactionsIndex);
+        // In the new format, ask the API for every interaction analysis
+        const analysesUrls = useMemo(() => {
+            if (!isIndex) return [];
+            return interactionsIndex.map(entry => `${this._apiBaseUrl}/analyses/${entry.analysis}`);
+        }, [interactionsIndex, isIndex]);
+        const responses = useBatchAPI(analysesUrls, 'json');
+        // We will need the topology to complete interactions
+        const topology = this.topology;
+        return useMemo(() => {
+            if (!interactionsIndex || !topology) return;
+            if (!isIndex) return interactionsIndex.map(entry => completeInteraction(entry, topology));
+            // Make sure responses belong to the current urls and wait for all of them to finish
+            // Note that responses from previous urls may be returned before the new requests are sent
+            const isReady = responses.length === analysesUrls.length &&
+                responses.every((response, i) => response.url === analysesUrls[i] && !response.loading);
+            if (!isReady) return;
+            return responses
+                .filter(response => response.payload)
+                .map(response => completeInteraction(response.payload, topology));
+        }, [interactionsIndex, isIndex, analysesUrls, responses, topology]);
     }
 
     // References getter

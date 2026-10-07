@@ -40,7 +40,8 @@ const RmsdPairwise = () => {
   const {
     accessionAndMdNumber,
     metadata,
-    interactions: defaultInteractions,
+    interactionsIndex,
+    getInteraction,
     topology,
     loading: isProjectLoading,
   } = useContext(ProjectCtx);
@@ -50,15 +51,17 @@ const RmsdPairwise = () => {
 
   // Set the available interactions
   // Add the 'overall' option at the beginning, as a 'no interaction' option
+  // Note that index entries are copied, since they are shared with other pages
   const interactions = useMemo(() => {
-    if (!defaultInteractions) return [{ name: 'Overall' }];
+    if (!interactionsIndex) return [{ name: 'Overall' }];
     // Label all metadata interactions with the 'interface residues' ending
-    defaultInteractions.forEach(interaction => {
-      interaction.label = interaction.name + ' (interface residues)';
-    });
-    const interactions = [{ name: 'Overall' }, ...defaultInteractions];
-    return interactions;
-  }, [defaultInteractions]);
+    const labeledInteractions = interactionsIndex.map(entry => ({
+      name: entry.name,
+      failed: entry.failed,
+      label: entry.name + ' (interface residues)'
+    }));
+    return [{ name: 'Overall' }, ...labeledInteractions];
+  }, [interactionsIndex]);
 
   // Send a request to the API with the url of the analyses index
   const analysesUrlBase = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses`;
@@ -68,9 +71,12 @@ const RmsdPairwise = () => {
   // The interaction to be displayed
   const [selectedInteraction, setSelectedInteraction] = useState(0);
 
-  // The newest format has 4 fields: acceptors, donors, hydrogens and hbonds
-  // The hbonds includes arrays of true and false per frame
+  // Get the selected interaction entry, which has at least the interaction name
   const interaction = interactions && interactions[selectedInteraction];
+
+  // Get the whole data of the selected interaction, if any
+  // Note that the first option (Overall) is not an actual interaction
+  const interactionData = getInteraction(selectedInteraction > 0 ? selectedInteraction - 1 : null);
 
   // Get analysis data from the API
   // Set the target interaction name
@@ -174,13 +180,13 @@ const RmsdPairwise = () => {
     if (!components) return setRepresentations(null);
     // Same with the default representations
     if (!defaultRepresentations) return setRepresentations(null);
-    // Get the selected interaction
-    const interaction = interactions[selectedInteraction];
+    // Wait for the selected interaction data, if any, to be downloaded
+    if (selectedInteraction > 0 && !interactionData) return;
     // Get also the number of the interacting agents
-    const agents = [
-      { name: interaction.agent_1, interface: interaction.interface_indices_1 },
-      { name: interaction.agent_2, interface: interaction.interface_indices_2 }
-    ];
+    const agents = interactionData ? [
+      { name: interactionData.agent_1, interface: interactionData.interface_indices_1 },
+      { name: interactionData.agent_2, interface: interactionData.interface_indices_2 }
+    ] : [];
     // Setup every representation or update the already existing ones
     setRepresentations(previousRepresentations => {
       // Set a list to keep updated representations
@@ -300,7 +306,7 @@ const RmsdPairwise = () => {
   }, [
     components,
     topology,
-    interactions,
+    interactionData,
     selectedInteraction,
     defaultRepresentations,
   ]);
@@ -328,6 +334,7 @@ const RmsdPairwise = () => {
           <Typography variant="h6">Residues selection:</Typography>
           <InteractionSelector
             interactions={interactions}
+            interaction={interactionData}
             selectedInteraction={selectedInteraction}
             setSelectedInteraction={setSelectedInteraction}
           />
@@ -341,10 +348,9 @@ const RmsdPairwise = () => {
                   }}
                 />
               ))}
-              {selectedInteraction > 0 && components && components.map((component, c) => {
+              {interactionData && components && components.map((component, c) => {
                   // Get the interacting agents
-                  const interaction = interactions[selectedInteraction];
-                  const agents = [ interaction.agent_1, interaction.agent_2 ];
+                  const agents = [ interactionData.agent_1, interactionData.agent_2 ];
                   // Generate a chip for every agent
                   return agents.map((agent, a) => (
                     <Chip key={a} label={'Frame ' + component.frame + ' - ' + agent}

@@ -51,7 +51,8 @@ const Hbonds = () => {
     accessionAndMdNumber,
     metadata,
     topology,
-    interactions,
+    interactionsIndex,
+    getInteraction,
     populations,
     loading: isProjectLoading,
   } = useContext(ProjectCtx);
@@ -67,21 +68,22 @@ const Hbonds = () => {
   // The interaction to be displayed
   const [selectedInteraction, setSelectedInteraction] = useState(0);
 
-  // The newest format has 4 fields: acceptors, donors, hydrogens and hbonds
-  // The hbonds includes arrays of true and false per frame
-  const interaction = interactions && interactions[selectedInteraction];
+  // Get the selected interaction index entry, which has at least the interaction name
+  const interactionEntry = interactionsIndex && interactionsIndex[selectedInteraction];
+  // Get the whole data of the selected interaction
+  const interaction = getInteraction(selectedInteraction);
 
   // Set the target interaction name
   const { interactionName, analysisName } = useMemo(() => {
     // Wait for main data to be downloaded
-    if (!interaction || !indexPayload) return {};
+    if (!interactionEntry || !indexPayload) return {};
     // Check if the analysis is in the old or the new format
     const isOld = indexPayload.data !== undefined;
     // If so, there is no target analysis name, but the whole data is already in the payload
-    if (isOld) return { interactionName: interaction.name };
-    const targetEntry = indexPayload.find(entry => entry.name === interaction.name);
-    return { interactionName: interaction.name, analysisName: targetEntry.analysis }
-  }, [interaction, indexPayload]);
+    if (isOld) return { interactionName: interactionEntry.name };
+    const targetEntry = indexPayload.find(entry => entry.name === interactionEntry.name);
+    return { interactionName: interactionEntry.name, analysisName: targetEntry.analysis }
+  }, [interactionEntry, indexPayload]);
 
   // Send a request to the API with the url of some specific hbonds analysis
   const interactionAnalysisUrl = analysisName ? `${analysesUrlBase}/${analysisName}` : null;
@@ -105,15 +107,23 @@ const Hbonds = () => {
     return interactionData;
   }, [indexPayload, payload, interactionName]);
 
+  // Check if both the dataset and the interaction data are available and they match
+  // Note that they are downloaded apart, so one may be ready before the other
+  const isDatasetMatching = Boolean(dataset && interaction && dataset.name === interaction.name);
+
   // Set the processed data which will be displayed
-  const { processedData, weights } = useMemo(() => {
+  // Previous data is kept while the dataset and the interaction do not match
+  const { processedData, weights, agents, message } = useRemfo(previous => {
     // Return here if we are still waiting for data
-    if (!dataset || !topology || !metadata) return {};
+    if (!isDatasetMatching || !topology || !metadata) return previous || {};
     if (populations && populations.loading) return {};
+    // Set the interacting agent names
+    const agents = [ interaction.agent_1, interaction.agent_2 ];
 
     // If the dataset is empty it means no hydrogen bonds where found for this interaction
     if (dataset.hbonds.length === 0) return {
-      message: 'No hydrogen bonds were found for this interaction'
+      message: 'No hydrogen bonds were found for this interaction',
+      agents
     };
 
     // Get the version of the analysis
@@ -274,8 +284,8 @@ const Hbonds = () => {
         `Data values count (${dataLength}) does not match the weigths values count (${weigthCount})`,
       );
     }
-    return { processedData, weights };
-  }, [dataset, metadata, topology, interaction, populations]);
+    return { processedData, weights, agents };
+  }, [dataset, metadata, topology, interaction, isDatasetMatching, populations]);
 
   // Table pagination states
   const [selectedPage, setSelectedPage] = useState(0);
@@ -320,7 +330,7 @@ const Hbonds = () => {
   }, []);
 
   // Check if anything is still beeing loaded
-  const anyLoading = isIndexLoading || isAnalysisLoading || isProjectLoading;
+  const anyLoading = isIndexLoading || isAnalysisLoading || isProjectLoading || !isDatasetMatching;
 
   // Render loading or error messages according with the API response
   if (indexError) return indexError.toString();
@@ -330,7 +340,7 @@ const Hbonds = () => {
   if (!dataset) {
     if (anyLoading) return <Loading />;
     // If there are no interactions or topology
-    if (!interactions) return 'There are no interactions';
+    if (!interactionsIndex) return 'There are no interactions';
     if (!topology) return 'There is no topology';
     return 'Something bad happened with the analysis data';
   }
@@ -346,21 +356,22 @@ const Hbonds = () => {
         <CardContent className={style.horizontal}>
           <Typography variant="h6">Interaction:</Typography>
           <InteractionSelector
-            interactions={interactions}
+            interactions={interactionsIndex}
+            interaction={interaction}
             selectedInteraction={selectedInteraction}
             setSelectedInteraction={handleChangeInteraction}
           />
         </CardContent>
       </Card>
       <div className={anyLoading ? style.disabled : style.enabled}>
-        {typeof processedData === 'string' && (
+        {message && (
           <Card>
             <CardContent>
-              <Typography variant="h6">{processedData}</Typography>
+              <Typography variant="h6">{message}</Typography>
             </CardContent>
           </Card>
         )}
-        {typeof processedData === 'object' && (
+        {processedData && (
           <Card className={style.margined}>
             <CardContent>
               <Table ref={tableRef}>
@@ -373,9 +384,9 @@ const Hbonds = () => {
                 </colgroup>
                 <TableHead className={style['table-head']}>
                   <TableRow>
-                    <TableCell>{interaction.agent_1}</TableCell>
+                    <TableCell>{agents[0]}</TableCell>
                     <TableCell>Hydrogen</TableCell>
-                    <TableCell>{interaction.agent_2}</TableCell>
+                    <TableCell>{agents[1]}</TableCell>
                     <TableCell>Bond status along trajectory</TableCell>
                   </TableRow>
                 </TableHead>

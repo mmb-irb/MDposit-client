@@ -105,7 +105,8 @@ const loadedProject = (accessionAndMdNumber, interactions = TWO_INTERACTIONS) =>
   accessionAndMdNumber,
   hasInteractions: true,
   topology: fakeTopology,
-  interactions,
+  interactionsIndex: interactions.map(interaction => ({ name: interaction.name })),
+  getInteraction: index => interactions[index],
   loading: false,
 });
 
@@ -117,7 +118,8 @@ const loadingProject = accessionAndMdNumber => ({
   accessionAndMdNumber,
   hasInteractions: true,
   topology: undefined,
-  interactions: undefined,
+  interactionsIndex: undefined,
+  getInteraction: () => undefined,
   loading: false,
 });
 

@@ -38,13 +38,17 @@ const Electrostatic = () => {
   // Get the current project data
   const {
     topology,
-    interactions,
+    interactionsIndex,
+    getInteraction,
     referenceFrame,
     loading: isProjectLoading,
   } = useContext(ProjectCtx);
 
   // The interaction to be displayed
   const [selectedInteraction, setSelectedInteraction] = useState(0);
+
+  // Get the whole data of the selected interaction
+  const interaction = getInteraction(selectedInteraction);
 
   // This is a toggle state for which interface is the 'surfaced' and which is the 'sticked'
   const [selectedOrder, setSelectedOrder] = useState(true);
@@ -84,10 +88,7 @@ const Electrostatic = () => {
   // Set the representations according to the selected interaction
   // Set also the viewer focus
   const initialFocus = useMemo(() => {
-    if (!topology || !interactions) return;
-    // Proceed to make representations for the current interaction
-    const interaction = interactions && interactions[selectedInteraction];
-    if (!interaction) return;
+    if (!topology || !interaction) return;
 
     // Parse the interface selections to the NGL format
     const [nglInterface1, nglInterface2] = [
@@ -159,14 +160,13 @@ const Electrostatic = () => {
   }, [
     topology,
     chargesColorScheme,
-    interactions,
+    interaction,
     defaultRepresentations,
-    selectedInteraction,
     selectedOrder
   ]);
 
   // If there are no interactions or topology
-  if (!interactions) {
+  if (!interactionsIndex) {
     if (isProjectLoading) return <Loading />;
     return 'There are no interactions';
   }
@@ -182,7 +182,8 @@ const Electrostatic = () => {
         <CardContent className={style.horizontal}>
           <Typography variant="h6">Interaction:</Typography>
           <InteractionSelector
-            interactions={interactions}
+            interactions={interactionsIndex}
+            interaction={interaction}
             selectedInteraction={selectedInteraction}
             setSelectedInteraction={setSelectedInteraction}
             selectedOrder={selectedOrder}

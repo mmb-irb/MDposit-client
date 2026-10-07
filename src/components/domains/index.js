@@ -28,8 +28,11 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
     proteinReferences,
     ligandReferences,
     topology,
-    interactions
+    getAllInteractions
   } = useContext(ProjectCtx);
+
+  // Get all interactions, since every interacting agent is a domain
+  const interactions = getAllInteractions();
 
   // Set the first domain (the overall) as the default selected domain
   const [selectedDomain, setSelectedDomain] = useState(0);
