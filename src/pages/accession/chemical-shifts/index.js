@@ -82,7 +82,7 @@ const ChemicalShifts = () => {
 
   // Send a request to the API with the url of the chemical shifts analysis
   const { loading, payload, error } = useAPI(
-    `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/chemical-shifts`,
+    `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/analyses/chemshifts`,
   );
 
   // Set the atom name of the group displayed in the graph
