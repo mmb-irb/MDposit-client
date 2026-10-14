@@ -468,6 +468,12 @@ const NGLViewer = memo(
             if (!stageComp) return;
             stageComp.onlyTopology = comp.onlyTopology;
             setMainComponent(stageComp);
+            // Set the camera on the first component now, before the first render, so it is not painted off-center
+            // The focus effect further does the same, but after a render where the camera is still at the origin
+            if (c === 0) {
+              if (curatedOrientation) stageRef.current.animationControls.orient(curatedOrientation, 0);
+              stageComp.autoView(0);
+            }
           }
 
           // Get current component representations
@@ -650,6 +656,7 @@ const NGLViewer = memo(
         selectedRepresentation,
         setMainComponent,
         topologyManager,
+        curatedOrientation,
       ]);
 
       // Highlight specific atoms
