@@ -64,6 +64,23 @@ workbox.routing.registerRoute(
   }),
 );
 
+// code chunks - Cache First
+// (only the app shell is precached, other chunks are cached the first time they are used;
+// their file names carry a content hash, so a cached chunk never goes stale)
+workbox.routing.registerRoute(
+  /\/static\/(?:js|css)\//,
+  new workbox.strategies.CacheFirst({
+    cacheName: 'chunks',
+    plugins: [
+      new workbox.expiration.Plugin({
+        maxEntries: 300,
+        maxAgeSeconds: 10 * WEEK,
+        purgeOnQuotaError: true,
+      }),
+    ],
+  }),
+);
+
 // static assets - Cache First
 // (usually, just fonts then, since images are handled before)
 workbox.routing.registerRoute(
