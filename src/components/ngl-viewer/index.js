@@ -18,7 +18,7 @@ import cn from 'classnames';
 // Current versions of NGL do not load trajectory coordinates, starting at version 2.1.0
 // I don't know where the problem is, but there are no error logs and I have spent a few hours already
 // Previous version 2.0.1 had a bug not showing surfaces and returning "Worker.onerror molsurf"
-import { autoLoad, Stage, Shape, ColormakerRegistry, Matrix4, MouseActions } from 'ngl';
+import { autoLoad, Stage, Shape, ColormakerRegistry, Matrix4, MouseActions, ParserRegistry, Structure } from 'ngl';
 
 import { frame } from 'timing-functions';
 
@@ -37,6 +37,35 @@ import style from './style.module.css';
 
 // Make a deep copy of an object even with cyclic references
 import { cloneDeep } from 'lodash-es';
+
+// NGL guesses the structure bonds while parsing a PDB, but we replace them further by the topology bonds
+// Most of this time goes to search neighbour atoms for every non-polymer atom (lipids, ions, ligands...)
+// This search takes ~190 ms in membrane systems (~95k atoms) and the bonds it finds are discarded anyway
+// This parser hides the structure spatial hash while bonds are calculated, so the search finds nothing
+// Backbone bonds, which are needed by the cartoon, do not use the spatial hash so they are still calculated
+const PdbParser = ParserRegistry.get('pdb');
+class PdbParserWithTopologyBonds extends PdbParser {
+  _parse () {
+    const structure = this.structure;
+    let spatialHash;
+    structure.finalizeAtoms = () => {
+      Structure.prototype.finalizeAtoms.call(structure);
+      spatialHash = structure.spatialHash;
+      structure.spatialHash = { eachWithin: () => {} };
+    };
+    structure.finalizeBonds = () => {
+      structure.spatialHash = spatialHash;
+      Structure.prototype.finalizeBonds.call(structure);
+    };
+    try { super._parse(); }
+    finally {
+      delete structure.finalizeAtoms;
+      delete structure.finalizeBonds;
+    }
+  }
+}
+const PDB_WITH_TOPOLOGY_BONDS = 'pdb-with-topology-bonds';
+ParserRegistry.add(PDB_WITH_TOPOLOGY_BONDS, PdbParserWithTopologyBonds);
 
 // Used to just wait
 import { sleep } from 'timing-functions';
@@ -188,6 +217,8 @@ const NGLViewer = memo(
       const alreadyParsedTopologies = useRef(new Set());
       // Update the parsed topologies every time the downloaded topologies change
       useEffect(() => {
+        // Wait for the main topology to know if NGL bonds are to be replaced by topology bonds
+        if (!topologyManager) return;
         // Iterate downloaded topologies
         topologies.forEach(topology => {
           // If the topology still has not the data then skip it
@@ -197,7 +228,8 @@ const NGLViewer = memo(
           alreadyParsedTopologies.current.add(topology.url);
           // Parse the structure to a NGL file
           const stringBlob = new Blob( [ topology.file ], { type: 'text/plain'} );
-          autoLoad(stringBlob, { defaultRepresentation: false, ext: "pdb" })
+          const ext = topologyManager.atomBonds ? PDB_WITH_TOPOLOGY_BONDS : 'pdb';
+          autoLoad(stringBlob, { defaultRepresentation: false, ext })
             // Once the parse has been completed update the parsed topologies state
             .then(prasedFile => {
               // Copy the content of the topology object
@@ -215,7 +247,7 @@ const NGLViewer = memo(
           const newParsedTopologies = [ ...previousParsedTopologies ];
           return newParsedTopologies;
         });
-      }, [topologies]);
+      }, [topologies, topologyManager]);
 
       // Set a state to keep track of the current working tasks in the viewer
       // This is useful to update the upper left corner logs in the viewer
