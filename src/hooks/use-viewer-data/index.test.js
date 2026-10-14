@@ -67,11 +67,15 @@ const project = {
 // Same default components as the viewer: the structure and the trajectory from the API
 const components = [{ topologyURL: '/structure', trajectoryURLs: ['/trajectory'] }];
 
-const renderViewerData = () => {
+const renderViewerData = onRender => {
   const wrapper = ({ children }) => (
     <ProjectCtx.Provider value={project}>{children}</ProjectCtx.Provider>
   );
-  return renderHook(() => useViewerData(components, FRAMES, () => {}), { wrapper });
+  return renderHook(() => {
+    const data = useViewerData(components, FRAMES, () => {});
+    if (onRender) onRender(data);
+    return data;
+  }, { wrapper });
 };
 
 describe('useViewerData downloads', () => {
@@ -122,5 +126,106 @@ describe('useViewerData download errors', () => {
     expect(result.current.downloadError).toMatch(/trajectory.*500/);
     // The structure is still there, so the viewer can show it without the trajectory
     expect(result.current.topologies.map(topology => topology.file)).toEqual(['ATOM  1']);
+  });
+});
+
+// Start answering a pending fake request and return a function which sends the body chunk by chunk
+// Every chunk goes in its own act, as network chunks arrive in different tasks
+const startResponse = async (request, totalBytes) => {
+  const response = new EventEmitter();
+  response.statusCode = 200;
+  response.headers = totalBytes === undefined ? {} : { 'content-length': String(totalBytes) };
+  await act(async () => request.onResponse(response));
+  return {
+    send: async chunk => act(async () => { response.emit('data', chunk); }),
+    end: async () => act(async () => { response.emit('end'); }),
+  };
+};
+
+// Trajectory coordinates with a different value each, so the order of the bytes can be checked
+const BYTES_PER_FRAME = ATOMS * 3 * 4;
+const orderedBody = () => Buffer.from(new Float32Array(ATOMS * FRAMES * 3).map((v, i) => i + 1).buffer);
+const chunksOf = (body, size) => {
+  const chunks = [];
+  for (let start = 0; start < body.length; start += size) chunks.push(body.subarray(start, start + size));
+  return chunks;
+};
+
+// Bytes the viewers may read from a published trajectory
+const loadedData = trajectory => Buffer.from(trajectory.payload, 0, trajectory.loadedBytes);
+
+describe('useViewerData trajectory streaming', () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  it('keeps the coordinates in order when they arrive in many chunks', async () => {
+    const { result } = renderViewerData();
+    await respond(findRequest('/structure'), 200, textBody('ATOM  1'));
+    const body = orderedBody();
+    const stream = await startResponse(findRequest('/trajectory'), body.length);
+    for (const chunk of chunksOf(body, 5)) await stream.send(chunk);
+    await stream.end();
+    const [trajectory] = result.current.trajectories;
+    expect(trajectory.loadedBytes).toBe(body.length);
+    expect(loadedData(trajectory)).toEqual(body);
+    expect(trajectory.progress).toBe(1);
+    expect(result.current.anyLoadingTrajectory).toBe(false);
+  });
+
+  it('keeps the coordinates in order without a Content-Length header', async () => {
+    const { result } = renderViewerData();
+    await respond(findRequest('/structure'), 200, textBody('ATOM  1'));
+    const body = orderedBody();
+    const stream = await startResponse(findRequest('/trajectory'), undefined);
+    for (const chunk of chunksOf(body, 5)) await stream.send(chunk);
+    await stream.end();
+    expect(loadedData(result.current.trajectories[0])).toEqual(body);
+  });
+
+  it('makes each whole frame available as soon as it arrives', async () => {
+    const { result } = renderViewerData();
+    await respond(findRequest('/structure'), 200, textBody('ATOM  1'));
+    const body = orderedBody();
+    const stream = await startResponse(findRequest('/trajectory'), body.length);
+    for (const chunk of chunksOf(body.subarray(0, BYTES_PER_FRAME), 5)) await stream.send(chunk);
+    // The first frame is complete while the second one is still downloading
+    const [trajectory] = result.current.trajectories;
+    expect(Math.floor(trajectory.loadedBytes / BYTES_PER_FRAME)).toBe(1);
+    expect(loadedData(trajectory).subarray(0, BYTES_PER_FRAME)).toEqual(body.subarray(0, BYTES_PER_FRAME));
+  });
+
+  it('publishes the trajectory once per whole frame, not once per chunk', async () => {
+    let publications = 0;
+    let lastTrajectories;
+    const { result } = renderViewerData(data => {
+      if (data.trajectories.length > 0 && data.trajectories !== lastTrajectories) publications++;
+      lastTrajectories = data.trajectories;
+    });
+    await respond(findRequest('/structure'), 200, textBody('ATOM  1'));
+    const body = orderedBody();
+    const stream = await startResponse(findRequest('/trajectory'), body.length);
+    // One byte per chunk: 48 chunks
+    for (const chunk of chunksOf(body, 1)) await stream.send(chunk);
+    await stream.end();
+    expect(loadedData(result.current.trajectories[0])).toEqual(body);
+    // The empty trajectory, one publication per frame and the final one
+    expect(publications).toBeLessThanOrEqual(1 + FRAMES + 1);
+  });
+
+  it('updates the progress between frames at most every 250 ms', async () => {
+    const { result } = renderViewerData();
+    await respond(findRequest('/structure'), 200, textBody('ATOM  1'));
+    const body = orderedBody();
+    const stream = await startResponse(findRequest('/trajectory'), body.length);
+    await stream.send(body.subarray(0, 4));
+    await stream.send(body.subarray(4, 8));
+    // Less than a frame and no time has passed: the progress may not be published yet
+    const earlyProgress = result.current.trajectories[0].progress;
+    expect(earlyProgress).toBeLessThan(8 / body.length);
+    act(() => { jest.advanceTimersByTime(300); });
+    await stream.send(body.subarray(8, 12));
+    expect(result.current.trajectories[0].progress).toBe(12 / body.length);
+    // Still no whole frame for the viewers
+    expect(Math.floor(result.current.trajectories[0].loadedBytes / BYTES_PER_FRAME)).toBe(0);
   });
 });

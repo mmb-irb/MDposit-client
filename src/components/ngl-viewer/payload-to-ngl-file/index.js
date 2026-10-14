@@ -254,11 +254,15 @@ export const setNGLFile = (
 ) => {
   if (!(topology && trajectoryData)) return;
 
+  // The trajectory data may be longer than the frames to parse (e.g. a buffer which is still downloading)
+  // Copy only those frames, since the parsing may center the coordinates in place
+  const framesData = trajectoryData.slice(0, trajectoryFrames * trajectoryAtoms * BYTES_PER_ATOM);
+
   let coordinates;
   // In case topology and trajectory atoms match go for the canonical parsing
   if (trajectoryAtoms === topology.atomCount)
     coordinates = payloadToNGLCoordinates(
-      trajectoryData,
+      framesData,
       trajectoryAtoms,
       trajectoryFrames,
       centering,
@@ -267,7 +271,7 @@ export const setNGLFile = (
     coordinates = payloadToNGLCoordinatesFiltered(
       topology.atomCount,
       atomIndices,
-      trajectoryData,
+      framesData,
       trajectoryAtoms,
       trajectoryFrames,
       centering,
@@ -279,7 +283,7 @@ export const setNGLFile = (
   else
     coordinates = payloadToNGLCoordinatesAlternative(
       topology,
-      trajectoryData,
+      framesData,
       trajectoryAtoms,
       trajectoryFrames,
       centering,
@@ -326,8 +330,9 @@ export const updateNGLFile = (
   if (currentFrames >= trajectoryFrames) return;
 
   // Calculate how many bytes we must discard and discard them from the begining of the array buffer
+  // The trajectory data may also be longer than the frames to parse (e.g. a buffer which is still downloading)
   const discardBytes = currentFrames * trajectoryAtoms * BYTES_PER_ATOM;
-  const newTrajectoryData = trajectoryData.slice(discardBytes);
+  const newTrajectoryData = trajectoryData.slice(discardBytes, trajectoryFrames * trajectoryAtoms * BYTES_PER_ATOM);
   const newTrajectoryFrames = trajectoryFrames - currentFrames;
 
   let coordinates;

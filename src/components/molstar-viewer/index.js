@@ -277,23 +277,26 @@ const MolstarViewer = memo(
           // Add the final expected frames for all frames in the component
           trajectoryFinalExpectedFrames += trajectory.frames;
 
+          // Only the first 'loadedBytes' bytes of the payload buffer are downloaded
           const payload = trajectory.payload;
           const bytesPerFrame = trajectoryAtoms * BYTES_PER_ATOM;
           const fitLength =
-            Math.floor(payload.byteLength / bytesPerFrame) * bytesPerFrame;
-          const totalPayload = payload.slice(0, fitLength);
+            Math.floor(trajectory.loadedBytes / bytesPerFrame) * bytesPerFrame;
 
           // If the total payload is empty then stop here
-          if (totalPayload.byteLength === 0) return;
+          if (fitLength === 0) return;
 
           // Calculate how many frames are there in total
-          const totalFrames = totalPayload.byteLength / bytesPerFrame;
+          const totalFrames = fitLength / bytesPerFrame;
           const lastFrameIndex = totalFrames - 1;
 
           // Check if all required data is already downloaded
           const completedTrajectory =
             totalFrames === trajectoryFinalExpectedFrames;
           if (!completedTrajectory) return;
+
+          // Copy the downloaded frames only once they are all here
+          const totalPayload = payload.slice(0, fitLength);
 
           // Load coordinates as they are parsed
           const coords = await molstar

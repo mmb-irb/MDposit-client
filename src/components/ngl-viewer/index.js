@@ -960,13 +960,13 @@ const NGLViewer = memo(
             trajectoryFinalExpectedFrames += trajectory.frames;
             // Add the main data to the array of payloads
             // Substract data from not completed frames
+            // The payload buffer is shared with the download so it is not copied here
             const payload = trajectory.payload;
             const bytesPerFrame = trajectoryAtoms * BYTES_PER_ATOM;
-            const fitLength = Math.floor(payload.byteLength / bytesPerFrame) * bytesPerFrame;
-            const fitPayload = payload.slice(0, fitLength);
-            trajectoryPayloads.push(fitPayload);
+            const fitLength = Math.floor(trajectory.loadedBytes / bytesPerFrame) * bytesPerFrame;
+            trajectoryPayloads.push({ payload, fitLength });
             combinedURL += trajectory.url;
-            combinedProgress += '/' + trajectory.progress;
+            combinedProgress += '/' + fitLength;
           }
 
           // Check if we are loading the same trajectory than before
@@ -990,22 +990,28 @@ const NGLViewer = memo(
           stageComp.combinedProgress = combinedProgress;
 
           // Join all payloads into a single trajectory
+          // Only the first 'totalBytes' bytes of the total payload are whole downloaded frames
           let totalPayload;
+          let totalBytes;
           if (trajectoryPayloads.length === 0) return;
-          else if (trajectoryPayloads.length === 1)
-            totalPayload = trajectoryPayloads[0];
+          else if (trajectoryPayloads.length === 1) {
+            totalPayload = trajectoryPayloads[0].payload;
+            totalBytes = trajectoryPayloads[0].fitLength;
+          }
           // DANI: Esto no está bien ahora que hay streaming
           // DANI: Si hubiese dos trayectorias combinadas sus frames quedarían entrelazadas
           // DANI: Pero las trayectorias combinadas no se usan, así que no me merece la pena mantenerlo
-          else
-            totalPayload = trajectoryPayloads.reduce((cb, nb) =>
-              appendBuffer(cb, nb),
-            );
+          else {
+            totalPayload = trajectoryPayloads
+              .map(({ payload, fitLength }) => payload.slice(0, fitLength))
+              .reduce((cb, nb) => appendBuffer(cb, nb));
+            totalBytes = totalPayload.byteLength;
+          }
           // If the total payload is empty then stop here
-          if (totalPayload.byteLength === 0) return;
+          if (totalBytes === 0) return;
           // Calculate how many frames are there in total
           const bytesPerFrame = trajectoryAtoms * BYTES_PER_ATOM;
-          const totalFrames = totalPayload.byteLength / bytesPerFrame;
+          const totalFrames = totalBytes / bytesPerFrame;
           const lastFrameIndex = totalFrames - 1;
           // Check if all required data is already downloaded
           const completedTrajectory =

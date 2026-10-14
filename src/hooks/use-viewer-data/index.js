@@ -11,13 +11,13 @@ import { ProjectCtx } from '../../contexts';
 // To make API requests
 import { BASE_PATH_PROJECTS } from '../../utils/constants';
 
-// Auxiliar functions
-import { appendBuffer } from '../../utils/auxiliar-functions';
-
 // HTTP utils
 import https from 'https-browserify';
 import http from 'stream-http';
 import { parse as urlParse } from 'url';
+
+// Minimum time between two trajectory progress updates while no new frame is complete (ms)
+const PROGRESS_INTERVAL = 250;
 
 const frameRangeFormat = /\?frames=(?<start>\d+):(?<end>\d+)(:(?<step>\d+))?/;
 const parseFrameRange = frameRange => {
@@ -432,7 +432,7 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
             const request = protocol.request(requestOptions, response => {
             // Do not use an error response body as trajectory coordinates
             if (response.statusCode >= 400) return handleError(`HTTP ${response.statusCode}`);
-            const totalBytes = response.headers['content-length'];
+            const totalBytes = +response.headers['content-length'] || 0;
             // Set the new trajectory
             setTrajectories(previousTrajectories => {
                 const newTrajectory = {
@@ -441,27 +441,61 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
                     urlpath: trajectory.urlpath,
                     frames: trajectory.frames,
                     atoms: trajectory.atoms,
+                    // The payload buffer is allocated once and filled as data arrives
+                    // Only its first 'loadedBytes' bytes are valid
                     payload: new ArrayBuffer(0),
+                    loadedBytes: 0,
                     progress: 0,
                 };
                 return [...previousTrajectories, newTrajectory];
             });
+            // Allocate the whole trajectory at once so every chunk is copied only once
+            // If the size is unknown then start with 1 MB and double the buffer when it is full
+            let buffer = new Uint8Array(totalBytes || 1024 * 1024);
             // Track the amout of bytes already downloaded
             let byteCount = 0;
+            // Publish the downloaded data to the viewers only when a new whole frame is complete
+            // Between frames publish only the progress, at most every PROGRESS_INTERVAL ms
+            const bytesPerFrame = totalBytes && trajectory.frames ? totalBytes / trajectory.frames : 0;
+            let publishedFrames = 0;
+            let lastPublication = Date.now();
+            const publish = () => {
+                lastPublication = Date.now();
+                const loadedBytes = byteCount;
+                const payload = buffer.buffer;
+                setTrajectories(previousTrajectories => {
+                    const currentTrajectory = previousTrajectories.find(
+                        traj => traj.url === actualUrl);
+                    if (!currentTrajectory) return previousTrajectories;
+                    currentTrajectory.payload = payload;
+                    currentTrajectory.loadedBytes = loadedBytes;
+                    currentTrajectory.progress = trajectory.progress;
+                    return [...previousTrajectories];
+                });
+            };
             response
                 .on('data', chunk => {
+                    if (byteCount + chunk.byteLength > buffer.byteLength) {
+                        const biggerBuffer = new Uint8Array(
+                            Math.max(buffer.byteLength * 2, byteCount + chunk.byteLength));
+                        biggerBuffer.set(buffer.subarray(0, byteCount));
+                        buffer = biggerBuffer;
+                    }
+                    buffer.set(chunk, byteCount);
                     byteCount += chunk.byteLength;
-                    trajectory.progress = byteCount / totalBytes;
+                    trajectory.progress = totalBytes ? byteCount / totalBytes : 0;
                     // Update trajectories with the current partial data we have
-                    setTrajectories(previousTrajectories => {
-                        const currentTrajectory = previousTrajectories.find(
-                            traj => traj.url === actualUrl);
-                        currentTrajectory.payload = appendBuffer(currentTrajectory.payload, chunk);
-                        currentTrajectory.progress = trajectory.progress;
-                        return [...previousTrajectories];
-                    });
+                    const wholeFrames = bytesPerFrame ? Math.floor(byteCount / bytesPerFrame) : 0;
+                    if (wholeFrames > publishedFrames) {
+                        publishedFrames = wholeFrames;
+                        publish();
+                    }
+                    else if (Date.now() - lastPublication >= PROGRESS_INTERVAL) publish();
                 })
                 .on('end', () => {
+                    // Publish whatever arrived since the last publication
+                    trajectory.progress = 1;
+                    publish();
                     // Save the main data in the ref
                     trajectory.loading = false;
                     // Then check the loading state of all requested trajectories and update the overall loading state
