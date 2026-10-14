@@ -32,7 +32,13 @@ Whatever the source, treat the description as a hypothesis to confirm, not a fac
 
 ## 3. Workflow (one step at a time, in this order)
 
-1. **Explain** the problem in plain terms: what the code does, why it is wrong, who hits it in real use. Cite `file:line`.
+1. **Explain the real issue**, then stop.
+   - **Open with the actual problem in one or two sentences**, stated concretely: what goes wrong, under which condition, and the consequence. E.g. "`project-browser/row.js` imports `project-manager`, which imports NGL statically, so the Browse page downloads ~1.2 MB of viewer code it never runs." No preamble, no background first.
+   - Then the mechanism, step by step, with the real names: files (`file:line`), functions, requests, chunks, events. Technical terms are fine. Make them concrete (which request, which file, how many bytes or seconds) rather than abstract or simplified. No analogies, no "in plain words" rewording.
+   - Who hits it in real use, and how often.
+   - If the brief or audit was wrong about something, say so here.
+   - Complete but not padded: cover what the user needs to follow the rest, with no repetition or filler.
+   - **End your turn there.** Don't put setup questions, reproduction or options in the same message. Wait for the user before going on to setup and step 2. In step 3, describe each option concretely too: what changes in the code and what changes for users.
 2. **Reproduce it for real** in the Browser pane against the real API, when the issue is user-visible. Show the before state (screenshot plus a hard number, e.g. request count or seconds spinning). If it can't be reproduced, say so plainly. That is a valid outcome and may mean the issue doesn't need fixing; ask the user how to proceed.
 3. **Nuances and options.** List the trade-offs and edge cases, recommend one option, and **ask the user with AskUserQuestion**. Don't write the fix before they answer. Also say what is deliberately left out of scope.
 4. **Test first.** Add a regression test that describes the correct behaviour. Run it on the unfixed code and show that the bug cases fail (and correct-behaviour cases pass). If a unit test can't meaningfully guard the issue (e.g. dependency or build problems), say so and propose the right guard instead.
