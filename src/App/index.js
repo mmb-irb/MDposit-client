@@ -43,23 +43,22 @@ if (HOST_CONFIG.palette) {
 }
 // Set custom styling theme
 const theme = createTheme({
-  typography: {
-    useNextVariants: true,
-  },
-  overrides: {
+  palette: palette,
+  components: {
     MuiTablePagination: {
-      toolbar: {
-        justifyContent: 'center',
-      },
-      spacer: {
-        flex: 0,
+      styleOverrides: {
+        toolbar: {
+          justifyContent: 'center',
+        },
+        spacer: {
+          flex: 0,
+        },
       },
     },
-  },
-  palette: palette,
-  props: {
     MuiTableCell: {
-      align: 'center',
+      defaultProps: {
+        align: 'center',
+      },
     },
   },
 });
