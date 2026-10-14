@@ -134,6 +134,8 @@ const MolstarViewer = memo(
         trajectories,
         anyLoadingTopology,
         anyLoadingTrajectory,
+        // Message of a failed topology or trajectory download, if any
+        downloadError,
         // Set the highlight representations types
         highlightTypes = defaultHighlightTypes,
       },
@@ -510,7 +512,7 @@ const MolstarViewer = memo(
               [style['light-theme']]: !darkBackground,
             })}
             // Display loading status data in the upper left corner of the viewer window
-            data-loading={undefined}
+            data-loading={downloadError || undefined}
           />
           <div ref={tooltipRef} className={style.tooltip}>
             {tooltipContent}

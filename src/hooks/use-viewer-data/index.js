@@ -134,6 +134,13 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
     // Keep track of all requests in case we have to abort them further
     const currentRequests = useRef([]);
 
+    // Set a state to store failed downloads (network errors or HTTP error responses)
+    // Their content is never stored as topologies or trajectories, so the viewer can show a message instead
+    const [downloadErrors, setDownloadErrors] = useState([]);
+    const addDownloadError = (source, message) => setDownloadErrors(previousErrors => [
+        ...previousErrors, { source, message }
+    ]);
+
     // Download all requested topologies/structures from the API
     useEffect(() => {
         requestedTopologies.forEach(topology => {
@@ -182,7 +189,15 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
                     'Content-Type': 'application/json',
                     'Content-Length': postData.length
                 }
+                // Stop loading and record the error in case the download fails
+                const handleError = message => {
+                    topology.loading = false;
+                    setAnyLoadingTopology(requestedTopologies.some(t => t.loading));
+                    addDownloadError(accessionAndMdNumber, `Could not load the structure (${message})`);
+                };
                 const request = protocol.request(requestOptions, response => {
+                    // Do not use an error response body as the topology
+                    if (response.statusCode >= 400) return handleError(`HTTP ${response.statusCode}`);
                     // Track the amout of bytes already downloaded
                     let responseContent = '';
                     response .on('data', chunk => {
@@ -206,6 +221,8 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
                         setAnyLoadingTopology(anyLoading);
                     });
                 });
+                // Network errors (e.g. the node is down) never reach the 'end' event
+                request.on('error', error => handleError(error.message));
                 // Send the request data (POST method feature)
                 if (requestOptions.method === 'POST'){
                     request.write(postData);
@@ -406,7 +423,15 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
                 'Content-Type': 'application/json',
                 'Content-Length': postData.length
             }
+            // Stop loading and record the error in case the download fails
+            const handleError = message => {
+                trajectory.loading = false;
+                setAnyLoadingTrajectory(requestedTrajectories.some(t => t.loading));
+                addDownloadError(accessionAndMdNumber, `Could not load the trajectory (${message})`);
+            };
             const request = protocol.request(requestOptions, response => {
+            // Do not use an error response body as trajectory coordinates
+            if (response.statusCode >= 400) return handleError(`HTTP ${response.statusCode}`);
             const totalBytes = response.headers['content-length'];
             // Set the new trajectory
             setTrajectories(previousTrajectories => {
@@ -446,6 +471,8 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
                     setAnyLoadingTrajectory(anyLoading);
                 });
             });
+            // Network errors (e.g. the node is down) never reach the 'end' event
+            request.on('error', error => handleError(error.message));
             // Send the request data (POST method feature)
             if (requestOptions.method === 'POST') request.write(postData);
             // Close the request for it to actually start
@@ -463,6 +490,9 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
         ]);
         setTrajectories(previousTrajectories => [
             ...previousTrajectories.filter(traj => traj.source === accessionAndMdNumber)
+        ]);
+        setDownloadErrors(previousErrors => [
+            ...previousErrors.filter(error => error.source === accessionAndMdNumber)
         ]);
     }, [accessionAndMdNumber]);
 
@@ -501,8 +531,12 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
         onLoad(overallProgress);
     }, [components, trajectories, onLoad]);
 
+    // Report the first failed download of the current accession and MD, if any
+    const currentError = downloadErrors.find(error => error.source === accessionAndMdNumber);
+    const downloadError = currentError ? currentError.message : null;
+
     // Return downloaded data
-    return { topologies, trajectories, anyLoadingTopology, anyLoadingTrajectory };
+    return { topologies, trajectories, anyLoadingTopology, anyLoadingTrajectory, downloadError };
 }
 
 export default useViewerData;

@@ -157,6 +157,7 @@ const ManagedViewer = forwardRef(
       trajectories,
       anyLoadingTopology,
       anyLoadingTrajectory,
+      downloadError,
     } = useViewerData(components, requestedFramesNumber, onLoad);
     return (
       <Viewer
@@ -167,6 +168,7 @@ const ManagedViewer = forwardRef(
         trajectories={trajectories}
         anyLoadingTopology={anyLoadingTopology}
         anyLoadingTrajectory={anyLoadingTrajectory}
+        downloadError={downloadError}
         {...props}
       />
     );

@@ -111,6 +111,8 @@ const NGLViewer = memo(
         trajectories,
         anyLoadingTopology,
         anyLoadingTrajectory,
+        // Message of a failed topology or trajectory download, if any
+        downloadError,
         // Set the highlight representations types
         highlightTypes = defaultHighlightTypes,
         // Optional function to set the tooltip content when hovering a distance
@@ -257,6 +259,7 @@ const NGLViewer = memo(
 
       // Handle the upper left corner viewer logs
       const viewerLogs = useMemo(() => {
+        if (downloadError) return downloadError;
         if (!topologyManager) return 'Waiting for the main topology';
         if (!mainComponent) return `Waiting for the main component`;
         if (!trajectories.length && !noTrajectory)
@@ -264,6 +267,7 @@ const NGLViewer = memo(
         if (runningTasks > 0) return `Rendering...`;
         return undefined; // Show nothing when everything was finished and fine
       }, [
+        downloadError,
         mainComponent,
         trajectories,
         noTrajectory,
