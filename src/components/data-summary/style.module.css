@@ -144,3 +144,10 @@
 :root[data-theme="light"] .constantItem:nth-child(odd) > span {
   background: rgba(0, 0, 0, 0.03);
 }
+
+.info {
+  padding: 0.2em;
+  margin-left: 0.2em;
+  font-size: 0.8em;
+  cursor: help;
+}

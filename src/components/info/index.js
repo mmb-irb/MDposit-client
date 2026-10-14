@@ -22,7 +22,7 @@ const CustomTooltip = styled(
 )(({ theme }) => ({
   [`& .${tooltipClasses.tooltip}`]: {
     fontSize: '1em',
-    maxWidth: '100%',
+    maxWidth: 'min(40em, 90vw)',
     margin: '0',
   },
 }));
@@ -52,7 +52,7 @@ const Info = ({
       >
         <IconButton
           className={className || style.default}
-          color={open ? 'info' : 'primary'}
+          color={open ? 'secondary' : 'primary'}
           onClick={toogleOpen}
           sx={sx}
         >

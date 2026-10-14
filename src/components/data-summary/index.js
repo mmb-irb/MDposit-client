@@ -12,6 +12,7 @@ import Histogram from '../histogram';
 import SimpleHistogram from '../simple-histogram';
 import TimelineChart from './timeline';
 import FramestepPlot from './framestep';
+import Info from '../info';
 
 // Fields that are best represented as a pie chart (categorical, low cardinality)
 const PIE_CHART_FIELDS = new Set([
@@ -416,6 +417,14 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
         return 'Loading...';
     }, [isGlobalSummary, nodeData, statsPayload, bsPayload, bsLoading, bsError]);
     const summaryUnavailableValue = summaryError ? 'Unavailable' : 'Loading...';
+    const dataSizeTooltip = (<>
+        This size accounts only for the processed files stored in the database.
+        <br />
+        <br />
+        The raw simulation data is usually 10 to 50 times bigger, mostly because
+        water is removed from most trajectories during processing.
+    </>);
+
     return (<>
         <div className={style.dataSummary}>
             <Typography style={{ marginBottom: 10 }} variant="h5">
@@ -435,7 +444,10 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
                         <td className={style.summaryTitle}>Frames</td>
                         <td className={style.summaryTitle}>Files</td>
                         <td className={style.summaryTitle}>Analyses</td>
-                        <td className={style.summaryTitle}>Data</td>
+                        <td className={style.summaryTitle}>
+                            Data
+                            <Info tooltip={dataSizeTooltip} className={style.info} />
+                        </td>
                     </tr>
                     <tr>
                         <td className={style.summaryValue}>{displaySummaryPayload ? displaySummaryPayload.projectsCount.toLocaleString() : summaryUnavailableValue}</td>
