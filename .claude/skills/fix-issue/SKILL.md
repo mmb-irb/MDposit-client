@@ -39,7 +39,8 @@ Whatever the source, treat the description as a hypothesis to confirm, not a fac
 5. **Fix**, matching the surrounding code style (comment density, naming, indentation as in the file).
 6. **Verify**: the new tests pass, the full test suite passes, the typecheck count is unchanged, and the same browser scenario now works (show the after numbers).
 7. **Ask before committing.** Show `git diff --stat` and a proposed commit message (imperative subject; body explains the bug and the fix). Commit only after an explicit yes, and only the files for this issue. If the user asks for changes to be reverted, also restore anything installed or generated along the way.
-8. **Wrap up** with a short summary: commit hash, what changed, test names, and anything discovered that affects other issues or makes `.claude/CLAUDE.md` out of date. If this session was started from a coordinating session (e.g. from a brief), tell the user to take that summary back to it.
+8. **Wrap up** with a short summary: commit hash, what changed, test names, and anything discovered that affects other issues or makes `.claude/CLAUDE.md` out of date.
+9. **Hand back (optional).** If the work belongs to a coordinating session, offer to send it the summary instead of the user copying it. You know there is one when the brief or the user names it, or when `ListAgents` / `list_sessions` shows a session whose title says it coordinates this work (e.g. "MDDB client audit (coordinator)"). Ask the user first, saying which session you'd send it to. Then send only the summary from step 8 with `SendMessage` (`to`: that session's name or `local_...` id), with a first line that stands on its own, e.g. "Issue 3 fixed and committed (abc1234): ...". Don't send transcripts or long details; the point is to keep the coordinating session small. If there is no coordinating session, or the user declines, just leave the summary in this chat.
 
 ## Techniques that worked
 
