@@ -14,7 +14,6 @@ import {
 import { Topology } from '../topology-manager';
 import { Reference } from '../reference-manager';
 // Import the NGL structure parser
-import { autoLoad } from 'ngl';
 
 // Check if an interactions analysis payload is an index of interaction analyses (new format)
 // Index entries have the analysis name, while old entries have the whole interaction data
@@ -433,27 +432,6 @@ export class Project {
         if (response.error) throw new Error('Error when downloading project structure: ' + response.error.message);
         if (!response.payload) throw new Error('Something went wrong with project structure');
         return structureData
-    }
-
-    // Get the main structure data parsed by NGL
-    get nglStructure () {
-        // Set a state to store the already parsed data
-        const [ nglStructure, setNglStructure ] = useState(undefined);
-        // Get the current structure data
-        const structureData = this.structureData;
-        // Load the structure data in NGL asynchronously    
-        useEffect(() => {
-            if (!structureData) return;
-            autoLoad(structureData, { defaultRepresentation: false, ext: "pdb" })
-                // Once the parse has been completed update the parsed structure state
-                .then(prasedStructure => { setNglStructure({ file: prasedStructure }) })
-                // If there is any problem then log it to the console
-                .catch(error => {
-                    console.error(error);
-                    setNglStructure({ error });
-                });
-        }, [structureData])
-        return nglStructure;
     }
 
     // Check if there is any loading query

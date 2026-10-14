@@ -18,6 +18,9 @@ import Loading from '../loading';
 import { rangedSelectionParser, sameValues } from '../../utils/auxiliar-functions';
 // Get the defaults representations getter
 import getDefaultRepresentations from '../../utils/topology-manager/get-default-reprensetations';
+// The mutations representations use NGL, so they are not built in the topology manager
+// This way pages without a viewer (e.g. browse) do not load NGL
+import getMutationsRepresentations from '../../utils/topology-manager/get-mutations-representations';
 
 // Show floatting bubles with domain names
 // When a bubble is selected the domain is represented
@@ -40,7 +43,7 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
 
   // Get pre-build representations
   const defaultRepresentations = topology && topology.defaultRepresentations;
-  const mutationsRepresentation = topology && topology.mutationsRepresentations;
+  const mutationsRepresentation = useMemo(() => getMutationsRepresentations(topology), [topology]);
   const epitopesRepresentation = topology && topology.epitopesRepresentations;
 
   // The domains strucutre is:

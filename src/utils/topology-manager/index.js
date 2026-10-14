@@ -22,7 +22,6 @@ import {
 // Functions te setup some predefined viewer representations
 import getDefaultRepresentations from './get-default-reprensetations';
 import getEpitopesRepresentations from './get-epitopes-representations';
-import getMutationsRepresentations from './get-mutations-representations';
 // Import the Selection class to better handle atom selections
 import { Selection } from './selections';
 
@@ -870,11 +869,5 @@ export class Topology {
     if (this._epitopeRepresentations !== undefined) return this._epitopeRepresentations;
     this._epitopeRepresentations = getEpitopesRepresentations(this);
     return this._epitopeRepresentations;
-  }
-
-  get mutationsRepresentations () {
-    if (this._mutationRepresentations !== undefined) return this._mutationRepresentations;
-    this._mutationRepresentations = getMutationsRepresentations(this);
-    return this._mutationRepresentations;
   }
 }
