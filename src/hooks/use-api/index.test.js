@@ -42,6 +42,56 @@ const respond = async (request, data) => {
   });
 };
 
+// Reject a pending fake request the way axios does and let React process the state updates
+const fail = async (request, error) => {
+  await act(async () => {
+    request.reject(error);
+  });
+};
+const networkError = () => ({ message: 'Network Error' });
+const timeoutError = () => ({ message: 'timeout of 5000ms exceeded', code: 'ECONNABORTED' });
+const httpError = status => ({
+  message: `Request failed with status code ${status}`,
+  response: { status, data: 'server says no' },
+});
+
+describe('useAPI errors', () => {
+  it('tells the waiting component about the error', async () => {
+    const url = newUrl();
+    const { result } = renderHook(() => useAPI(url));
+    await fail(requests[0], networkError());
+    expect(result.current.loading).toBe(false);
+    expect(result.current.error.noResponse).toBe(true);
+  });
+
+  it.each([
+    ['a network error', networkError],
+    ['a timeout', timeoutError],
+    ['a 500 server error', () => httpError(500)],
+    ['a 503 server error', () => httpError(503)],
+  ])('retries the next time the URL is asked for after %s', async (_, makeError) => {
+    const url = newUrl();
+    const firstVisit = renderHook(() => useAPI(url));
+    await fail(requests[0], makeError());
+    expect(firstVisit.result.current.error).toBeTruthy();
+    firstVisit.unmount();
+    const secondVisit = renderHook(() => useAPI(url));
+    expect(requests).toHaveLength(2);
+    await respond(requests[1], 'recovered');
+    expect(secondVisit.result.current).toMatchObject({ loading: false, payload: 'recovered', error: null });
+  });
+
+  it('keeps a 404 so it is not requested again by every component', async () => {
+    // e.g. mem-map answers 404 for every system without a membrane
+    const url = newUrl();
+    const first = renderHook(() => useAPI(url));
+    await fail(requests[0], httpError(404));
+    const second = renderHook(() => useAPI(url));
+    expect(requests).toHaveLength(1);
+    expect(second.result.current.error.response.status).toBe(404);
+  });
+});
+
 describe('useAPI', () => {
   it('shares one request between components asking for the same URL', async () => {
     const url = newUrl();

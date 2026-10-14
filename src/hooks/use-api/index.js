@@ -181,6 +181,12 @@ const makeCall = (url, timeout, cacheOn, name) => {
         };
         // Save the state to be used for future calls
         originalCall.state = responseData;
+        // If the error may be temporary (no response, timeout or server error) then forget this call
+        // This way the next time this url is requested a new request is made
+        // Client errors (e.g. 404) are kept since asking again would get the same answer
+        const status = error.response && error.response.status;
+        const isTemporary = error.noResponse || !status || status >= 500;
+        if (isTemporary && apiCalls[url] === originalCall) delete apiCalls[url];
         // Update all setters wawiting for the response
         originalCall.setters.forEach(setter => setter(responseData));
         //setData(responseData);
