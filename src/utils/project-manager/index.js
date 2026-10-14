@@ -146,21 +146,34 @@ export class Project {
         this._apiQueriesLoading[url] = apiQuery.loading;
         // Update the "is node responding" status
         if (apiQuery.payload) this.isNodeResponding = true;
-        if (apiQuery.error && apiQuery.error.noRespone) this.isNodeResponding = false;
+        if (apiQuery.error && apiQuery.error.noResponse) this.isNodeResponding = false;
         return apiQuery
     };
 
     // If this is the global client then check that the project exists in the source federated node
     // To do so, ask for any data which is not stored in the global server (e.g. topology data)
     // Thus we will force the global API to redirect the request to the federated node
-    // Use a timeout for this query to check if the node is responding, since this query should be fast
+    // If the node takes more than 5 seconds to answer then report it as not responding, since this query should be fast
+    // Note that this is a timer and not a request timeout, since the request is shared with the real topology loads
+    // A timeout would abort the topology for everyone, even if the node is just slow
     checkProblems = () => {
         // If this is not the global client then there is no need to check
         if (!HOST_CONFIG.global) return;
-        // Request topology data with a timeout of 5 seconds
-        const response = this._apiQuery('topology', undefined, 5000);
-        // If we are still loading then there is no problem
-        if (response.loading) return;
+        // Request topology data
+        const response = this._apiQuery('topology');
+        // Save the URL whose request has been loading for more than 5 seconds
+        const [lateUrl, setLateUrl] = useState(null);
+        const url = this._apiBaseUrl + this._apiEndpoints.topology;
+        useEffect(() => {
+            if (!response.loading) return;
+            const timer = setTimeout(() => setLateUrl(url), 5000);
+            return () => clearTimeout(timer);
+        }, [url, response.loading]);
+        // If we are still loading then there is no problem, unless we have been loading for too long
+        if (response.loading) {
+            if (lateUrl === url) return { message: 'The node is not responding', noResponse: true };
+            return;
+        }
         // If we have an error instead of throwing return the error itself
         if (response.error) return response.error;
         // If we finally got the response then it means we are good

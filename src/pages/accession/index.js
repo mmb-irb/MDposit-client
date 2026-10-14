@@ -194,8 +194,8 @@ const ContentSwitch = ({ subPage }) => {
         <FontAwesomeIcon icon={faGhost} size='lg'/>
         <div>
           Data from project "{project.accession}" is stored in the "{nodeName}" federated node.
-          However this node is not responding right now so data may be incomplete.
-          Please try visting this entry later.
+          However this node is not responding right now so data may be slow to load or incomplete.
+          If data does not load, please try visiting this entry later.
         </div>
       </div>
     );
