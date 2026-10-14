@@ -72,6 +72,17 @@ XMLHttpRequest.prototype.open = function (m, u) {
 
 Then inspect `window.__log` to count requests. "Leave and come back" means setting `location.hash = '#/browse'`, waiting, then setting it back.
 
-Trajectory and topology downloads in the viewer (`src/hooks/use-viewer-data`) use `stream-http` / `https-browserify` (Node-style `http.request`), not axios. In modern browsers `stream-http` streams with `fetch`, not XHR, so the XHR patches above may not catch them. Check `window.__log` first, and patch `window.fetch` the same way if needed.
+Trajectory and topology downloads in the viewer (`src/hooks/use-viewer-data`) use `stream-http` / `https-browserify` (Node-style `http.request`), not axios. They are POSTs that `stream-http` sends with `fetch`, not XHR, so the XHR patches above don't catch them. On the global node they are 307-redirected to the federated node. Patch `window.fetch` instead:
+
+```js
+// Fail the viewer's structure download once with a network error (use a 404 URL for an HTTP error)
+const f = window.fetch; window.__log = []; let failed = false;
+window.fetch = function (input, init) {
+  const u = typeof input === 'string' ? input : input.url;
+  if (!failed && /\/structure$/.test(u)) { failed = true; window.__log.push('FAILED ' + u); return f.call(this, 'http://127.0.0.1:9/unreachable', init); }
+  window.__log.push(u);
+  return f.apply(this, arguments);
+};
+```
 
 Unit tests for hooks: see `src/hooks/use-api/index.test.js` for a controllable fake axios (`requests[]`, `respond()`, `fail()`, unique URLs per test because the hook keeps a module-level map).
