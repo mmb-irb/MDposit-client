@@ -426,10 +426,11 @@ const NGLViewer = memo(
               });
             }
             // Add the topology to the NGL
-            // Make a deep copy of the topology object to prevent NGL internal bugs
-            // This object will store data which is component exclusive
-            const componentObject = cloneDeep(topology.file);
-            //const componentObject = topology.file;
+            // The structure object stores data which is component exclusive (e.g. the current frame coordinates)
+            // If other components use the same topology then make a deep copy of it to prevent NGL internal bugs
+            // Otherwise skip the copy, since it takes ~300 ms in big systems (~95k atoms)
+            const isSharedTopology = components.filter(other => (other.topologyURL || null) === urlpath).length > 1;
+            const componentObject = isSharedTopology ? cloneDeep(topology.file) : topology.file;
             stageComp = stageRef.current.addComponentFromObject(componentObject);
             stageComp.myName = comp.name;
             if (!stageComp) return;
