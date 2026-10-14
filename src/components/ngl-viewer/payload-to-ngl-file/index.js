@@ -1,5 +1,4 @@
 import { Frames } from 'ngl';
-import { caluclateAverage } from 'src/utils/auxiliar-functions';
 
 // Set the number of bytes per element in trajectory data
 const BYTES_PER_COORDINATE = 4; // float 32
@@ -11,12 +10,9 @@ const payloadToNGLCoordinates = (
   trajectoryData,
   trajectoryAtoms,
   trajectoryFrames,
-  centering,
 ) => {
   // Parse binary to coordinates
   const trajectoryCoordinates = new Float32Array(trajectoryData);
-  // If the centering was required then we will center the coordinates for every frame
-  if (centering) centerCoordinates(trajectoryCoordinates, trajectoryAtoms);
   try {
     // Save all coordinates here
     // This array is to be returned at the end
@@ -51,12 +47,9 @@ const payloadToNGLCoordinatesFiltered = (
   trajectoryData,
   trajectoryAtoms,
   trajectoryFrames,
-  centering,
 ) => {
   // Parse binary to coordinates
   const trajectoryCoordinates = new Float32Array(trajectoryData);
-  // If the centering was required then we will center the coordinates for every frame
-  if (centering) centerCoordinates(trajectoryCoordinates, trajectoryAtoms);
   // Check atom number to be as expected
   const expectedAtomNumber =
     trajectoryCoordinates.length / COORDINATES_PER_ATOM / trajectoryFrames;
@@ -120,12 +113,9 @@ const payloadToNGLCoordinatesAlternative = (
   trajectoryData,
   trajectoryAtoms,
   trajectoryFrames,
-  centering,
 ) => {
   // Parse binary to coordinates
   const trajectoryCoordinates = new Float32Array(trajectoryData);
-  // If the centering was required then we will center the coordinates for every frame
-  if (centering) centerCoordinates(trajectoryCoordinates, trajectoryAtoms);
   // Check atom number to be as expected
   if (
     trajectoryCoordinates.length / COORDINATES_PER_ATOM / trajectoryFrames !==
@@ -250,7 +240,7 @@ export const setNGLFile = (
   trajectoryAtoms,
   trajectoryFrames,
   atomIndices,
-  centering,
+  centeringAtomIndices,
 ) => {
   if (!(topology && trajectoryData)) return;
 
@@ -261,7 +251,6 @@ export const setNGLFile = (
       trajectoryData,
       trajectoryAtoms,
       trajectoryFrames,
-      centering,
     );
   else if (atomIndices)
     coordinates = payloadToNGLCoordinatesFiltered(
@@ -270,7 +259,6 @@ export const setNGLFile = (
       trajectoryData,
       trajectoryAtoms,
       trajectoryFrames,
-      centering,
     );
   // Otherwise it may mean the trajectory has only heavy/backbone atoms
   // Then parse it taking this in count
@@ -282,7 +270,6 @@ export const setNGLFile = (
       trajectoryData,
       trajectoryAtoms,
       trajectoryFrames,
-      centering,
     );
 
   // If we do not have coordinates at this point it may mean the topology and trajectory are not matching in atom number
@@ -298,6 +285,9 @@ export const setNGLFile = (
   if (sampleCoordinates.size <= 3)
     throw new Error('Trajectory coordinates are repeated');
 
+  // If the centering was required then we will center the coordinates for every frame
+  if (centeringAtomIndices) centerFrames(coordinates, centeringAtomIndices);
+
   // Finally build the NGL object and add the parsed coordinates
   const file = new Frames('Dynamically generated trajectory', '');
   file.coordinates = coordinates;
@@ -312,7 +302,7 @@ export const updateNGLFile = (
   trajectoryAtoms,
   trajectoryFrames,
   atomIndices,
-  centering,
+  centeringAtomIndices,
 ) => {
   if (!(file && topology && trajectoryData)) return;
 
@@ -337,7 +327,6 @@ export const updateNGLFile = (
       newTrajectoryData,
       trajectoryAtoms,
       newTrajectoryFrames,
-      centering,
     );
   else if (atomIndices)
     coordinates = payloadToNGLCoordinatesFiltered(
@@ -346,7 +335,6 @@ export const updateNGLFile = (
       newTrajectoryData,
       trajectoryAtoms,
       newTrajectoryFrames,
-      centering,
     );
   // Otherwise it may mean the trajectory has only heavy/backbone atoms
   // Then parse it taking this in count
@@ -358,46 +346,40 @@ export const updateNGLFile = (
       newTrajectoryData,
       trajectoryAtoms,
       newTrajectoryFrames,
-      centering,
     );
 
   // If we do not have coordinates at this point it may mean the topology and trajectory are not matching in atom number
   if (!coordinates)
     throw new Error(`Topology and trajectory data may not match`);
 
+  // If the centering was required then we will center the coordinates for every frame
+  if (centeringAtomIndices) centerFrames(coordinates, centeringAtomIndices);
+
   // Finally update the NGL file coordinates
   file.frames = file.frames.concat(coordinates);
 };
 
-// Center a list of coordinates
-// Mutate the original array
-// DANI: Si en lugar de mutar la original devuelvo una nueva entonces no funciona, sabe dios por que
-const centerCoordinates = (coordinates, atomCount) => {
-  // Note that we must do the average per frame, never more than one frame at a time
-  // However the coordinates may include one or more frames, so we must check
-  const coordinatesPerFrameCount = atomCount * 3;
-  const frameCount = coordinates.length / coordinatesPerFrameCount;
-  // Iterate frames
-  for (let frameIndex = 0; frameIndex < frameCount; frameIndex++) {
-    const frameStartingCoordinateIndex = frameIndex * coordinatesPerFrameCount;
-    // Iterating dimensions
-    ['x', 'y', 'z'].forEach((dimension, offset) => {
-      // Get frame coordinates for the current dimension
-      const dimensionCoordinates = [];
-      for (let atomIndex = 0; atomIndex < atomCount; atomIndex++) {
-        const nextCoordinateIndex = atomIndex * 3 + offset + frameStartingCoordinateIndex;
-        const nextCoordinate = coordinates[nextCoordinateIndex];
-        dimensionCoordinates.push(nextCoordinate);
-      }
-      // Calculate the average
-      const average = caluclateAverage(dimensionCoordinates);
-      // Normalize current coordinates by substracting the average
-      const normalizedDimensionCoordinates = dimensionCoordinates.map(coord => coord - average);
-      // Apply the new normalized coordinates
-      for (let atomIndex = 0; atomIndex < atomCount; atomIndex++) {
-        const nextCoordinateIndex = atomIndex * 3 + offset + frameStartingCoordinateIndex;
-        coordinates[nextCoordinateIndex] = normalizedDimensionCoordinates[atomIndex];
-      }
-    })
+// Center every frame so the geometric center of the selected atoms is placed in the origin
+// Frames are expected to include coordinates for all atoms in the structure
+// Mutate the original frames
+const centerFrames = (frames, atomIndices) => {
+  for (const frame of frames) {
+    // Calculate the geometric center of the selected atoms
+    let xSum = 0, ySum = 0, zSum = 0;
+    for (const atomIndex of atomIndices) {
+      const coordinateIndex = atomIndex * COORDINATES_PER_ATOM;
+      xSum += frame[coordinateIndex];
+      ySum += frame[coordinateIndex + 1];
+      zSum += frame[coordinateIndex + 2];
+    }
+    const x = xSum / atomIndices.length;
+    const y = ySum / atomIndices.length;
+    const z = zSum / atomIndices.length;
+    // Translate all atoms in the frame
+    for (let c = 0; c < frame.length; c += COORDINATES_PER_ATOM) {
+      frame[c] -= x;
+      frame[c + 1] -= y;
+      frame[c + 2] -= z;
+    }
   }
-}
+};

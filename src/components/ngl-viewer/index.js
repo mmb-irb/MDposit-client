@@ -18,7 +18,7 @@ import cn from 'classnames';
 // Current versions of NGL do not load trajectory coordinates, starting at version 2.1.0
 // I don't know where the problem is, but there are no error logs and I have spent a few hours already
 // Previous version 2.0.1 had a bug not showing surfaces and returning "Worker.onerror molsurf"
-import { autoLoad, Stage, Shape, ColormakerRegistry, Matrix4, MouseActions } from 'ngl';
+import { autoLoad, Stage, Shape, ColormakerRegistry, Matrix4, MouseActions, Selection } from 'ngl';
 
 import { frame } from 'timing-functions';
 
@@ -164,6 +164,9 @@ const NGLViewer = memo(
         //console.log(initialFocus);
         setFocus(initialFocus);
       }, [initialFocus]);
+      // Keep the initial focus also as a reference to recover it without triggering hooks
+      const initialFocusRef = useRef(initialFocus);
+      initialFocusRef.current = initialFocus;
 
       // references
       const containerRef = useRef(null);
@@ -1014,6 +1017,14 @@ const NGLViewer = memo(
           if (trajectoryAtomIndices && trajectoryAtomIndices.length !== trajectoryAtoms)
             throw new Error('Unexpected number of trajectory atoms');
 
+          // If centering was requested then get the indices of the atoms to center the trajectory around
+          let centeringAtomIndices = null;
+          if (centering) {
+            centeringAtomIndices = topology.file.getAtomIndices(new Selection(centering));
+            if (centeringAtomIndices.length === 0)
+              throw new Error(`Centering selection "${centering}" matches no atoms`);
+          }
+
           // Get the current NGL loaded trajectories
           const compTrajectories = stageComp.trajList;
 
@@ -1031,7 +1042,7 @@ const NGLViewer = memo(
               trajectoryAtoms,
               totalFrames,
               trajectoryAtomIndices,
-              centering,
+              centeringAtomIndices,
             );
             // Adjust some parameters after the trajectory data has been changed
             nglTrajectory._frameCount = totalFrames;
@@ -1065,7 +1076,7 @@ const NGLViewer = memo(
               trajectoryAtoms,
               totalFrames,
               trajectoryAtomIndices,
-              centering,
+              centeringAtomIndices,
             );
             if (!file) return;
             const nglFile = stageComp.addTrajectory(file);
@@ -1090,7 +1101,11 @@ const NGLViewer = memo(
           }
           // If the trajectory is to be centered then refocus now
           // Otherwise we may loose the structure from outside the view of the camera
-          if (centering) setFocus({ comp: 0, sele: 'all' });
+          // Keep the initial focus if any, but set a new object so the focus is triggered again
+          if (centering) {
+            const initialFocus = initialFocusRef.current;
+            setFocus(initialFocus ? { ...initialFocus } : { comp: 0, sele: 'all' });
+          }
         });
       }, [
         parsedTopologies,

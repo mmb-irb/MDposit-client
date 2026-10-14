@@ -240,8 +240,8 @@ const ViewerWithControls = forwardRef(
       // Opt in to the reduced membrane view (settings-panel toggle loading only protein/solute +
       // membrane headgroups). Handled entirely internally; only appears for membrane simulations.
       allowMembraneReduced = false,
-      // Center trajectory coordinates every frame
-      centering = false,
+      // NGL selection of atoms to center the trajectory around, every frame
+      centering = null,
       // The rest of properties paased to the NGLViewer
       ...props
     },
