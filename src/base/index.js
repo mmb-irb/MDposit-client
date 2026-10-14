@@ -86,11 +86,12 @@ const FixedNavigate = () => {
 };
 
 const Base = () => {
+  const location = useLocation();
   return (
     <Body>
       <Header />
       <Main>
-        <ErrorBoundary>
+        <ErrorBoundary resetKey={location.pathname}>
           <Routes>
             <Route
               path="/"

@@ -161,6 +161,7 @@ const AccessionHeader = ({ page, primaryDarkColor }) => {
 const ContentSwitch = ({ subPage }) => {
   // Load the project context
   const project = useContext(ProjectCtx);
+  const location = useLocation();
 
   // Change tab title according to the current project
   useEffect(() => {
@@ -244,7 +245,7 @@ const ContentSwitch = ({ subPage }) => {
 
   // Render the accession
   return (
-    <ErrorBoundary>
+    <ErrorBoundary resetKey={location.pathname}>
       {problems && problemsBanner}
       {' '}
       <Routes>
