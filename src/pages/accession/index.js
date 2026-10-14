@@ -313,8 +313,10 @@ const Accession = () => {
       return;
     }
     // Save the current project data as the state project data
+    // Forget the error from any previous entry, since this page is reused when the accession changes
     const newProject = new Project(projectQueryPayload);
     setProject(newProject);
+    setProjectError(null);
   }, [projectQueryLoading, projectQueryPayload, projectQueryError]);
   // If there was any problem with the project then stop here and report ir
   if (projectError) return projectError;
