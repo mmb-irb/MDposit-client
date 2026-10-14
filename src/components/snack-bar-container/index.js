@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 
-import { Snackbar, SnackbarContent, Button, IconButton } from '@mui/material';
+import { Snackbar, SnackbarContent, IconButton } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 
 const anchorOrigin = { vertical: 'bottom', horizontal: 'right' };
-const reload = () => window.location.reload();
 
 export default () => {
   const [message, setMessage] = useState(null);
@@ -19,24 +18,6 @@ export default () => {
     let timeout;
     const handler = event => {
       switch (event.detail) {
-        case 'update':
-          setMessage('Updated content is available. Please reload the page.');
-          setAction(
-            <>
-              <Button color="secondary" onClick={reload}>
-                Reload
-              </Button>
-              <IconButton
-                color="primary"
-                onClick={reset}
-                aria-label="close"
-                size="large"
-              >
-                <FontAwesomeIcon icon={faTimes} />
-              </IconButton>
-            </>,
-          );
-          break;
         case 'install':
           setMessage('This website is now installed and available offline');
           setAction(

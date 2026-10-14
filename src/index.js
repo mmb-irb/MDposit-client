@@ -1,7 +1,5 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-// Used to just wait
-import { sleep } from 'timing-functions';
 // The client main script
 import App from './App';
 
@@ -28,13 +26,6 @@ const main = async () => {
   const container = document.getElementById('root');
   const root = createRoot(container);
   root.render(<App />);
-  // If render is over wait 1 second and send a new event asking user to reload the page
-  await sleep(1000);
-  window.dispatchEvent(
-    new CustomEvent('sw update', {
-      detail: 'Updated content is available. Please reload the page.',
-    }),
-  );
 };
 
 main();

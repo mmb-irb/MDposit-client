@@ -22,8 +22,6 @@ const isLocalhost = Boolean(
     ),
 );
 
-const QUICK_ENOUGH_TO_JUST_REFRESH = 750; // 750ms;
-
 export function register(config) {
   if (HOST_CONFIG.production && 'serviceWorker' in navigator) {
     // The URL constructor is available in all browsers that support SW.
@@ -67,28 +65,14 @@ function registerValidSW(swUrl, config) {
         installingWorker.onstatechange = () => {
           if (installingWorker.state === 'installed') {
             if (navigator.serviceWorker.controller) {
-              // At this point, the old content will have been purged and
-              // the fresh content will have been added to the cache.
-              // It's the perfect time to display a "New content is
-              // available; please refresh." message in your web app.
+              // At this point, the new version has taken over and the old
+              // content has been purged. The page keeps running the old code
+              // and the user gets the new version on their next reload.
               console.log('New content is available; please refresh.');
 
               // Execute callback
               if (config.onUpdate) {
                 config.onUpdate(registration);
-              }
-
-              if (window.performance) {
-                const elapsedTime =
-                  window.performance.timing.navigationStart -
-                  window.performance.now();
-                if (elapsedTime > QUICK_ENOUGH_TO_JUST_REFRESH) {
-                  window.location.reload();
-                }
-              } else {
-                window.dispatchEvent(
-                  new CustomEvent('sw', { detail: 'update' }),
-                );
               }
             } else {
               // At this point, everything has been precached.
