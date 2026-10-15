@@ -18,7 +18,11 @@ import cn from 'classnames';
 // Current versions of NGL do not load trajectory coordinates, starting at version 2.1.0
 // I don't know where the problem is, but there are no error logs and I have spent a few hours already
 // Previous version 2.0.1 had a bug not showing surfaces and returning "Worker.onerror molsurf"
-import { autoLoad, Stage, Shape, ColormakerRegistry, Matrix4, MouseActions, ParserRegistry, Structure } from 'ngl';
+// This bug starts at version 2.0.0-dev.40, the first one released already minified
+// NGL builds its workers by stringifying its own functions, and our build minifier turns one of them anonymous
+// The worker script is then invalid JavaScript, so surfaces never show
+// The ngl.test.js tests run the real NGL, but they can not catch this since they do not use the build minifier
+import { autoLoad, Stage, Shape, ColormakerRegistry, Matrix4, MouseActions } from 'ngl';
 
 import { frame } from 'timing-functions';
 
@@ -26,6 +30,9 @@ import { setNGLFile, updateNGLFile } from './payload-to-ngl-file';
 
 // Improved 'element' color scheme (distinguishes coarse-grain beads instead of white)
 import getElementColorSchemeId from './element-colormaker';
+
+// PDB parser which skips the bond guessing that topology bonds replace anyway
+import { PDB_WITH_TOPOLOGY_BONDS } from './pdb-parser-with-topology-bonds';
 
 import { ProjectCtx } from '../../contexts';
 
@@ -37,35 +44,6 @@ import style from './style.module.css';
 
 // Make a deep copy of an object even with cyclic references
 import { cloneDeep } from 'lodash-es';
-
-// NGL guesses the structure bonds while parsing a PDB, but we replace them further by the topology bonds
-// Most of this time goes to search neighbour atoms for every non-polymer atom (lipids, ions, ligands...)
-// This search takes ~190 ms in membrane systems (~95k atoms) and the bonds it finds are discarded anyway
-// This parser hides the structure spatial hash while bonds are calculated, so the search finds nothing
-// Backbone bonds, which are needed by the cartoon, do not use the spatial hash so they are still calculated
-const PdbParser = ParserRegistry.get('pdb');
-class PdbParserWithTopologyBonds extends PdbParser {
-  _parse () {
-    const structure = this.structure;
-    let spatialHash;
-    structure.finalizeAtoms = () => {
-      Structure.prototype.finalizeAtoms.call(structure);
-      spatialHash = structure.spatialHash;
-      structure.spatialHash = { eachWithin: () => {} };
-    };
-    structure.finalizeBonds = () => {
-      structure.spatialHash = spatialHash;
-      Structure.prototype.finalizeBonds.call(structure);
-    };
-    try { super._parse(); }
-    finally {
-      delete structure.finalizeAtoms;
-      delete structure.finalizeBonds;
-    }
-  }
-}
-const PDB_WITH_TOPOLOGY_BONDS = 'pdb-with-topology-bonds';
-ParserRegistry.add(PDB_WITH_TOPOLOGY_BONDS, PdbParserWithTopologyBonds);
 
 // Used to just wait
 import { sleep } from 'timing-functions';
@@ -284,7 +262,17 @@ const NGLViewer = memo(
           // NOTE: following line causes to fail when loading a new viewer with
           // NOTE: previous structure data
           // stageRef.current.removeAllComponents();
-          stageRef.current.dispose();
+          stage.dispose();
+          // NGL dispose (2.0.0-dev.37) leaves the viewer render loop and the mouse observer loop running forever
+          // Both loops request their next frame through these methods, so replacing them ends the loops
+          stage.viewer.animate = () => {};
+          stage.mouseObserver._listen = () => {};
+          // It does not remove the mouse observer listeners from the document either
+          // These listeners would keep the whole stage alive
+          stage.mouseObserver.dispose();
+          // Nor does it release the WebGL context
+          // Browsers limit live contexts, so every remount would cost one more until garbage collected
+          stage.viewer.renderer.forceContextLoss();
           stageRef.current = null;
         };
       }, []);
