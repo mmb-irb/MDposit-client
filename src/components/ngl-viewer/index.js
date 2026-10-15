@@ -22,7 +22,7 @@ import cn from 'classnames';
 // NGL builds its workers by stringifying its own functions, and our build minifier turns one of them anonymous
 // The worker script is then invalid JavaScript, so surfaces never show
 // The ngl.test.js tests run the real NGL, but they can not catch this since they do not use the build minifier
-import { autoLoad, Stage, Shape, ColormakerRegistry, Matrix4, MouseActions } from 'ngl';
+import { autoLoad, Stage, Shape, ColormakerRegistry, Matrix4, MouseActions, Selection } from 'ngl';
 
 import { frame } from 'timing-functions';
 
@@ -173,6 +173,9 @@ const NGLViewer = memo(
         //console.log(initialFocus);
         setFocus(initialFocus);
       }, [initialFocus]);
+      // Keep the initial focus also as a reference to recover it without triggering hooks
+      const initialFocusRef = useRef(initialFocus);
+      initialFocusRef.current = initialFocus;
 
       // references
       const containerRef = useRef(null);
@@ -458,9 +461,11 @@ const NGLViewer = memo(
             setMainComponent(stageComp);
             // Set the camera on the first component now, before the first render, so it is not painted off-center
             // The focus effect further does the same, but after a render where the camera is still at the origin
+            // Frame the initial focus already if it is in this component, so the camera does not jump to it after
             if (c === 0) {
               if (curatedOrientation) stageRef.current.animationControls.orient(curatedOrientation, 0);
-              stageComp.autoView(0);
+              const initialFocus = initialFocusRef.current;
+              stageComp.autoView(initialFocus && !initialFocus.comp ? initialFocus.sele : '', 0);
             }
           }
 
@@ -1052,6 +1057,14 @@ const NGLViewer = memo(
           if (trajectoryAtomIndices && trajectoryAtomIndices.length !== trajectoryAtoms)
             throw new Error('Unexpected number of trajectory atoms');
 
+          // If centering was requested then get the indices of the atoms to center the trajectory around
+          let centeringAtomIndices = null;
+          if (centering) {
+            centeringAtomIndices = topology.file.getAtomIndices(new Selection(centering));
+            if (centeringAtomIndices.length === 0)
+              throw new Error(`Centering selection "${centering}" matches no atoms`);
+          }
+
           // Get the current NGL loaded trajectories
           const compTrajectories = stageComp.trajList;
 
@@ -1069,7 +1082,7 @@ const NGLViewer = memo(
               trajectoryAtoms,
               totalFrames,
               trajectoryAtomIndices,
-              centering,
+              centeringAtomIndices,
             );
             // Adjust some parameters after the trajectory data has been changed
             nglTrajectory._frameCount = totalFrames;
@@ -1103,7 +1116,7 @@ const NGLViewer = memo(
               trajectoryAtoms,
               totalFrames,
               trajectoryAtomIndices,
-              centering,
+              centeringAtomIndices,
             );
             if (!file) return;
             const nglFile = stageComp.addTrajectory(file);
@@ -1128,7 +1141,11 @@ const NGLViewer = memo(
           }
           // If the trajectory is to be centered then refocus now
           // Otherwise we may loose the structure from outside the view of the camera
-          if (centering) setFocus({ comp: 0, sele: 'all' });
+          // Keep the initial focus if any, but set a new object so the focus is triggered again
+          if (centering) {
+            const initialFocus = initialFocusRef.current;
+            setFocus(initialFocus ? { ...initialFocus } : { comp: 0, sele: 'all' });
+          }
         });
       }, [
         parsedTopologies,
