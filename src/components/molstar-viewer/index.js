@@ -175,21 +175,26 @@ const MolstarViewer = memo(
 
       // Setup molstar
       useEffect(() => {
+        // Keep the instance here: the 'molstar' state seen by the cleanup would always be the initial null
+        let molstarInstance = null;
+        let unmounted = false;
         // This wrapper function is the most correct way to call awaits inside a use effect
         const wrap = async () => {
           // Create the plugin
-          const molstarInstance = await createPluginUI(
+          molstarInstance = await createPluginUI(
             parentRef.current,
             molstarSpec,
           );
-          setMolstar(molstarInstance);
+          // If we were unmounted while creating it then nobody else will dispose it
+          if (unmounted) molstarInstance.dispose();
+          else setMolstar(molstarInstance);
         };
         wrap();
         // Cleanup function
+        // Disposing stops the plugin render loop and releases its WebGL context
         return () => {
-          if (!molstar) return;
-          molstar.dispose();
-          molstar = null;
+          unmounted = true;
+          if (molstarInstance) molstarInstance.dispose();
         };
       }, []);
 
