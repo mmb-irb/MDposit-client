@@ -1,5 +1,5 @@
 // React logic
-import React from 'react';
+import React, { lazy } from 'react';
 import cn from 'classnames';
 // Visual assets
 import { Grid, Icon, IconButton, Slider } from '@mui/material';
@@ -24,8 +24,12 @@ import {
 import { setAsync } from '../../../utils/storage';
 
 // The two interchangeable viewer backends, used here only to compare/switch
-import MolstarViewer from '../../molstar-viewer';
 import NGLViewer from '../../ngl-viewer';
+// Mol* is a ~3 MB chunk only needed once the user switches to it, so it is loaded lazily
+// The lazy component is created once here so the identity checks below keep working
+const MolstarViewer = lazy(() =>
+  import(/* webpackChunkName: 'molstar-viewer' */ '../../molstar-viewer'),
+);
 
 // Import CSS style
 import style from './style.module.css';

@@ -8,6 +8,7 @@ import React, {
   forwardRef,
   useImperativeHandle,
   useContext,
+  Suspense,
 } from 'react';
 import cn from 'classnames';
 import screenfull from 'screenfull';
@@ -159,18 +160,21 @@ const ManagedViewer = forwardRef(
       anyLoadingTrajectory,
       downloadError,
     } = useViewerData(components, requestedFramesNumber, onLoad);
+    // The Mol* backend is lazy: suspend here so only the viewer area waits for its chunk, not the controls
     return (
-      <Viewer
-        ref={ref}
-        components={components}
-        // Viewer data including both structure and coordinates
-        topologies={topologies}
-        trajectories={trajectories}
-        anyLoadingTopology={anyLoadingTopology}
-        anyLoadingTrajectory={anyLoadingTrajectory}
-        downloadError={downloadError}
-        {...props}
-      />
+      <Suspense fallback={null}>
+        <Viewer
+          ref={ref}
+          components={components}
+          // Viewer data including both structure and coordinates
+          topologies={topologies}
+          trajectories={trajectories}
+          anyLoadingTopology={anyLoadingTopology}
+          anyLoadingTrajectory={anyLoadingTrajectory}
+          downloadError={downloadError}
+          {...props}
+        />
+      </Suspense>
     );
   },
 );
