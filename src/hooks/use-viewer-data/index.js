@@ -288,10 +288,11 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
                 : null;
             const resIndices = comp.resIndices || null;
             const chainIndices = comp.chainIndices || null;
-            // Build the NGL atom selection to be sent to the API
-            // Prefer an explicit atom selection, otherwise derive it from the atom indices
-            const atomSelection = comp.atomSelection
-                || (atomIndices ? '@' + atomIndices.join(',') : null);
+            // NGL atom selection to be sent to the API, if any
+            // WARNING: Never derive it from atom indices ('@i1,i2,...'): the API resolves NGL selections by
+            // building and parsing a PDB of the whole system, which times out on big systems (e.g. A05PJ)
+            // Atom indices are sent as they are instead (same as for the structure)
+            const atomSelection = comp.atomSelection || null;
             // Get the trajectory urls
             // If the component has no trajectory urlpath specified then use the default trajectory
             const urlpaths = comp.trajectoryURLs || [ defaultUrlpath ];
@@ -363,6 +364,7 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
                     atoms: atomIndices
                         ? atomIndices.length
                         : (resIndices || chainIndices) ? null : trajectoryMetadata.atoms,
+                    atomindices: atomIndices,
                     resindices: resIndices,
                     chaindices: chainIndices,
                     atomSelection: atomSelection,
@@ -405,6 +407,7 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
             // When no subset is requested the field is undefined and the body is just "{}"
             const postData = JSON.stringify({
                 selection: trajectory.atomSelection || undefined,
+                atomindices: trajectory.atomindices || undefined,
                 resindices: trajectory.resindices || undefined,
                 chaindices: trajectory.chaindices || undefined,
             });

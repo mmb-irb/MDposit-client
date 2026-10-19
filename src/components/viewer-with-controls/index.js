@@ -243,9 +243,6 @@ const ViewerWithControls = forwardRef(
       preventTrajectory = false,
       // Set a state setter to handle the frame progress
       onProgress,
-      // Opt in to the reduced membrane view (settings-panel toggle loading only protein/solute +
-      // membrane headgroups). Handled entirely internally; only appears for membrane simulations.
-      allowMembraneReduced = false,
       // NGL selection of atoms to center the trajectory around, every frame
       centering = null,
       // The rest of properties paased to the NGLViewer
@@ -395,11 +392,16 @@ const ViewerWithControls = forwardRef(
     // For heavy membrane trajectories (lots of lipid tails, water, ions), load only protein/solute +
     // membrane headgroups. Lives here rather than in the parent page / Domains so toggling reloads only
     // the viewer's data (via the ManagedViewer remount, see viewerReloadKey) instead of the whole page.
+    // It is available in every viewer, so the system looks the same in every page.
 
     // The reduced atom subset for this topology, or null when it is not a membrane simulation
     const membraneSelection = topology && topology.membraneViewerSelection;
-    // Whether the reduced view is available at all (opt-in and an actual membrane simulation)
-    const canReduceMembrane = allowMembraneReduced && !!membraneSelection;
+    // Components already restricted to a subset of atoms (e.g. PCA projections) are not reduced
+    const firstComponent = finalComponents && finalComponents[0];
+    const isSubsetComponent = !!firstComponent && !!(firstComponent.atomIndices
+      || firstComponent.resIndices || firstComponent.chainIndices || firstComponent.atomSelection);
+    // Whether the reduced view is available at all (an actual membrane simulation with the whole system)
+    const canReduceMembrane = !!membraneSelection && !isSubsetComponent;
     // Default on for very large membranes, where loading every lipid atom is too heavy
     const membraneReducedDefault = !!(topology && topology.lipidAtomsCount > 100000);
     // Store only the user's explicit choice (null until they toggle) and derive the effective value,
@@ -421,11 +423,23 @@ const ViewerWithControls = forwardRef(
           : representation);
     }, [canReduceMembrane, topology, membraneSelection]);
 
-    // Keep the "Overall" default representations in sync with the reduced view. Domains always emits
-    // the FULL default set for "Overall", so we swap it to the reduced set (and back) on toggle or
-    // re-selection. We match by name + selection + type (the fields distinguishing the two default
-    // sets) so we only touch a default set — other domains and manual edits (opacity, color, show) are
-    // left alone.
+    // Selections of the default lipid representations
+    // Representations with these selections show lipids, even if pages customize them (e.g. color)
+    const lipidSelections = useMemo(() => {
+      if (!canReduceMembrane || !defaultRepresentations) return null;
+      return new Set(defaultRepresentations
+        .filter(representation => representation.name.toLowerCase().includes('lipid'))
+        .map(representation => representation.selection));
+    }, [canReduceMembrane, defaultRepresentations]);
+
+    // Keep representations in sync with the reduced view.
+    // Default representations (e.g. Domains always emits the FULL default set for "Overall") are swapped
+    // to the reduced set (and back) on toggle or re-selection. We match by name + selection + type (the
+    // fields distinguishing the two default sets) so other domains and manual edits (opacity, color, show)
+    // are left alone.
+    // Other representations (e.g. default representations recolored by an analysis page) are kept, but
+    // lipid representations are shown as low-opacity spacefill, since only lipid headgroups are loaded.
+    // Their original type and opacity are saved to restore them when the full view is back.
     useEffect(() => {
       if (!canReduceMembrane) return;
       if (!finalRepresentations || !defaultRepresentations || !membraneReducedRepresentations) return;
@@ -436,17 +450,40 @@ const ViewerWithControls = forwardRef(
           && rep.type === other[r].type);
       const currentIsFull = repsMatch(finalRepresentations, defaultRepresentations);
       const currentIsReduced = repsMatch(finalRepresentations, membraneReducedRepresentations);
-      // Only touch a default set, and only when it isn't already in the toggled mode
-      if (!currentIsFull && !currentIsReduced) return;
-      if (membraneReduced ? currentIsReduced : currentIsFull) return;
-      const target = membraneReduced ? membraneReducedRepresentations : defaultRepresentations;
-      setFinalRepresentations(target.map(rep => ({ ...rep })));
+      // Swap default sets, only when they are not already in the toggled mode
+      if (currentIsFull || currentIsReduced) {
+        if (membraneReduced ? currentIsReduced : currentIsFull) return;
+        const target = membraneReduced ? membraneReducedRepresentations : defaultRepresentations;
+        setFinalRepresentations(target.map(rep => ({ ...rep })));
+        return;
+      }
+      // Adapt lipid representations in any other set
+      let changed = false;
+      const adapted = finalRepresentations.map(rep => {
+        if (membraneReduced && !rep.unreducedStyle && lipidSelections.has(rep.selection)) {
+          changed = true;
+          return {
+            ...rep,
+            type: 'spacefill',
+            opacity: 0.3,
+            unreducedStyle: { type: rep.type, opacity: rep.opacity },
+          };
+        }
+        if (!membraneReduced && rep.unreducedStyle) {
+          changed = true;
+          const { unreducedStyle, ...restored } = rep;
+          return { ...restored, ...unreducedStyle };
+        }
+        return rep;
+      });
+      if (changed) setFinalRepresentations(adapted);
     }, [
       canReduceMembrane,
       membraneReduced,
       finalRepresentations,
       defaultRepresentations,
       membraneReducedRepresentations,
+      lipidSelections,
       setFinalRepresentations,
     ]);
 
@@ -653,7 +690,7 @@ const ViewerWithControls = forwardRef(
       const handleKeyPress = event => {
         if (event.key === 'Escape') {
           openSettings(false);
-          viewerRef.current.autoResize();
+          if (viewerRef.current) viewerRef.current.autoResize();
         }
         // Only handle spacebar if not typing in an input field
         if (event.key === ' ' && event.target.tagName !== 'INPUT' && event.target.tagName !== 'TEXTAREA') {
@@ -693,11 +730,14 @@ const ViewerWithControls = forwardRef(
     }, [topology, effectiveComponents]);
 
     // This allows parent components to interact with this component
+    // WARNING: Read the viewer methods when called, not when the handle is set
+    // The viewer is not mounted until the topology is ready, so it may be missing when the handle is set
     useImperativeHandle(ref,
       () => ({
-        autoResize: viewerRef.current.autoResize,
-        centerFocus: viewerRef.current.centerFocus,
-        drawMesh: viewerRef.current.drawMesh,
+        // There is nothing to resize while the viewer is not mounted yet
+        autoResize: () => { if (viewerRef.current) viewerRef.current.autoResize() },
+        centerFocus: (...args) => viewerRef.current.centerFocus(...args),
+        drawMesh: (...args) => viewerRef.current.drawMesh(...args),
         get currentFrame() {
           return viewerRef.current.currentFrame;
         },
@@ -820,11 +860,11 @@ const ViewerWithControls = forwardRef(
               }
               style={{ border: 'none', boxShadow: 'none' }}
             >
-              {/* Gate the mount on this component's own topology when the reduced-membrane feature is on. */}
+              {/* Gate the mount on this component's own topology for the reduced-membrane feature. */}
               {/* topology is a getter running useAPI hooks, so it starts undefined here and settles a few */}
               {/* renders later; mounting earlier would start in 'full' mode then flip viewerReloadKey once */}
               {/* topology (and its mem-map) resolves, remounting mid-load and stranding in-flight requests. */}
-              {(!allowMembraneReduced || topology) && (
+              {topology && (
                 <ManagedViewer
                   key={viewerReloadKey}
                   Viewer={Viewer}
@@ -1003,7 +1043,7 @@ const ViewerWithControls = forwardRef(
                   title={'Settings'}
                   onClick={() => {
                     openSettings(previous => !previous);
-                    viewerRef.current.autoResize();
+                    if (viewerRef.current) viewerRef.current.autoResize();
                   }}
                   size="large"
                 >

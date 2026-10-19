@@ -596,19 +596,21 @@ export class Topology {
     // If the selection is the 'all' word then select the whole system
     if (apiSelection === 'all') return new Selection([...Array(this.atomCount).keys()])
     // Otherwise we must convert chain and residue indices to atom indices
+    // WARNING: append one by one, never push(...indices): a single chain may have hundreds of thousands
+    // of atoms and spreading them as function arguments overflows the call stack.
     const atomIndices = [];
     // Start with chains
     if (apiSelection.ch) apiSelection.ch.forEach(chainIndex => {
       const chain = this.getChainByIndex(chainIndex);
-      atomIndices.push(...chain.atomIndices);
+      for (const atomIndex of chain.atomIndices) atomIndices.push(atomIndex);
     });
     // Continue with residues
     if (apiSelection.re) apiSelection.re.forEach(residueIndex => {
       const residue = this.getResidueByIndex(residueIndex);
-      atomIndices.push(...residue.atomIndices);
+      for (const atomIndex of residue.atomIndices) atomIndices.push(atomIndex);
     });
     // Finally add atoms
-    if (apiSelection.at) atomIndices.push(...apiSelection.at);
+    if (apiSelection.at) for (const atomIndex of apiSelection.at) atomIndices.push(atomIndex);
     // Finally return the parsed selection
     return new Selection(atomIndices);
   }

@@ -51,13 +51,12 @@ const Trajectory = () => {
       <Card className={style['ngl-card']} ref={nglRef}>
         {/* Render once on screen and the topology is ready (so the reduced-membrane subset is known at */}
         {/* mount, avoiding a full-then-reduced double download). The reduced-membrane view is handled */}
-        {/* internally by ViewerWithControls, enabled here via allowMembraneReduced. */}
+        {/* internally by ViewerWithControls. */}
         {isNglVisible && topology ? (
           <ViewerWithControls
             className={style.container}
             representationsState={representationsState}
             initialFocus={initialFocus}
-            allowMembraneReduced
           />
         ) : (
           <div style={{ height: '50vh' }} />

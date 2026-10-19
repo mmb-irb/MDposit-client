@@ -33,6 +33,14 @@ import getElementColorSchemeId from './element-colormaker';
 
 // PDB parser which skips the bond guessing that topology bonds replace anyway
 import { PDB_WITH_TOPOLOGY_BONDS } from './pdb-parser-with-topology-bonds';
+import {
+  getPartialSystem,
+  toPartialAtomIndex,
+  toWholeAtomIndex,
+  toPartialSelection,
+  toPartialAtomGroups,
+  toPartialColorScheme,
+} from './partial-system';
 
 import { ProjectCtx } from '../../contexts';
 
@@ -414,21 +422,17 @@ const NGLViewer = memo(
             topology.file.atomStore.occupancy = new Array(
               topology.file.atomStore.occupancy.length,
             ).fill(1);
+            // Take in count if the topology contains a subset of the atoms
+            const partialSystem = getPartialSystem(comp.atomIndices, topologyManager.atomCount);
             // Set atom bonds according to our topology
             let safeBonds = topologyManager.atomBonds;
             if (safeBonds) {
-              // Take in count if the topology contains a subset of the atoms
-              const atomIndices = comp.atomIndices;
-              const isPartialSystem = atomIndices && atomIndices.length < topologyManager.atomCount;
-              if (isPartialSystem) {
-                // Create a 'whole system index' to 'partial system index' map
-                const indexMap = {};
-                atomIndices.forEach((wholeIndex, partialIndex) => { indexMap[wholeIndex] = partialIndex });
+              if (partialSystem) {
                 // Convert atom indices in order to adapt safe bonds to the partial system
-                safeBonds = atomIndices.map(
-                  atomIndex => safeBonds[atomIndex].map(
-                    bondAtomindex => indexMap[bondAtomindex]
-                  ).filter(bondAtomindex => bondAtomindex != undefined));
+                safeBonds = partialSystem.wholeIndices.map(
+                  atomIndex => safeBonds[atomIndex]
+                    .map(bondAtomIndex => toPartialAtomIndex(partialSystem, bondAtomIndex))
+                    .filter(bondAtomIndex => bondAtomIndex !== null));
               }
               // Get the NGL internal bonds handler
               const bondStore = topology.file.bondStore;
@@ -460,6 +464,9 @@ const NGLViewer = memo(
             stageComp.myName = comp.name;
             if (!stageComp) return;
             stageComp.onlyTopology = comp.onlyTopology;
+            // Atom indices from outside are always whole system indices
+            // Keep the partial system, if any, to translate them
+            stageComp.partialSystem = partialSystem;
             setMainComponent(stageComp);
             // Set the camera on the first component now, before the first render, so it is not painted off-center
             // The focus effect further does the same, but after a render where the camera is still at the origin
@@ -467,7 +474,9 @@ const NGLViewer = memo(
             if (c === 0) {
               if (curatedOrientation) stageRef.current.animationControls.orient(curatedOrientation, 0);
               const initialFocus = initialFocusRef.current;
-              stageComp.autoView(initialFocus && !initialFocus.comp ? initialFocus.sele : '', 0);
+              stageComp.autoView(initialFocus && !initialFocus.comp
+                ? toPartialSelection(partialSystem, initialFocus.sele)
+                : '', 0);
             }
           }
 
@@ -495,6 +504,7 @@ const NGLViewer = memo(
             // A selection should never be empty so if it happens then it is a bug
             // To avoid showing everythin in a buggy representation we set an empty selection as None
             if (sele === '' || sele == null) sele = 'None';
+            sele = toPartialSelection(stageComp.partialSystem, sele);
             const type = rep.type
             const color = rep.color;
             const opacity = show ? rep.opacity : 0;
@@ -509,7 +519,7 @@ const NGLViewer = memo(
                 )
               // If the colorScheme is in the passed custom schemes use it
               : customColorScheme && color === 'custom'
-                ? customColorScheme
+                ? toPartialColorScheme(stageComp.partialSystem, topologyManager, customColorScheme)
                 // If the colorScheme is a defined color, create a custom colorScheme for this color
                 : isValidColor(color)
                   ? ColormakerRegistry.addSelectionScheme(
@@ -691,7 +701,7 @@ const NGLViewer = memo(
         const seleHighlight = `@${atoms.map(atomIndex => atomIndex).join(',')}`;
 
         mainComponent.addRepresentation(highlightTypes.atoms, {
-          sele: seleHighlight,
+          sele: toPartialSelection(mainComponent.partialSystem, seleHighlight),
           opacity: 0.5,
           scale: 1.5,
           name: nameHighlight,
@@ -714,7 +724,7 @@ const NGLViewer = memo(
         mainComponent.addRepresentation(
           highlightTypes.residues,
           {
-            sele: otherResidueAtomsSelection,
+            sele: toPartialSelection(mainComponent.partialSystem, otherResidueAtomsSelection),
             name: nameContextHighlight,
           },
         );
@@ -805,7 +815,7 @@ const NGLViewer = memo(
         const currentRepresentations = mainComponent.reprList;
         snapRepresentations.forEach(snapRepresentation => {
           mainComponent.addRepresentation(snapRepresentation.type, {
-            sele: snapRepresentation.selection,
+            sele: toPartialSelection(mainComponent.partialSystem, snapRepresentation.selection),
             name: snapRepresentation.name,
             color: snapRepresentation.color,
             opacity: snapRepresentation.opacity,
@@ -847,7 +857,7 @@ const NGLViewer = memo(
         mainComponent.addRepresentation(
           highlightTypes.selections,
           {
-            sele: nglSelection,
+            sele: toPartialSelection(mainComponent.partialSystem, nglSelection),
             name: nameHighlight,
           },
         );
@@ -874,7 +884,7 @@ const NGLViewer = memo(
 
         // Display the new distance representation
         mainComponent.addRepresentation('distance', {
-          atomPair: selectedDistances,
+          atomPair: toPartialAtomGroups(mainComponent.partialSystem, selectedDistances),
           color: 'skyblue',
           labelUnit: 'angstrom',
           name: name,
@@ -941,7 +951,7 @@ const NGLViewer = memo(
           );
 
         mainComponent.addRepresentation('angle', {
-          atomTriple: selectedAngles,
+          atomTriple: toPartialAtomGroups(mainComponent.partialSystem, selectedAngles),
           name: name,
           labelColor: darkBackground ? 16777215 : 1, // 16777215 is white, 1 is black
         });
@@ -1062,7 +1072,8 @@ const NGLViewer = memo(
           // If centering was requested then get the indices of the atoms to center the trajectory around
           let centeringAtomIndices = null;
           if (centering) {
-            centeringAtomIndices = topology.file.getAtomIndices(new Selection(centering));
+            const partialCentering = toPartialSelection(stageComp.partialSystem, centering);
+            centeringAtomIndices = topology.file.getAtomIndices(new Selection(partialCentering));
             if (centeringAtomIndices.length === 0)
               throw new Error(`Centering selection "${centering}" matches no atoms`);
           }
@@ -1343,18 +1354,25 @@ const NGLViewer = memo(
         stageRef.current.mouseControls.remove('hoverPick');
 
         // Set a function which is used further to write a formatted output message to refer an atom
-        const formatOutput = atom => {
+        // The component is required to know if it contains a partial system
+        const formatOutput = (atom, component) => {
+          // In partial systems NGL atom and residue indices do not match the whole system indices
+          // Get the residue from the whole system atom index then
+          const partialSystem = component.partialSystem;
+          const atomIndex = toWholeAtomIndex(partialSystem, atom.index);
           // a.residueIndex starts at 0
           // WARNING: a.residueIndex is correct but we must convert it to source first
           // In some cases 1 residue can have multiple residue indices
           // (e.g. hydrogens at the end)
-          const residue = topologyManager.getResidueByIndex(atom.residueIndex);
+          const residue = partialSystem
+            ? topologyManager.getAtomByIndex(atomIndex).residue
+            : topologyManager.getResidueByIndex(atom.residueIndex);
           const chainName = residue.chain.metadataChainName;
           // Get the residue reference id
           const referenceId = residue.referenceId;
           return (
             <>
-              {`Atom ${atom.index} (${atom.atomname})
+              {`Atom ${atomIndex} (${atom.atomname})
                 Chain ${residue.chainName} ${chainName ? '(' + chainName + ')' : ''}
                 Residue ${residue.number} (${atom.resname})`}
               {(() => {
@@ -1407,19 +1425,22 @@ const NGLViewer = memo(
               const bond = pickingProxy.bond;
               const atom = pickingProxy.atom;
               const distance = pickingProxy.distance;
+              const component = pickingProxy.component;
+              // Get the whole system index of an atom from the hovered component
+              const wholeIndex = atom => toWholeAtomIndex(component.partialSystem, atom.index);
               // When we hover a distance
               if (distance) {
                 const atom1 = distance.atom1;
                 const atom2 = distance.atom2;
                 const custom = distanceTooltipRef.current &&
-                  distanceTooltipRef.current(atom1.index, atom2.index);
+                  distanceTooltipRef.current(wholeIndex(atom1), wholeIndex(atom2));
                 description = custom || (
                   <>
-                    <div>{`Distance ${atom1.index} - ${atom2.index} (${atom1.distanceTo(atom2).toFixed(2)} Å)`}</div>
+                    <div>{`Distance ${wholeIndex(atom1)} - ${wholeIndex(atom2)} (${atom1.distanceTo(atom2).toFixed(2)} Å)`}</div>
                     <hr style={{ color: 'lightGrey' }} />
-                    {formatOutput(atom1)}
+                    {formatOutput(atom1, component)}
                     <hr style={{ color: 'lightGrey' }} />
-                    {formatOutput(atom2)}
+                    {formatOutput(atom2, component)}
                   </>
                 );
               }
@@ -1429,19 +1450,19 @@ const NGLViewer = memo(
                 const atom2 = bond.atom2;
                 description = (
                   <>
-                    <div>{`Bond ${atom1.index} - ${atom2.index}`}</div>
+                    <div>{`Bond ${wholeIndex(atom1)} - ${wholeIndex(atom2)}`}</div>
                     <hr style={{ color: 'lightGrey' }} />
-                    {formatOutput(atom1)}
+                    {formatOutput(atom1, component)}
                     <hr style={{ color: 'lightGrey' }} />
-                    {formatOutput(atom2)}
+                    {formatOutput(atom2, component)}
                   </>
                 );
               }
               // When we hover an atom
               else if (atom) {
-                description = formatOutput(atom);
+                description = formatOutput(atom, component);
                 if (onHoverDisplayRef.current)
-                  description = onHoverDisplayRef.current(atom.index, description);
+                  description = onHoverDisplayRef.current(wholeIndex(atom), description);
               }
               setTooltipContent(description);
               // Handle tooltip position
@@ -1487,20 +1508,21 @@ const NGLViewer = memo(
         if (!atomsSelectable || !mainComponent) return;
         const stage = stageRef.current;
         const canvas = containerRef.current.querySelector('canvas');
-        // Find the selectable atom of the main component under the mouse, if any
+        // Find the index of the selectable atom of the main component under the mouse, if any
         // Bonds are also accepted, in which case the closest atom of the bond is used
         const getPickedAtom = pickingProxy => {
           if (!pickingProxy || pickingProxy.component !== mainComponent) return null;
           const atom = pickingProxy.atom || pickingProxy.closestBondAtom;
           if (!atom) return null;
+          // Return the whole system atom index
+          const atomIndex = toWholeAtomIndex(mainComponent.partialSystem, atom.index);
           const isSelectable = isAtomSelectableRef.current;
-          if (isSelectable && !isSelectable(atom.index)) return null;
-          return atom;
+          if (isSelectable && !isSelectable(atomIndex)) return null;
+          return atomIndex;
         };
         let hoveredAtomIndex = null;
         const handleHover = pickingProxy => {
-          const atom = getPickedAtom(pickingProxy);
-          const atomIndex = atom ? atom.index : null;
+          const atomIndex = getPickedAtom(pickingProxy);
           if (atomIndex === hoveredAtomIndex) return;
           hoveredAtomIndex = atomIndex;
           if (canvas) canvas.style.cursor = atomIndex === null ? 'default' : 'pointer';
@@ -1510,8 +1532,8 @@ const NGLViewer = memo(
         // Note that this action is triggered by plain left clicks only
         // Other clicks (e.g. right or ctrl + left clicks for measurements) keep their default actions
         const handleClick = (stage, pickingProxy) => {
-          const atom = getPickedAtom(pickingProxy);
-          if (atom) onAtomSelectRef.current(atom.index);
+          const atomIndex = getPickedAtom(pickingProxy);
+          if (atomIndex !== null) onAtomSelectRef.current(atomIndex);
           else MouseActions.movePick(stage, pickingProxy);
         };
         // Reset the cursor when the mouse leaves the viewer
@@ -1557,7 +1579,7 @@ const NGLViewer = memo(
           }
           firstFocus.current = false;
         }
-        comp.autoView(focus.sele, transition);
+        comp.autoView(toPartialSelection(comp.partialSystem, focus.sele), transition);
       }, [mainComponent, focus, curatedOrientation]);
 
       // Expose public methods and getters/setters
