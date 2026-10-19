@@ -439,9 +439,11 @@ const NGLViewer = memo(
               bondStore.atomIndex2 = new Int32Array;
               bondStore.bondOrder = new Int32Array;
               // Add every bond in the topology
+              // Every bond is listed in both of its atoms, so add it only from the lower index atom
               safeBonds.forEach((bondedAtomsIndices, atomIndex) => {
                 const atom1 = topology.file.getAtomProxy(atomIndex);
                 bondedAtomsIndices.forEach(bondedAtomIndex => {
+                  if (bondedAtomIndex < atomIndex) return;
                   const atom2 = topology.file.getAtomProxy(bondedAtomIndex);
                   // The '1' stands for the bond order (idk what this is)
                   bondStore.addBond(atom1, atom2, 1);

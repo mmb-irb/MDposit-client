@@ -465,9 +465,22 @@ export class Topology {
     this.residueReferenceNumbers = topology.residue_reference_numbers;
     // Save atom bonds
     // Replace missing bonds flags by empty arrays
-    this.atomBonds = topology.atom_bonds && topology.atom_bonds.map(bonds => 
-      bonds === MISSING_BONDS_FLAG ? [] : bonds
-    )
+    // Copy bond arrays so we do not modify the original topology
+    this.atomBonds = topology.atom_bonds && topology.atom_bonds.map(bonds =>
+      bonds === MISSING_BONDS_FLAG ? [] : [ ...bonds ]
+    );
+    // Bonds may come deduplicated (i.e. every bond is listed only in one of its atoms)
+    // Make sure every bond is listed in both atoms
+    // Note that this is harmless if bonds are already duplicated
+    if (this.atomBonds) {
+      const originalBondCounts = this.atomBonds.map(bonds => bonds.length);
+      this.atomBonds.forEach((bonds, atomIndex) => {
+        for (let b = 0; b < originalBondCounts[atomIndex]; b++) {
+          const otherBonds = this.atomBonds[bonds[b]];
+          if (!otherBonds.includes(atomIndex)) otherBonds.push(atomIndex);
+        }
+      });
+    }
     // Data is stored in a down-top structure according to atom-residue-chain indices
     // i.e. atoms know which residue they belong to and residues know which chain they belong to
     // Now set the top-down structure values
