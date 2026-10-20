@@ -175,7 +175,7 @@ class Residue {
     // ----- Solvent -----------------------------------------------
     // Solvent is water molecules
     // First rely on the residue name
-    if (this.name in STANDARD_SOLVENT_RESIDUE_NAMES) {
+    if (STANDARD_SOLVENT_RESIDUE_NAMES.has(this.name)) {
       this._classification = 'solvent'
       return this._classification
     }
