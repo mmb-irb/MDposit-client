@@ -57,7 +57,6 @@ const textBody = text => Buffer.from(text);
 
 const project = {
   accessionAndMdNumber: 'A0001.1',
-  structureData: 'MAIN STRUCTURE',
   fileDescriptors: {
     loading: false,
     payload: [{ filename: 'trajectory.bin', metadata: { frames: FRAMES, atoms: ATOMS } }],
@@ -88,6 +87,27 @@ describe('useViewerData downloads', () => {
     expect(result.current.anyLoadingTopology).toBe(false);
     expect(result.current.anyLoadingTrajectory).toBe(false);
     expect(result.current.downloadError).toBe(null);
+  });
+});
+
+describe('useViewerData full structure', () => {
+  // Reading Project's structureData getter used to start a GET of the full structure (74 MB for A05PJ)
+  // that the viewer never used, since it downloads its own structure through the POST
+  it('does not read the full project structure', async () => {
+    let structureDataRead = false;
+    const projectWithGetter = {
+      ...project,
+      get structureData () {
+        structureDataRead = true;
+        return 'MAIN STRUCTURE';
+      },
+    };
+    const wrapper = ({ children }) => (
+      <ProjectCtx.Provider value={projectWithGetter}>{children}</ProjectCtx.Provider>
+    );
+    renderHook(() => useViewerData(components, FRAMES, () => {}), { wrapper });
+    await respond(findRequest('/structure'), 200, textBody('ATOM  1'));
+    expect(structureDataRead).toBe(false);
   });
 });
 

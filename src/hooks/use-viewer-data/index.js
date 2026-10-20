@@ -61,7 +61,7 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
     // If no URL is provided then use the main trajectory // URL to find the trajectory data in the API
     // True when we just want to display a static structure // Requeste number of frames to display
     // data from context
-    const { accessionAndMdNumber, fileDescriptors, structureData } = useContext(ProjectCtx);
+    const { accessionAndMdNumber, fileDescriptors } = useContext(ProjectCtx);
 
     // Download topologies ----------------------------------------------------------------------
 
@@ -96,34 +96,25 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
                 ];
                 const current = allRequestedTopologies.find(topology => topology.urlpath === urlpath);
                 if (current) return;
-                // Some urls may be missing
-                // This happens when the component wants the default structure
-                if (urlpath === null) {
-                    // Add a request with null url in order to get the main structure as topology
-                    // Do it only once for all components
-                    newRequestedTopologies.push({
-                        urlpath: null,
-                        loading: false,
-                        error: null,
-                    });
-                } else {
-                    // WARNING: Atom indices must be sorted
-                    // The API should be able to handle disordedred indices
-                    // However for some reason we are getting a CORS error if indices are no sorted
-                    const sortedAtomIndices = atomIndices && atomIndices.sort((a, b) => a - b);
-                    // Add the topology to the list, so it will be requested to the API
-                    newRequestedTopologies.push({
-                        urlpath: urlpath,
-                        selection: selection,
-                        atomindices: sortedAtomIndices,
-                        resindices: resIndices,
-                        chaindices: chainIndices,
-                        loading: true,
-                        requested: false,
-                        error: null,
-                    });
-                    setAnyLoadingTopology(true);
-                }
+                // ViewerWithControls always sets a topology URL ('/structure' by default)
+                // Components without one have nothing to download
+                if (urlpath === null) return;
+                // WARNING: Atom indices must be sorted
+                // The API should be able to handle disordedred indices
+                // However for some reason we are getting a CORS error if indices are no sorted
+                const sortedAtomIndices = atomIndices && atomIndices.sort((a, b) => a - b);
+                // Add the topology to the list, so it will be requested to the API
+                newRequestedTopologies.push({
+                    urlpath: urlpath,
+                    selection: selection,
+                    atomindices: sortedAtomIndices,
+                    resindices: resIndices,
+                    chaindices: chainIndices,
+                    loading: true,
+                    requested: false,
+                    error: null,
+                });
+                setAnyLoadingTopology(true);
             });
             return [...previousRequestedTopologies, ...newRequestedTopologies];
         });
@@ -151,89 +142,72 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
             if (topology.error) return;
             // If the topology has been already requested do not request it again
             if (topology.requested && topology.source === accessionAndMdNumber) return;
-            // If there is no URL then load the main structure
-            // WARNING: The '[...previous]' is essential to make the array object change
-            // This is important, since the 'topologies' object is used as a dependency further
-            // And if we do not change the array then the change is not detected
-            if (topology.urlpath === null) setTopologies(previousTopologies => {
-                // The topology with the main structure data has not url
-                const newTopology = {
-                    url: null,
-                    source: accessionAndMdNumber,
-                    urlpath: null,
-                    file: structureData,
-                };
-                return [...previousTopologies, newTopology];
+            topology.requested = true;
+            topology.source = accessionAndMdNumber;
+            // Create the POST body
+            const postData = JSON.stringify({
+                selection : topology.selection || undefined,
+                atomindices: topology.atomindices || undefined,
+                resindices: topology.resindices || undefined,
+                chaindices: topology.chaindices || undefined,
             });
-            // If there is an URL
-            else {
-                topology.requested = true;
-                topology.source = accessionAndMdNumber;
-                // Create the POST body
-                const postData = JSON.stringify({
-                    selection : topology.selection || undefined,
-                    atomindices: topology.atomindices || undefined,
-                    resindices: topology.resindices || undefined,
-                    chaindices: topology.chaindices || undefined,
-                });
-                // Request the API
-                // http exception is added for local testing in http://localhost
-                const protocol = BASE_PATH_PROJECTS.substring(0, 5) === 'https' ? https : http;
-                const actualUrl = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}${topology.urlpath}`;
-                const requestOptions = urlParse(actualUrl);
-                // We use the POST method instead of the regular GET method to allow long atom selections when requesting structure
-                // However, if we are requesting a file the POST method is not supported
-                const isStructureEndpoint = requestOptions.path.endsWith('/structure')
-                requestOptions.method = isStructureEndpoint ? 'POST' : 'GET';
-                requestOptions.headers = {
-                    'Content-Type': 'application/json',
-                    'Content-Length': postData.length
-                }
-                // Stop loading and record the error in case the download fails
-                const handleError = message => {
-                    topology.loading = false;
-                    setAnyLoadingTopology(requestedTopologies.some(t => t.loading));
-                    addDownloadError(accessionAndMdNumber, `Could not load the structure (${message})`);
-                };
-                const request = protocol.request(requestOptions, response => {
-                    // Do not use an error response body as the topology
-                    if (response.statusCode >= 400) return handleError(`HTTP ${response.statusCode}`);
-                    // Track the amout of bytes already downloaded
-                    let responseContent = '';
-                    response .on('data', chunk => {
-                        responseContent += chunk;
-                    }).on('end', () => {
-                        // Update the topologies state by adding the new topology with its content
-                        setTopologies(previousTopologies => {
-                            const newTopology = {
-                                url: actualUrl,
-                                source: accessionAndMdNumber,
-                                urlpath: topology.urlpath,
-                                file: responseContent
-                            };
-                            return [...previousTopologies, newTopology];
-                        });
-                        // Update the requested topology loading state
-                        topology.loading = false;
-                        // Check the loading state of all requested topologies
-                        // Then update the overall loading state
-                        const anyLoading = requestedTopologies.some(t => t.loading);
-                        setAnyLoadingTopology(anyLoading);
-                    });
-                });
-                // Network errors (e.g. the node is down) never reach the 'end' event
-                request.on('error', error => handleError(error.message));
-                // Send the request data (POST method feature)
-                if (requestOptions.method === 'POST'){
-                    request.write(postData);
-                }
-                // Close the request for it to actually start
-                // Note that this is required for the https.request altought it was not by https.get
-                request.end();
-                currentRequests.current.push(request);
+            // Request the API
+            // http exception is added for local testing in http://localhost
+            const protocol = BASE_PATH_PROJECTS.substring(0, 5) === 'https' ? https : http;
+            const actualUrl = `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}${topology.urlpath}`;
+            const requestOptions = urlParse(actualUrl);
+            // We use the POST method instead of the regular GET method to allow long atom selections when requesting structure
+            // However, if we are requesting a file the POST method is not supported
+            const isStructureEndpoint = requestOptions.path.endsWith('/structure')
+            requestOptions.method = isStructureEndpoint ? 'POST' : 'GET';
+            requestOptions.headers = {
+                'Content-Type': 'application/json',
+                'Content-Length': postData.length
             }
+            // Stop loading and record the error in case the download fails
+            const handleError = message => {
+                topology.loading = false;
+                setAnyLoadingTopology(requestedTopologies.some(t => t.loading));
+                addDownloadError(accessionAndMdNumber, `Could not load the structure (${message})`);
+            };
+            const request = protocol.request(requestOptions, response => {
+                // Do not use an error response body as the topology
+                if (response.statusCode >= 400) return handleError(`HTTP ${response.statusCode}`);
+                // Track the amout of bytes already downloaded
+                let responseContent = '';
+                response .on('data', chunk => {
+                    responseContent += chunk;
+                }).on('end', () => {
+                    // Update the topologies state by adding the new topology with its content
+                    setTopologies(previousTopologies => {
+                        const newTopology = {
+                            url: actualUrl,
+                            source: accessionAndMdNumber,
+                            urlpath: topology.urlpath,
+                            file: responseContent
+                        };
+                        return [...previousTopologies, newTopology];
+                    });
+                    // Update the requested topology loading state
+                    topology.loading = false;
+                    // Check the loading state of all requested topologies
+                    // Then update the overall loading state
+                    const anyLoading = requestedTopologies.some(t => t.loading);
+                    setAnyLoadingTopology(anyLoading);
+                });
+            });
+            // Network errors (e.g. the node is down) never reach the 'end' event
+            request.on('error', error => handleError(error.message));
+            // Send the request data (POST method feature)
+            if (requestOptions.method === 'POST'){
+                request.write(postData);
+            }
+            // Close the request for it to actually start
+            // Note that this is required for the https.request altought it was not by https.get
+            request.end();
+            currentRequests.current.push(request);
         });
-    }, [requestedTopologies, structureData, accessionAndMdNumber]);
+    }, [requestedTopologies, accessionAndMdNumber]);
 
     // Download trajectories ------------------------------------------------------------------------------------------------
 

@@ -498,7 +498,7 @@ const ViewerWithControls = forwardRef(
     // Key remounting the ManagedViewer to reload the data when the atom subset changes (i.e. on toggle).
     // WARNING: depend only on the membrane mode, never on finalComponents. Keying on the components would
     // flip on the initial null -> ready transition and remount mid-load; useViewerData transitively holds
-    // useAPI subscriptions (fileDescriptors, structureData) that a remount tears down and can't re-establish
+    // useAPI subscriptions (fileDescriptors) that a remount tears down and can't re-establish
     // while a request is in flight, leaving fileDescriptors stuck loading so the trajectory never downloads.
     const viewerReloadKey = membraneReduced ? 'membrane-reduced' : 'full';
 

@@ -419,6 +419,9 @@ export class Project {
     // Note that the viewer would be already able to do it itself
     // However we do it from here since this data is to be reused along different pages
     // Thus we avoid having to download the same data every time
+    // WARNING: Nothing reads this getter at the moment. Reading it, even by destructuring the project context,
+    // downloads the full structure (74 MB for big systems), so read it only where the full structure is needed
+    // WARNING: This getter calls hooks, so it must be read on every render of a component or never
     get structureData () {
         // Ask the API for the structural data
         const response = this._apiQuery('structure');
