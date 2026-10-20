@@ -66,12 +66,12 @@ const project = {
 // Same default components as the viewer: the structure and the trajectory from the API
 const components = [{ topologyURL: '/structure', trajectoryURLs: ['/trajectory'] }];
 
-const renderViewerData = onRender => {
+const renderViewerData = (onRender, viewerComponents = components) => {
   const wrapper = ({ children }) => (
     <ProjectCtx.Provider value={project}>{children}</ProjectCtx.Provider>
   );
   return renderHook(() => {
-    const data = useViewerData(components, FRAMES, () => {});
+    const data = useViewerData(viewerComponents, FRAMES, () => {});
     if (onRender) onRender(data);
     return data;
   }, { wrapper });
@@ -108,6 +108,35 @@ describe('useViewerData full structure', () => {
     renderHook(() => useViewerData(components, FRAMES, () => {}), { wrapper });
     await respond(findRequest('/structure'), 200, textBody('ATOM  1'));
     expect(structureDataRead).toBe(false);
+  });
+});
+
+// The POST body sent in a fake request
+const requestBody = request => JSON.parse(request.write.mock.calls[0][0]);
+
+// Components sharing the same topology, as the two frames in the RMSD pairwise viewer
+const sharedTopologyComponents = (atomIndicesA, atomIndicesB) => [
+  { name: 'Frame A', topologyURL: '/structure', trajectoryURLs: ['/trajectory'], frame: 0, atomIndices: atomIndicesA },
+  { name: 'Frame B', topologyURL: '/structure', trajectoryURLs: ['/trajectory'], frame: 1, atomIndices: atomIndicesB },
+];
+
+describe('useViewerData atom subsets', () => {
+  it('requests every trajectory with the atom subset of its topology', async () => {
+    renderViewerData(null, sharedTopologyComponents([1, 0], [0, 1]));
+    expect(requests.filter(request => request.path.includes('/structure'))).toHaveLength(1);
+    expect(requestBody(findRequest('/structure')).atomindices).toEqual([0, 1]);
+    const trajectoryRequests = requests.filter(request => request.path.includes('/trajectory'));
+    expect(trajectoryRequests.map(request => request.path.split('/').pop()))
+      .toEqual(['trajectory?frames=1', 'trajectory?frames=2']);
+    expect(trajectoryRequests.map(request => requestBody(request).atomindices)).toEqual([[0, 1], [0, 1]]);
+  });
+
+  it('fails when a component atom subset does not match its topology', () => {
+    // Only the first component sets the topology atom subset, so the second would get whole system frames
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    expect(() => renderViewerData(null, sharedTopologyComponents([0, 1], undefined)))
+      .toThrow('Atom subset of component "Frame B" does not match its topology');
+    console.error.mockRestore();
   });
 });
 

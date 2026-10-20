@@ -51,6 +51,25 @@ const getFrames = (trajectoryFrames, requestedFrames, requestedFrame) => {
     };
 };
 
+// Check if two lists of indices are equal, including both being missing
+const sameIndices = (a, b) => {
+    if (!a || !b) return !a && !b;
+    return a.length === b.length && a.every((index, i) => index === b[i]);
+};
+
+// Make sure a component requests the same atom subset as the topology it uses
+// Components sharing a topology URL share a single topology, whose atom subset is set by the first one
+// The component trajectory is requested with its own atom subset, so it would not match the topology otherwise
+// Note that atom indices in requested topologies are already sorted
+const checkTopologySubset = (comp, topology) => {
+    const atomIndices = comp.atomIndices ? [...comp.atomIndices].sort((a, b) => a - b) : null;
+    const sameSubset = (comp.atomSelection || null) === (topology.selection || null)
+        && sameIndices(atomIndices, topology.atomindices)
+        && sameIndices(comp.resIndices, topology.resindices)
+        && sameIndices(comp.chainIndices, topology.chaindices);
+    if (!sameSubset) throw new Error(`Atom subset of component "${comp.name}" does not match its topology`);
+};
+
 // This is a custom hook
 // Download all data required for the molecular viewer: topologies and trajectories
 // The exact topologies and trajectories to be downloaded are configured in the components
@@ -95,7 +114,7 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
                     ...newRequestedTopologies,
                 ];
                 const current = allRequestedTopologies.find(topology => topology.urlpath === urlpath);
-                if (current) return;
+                if (current) return checkTopologySubset(comp, current);
                 // ViewerWithControls always sets a topology URL ('/structure' by default)
                 // Components without one have nothing to download
                 if (urlpath === null) return;

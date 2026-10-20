@@ -55,6 +55,7 @@ import connectionLevel, {
   HIGH,
 } from '../../utils/connection-level';
 import reducedMotion from '../../utils/reduced-motion';
+import { getMembraneReducedComponents } from './membrane-reduced-components';
 // Import CSS style
 import style from './style.module.css';
 // Import context data
@@ -488,11 +489,11 @@ const ViewerWithControls = forwardRef(
     ]);
 
     // The components actually loaded by the viewer. When the reduced view is on we inject the reduced
-    // atom subset into the main component so only those atoms are downloaded and displayed.
+    // atom subset into the main component (and the ones sharing its topology) so only those atoms are
+    // downloaded and displayed.
     const effectiveComponents = useMemo(() => {
       if (!finalComponents || !membraneReduced) return finalComponents;
-      return finalComponents.map((comp, c) =>
-        c === 0 ? { ...comp, atomIndices: membraneSelection.atomIndices } : comp);
+      return getMembraneReducedComponents(finalComponents, membraneSelection.atomIndices);
     }, [finalComponents, membraneReduced, membraneSelection]);
 
     // Key remounting the ManagedViewer to reload the data when the atom subset changes (i.e. on toggle).
