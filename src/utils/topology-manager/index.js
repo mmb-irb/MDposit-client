@@ -403,9 +403,14 @@ class Chain {
     else return metadataChainNames[this.name] || '';
   }
   // Get atom indcies
+  // WARNING: append one by one, never concat residue after residue: every concat copies the list built so far,
+  // which takes seconds for chains of hundreds of thousands of atoms (e.g. the solvent chain in big systems)
   get atomIndices () {
-    return [ ...this.iterresidues() ].reduce((atomIndices, nextResidue) =>
-      atomIndices.concat(nextResidue.atomIndices), []);
+    const atomIndices = [];
+    for (const residueIndex of this.residueIndices) {
+      for (const atomIndex of this.topology.residueAtomIndices[residueIndex]) atomIndices.push(atomIndex);
+    }
+    return atomIndices;
   }
   // Get residue indcies
   get residueIndices () {
@@ -732,11 +737,11 @@ export class Topology {
   }
 
   // Given a list of residue indices, convert it to atom indices
+  // WARNING: append one by one, never concat residue after residue (see the chain atomIndices getter)
   residue2atomIndices = residueIndices => {
-    let atomIndices = [];
+    const atomIndices = [];
     for (const residueIndex of residueIndices) {
-      const residue = this.getResidueByIndex(residueIndex);
-      atomIndices = atomIndices.concat(residue.atomIndices);
+      for (const atomIndex of this.residueAtomIndices[residueIndex]) atomIndices.push(atomIndex);
     }
     return atomIndices;
   }
