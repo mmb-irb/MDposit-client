@@ -19,6 +19,7 @@ import {
   faStarOfLife,
   faShareAlt, // It looks like connected atoms
   faLayerGroup, // It looks like membrane leaflets
+  faVectorSquare, // It looks like the simulation box
 } from '@fortawesome/free-solid-svg-icons';
 
 import { setAsync } from '../../../utils/storage';
@@ -73,6 +74,10 @@ const SettingsControls = ({
   showMembraneToggle,
   membraneReduced,
   setMembraneReduced,
+  // Simulation box toggle and the reason why the box can not be shown, if so
+  boxUnavailableReason,
+  showBox,
+  toggleShowBox,
   // When true, the controls are docked at the bottom of the representations panel
   // (normal flow) instead of floating as a translucent overlay over the viewer
   docked = false,
@@ -154,20 +159,6 @@ const SettingsControls = ({
         <FontAwesomeIcon icon={perspective ? faSquare : faCube} />
       </IconButton>
 
-      <IconButton
-        title={`Switch viwer to ${Viewer === NGLViewer ? 'MolStar' : 'NGL'}`}
-        onClick={() => {
-          setViewer(currentViewer => {
-            if (currentViewer === NGLViewer) return MolstarViewer;
-            if (currentViewer === MolstarViewer) return NGLViewer;
-            throw new Error('Unrecognized current viewer');
-          });
-        }}
-        size="large"
-      >
-        <FontAwesomeIcon icon={Viewer === NGLViewer ? faStarOfLife : faShareAlt} />
-      </IconButton>
-
       {/* Membrane simulations: toggle the reduced membrane view (protein/solute + headgroups) */}
       {/* When active only the membrane headgroups are loaded and shown as spacefill */}
       {showMembraneToggle && (
@@ -182,6 +173,33 @@ const SettingsControls = ({
           <FontAwesomeIcon icon={faLayerGroup} />
         </IconButton>
       )}
+
+      {/* Disabled buttons get no mouse events, so the reason is shown in a wrapper */}
+      <span className={style['stacked-icons']} title={boxUnavailableReason || undefined}>
+        <IconButton
+          title={showBox ? 'Hide simulation box' : 'Show simulation box'}
+          onClick={toggleShowBox}
+          disabled={!!boxUnavailableReason}
+          color={showBox && !boxUnavailableReason ? 'primary' : 'default'}
+          size="large"
+        >
+          <FontAwesomeIcon icon={faVectorSquare} />
+        </IconButton>
+      </span>
+
+      <IconButton
+        title={`Switch viwer to ${Viewer === NGLViewer ? 'MolStar' : 'NGL'}`}
+        onClick={() => {
+          setViewer(currentViewer => {
+            if (currentViewer === NGLViewer) return MolstarViewer;
+            if (currentViewer === MolstarViewer) return NGLViewer;
+            throw new Error('Unrecognized current viewer');
+          });
+        }}
+        size="large"
+      >
+        <FontAwesomeIcon icon={Viewer === NGLViewer ? faStarOfLife : faShareAlt} />
+      </IconButton>
     </div>
     {noTrajectory || (
       <div>

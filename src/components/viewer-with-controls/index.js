@@ -45,6 +45,7 @@ import NGLViewer from '../ngl-viewer';
 // Hooks
 import useToggleState from '../../hooks/use-toggle-state';
 import useViewerData from '../../hooks/use-viewer-data';
+import useBoxData from '../../hooks/use-box-data';
 
 // Used to build the reduced-membrane-subset representations
 import getDefaultRepresentations from '../../utils/topology-manager/get-default-reprensetations';
@@ -149,6 +150,7 @@ const ManagedViewer = forwardRef(
       components,
       requestedFramesNumber,
       onLoad,
+      showBox, // Download and display the simulation box
       ...props // Forwarded as-is to the viewer backend
     },
     ref,
@@ -161,6 +163,8 @@ const ManagedViewer = forwardRef(
       anyLoadingTrajectory,
       downloadError,
     } = useViewerData(components, requestedFramesNumber, onLoad);
+    // WARNING: This must be called after useViewerData (see useBoxData)
+    const boxes = useBoxData(components, requestedFramesNumber, showBox);
     // The Mol* backend is lazy: suspend here so only the viewer area waits for its chunk, not the controls
     return (
       <Suspense fallback={null}>
@@ -173,6 +177,7 @@ const ManagedViewer = forwardRef(
           anyLoadingTopology={anyLoadingTopology}
           anyLoadingTrajectory={anyLoadingTrajectory}
           downloadError={downloadError}
+          boxes={boxes}
           {...props}
         />
       </Suspense>
@@ -259,7 +264,7 @@ const ViewerWithControls = forwardRef(
     // Set which viewer is used: NGL or MolStar (the default is NGL)
     const [Viewer, setViewer] = useState(NGLViewer);
     // Get project metadata
-    const { metadata, accessionAndMdNumber, topology } = useContext(ProjectCtx);
+    const { metadata, accessionAndMdNumber, topology, fileDescriptors } = useContext(ProjectCtx);
     // Track the current frame and time
     const [currentFrameInfo, setCurrentFrameInfo] = useState({ frame: 0, time: 0 });
     // Use metadata to limit available frames number
@@ -516,6 +521,7 @@ const ViewerWithControls = forwardRef(
     const [playing, togglePlaying] = useToggleState(startsPlaying);
     const [spinning, toggleSpinning] = useToggleState(false);
     const [smooth, setSmooth] = useState(true);
+    const [showBox, toggleShowBox] = useToggleState(false);
     const [darkBackground, toggleDarkBackground] = useToggleState(
       useMemo(() => get('dark-background', false), []),
     );
@@ -764,6 +770,26 @@ const ViewerWithControls = forwardRef(
     const noTrajectory = preventTrajectory || (mainComponent && (mainComponent.onlyTopology ||
       Number.isFinite(mainComponent.frame))); // May be 0
 
+    // Set why the simulation box may not be displayed, if so
+    // This reason is shown to the user in the disabled box button
+    // Boxes are only available for the main trajectory frames and the NGL viewer
+    // Boxes are not centered, so they would not match a centered trajectory
+    const boxUnavailableReason = useMemo(() => {
+      if (fileDescriptors.loading || !fileDescriptors.payload || !mainComponent)
+        return 'Waiting for the simulation data';
+      if (!fileDescriptors.payload.some(file => file.filename === 'box.bin'))
+        return 'There is no simulation box available for this simulation';
+      if (Viewer !== NGLViewer) return 'The simulation box can only be shown in the NGL viewer';
+      if (centering) return 'The simulation box can not be shown since the trajectory is centered here';
+      if (mainComponent.onlyTopology) return null;
+      // Components with no trajectory URLs use the main trajectory (see useViewerData)
+      const urlpaths = mainComponent.trajectoryURLs || ['/trajectory'];
+      if (urlpaths.length !== 1 || urlpaths[0].split('?')[0] !== '/trajectory')
+        return 'The simulation box is only available for the main trajectory';
+      return null;
+    }, [Viewer, centering, mainComponent, fileDescriptors]);
+    const canShowBox = !boxUnavailableReason;
+
     // Decide where the settings controls live: docked at the bottom of the right
     // panel when there is enough free vertical room below the representations
     // table, otherwise floating over the viewer. Measure the right-panel scroll
@@ -817,6 +843,9 @@ const ViewerWithControls = forwardRef(
       showMembraneToggle: !!canReduceMembrane,
       membraneReduced,
       setMembraneReduced,
+      boxUnavailableReason,
+      showBox,
+      toggleShowBox,
     };
 
     // Pick a readable time unit (fs, ps, ns, µs, ms) based on the trajectory total length
@@ -882,6 +911,7 @@ const ViewerWithControls = forwardRef(
                   perspective={perspective}
                   speed={speed}
                   centering={centering}
+                  showBox={canShowBox && showBox}
                   representations={finalRepresentations}
                   {...props}
                 />

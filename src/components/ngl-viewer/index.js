@@ -22,7 +22,9 @@ import cn from 'classnames';
 // NGL builds its workers by stringifying its own functions, and our build minifier turns one of them anonymous
 // The worker script is then invalid JavaScript, so surfaces never show
 // The ngl.test.js tests run the real NGL, but they can not catch this since they do not use the build minifier
-import { autoLoad, Stage, Shape, ColormakerRegistry, Matrix4, MouseActions, Selection } from 'ngl';
+import {
+  autoLoad, Stage, Shape, ColormakerRegistry, Matrix3, Matrix4, Vector3, MouseActions, Selection,
+} from 'ngl';
 
 import { frame } from 'timing-functions';
 
@@ -91,6 +93,30 @@ const defaultHighlightTypes = {
   selections: 'ball+stick',
 };
 
+// Edges of a cube with side 1 and one corner at the origin
+// This cube is transformed to draw the simulation box
+const UNIT_CUBE_EDGES = [
+  [[0, 0, 0], [1, 0, 0]], [[0, 0, 0], [0, 1, 0]], [[0, 0, 0], [0, 0, 1]],
+  [[1, 1, 0], [0, 1, 0]], [[1, 1, 0], [1, 0, 0]], [[1, 1, 0], [1, 1, 1]],
+  [[1, 0, 1], [0, 0, 1]], [[1, 0, 1], [1, 1, 1]], [[1, 0, 1], [1, 0, 0]],
+  [[0, 1, 1], [1, 1, 1]], [[0, 1, 1], [0, 0, 1]], [[0, 1, 1], [0, 1, 0]],
+];
+
+// Linear interpolation from start (t = 0) to stop (t = 1), as NGL does
+const lerp = (start, stop, t) => start + (stop - start) * t;
+
+// Get the centroid of the current coordinates in a NGL structure
+const getCentroid = structure => {
+  const { x, y, z, count } = structure.atomStore;
+  let sx = 0, sy = 0, sz = 0;
+  for (let a = 0; a < count; a++) {
+    sx += x[a];
+    sy += y[a];
+    sz += z[a];
+  }
+  return new Vector3(sx / count, sy / count, sz / count);
+};
+
 const NGLViewer = memo(
   forwardRef(
     (
@@ -118,6 +144,8 @@ const NGLViewer = memo(
         xSelection, // To display planes for density analysis
         rotateX,   // To rotate the stage so the Z axis goes from bottom to top
         xAxisStep,
+        // Simulation boxes of the loaded frames, to be displayed (see useBoxData)
+        boxes,
         // Final components and representations prepared for the viewer
         components,
         representations,
@@ -467,6 +495,9 @@ const NGLViewer = memo(
             // Atom indices from outside are always whole system indices
             // Keep the partial system, if any, to translate them
             stageComp.partialSystem = partialSystem;
+            // Keep the structure centroid before any trajectory frame overwrites its coordinates
+            // The structure is the first frame, which is used to place the simulation box
+            stageComp.structureCentroid = getCentroid(stageComp.structure);
             setMainComponent(stageComp);
             // Set the camera on the first component now, before the first render, so it is not painted off-center
             // The focus effect further does the same, but after a render where the camera is still at the origin
@@ -931,6 +962,69 @@ const NGLViewer = memo(
         // console.log(stageRef.current.viewer.rotationGroup.rotation);
       }, [mainComponent, xSelection]);
       
+      // Display the simulation box
+      // The box is drawn once as a unit cube, which is then transformed to the box of the current frame
+      useEffect(() => {
+        if (!mainComponent || !boxes) return;
+        const name = '*box';
+        const shape = new Shape(name);
+        const color = darkBackground ? [0.8, 0.8, 0.8] : [0.3, 0.3, 0.3];
+        UNIT_CUBE_EDGES.forEach(([from, to]) => shape.addWideline(from, to, color));
+        const boxComponent = stageRef.current.addComponentFromObject(shape, { name });
+        boxComponent.addRepresentation('buffer', { linewidth: 2, disablePicking: true });
+        // Boxes have no origin, as in Gromacs, since periodic images do not depend on it
+        // Then we place the box where the original box would be: around the imaged system
+        // Fitted coordinates are the original coordinates rotated (R) and translated
+        // Then the fitted origin is the fitted centroid minus the original centroid rotated
+        // The original centroid is unknown, so we use the centroid of the first frame (i.e. the structure)
+        // Note that the first frame is the fit reference, so it is not modified by the fit
+        // Boxes are rotated as coordinates were rotated by the fit, so R = B1^-1 Bf
+        // WARNING: Use NGL math classes, since NGL uses an old three version (e.g. there is no Matrix3.invert)
+        const trajectory = mainComponent.trajList[0] && mainComponent.trajList[0].trajectory;
+        const firstCentroid = mainComponent.structureCentroid;
+        // Box vectors are rows (a, b, c), so transpose them to have them as columns
+        const reference = new Matrix3().set(...boxes.reference).transpose();
+        const referenceInverse = new Matrix3().getInverse(reference, true);
+        const getVectors = frame => boxes.boxes.subarray(frame * 9, (frame + 1) * 9);
+        // The player interpolates coordinates between frames, but the frame change signal only passes the frame
+        // Wrap the trajectory interpolation to know the previous frame and the interpolation step too
+        // Atoms are interpolated linearly from the previous frame (ip) to the frame (i), so are box vectors
+        // NOTE: The player only uses linear interpolation (see the smooth effect), never splines
+        let interpolation = null;
+        const originalInterpolate = trajectory && trajectory._interpolate;
+        if (trajectory) trajectory._interpolate = (i, ip, ipp, ippp, t, type) => {
+          interpolation = { previousFrame: ip, step: t };
+          originalInterpolate.call(trajectory, i, ip, ipp, ippp, t, type);
+          interpolation = null;
+        };
+        const updateBox = frame => {
+          const vectors = interpolation
+            ? getVectors(frame).map((value, v) =>
+              lerp(getVectors(interpolation.previousFrame)[v], value, interpolation.step))
+            : getVectors(frame);
+          const box = new Matrix3().set(...vectors).transpose();
+          const rotation = box.multiply(referenceInverse);
+          const centroid = getCentroid(mainComponent.structure);
+          const origin = firstCentroid.clone().applyMatrix3(rotation).negate().add(centroid);
+          // Transform the unit cube: x = origin + u·a + v·b + w·c
+          boxComponent.setTransform(new Matrix4().set(
+            vectors[0], vectors[3], vectors[6], origin.x,
+            vectors[1], vectors[4], vectors[7], origin.y,
+            vectors[2], vectors[5], vectors[8], origin.z,
+            0, 0, 0, 1,
+          ));
+        };
+        updateBox(trajectory ? Math.max(trajectory.currentFrame, 0) : 0);
+        if (trajectory) trajectory.signals.frameChanged.add(updateBox);
+        return () => {
+          if (trajectory) {
+            trajectory.signals.frameChanged.remove(updateBox);
+            trajectory._interpolate = originalInterpolate;
+          }
+          if (stageRef.current) stageRef.current.removeComponent(boxComponent);
+        };
+      }, [mainComponent, mainNglFile, boxes, darkBackground]);
+
       // Rotate the stage
       useEffect(() => {
         if (!mainComponent || !rotateX) return;
