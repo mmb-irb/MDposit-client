@@ -19,6 +19,7 @@ import useAPI from '../../../hooks/use-api';
 import { ProjectCtx } from '../../../contexts';
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 import { getMean } from '../../../utils/statistics';
+import { getBilayers } from '../../../utils/lipids';
 import style from './style.module.css';
 import ColorLegend from '../../../components/color-legend';
 import { ColormakerRegistry } from 'ngl';
@@ -225,11 +226,15 @@ const Thickness = () => {
                 }
             });
 
+            // The thickness is calculated with the leaflets of every flat bilayer together
+            // Vesicles and micelles have no thickness, and they may be the first membrane
+            const bilayers = getBilayers(memMapPayload);
+            if (bilayers.length === 0) return keepRepresentations;
             let distRepr = [{
                 name: 'Upper leaflet',
                 type: 'ball+stick',
                 opacity: 1,
-                selection: '@' + memMapPayload.mems[0].polar_atoms.top.join(','),
+                selection: '@' + bilayers.flatMap(bilayer => bilayer.polar_atoms.top).join(','),
                 other: { radius: 0.75 },
                 color: getSchemeForFrame(0, thicknessPayload.data, thicknessData.Membrane.mean_stddev),
                 customScheme: 'distorsion',
@@ -238,7 +243,7 @@ const Thickness = () => {
                 name: 'Lower leaflet',
                 type: 'ball+stick',
                 opacity: 1,
-                selection: '@' + memMapPayload.mems[0].polar_atoms.bot.join(','),
+                selection: '@' + bilayers.flatMap(bilayer => bilayer.polar_atoms.bot).join(','),
                 other: { radius: 0.75 },
                 color: getSchemeForFrame(0, thicknessPayload.data, thicknessData.Membrane.mean_stddev),
                 customScheme: 'distorsion',

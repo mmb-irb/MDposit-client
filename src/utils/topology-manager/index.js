@@ -221,21 +221,27 @@ class Residue {
       this._classification = 'ligand'
       return this._classification
     }
-    // ----- Inchikey ligands -----------------------------------------------
+    // ----- Inchikey ligands and lipids -----------------------------------------------
     if (this.referenceType === 'inchikey') {
-      // Inchikey without lipidmaps or swisslipids data, or lipids(inchikeys) outside membrane are classified as ligands
-      if (isEmptyObj(this.referenceData.swisslipids) && isEmptyObj(this.referenceData.lipidmaps) ||  // Old system
-         (!this.referenceData.swisslipids && !this.referenceData.lipidmaps) ||  // New system
-         (this.topology.membraneMapping && this.topology.membraneMapping.no_mem_lipid.includes(this.index))){
+      // Lipids(inchikeys) outside membrane are classified as ligands
+      if (this.topology.noMembraneLipidResidues.has(this.index)) {
         this._classification = 'ligand'
         return this._classification
       }
-    }
-    // Lipids with inchikeys in the membrane mapping and with swisslipids or lipidmaps data are classified as lipids
-    if (this.referenceType === 'inchikey' && this.topology.membraneMapping && this.topology.membraneMapping.lipid.includes(this.index) &&
-        (!isEmptyObj(this.referenceData.swisslipids) || !isEmptyObj(this.referenceData.lipidmaps))){
-      this._classification = 'lipid'
-      return this._classification
+      // Inchikeys in the membrane mapping are classified as lipids
+      // Some have no lipidmaps or swisslipids data (e.g. synthetic lipids like MC3 in lipid nanoparticles)
+      if (this.topology.membraneLipidResidues.has(this.index)) {
+        this._classification = 'lipid'
+        return this._classification
+      }
+      // Inchikey without lipidmaps or swisslipids data are classified as ligands
+      const referenceData = this.referenceData;
+      if (!referenceData ||
+         isEmptyObj(referenceData.swisslipids) && isEmptyObj(referenceData.lipidmaps) ||  // Old system
+         (!referenceData.swisslipids && !referenceData.lipidmaps)){  // New system
+        this._classification = 'ligand'
+        return this._classification
+      }
     }
     // ----- Others -----------------------------------------------
     // If the residue does not fall in any of the previous conditions then try it with the residue name
@@ -568,21 +574,23 @@ export class Topology {
     }
     // Process membrane mapping: convert atom indices to residue indices
     // The raw membrane mapping stores atom indices, but residue classification uses residue indices
+    // Residue indices are saved in sets, since every inchikey residue is looked up in them
+    this.membraneLipidResidues = new Set();
+    this.noMembraneLipidResidues = new Set();
     if (this.membraneMapping) {
       // Convert no_mem_lipid from atom indices to residue indices
-      if (this.membraneMapping.no_mem_lipid && this.membraneMapping.no_mem_lipid.length > 0) {
-        this.membraneMapping.no_mem_lipid = this.atom2residueIndices(this.membraneMapping.no_mem_lipid);
-      }
-      // Flatten every membrane leaflet's atoms into one list.
+      this.noMembraneLipidResidues = new Set(this.atom2residueIndices(this.membraneMapping.no_mem_lipid || []));
+      // Flatten every leaflet of every membrane into one list
+      // Bilayers have top and bot leaflets, vesicles have outer, inner and midplane leaflets and micelles have outer
       // WARNING: append one by one, never push(...leaflet): large membranes have hundreds of thousands
       // of lipid atoms and spreading them as function arguments overflows the call stack.
       const membraneLipidAtoms = [];
       for (const memData of Object.values(this.membraneMapping.mems || {})) {
-        if (!memData.leaflets) continue;
-        for (const atomIndex of (memData.leaflets.top || [])) membraneLipidAtoms.push(atomIndex);
-        for (const atomIndex of (memData.leaflets.bot || [])) membraneLipidAtoms.push(atomIndex);
+        for (const leaflet of Object.values(memData.leaflets || {})) {
+          for (const atomIndex of leaflet) membraneLipidAtoms.push(atomIndex);
+        }
       }
-      this.membraneMapping.lipid = this.atom2residueIndices(membraneLipidAtoms);
+      this.membraneLipidResidues = new Set(this.atom2residueIndices(membraneLipidAtoms));
     }
     // Set internal values
     this._pbcAtoms = undefined;
@@ -864,12 +872,12 @@ export class Topology {
       if (droppedClasses.has(residue.classification)) continue;
       residue.atomIndices.forEach(atomIndex => atomIndices.add(atomIndex));
     }
-    // Add the membrane polar (headgroup) atoms of every membrane, per leaflet
+    // Add the membrane polar (headgroup) atoms of every leaflet of every membrane
+    // Bilayers have top and bot leaflets, vesicles have outer, inner and midplane leaflets and micelles have outer
     for (const memData of Object.values(this.membraneMapping.mems)) {
-      const polarAtoms = memData.polar_atoms;
-      if (!polarAtoms) continue;
-      (polarAtoms.top || []).forEach(atomIndex => atomIndices.add(atomIndex));
-      (polarAtoms.bot || []).forEach(atomIndex => atomIndices.add(atomIndex));
+      for (const leafletPolarAtoms of Object.values(memData.polar_atoms || {})) {
+        leafletPolarAtoms.forEach(atomIndex => atomIndices.add(atomIndex));
+      }
     }
     // The API and the viewer expect sorted atom indices
     const sortedAtomIndices = [...atomIndices].sort((a, b) => a - b);

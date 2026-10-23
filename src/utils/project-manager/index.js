@@ -303,9 +303,10 @@ export class Project {
             // Get the ligand data only
             return inchikeyReferencesWithLigand.map(ref => {
                 const ligandReference = ref.ligand || ref.pubchem || ref;
-                // Make sure every ligand data has a name
-                if (!ligandReference.name) 
-                    ligandReference.name = ref.name || ref.swisslipids?.entity_name || ref.lipidmaps?.name || 'Unnamed ligand';
+                // Name the ligand data after the lipid databases when it has no name
+                // Otherwise the overview names it after its residues (e.g. synthetic lipids like MC3)
+                if (!ligandReference.name)
+                    ligandReference.name = ref.name || ref.swisslipids?.entity_name || ref.lipidmaps?.name;
                 // Add the inchi reference inside the ligand reference
                 ligandReference.inchiRef = ref;
                 return ligandReference;
