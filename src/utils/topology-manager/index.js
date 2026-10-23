@@ -865,25 +865,31 @@ export class Topology {
       this._membraneViewerSelection = null;
       return null;
     }
-    // Residue classifications whose atoms are dropped from the reduced selection
-    // Note that lipid polar atoms are added back afterwards from the membrane map
-    const droppedClasses = new Set(['lipid', 'fatty', 'steroid', 'solvent', 'ion']);
-    const atomIndices = new Set();
-    // Keep every atom belonging to a residue which is not in a dropped class
-    // (proteins, nucleic acids, ligands, carbohydrates, etc.)
-    for (let residueIndex = 0; residueIndex < this.residueCount; residueIndex++) {
-      const residue = this.getResidueByIndex(residueIndex);
-      if (droppedClasses.has(residue.classification)) continue;
-      residue.atomIndices.forEach(atomIndex => atomIndices.add(atomIndex));
-    }
-    // Add the membrane polar (headgroup) atoms of every leaflet of every membrane
+    // Get the membrane polar (headgroup) atoms of every leaflet of every membrane
     // Bilayers have top and bot leaflets, vesicles have outer, inner and midplane leaflets and micelles have outer
+    const atomIndices = new Set();
     for (const memData of Object.values(this.membraneMapping.mems)) {
       for (const leafletPolarAtoms of Object.values(memData.polar_atoms || {})) {
         // Early membrane maps saved polar atoms as a flat list, which is ignored
         if (!Array.isArray(leafletPolarAtoms)) continue;
         leafletPolarAtoms.forEach(atomIndex => atomIndices.add(atomIndex));
       }
+    }
+    // Without polar atoms there is no membrane to show, so skip the reduction
+    // e.g. old workflows saved empty membrane maps for systems without lipids
+    if (atomIndices.size === 0) {
+      this._membraneViewerSelection = null;
+      return null;
+    }
+    // Residue classifications whose atoms are dropped from the reduced selection
+    // Note that lipid polar atoms were already added from the membrane map
+    const droppedClasses = new Set(['lipid', 'fatty', 'steroid', 'solvent', 'ion']);
+    // Keep every atom belonging to a residue which is not in a dropped class
+    // (proteins, nucleic acids, ligands, carbohydrates, etc.)
+    for (let residueIndex = 0; residueIndex < this.residueCount; residueIndex++) {
+      const residue = this.getResidueByIndex(residueIndex);
+      if (droppedClasses.has(residue.classification)) continue;
+      residue.atomIndices.forEach(atomIndex => atomIndices.add(atomIndex));
     }
     // The API and the viewer expect sorted atom indices
     const sortedAtomIndices = [...atomIndices].sort((a, b) => a - b);

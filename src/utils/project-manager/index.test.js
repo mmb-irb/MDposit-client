@@ -92,3 +92,39 @@ describe('Project.checkProblems', () => {
     expect(result.current).toBe(error);
   });
 });
+
+describe('Project ligand references', () => {
+  // References as stored by different workflow versions
+  const makeReferences = () => [
+    // Old ligand reference, which is the ligand data itself with the PubChem id as a string (inria A00KJ)
+    { name: 'ZINC', pubchem: '23994', inchikey: 'HCHKCACWOHOZIP-UHFFFAOYSA-N', ref_type: 'ligands' },
+    // InChI key reference with ligand data
+    { inchikey: 'LIGAND-KEY', ligand: { name: 'Ligand', pubchem: '1' }, swisslipids: null, lipidmaps: null,
+      ref_type: 'inchikeys' },
+    // Old InChI key reference with the ligand data as 'pubchem'
+    { inchikey: 'OLD-KEY', pubchem: { name: 'Old ligand', pubchem: '2' }, swisslipids: false, lipidmaps: false,
+      ref_type: 'inchikeys' },
+    // Lipid missing in every database (e.g. MC3)
+    { inchikey: 'MC3-KEY', ligand: null, swisslipids: null, lipidmaps: null, lipid: { category: 'FA', forced: false },
+      ref_type: 'inchikeys' },
+  ];
+  const renderReferences = getter => {
+    apiResponse = { loading: false, payload: makeReferences(), error: null };
+    const project = newProject();
+    return renderHook(() => project[getter]).result.current;
+  };
+
+  it('reads old ligand references, whose PubChem id is a string', () => {
+    const ligandReferences = renderReferences('ligandReferences');
+    expect(ligandReferences.map(ref => [ref.name, ref.pubchem])).toEqual(
+      [['ZINC', '23994'], ['Ligand', '1'], ['Old ligand', '2']]);
+    expect(ligandReferences.map(ref => ref.inchiRef.inchikey)).toEqual(
+      ['HCHKCACWOHOZIP-UHFFFAOYSA-N', 'LIGAND-KEY', 'OLD-KEY']);
+  });
+
+  it('lists ligands and lipids, leaving lipids with no name in any database unnamed', () => {
+    const references = renderReferences('ligandAndLipidReferences');
+    expect(references.map(ref => ref.name)).toEqual(['ZINC', 'Ligand', 'Old ligand', undefined]);
+    expect(references[3].inchiRef.lipid.category).toBe('FA');
+  });
+});

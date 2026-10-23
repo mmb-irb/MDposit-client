@@ -126,6 +126,8 @@ describe('membranes', () => {
     ]) {
       const topology = makeMembraneTopology(membraneMapping);
       expect(classifications(topology)).toEqual(['ligand', 'ligand', 'fatty', 'fatty', 'ligand', 'solvent']);
+      // There is no membrane, so the reduced membrane view is not offered
+      expect(topology.membraneViewerSelection).toBeNull();
     }
   });
 
@@ -135,8 +137,8 @@ describe('membranes', () => {
       mems: { 0: { leaflets: { top: [6, 7, 8], bot: [9, 10, 11] }, polar_atoms: [6, 9] } },
       no_mem_lipid: [],
     });
-    // No POPC polar atoms, only the MC3 and ligand atoms, which are ligands out of the membrane
-    expect(topology.membraneViewerSelection.atomIndices).toEqual([0, 1, 2, 3, 4, 5, 12, 13, 14]);
+    // The reduced view would hide the membrane, since it has no polar atoms to show
+    expect(topology.membraneViewerSelection).toBeNull();
   });
 
   it('does not reduce systems without membrane map', () => {

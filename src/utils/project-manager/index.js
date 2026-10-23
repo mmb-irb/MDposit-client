@@ -40,6 +40,15 @@ const completeInteraction = (interaction, topology) => {
     return interaction;
 };
 
+// Get the ligand data of a ligand or inchikey reference
+// Inchikey references have it in 'ligand' ('pubchem' in old references), or nothing for some lipids
+// Old ligand references are the ligand data themselves, with the PubChem id as a string in 'pubchem'
+const getLigandData = reference => {
+    const ligandData = reference.ligand || reference.pubchem;
+    if (ligandData && typeof ligandData === 'object') return ligandData;
+    return reference;
+};
+
 // Set the project class
 export class Project {
     constructor(projectPayload) {
@@ -282,7 +291,7 @@ export class Project {
             );
             // Get the ligand data only
             return inchikeyReferencesWithLigand.map(ref => {
-                const ligandReference = ref.ligand || ref.pubchem;
+                const ligandReference = getLigandData(ref);
                 // Make sure every ligand data has a name
                 if (!ligandReference.name) ligandReference.name = ref.name || 
                     (ref.lipidmaps && ref.lipidmaps.name) || 'Unnamed ligand';
@@ -302,7 +311,7 @@ export class Project {
             );
             // Get the ligand data only
             return inchikeyReferencesWithLigand.map(ref => {
-                const ligandReference = ref.ligand || ref.pubchem || ref;
+                const ligandReference = getLigandData(ref);
                 // Name the ligand data after the lipid databases when it has no name
                 // Otherwise the overview names it after its residues (e.g. synthetic lipids like MC3)
                 if (!ligandReference.name)
