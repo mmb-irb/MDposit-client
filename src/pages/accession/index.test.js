@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
-import { MemoryRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { MemoryRouter, Routes, Route, useNavigate } from 'react-router';
 
 import useAPI from '../../hooks/use-api';
 import Accession from '.';

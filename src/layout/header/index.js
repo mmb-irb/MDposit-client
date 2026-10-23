@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { AppBar, Toolbar } from '@mui/material';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { styled } from '@mui/material/styles';
 import Menu from '../../components/header-menu';
 import LazyImg from '../../components/lazy-img';

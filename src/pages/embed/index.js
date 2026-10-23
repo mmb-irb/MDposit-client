@@ -16,7 +16,7 @@ import { BASE_PATH_PROJECTS } from '../../utils/constants';
 
 // Load the project class
 import { Project } from '../../utils/project-manager';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router';
 import { rangedSelectionParser } from '../../utils/auxiliar-functions';
 
 // Parse a selection query param supporting plain lists ("0,1,2") and ranges ("0-5,10").

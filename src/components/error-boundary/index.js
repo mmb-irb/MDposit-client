@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 
 // Remember when we last reloaded because of a missing chunk, so a chunk which is really missing
 // (e.g. a broken deploy or being offline) shows the error instead of reloading in a loop

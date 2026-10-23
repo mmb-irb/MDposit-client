@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate, useParams, generatePath, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams, generatePath, useLocation } from 'react-router';
 import { schedule } from 'timing-functions';
 
 // Layout

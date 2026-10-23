@@ -1,6 +1,6 @@
 // React
 import React, { useState, useRef, useMemo } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router';
 
 // Additional components
 import Card from '../../components/animated-card'; // The exceled parcels in which almost all features are based

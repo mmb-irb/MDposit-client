@@ -1,6 +1,6 @@
 // React logic
 import React, { useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 // Hooks
 import useAPI from 'src/hooks/use-api'; // API acces
 
@@ -10,7 +10,7 @@ import Card from 'src/components/animated-card';
 import LazyImg from 'src/components/lazy-img';
 import ProjectBrowser from 'src/components/project-browser';
 import { CardContent, Typography, Button } from '@mui/material';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 
 // Constants
 import {

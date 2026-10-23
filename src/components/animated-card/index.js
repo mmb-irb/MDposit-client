@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useRef, forwardRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router';
 import { Card } from '@mui/material';
 
 // The fade in half of the location change animation

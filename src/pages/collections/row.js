@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 // Hooks
 import useAPI from 'src/hooks/use-api'; // API acces
 // Components

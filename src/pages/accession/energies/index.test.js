@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, cleanup, act, fireEvent } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { ProjectCtx } from '../../../contexts';
 
 // Mock the API hook so we can drive every request response from the test

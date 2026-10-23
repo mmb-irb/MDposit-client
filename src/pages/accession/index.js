@@ -1,6 +1,6 @@
 // React logic
 import React, { lazy, Suspense, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, Routes, Route, useLocation, useParams, useNavigate } from 'react-router-dom';
+import { Link, Routes, Route, useLocation, useParams, useNavigate } from 'react-router';
 
 // Visual assets
 import { Typography, Button, Select, MenuItem } from '@mui/material';

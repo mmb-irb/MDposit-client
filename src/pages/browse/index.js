@@ -5,7 +5,7 @@ import React, {
   useMemo,
   useState
 } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router';
 import CustomSearch from './custom-search';
 
 // String managers

@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useState, useEffect, useLayoutEffect } from 'react';
 //import ReactGA from 'react-ga4';
-import { Routes, Route, Router } from 'react-router-dom';
+import { Routes, Route, Router } from 'react-router';
 import { createHashHistory } from 'history';
 import { sleep } from 'timing-functions';
 import {
