@@ -579,7 +579,10 @@ export class Topology {
     this.noMembraneLipidResidues = new Set();
     if (this.membraneMapping) {
       // Convert no_mem_lipid from atom indices to residue indices
-      this.noMembraneLipidResidues = new Set(this.atom2residueIndices(this.membraneMapping.no_mem_lipid || []));
+      // Old workflow versions saved an empty object instead of a list in systems without lipids
+      const noMembraneLipidAtoms = this.membraneMapping.no_mem_lipid;
+      if (Array.isArray(noMembraneLipidAtoms))
+        this.noMembraneLipidResidues = new Set(this.atom2residueIndices(noMembraneLipidAtoms));
       // Flatten every leaflet of every membrane into one list
       // Bilayers have top and bot leaflets, vesicles have outer, inner and midplane leaflets and micelles have outer
       // WARNING: append one by one, never push(...leaflet): large membranes have hundreds of thousands
@@ -587,6 +590,7 @@ export class Topology {
       const membraneLipidAtoms = [];
       for (const memData of Object.values(this.membraneMapping.mems || {})) {
         for (const leaflet of Object.values(memData.leaflets || {})) {
+          if (!Array.isArray(leaflet)) continue;
           for (const atomIndex of leaflet) membraneLipidAtoms.push(atomIndex);
         }
       }
@@ -876,6 +880,8 @@ export class Topology {
     // Bilayers have top and bot leaflets, vesicles have outer, inner and midplane leaflets and micelles have outer
     for (const memData of Object.values(this.membraneMapping.mems)) {
       for (const leafletPolarAtoms of Object.values(memData.polar_atoms || {})) {
+        // Early membrane maps saved polar atoms as a flat list, which is ignored
+        if (!Array.isArray(leafletPolarAtoms)) continue;
         leafletPolarAtoms.forEach(atomIndex => atomIndices.add(atomIndex));
       }
     }

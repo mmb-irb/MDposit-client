@@ -118,6 +118,27 @@ describe('membranes', () => {
     expect(topology.membraneViewerSelection.atomIndices).toEqual([0, 1, 2, 3, 4, 5, 6, 9, 12, 13, 14]);
   });
 
+  it('reads empty membrane maps of old workflows, with an object as no_mem_lipid', () => {
+    // e.g. irb A01YJ, and irb-dev A020W with extra keys
+    for (const membraneMapping of [
+      { n_mems: 0, mems: {}, no_mem_lipid: {} },
+      { n_mems: 0, mems: {}, no_mem_lipid: {}, polar_atoms: {}, references: {} },
+    ]) {
+      const topology = makeMembraneTopology(membraneMapping);
+      expect(classifications(topology)).toEqual(['ligand', 'ligand', 'fatty', 'fatty', 'ligand', 'solvent']);
+    }
+  });
+
+  it('ignores polar atoms saved as a flat list by early membrane maps', () => {
+    const topology = makeMembraneTopology({
+      n_mems: 1,
+      mems: { 0: { leaflets: { top: [6, 7, 8], bot: [9, 10, 11] }, polar_atoms: [6, 9] } },
+      no_mem_lipid: [],
+    });
+    // No POPC polar atoms, only the MC3 and ligand atoms, which are ligands out of the membrane
+    expect(topology.membraneViewerSelection.atomIndices).toEqual([0, 1, 2, 3, 4, 5, 12, 13, 14]);
+  });
+
   it('does not reduce systems without membrane map', () => {
     const topology = makeMembraneTopology(null);
     expect(topology.membraneViewerSelection).toBeNull();
