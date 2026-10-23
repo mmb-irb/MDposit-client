@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { parse } from 'qs';
+import { isEqual } from 'lodash-es';
 
 // Additional components
 import Card from '../../../components/animated-card'; // The exceled parcels in which almost all features are based
@@ -239,6 +240,16 @@ const parseQuery = (currentQuery, currentLocation) => {
     .join('&');
 };
 
+// Check if an URL leads to the current location, regardless of how its parameters are encoded or sorted
+export const isCurrentLocation = (url, currentLocation) => {
+  const [pathname, search = ''] = url.split('?');
+  if (pathname !== currentLocation.pathname) return false;
+  return isEqual(
+    parse(search),
+    parse(currentLocation.search, { ignoreQueryPrefix: true }),
+  );
+};
+
 // Set the tag to be shown for null and undefined values
 const NA_TAG = 'Not defined';
 
@@ -279,8 +290,10 @@ const CustomSearch = () => {
 
   // Make a function to parse the query once built and browse
   const parseAndSearch = () => {
-    isUserInitiatedSearchRef.current = true; // Set the ref instead of state
     const browseURL = parseQuery(query, location);
+    // The query is reset on every URL change, so navigating to the same URL would push a duplicate history entry
+    if (isCurrentLocation(browseURL, location)) return;
+    isUserInitiatedSearchRef.current = true; // Set the ref instead of state
     history(browseURL);
   };
 

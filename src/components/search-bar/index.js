@@ -46,11 +46,13 @@ export const updateLocation = (location, history, value) => {
   // Reset page to the first page
   nextSearchObject.page = undefined;
   // Update history
-  history({
-    ...location,
-    search: stringify(nextSearchObject),
-    replace: shouldReplace,
-  });
+  history(
+    {
+      ...location,
+      search: stringify(nextSearchObject),
+    },
+    { replace: shouldReplace },
+  );
 };
 
 // "debounce" is a method from the "lodash" library that invokes a function after a time delay
