@@ -584,7 +584,8 @@ export class Topology {
       if (Array.isArray(noMembraneLipidAtoms))
         this.noMembraneLipidResidues = new Set(this.atom2residueIndices(noMembraneLipidAtoms));
       // Flatten every leaflet of every membrane into one list
-      // Bilayers have top and bot leaflets, vesicles have outer, inner and midplane leaflets and micelles have outer
+      // Bilayers have top, bot and midplane leaflets, vesicles outer, inner and midplane, and micelles outer
+      // The midplane holds lipids touching both leaflets alike, e.g. flip-flopping cholesterol
       // WARNING: append one by one, never push(...leaflet): large membranes have hundreds of thousands
       // of lipid atoms and spreading them as function arguments overflows the call stack.
       const membraneLipidAtoms = [];
@@ -866,7 +867,7 @@ export class Topology {
       return null;
     }
     // Get the membrane polar (headgroup) atoms of every leaflet of every membrane
-    // Bilayers have top and bot leaflets, vesicles have outer, inner and midplane leaflets and micelles have outer
+    // Bilayers have top, bot and midplane leaflets, vesicles outer, inner and midplane, and micelles outer
     const atomIndices = new Set();
     for (const memData of Object.values(this.membraneMapping.mems)) {
       for (const leafletPolarAtoms of Object.values(memData.polar_atoms || {})) {

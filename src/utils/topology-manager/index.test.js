@@ -94,6 +94,21 @@ const LNP_MEMBRANE_MAPPING = {
   version: '0.3.0',
 };
 
+// Membrane map 0.3.0 of a bilayer: POPC in the top and bot leaflets and MC3 in the midplane,
+// touching both leaflets alike as flip-flopping cholesterol or lipids at a hemifusion diaphragm
+const BILAYER_MEMBRANE_MAPPING = {
+  n_mems: 1,
+  mems: {
+    0: {
+      type: 'bilayer',
+      leaflets: { top: [6, 7, 8], bot: [9, 10, 11], midplane: [0, 1, 2, 3, 4, 5] },
+      polar_atoms: { top: [6], bot: [9], midplane: [0, 3] },
+    },
+  },
+  no_mem_lipid: [],
+  version: '0.3.0',
+};
+
 describe('membranes', () => {
   it('classifies lipids in every leaflet as lipids, even if they are missing in the lipid databases', () => {
     const topology = makeMembraneTopology(LNP_MEMBRANE_MAPPING);
@@ -103,6 +118,14 @@ describe('membranes', () => {
   it('keeps the polar atoms of every leaflet of vesicles and micelles in the reduced membrane view', () => {
     const topology = makeMembraneTopology(LNP_MEMBRANE_MAPPING);
     // Polar atoms of the micelle and the vesicle, then the ligand atoms
+    expect(topology.membraneViewerSelection.atomIndices).toEqual([0, 3, 6, 9, 12, 13, 14]);
+    expect(topology.membraneViewerSelection.residueIndices).toEqual([0, 1, 2, 3, 4]);
+  });
+
+  it('takes lipids in the bilayer midplane as membrane lipids and keeps their polar atoms in the reduced view', () => {
+    const topology = makeMembraneTopology(BILAYER_MEMBRANE_MAPPING);
+    expect(classifications(topology)).toEqual(['lipid', 'lipid', 'lipid', 'lipid', 'ligand', 'solvent']);
+    // Polar atoms of the midplane and the top and bot leaflets, then the ligand atoms
     expect(topology.membraneViewerSelection.atomIndices).toEqual([0, 3, 6, 9, 12, 13, 14]);
     expect(topology.membraneViewerSelection.residueIndices).toEqual([0, 1, 2, 3, 4]);
   });

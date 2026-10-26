@@ -1,8 +1,9 @@
 // Lipids in the membrane map and the InChI key references from the MDDB workflow
 import { unique } from 'src/utils/auxiliar-functions';
 
-// Membrane map aggregate type with top and bottom leaflets
-// Membrane maps before version 0.3.0 have no type and only flat bilayers
+// Membrane map aggregate type with top, bot and midplane leaflets
+// The midplane holds the few lipids touching both leaflets alike, e.g. flip-flopping cholesterol
+// Membrane maps before version 0.3.0 have no type and only flat bilayers, with top and bot leaflets
 // Newer maps also have vesicles (outer, inner and midplane leaflets) and micelles (outer leaflet)
 const BILAYER = 'bilayer';
 

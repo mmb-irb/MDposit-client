@@ -228,6 +228,8 @@ const Thickness = () => {
 
             // The thickness is calculated with the leaflets of every flat bilayer together
             // Vesicles and micelles have no thickness, and they may be the first membrane
+            // Lipids in the bilayer midplane (e.g. flip-flopping cholesterol) are not in the thickness either,
+            // and the distortion scheme would paint them as fully thinned, so they are not shown
             const bilayers = getBilayers(memMapPayload);
             if (bilayers.length === 0) return keepRepresentations;
             let distRepr = [{

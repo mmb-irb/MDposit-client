@@ -11,10 +11,19 @@ describe('getBilayers', () => {
     expect(getBilayers({ n_mems: 1, mems: { 0: bilayer } })).toEqual([bilayer]);
   });
 
+  it('takes bilayers with lipids in the midplane, as in membrane maps since 0.3.0', () => {
+    const bilayer = {
+      type: 'bilayer',
+      leaflets: { top: [0], bot: [1], midplane: [2] },
+      polar_atoms: { top: [0], bot: [1], midplane: [2] },
+    };
+    expect(getBilayers({ n_mems: 1, mems: { 0: bilayer } })).toEqual([bilayer]);
+  });
+
   it('skips vesicles and micelles, even when they are the first membrane', () => {
     const vesicle = { type: 'vesicle', polar_atoms: { outer: [0], inner: [1], midplane: [] } };
     const micelle = { type: 'micelle', polar_atoms: { outer: [2] } };
-    const bilayer = { type: 'bilayer', polar_atoms: { top: [3], bot: [4] } };
+    const bilayer = { type: 'bilayer', polar_atoms: { top: [3], bot: [4], midplane: [] } };
     expect(getBilayers({ n_mems: 3, mems: { 0: vesicle, 1: micelle, 2: bilayer } })).toEqual([bilayer]);
     expect(getBilayers({ n_mems: 2, mems: { 0: vesicle, 1: micelle } })).toEqual([]);
   });
