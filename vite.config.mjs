@@ -32,6 +32,8 @@ export default defineConfig({
     globals: true,
     setupFiles: './src/setupTests.js',
     include: ['src/**/*.test.{js,ts}'],
+    // As CRA's jest config did, reset every mock's calls and implementation before each test
+    mockReset: true,
     // Node 25+ defines its own global localStorage (undefined without --localstorage-file),
     // which hides jsdom's
     poolOptions: { forks: { execArgv: ['--no-experimental-webstorage'] } },

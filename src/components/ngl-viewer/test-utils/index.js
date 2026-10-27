@@ -1,4 +1,4 @@
-// Helpers to run a real NGL Stage in jest (jsdom has no WebGL)
+// Helpers to run a real NGL Stage in the tests (jsdom has no WebGL)
 
 // Make canvases return a WebGL context where every call is a harmless no-op
 // This is enough for NGL to build its viewer, components and representations

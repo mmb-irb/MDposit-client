@@ -28,7 +28,7 @@ Whatever the source, treat the description as a hypothesis to confirm, not a fac
 - Note any uncommitted changes that were there before you started (e.g. a local edit to `src/default-host-config.js` pointing the dev server at a specific node). They belong to the user: never commit, revert or stage them. Never use `git add -A` / `git add .`; stage files by name.
 - Check which node the dev server talks to: `HOST_CONFIG` in `src/default-host-config.js` (or a `src/host-config.js` override). Some behaviour only exists on the global node (`global: true`), so make sure the target fits the issue, and ask the user before changing it.
 - Dev server: start it with the Browser pane's `preview_start`, using the dev-server entry in `.claude/launch.json` (create one that runs `npm run start` if there is none). If one is already running, reuse it.
-- Tests and typecheck: see `.claude/CLAUDE.md` (test command with the transform flag; the typecheck's known failing count, where only a change in the count is a regression).
+- Tests and typecheck: `npm test -- --run [path]` runs the tests once, and `npm run typecheck` should report 0 errors. See `.claude/CLAUDE.md` for the gotchas.
 
 ## 3. Workflow (one step at a time, in this order)
 
