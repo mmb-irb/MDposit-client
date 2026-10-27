@@ -5,9 +5,9 @@ import useAPI from '.';
 
 // Replace axios with a controllable fake
 // Every request stays pending until the test resolves it, and cancelling it rejects it like axios does
-jest.mock('axios', () => {
-  const fakeAxios = jest.fn();
-  fakeAxios.CancelToken = { source: jest.fn() };
+vi.mock('axios', () => {
+  const fakeAxios = vi.fn();
+  fakeAxios.CancelToken = { source: vi.fn() };
   fakeAxios.isCancel = error => Boolean(error && error.__CANCEL__);
   return { __esModule: true, default: fakeAxios };
 });
@@ -19,7 +19,7 @@ beforeEach(() => {
   requests = [];
   axios.CancelToken.source.mockImplementation(() => {
     const token = {};
-    return { token, cancel: jest.fn(() => token.reject && token.reject({ __CANCEL__: true })) };
+    return { token, cancel: vi.fn(() => token.reject && token.reject({ __CANCEL__: true })) };
   });
   axios.mockImplementation((url, options) => new Promise((resolve, reject) => {
     const request = { url, resolve, reject, cancelled: false };

@@ -4,14 +4,14 @@ import useAPI from '../../hooks/use-api';
 import { Project } from '.';
 
 // Replace useAPI with a fake whose response the test sets
-jest.mock('../../hooks/use-api', () => ({ __esModule: true, default: jest.fn() }));
+vi.mock('../../hooks/use-api', () => ({ __esModule: true, default: vi.fn() }));
 // NGL is not needed to check problems and it does not load in jsdom
-jest.mock('ngl', () => ({ autoLoad: jest.fn() }));
+vi.mock('ngl', () => ({ autoLoad: vi.fn() }));
 // The topology manager is not needed either
-jest.mock('../topology-manager', () => ({ Topology: jest.fn() }));
+vi.mock('../topology-manager', () => ({ Topology: vi.fn() }));
 // Problems are only checked in the global client
-jest.mock('../constants', () => {
-  const actual = jest.requireActual('../constants');
+vi.mock('../constants', async () => {
+  const actual = await vi.importActual('../constants');
   return { ...actual, HOST_CONFIG: { ...actual.HOST_CONFIG, global: true } };
 });
 
@@ -22,14 +22,14 @@ const answered = { loading: false, payload: { atom_names: [] }, error: null };
 let apiResponse;
 
 beforeEach(() => {
-  jest.useFakeTimers();
+  vi.useFakeTimers();
   apiResponse = loading;
   useAPI.mockReset();
   useAPI.mockImplementation(() => apiResponse);
 });
 
 afterEach(() => {
-  jest.useRealTimers();
+  vi.useRealTimers();
 });
 
 const newProject = () => new Project({
@@ -43,7 +43,7 @@ const renderCheck = () => {
 };
 
 // Let time pass and let React process the timer updates
-const wait = ms => act(() => { jest.advanceTimersByTime(ms); });
+const wait = ms => act(() => { vi.advanceTimersByTime(ms); });
 
 describe('Project.checkProblems', () => {
   it('asks for the topology without a timeout, since this request is shared with the real topology loads', () => {

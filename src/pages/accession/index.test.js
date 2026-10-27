@@ -7,10 +7,10 @@ import Accession from '.';
 
 // The API answer for each URL, set by each test
 let answers;
-jest.mock('../../hooks/use-api', () => jest.fn());
+vi.mock('../../hooks/use-api', () => ({ default: vi.fn() }));
 
 // A minimal stand-in for the project model, with just what the accession page reads
-jest.mock('../../utils/project-manager', () => ({
+vi.mock('../../utils/project-manager', () => ({
   Project: class {
     constructor (data) {
       this.accession = data.accession;
@@ -25,9 +25,9 @@ jest.mock('../../utils/project-manager', () => ({
     checkProblems () { return null; }
   }
 }));
-jest.mock('../../components/project-menu', () => () => null);
-jest.mock('./overview', () => () => 'Overview content');
-jest.mock('./data-viewer', () => () => null);
+vi.mock('../../components/project-menu', () => ({ default: () => null }));
+vi.mock('./overview', () => ({ default: () => 'Overview content' }));
+vi.mock('./data-viewer', () => ({ default: () => null }));
 
 const Navigation = () => {
   const navigate = useNavigate();
@@ -53,7 +53,7 @@ const notFound = Object.assign(new Error('Request failed with status code 404'),
 });
 
 beforeEach(() => {
-  jest.spyOn(console, 'error').mockImplementation(() => {});
+  vi.spyOn(console, 'error').mockImplementation(() => {});
   answers = {
     A0001: { loading: false, payload: { accession: 'A0001' }, error: null },
     WRONG: { loading: false, payload: undefined, error: notFound },
@@ -64,7 +64,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 describe('<Accession />', () => {

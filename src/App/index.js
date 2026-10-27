@@ -1,3 +1,5 @@
+import { Buffer } from 'buffer';
+import processPolyfill from 'process';
 import React, { lazy, Suspense, useState, useEffect, useLayoutEffect } from 'react';
 //import ReactGA from 'react-ga4';
 import { Routes, Route, Router } from 'react-router';
@@ -24,11 +26,11 @@ const Embed = lazy(() =>
 
 // Assign a couple of usual node environmental variables from npm modules
 // This is part of the fix to solve problems from updating webpack to v5
-window.Buffer = window.Buffer || require('buffer').Buffer;
-window.process = window.process || require('process');
+window.Buffer = window.Buffer || Buffer;
+window.process = window.process || processPolyfill;
 
 // Get the Google Analytics id
-const googleAnalyticsId = process.env.REACT_APP_GOOGLE_ANALYTICS_ID;
+const googleAnalyticsId = import.meta.env.REACT_APP_GOOGLE_ANALYTICS_ID;
 
 // Set the header colors (standard model colors)
 let palette;

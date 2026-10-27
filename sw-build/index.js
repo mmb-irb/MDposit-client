@@ -20,7 +20,7 @@ const build = async () => {
       globPatterns: ['index.html', 'static/js/main.*.js'],
       // File names with a content hash need no revision, so the precache can reuse the copy the page
       // already downloaded instead of fetching it again with a "__WB_REVISION__" parameter
-      dontCacheBustURLsMatching: /\.[0-9a-f]{8}\./,
+      dontCacheBustURLsMatching: /\.[\w-]{8}\./, // CRA hashes are hex, Vite's are base64url
     })
     .then(({ warnings, manifestEntries }) => {
       warnings.forEach(console.warn);

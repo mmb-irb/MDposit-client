@@ -44,7 +44,7 @@ const createStage = () => {
 };
 
 afterEach(() => {
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
   document.body.innerHTML = '';
 });
 
@@ -160,7 +160,7 @@ describe('stage', () => {
   it('zooms in when scrolling up', () => {
     const stage = createStage();
     const canvas = stage.viewer.renderer.domElement;
-    const delta = jest.fn();
+    const delta = vi.fn();
     stage.mouseObserver.signals.scrolled.add(delta);
     canvas.dispatchEvent(new WheelEvent('wheel', { deltaY: -100, deltaMode: 0, bubbles: true }));
     expect(delta).toHaveBeenCalledTimes(1);

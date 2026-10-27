@@ -4,18 +4,18 @@ import { render, act } from '@testing-library/react';
 import { ProjectCtx } from '../../contexts';
 
 // Replace the Mol* plugin with a fake whose creation the test controls
-jest.mock('molstar/lib/mol-plugin-ui/index', () => ({ createPluginUI: jest.fn() }));
-jest.mock('molstar/lib/mol-plugin-ui/spec', () => ({ DefaultPluginUISpec: () => ({}) }));
-jest.mock('molstar/lib/mol-plugin-state/transforms/model', () => ({}));
-jest.mock('molstar/lib/mol-plugin-state/animation/built-in/model-index', () => ({}));
-jest.mock('molstar/lib/mol-plugin-state/helpers/structure-representation-params', () => ({}));
-jest.mock('molstar/lib/mol-plugin-state/transforms', () => ({}));
-jest.mock('./molstar-parser', () => ({}));
+vi.mock('molstar/lib/mol-plugin-ui/index', () => ({ createPluginUI: vi.fn() }));
+vi.mock('molstar/lib/mol-plugin-ui/spec', () => ({ DefaultPluginUISpec: () => ({}) }));
+vi.mock('molstar/lib/mol-plugin-state/transforms/model', () => ({}));
+vi.mock('molstar/lib/mol-plugin-state/animation/built-in/model-index', () => ({}));
+vi.mock('molstar/lib/mol-plugin-state/helpers/structure-representation-params', () => ({}));
+vi.mock('molstar/lib/mol-plugin-state/transforms', () => ({}));
+vi.mock('./molstar-parser', () => ({}));
 // jsdom has no IntersectionObserver
-jest.mock('react-intersection-observer', () => ({ useInView: () => [() => {}, false] }));
+vi.mock('react-intersection-observer', () => ({ useInView: () => [() => {}, false] }));
 
-const { createPluginUI } = require('molstar/lib/mol-plugin-ui/index');
-const MolstarViewer = require('.').default;
+const { createPluginUI } = await import('molstar/lib/mol-plugin-ui/index');
+const MolstarViewer = (await import('.')).default;
 
 const renderViewer = () =>
   render(
@@ -32,7 +32,7 @@ const renderViewer = () =>
 
 describe('<MolstarViewer /> plugin lifecycle', () => {
   it('disposes the Mol* plugin when unmounted', async () => {
-    const plugin = { dispose: jest.fn() };
+    const plugin = { dispose: vi.fn() };
     createPluginUI.mockResolvedValue(plugin);
     const { unmount } = renderViewer();
     // Let the plugin creation resolve
@@ -42,7 +42,7 @@ describe('<MolstarViewer /> plugin lifecycle', () => {
   });
 
   it('disposes a Mol* plugin that finishes creating after unmount', async () => {
-    const plugin = { dispose: jest.fn() };
+    const plugin = { dispose: vi.fn() };
     let resolvePlugin;
     createPluginUI.mockReturnValue(new Promise(resolve => { resolvePlugin = resolve; }));
     const { unmount } = renderViewer();

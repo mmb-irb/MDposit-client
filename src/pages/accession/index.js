@@ -233,7 +233,7 @@ const ContentSwitch = ({ subPage }) => {
   // Memoize the lazy component so its reference stays stable across rerenders of ContentSwitch.
   // Without this, every rerender (e.g. triggered by the checkProblems topology fetch on global)
   // would create a new lazy() type, causing React to unmount and remount the entire subpage.
-  const PageComponent = useMemo(() => lazy(() => import(`./${subPage}`)), [subPage]);
+  const PageComponent = useMemo(() => lazy(() => import(`./${subPage}/index.js`)), [subPage]);
 
   // The overview page is prepared to work even when no additional data from the federated node is available
   // For this reason we let the render proceed only if the subpage is the overview page

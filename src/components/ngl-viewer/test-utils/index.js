@@ -4,7 +4,7 @@
 // This is enough for NGL to build its viewer, components and representations
 // Returns the 'WEBGL_lose_context' extension mock, used by renderer.forceContextLoss
 export const installFakeWebGL = () => {
-  const loseContextExtension = { loseContext: jest.fn() };
+  const loseContextExtension = { loseContext: vi.fn() };
   const fakeContext = canvas => {
     // GL constants are just distinct numbers, but VERSION strings are parsed by three.js
     const constants = { VERSION: 0x1f02, SHADING_LANGUAGE_VERSION: 0x8b8c };
@@ -43,7 +43,7 @@ export const installFakeWebGL = () => {
   };
   // three.js checks contexts against this class, which jsdom does not define
   if (!window.WebGLRenderingContext) window.WebGLRenderingContext = class {};
-  jest.spyOn(HTMLCanvasElement.prototype, 'getContext')
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext')
     .mockImplementation(function (type) {
       return /webgl/.test(type) ? fakeContext(this) : null;
     });
@@ -55,12 +55,12 @@ export const installFakeWebGL = () => {
 export const installFrameQueue = () => {
   let queue = new Map();
   let lastId = 0;
-  jest.spyOn(window, 'requestAnimationFrame').mockImplementation(callback => {
+  vi.spyOn(window, 'requestAnimationFrame').mockImplementation(callback => {
     lastId += 1;
     queue.set(lastId, callback);
     return lastId;
   });
-  jest.spyOn(window, 'cancelAnimationFrame').mockImplementation(id => {
+  vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(id => {
     queue.delete(id);
   });
   return {

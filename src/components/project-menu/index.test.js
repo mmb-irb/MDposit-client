@@ -9,7 +9,7 @@ afterAll(cleanup);
 
 let fetchMock;
 beforeAll(() => {
-  fetchMock = jest.spyOn(global, 'fetch');
+  fetchMock = vi.spyOn(global, 'fetch');
 });
 
 afterAll(() => {

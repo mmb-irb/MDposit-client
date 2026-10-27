@@ -6,9 +6,9 @@ import { ProjectCtx } from '../../contexts';
 import { installFakeWebGL, installFrameQueue, TEST_PDB } from './test-utils';
 
 // jsdom has no IntersectionObserver
-jest.mock('react-intersection-observer', () => ({ useInView: () => [() => {}, false] }));
+vi.mock('react-intersection-observer', () => ({ useInView: () => [() => {}, false] }));
 
-const NGLViewer = require('.').default;
+const NGLViewer = (await import('.')).default;
 
 const renderViewer = () =>
   render(
@@ -24,7 +24,7 @@ const renderViewer = () =>
 
 describe('<NGLViewer /> stage lifecycle', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('stops every animation frame loop when unmounted', () => {
@@ -47,11 +47,11 @@ describe('<NGLViewer /> stage lifecycle', () => {
     const listeners = [];
     const add = document.addEventListener;
     const remove = document.removeEventListener;
-    jest.spyOn(document, 'addEventListener').mockImplementation(function (type, listener) {
+    vi.spyOn(document, 'addEventListener').mockImplementation(function (type, listener) {
       listeners.push([type, listener]);
       return add.apply(this, arguments);
     });
-    jest.spyOn(document, 'removeEventListener').mockImplementation(function (type, listener) {
+    vi.spyOn(document, 'removeEventListener').mockImplementation(function (type, listener) {
       const index = listeners.findIndex(([t, l]) => t === type && l === listener);
       if (index !== -1) listeners.splice(index, 1);
       return remove.apply(this, arguments);
@@ -74,7 +74,7 @@ describe('<NGLViewer /> stage lifecycle', () => {
 
 describe('<NGLViewer /> initial camera', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('frames the initial focus from the first paint', async () => {
@@ -83,7 +83,7 @@ describe('<NGLViewer /> initial camera', () => {
     // Record the center of every camera movement
     const centers = [];
     const addComponentFromObject = Stage.prototype.addComponentFromObject;
-    jest.spyOn(Stage.prototype, 'addComponentFromObject').mockImplementation(function () {
+    vi.spyOn(Stage.prototype, 'addComponentFromObject').mockImplementation(function () {
       const zoomMove = this.animationControls.zoomMove;
       this.animationControls.zoomMove = function (center) {
         centers.push(center.toArray());

@@ -8,8 +8,14 @@ import useViewerData from '.';
 // Replace the Node-style http clients with a controllable fake
 // Every request stays pending until the test answers it or makes it fail
 // As in the real clients, an 'error' event with no listener throws
-jest.mock('stream-http', () => ({ request: (...args) => global.fakeRequest(...args) }));
-jest.mock('https-browserify', () => ({ request: (...args) => global.fakeRequest(...args) }));
+vi.mock('stream-http', () => {
+  const request = (...args) => global.fakeRequest(...args);
+  return { request, default: { request } };
+});
+vi.mock('https-browserify', () => {
+  const request = (...args) => global.fakeRequest(...args);
+  return { request, default: { request } };
+});
 
 // Pending fake requests, in the order they were sent
 let requests;
@@ -20,9 +26,9 @@ beforeEach(() => {
     const request = new EventEmitter();
     request.path = options.path;
     request.onResponse = onResponse;
-    request.write = jest.fn();
-    request.end = jest.fn();
-    request.abort = jest.fn();
+    request.write = vi.fn();
+    request.end = vi.fn();
+    request.abort = vi.fn();
     requests.push(request);
     return request;
   };
@@ -133,7 +139,7 @@ describe('useViewerData atom subsets', () => {
 
   it('fails when a component atom subset does not match its topology', () => {
     // Only the first component sets the topology atom subset, so the second would get whole system frames
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(() => renderViewerData(null, sharedTopologyComponents([0, 1], undefined)))
       .toThrow('Atom subset of component "Frame B" does not match its topology');
     console.error.mockRestore();
@@ -204,8 +210,8 @@ const chunksOf = (body, size) => {
 const loadedData = trajectory => Buffer.from(trajectory.payload, 0, trajectory.loadedBytes);
 
 describe('useViewerData trajectory streaming', () => {
-  beforeEach(() => jest.useFakeTimers());
-  afterEach(() => jest.useRealTimers());
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
 
   it('keeps the coordinates in order when they arrive in many chunks', async () => {
     const { result } = renderViewerData();
@@ -271,7 +277,7 @@ describe('useViewerData trajectory streaming', () => {
     // Less than a frame and no time has passed: the progress may not be published yet
     const earlyProgress = result.current.trajectories[0].progress;
     expect(earlyProgress).toBeLessThan(8 / body.length);
-    act(() => { jest.advanceTimersByTime(300); });
+    act(() => { vi.advanceTimersByTime(300); });
     await stream.send(body.subarray(8, 12));
     expect(result.current.trajectories[0].progress).toBe(12 / body.length);
     // Still no whole frame for the viewers

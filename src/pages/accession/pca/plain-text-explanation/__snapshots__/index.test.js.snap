@@ -1,12 +1,12 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`plainTextExplanation should return text when 1 projection is selected 1`] = `"Selected principal component 1, accounting for 25% of explained variance"`;
+exports[`plainTextExplanation > should return text when 1 projection is selected 1`] = `"Selected principal component 1, accounting for 25% of explained variance"`;
 
-exports[`plainTextExplanation should return text when 2 projections are selected 1`] = `"Selected principal components 1 and 3, accounting for 30% of explained variance"`;
+exports[`plainTextExplanation > should return text when 2 projections are selected 1`] = `"Selected principal components 1 and 3, accounting for 30% of explained variance"`;
 
-exports[`plainTextExplanation should return text when 3 projections are selected 1`] = `"Selected principal components  2, 5, and 9, accounting for 50% of explained variance"`;
+exports[`plainTextExplanation > should return text when 3 projections are selected 1`] = `"Selected principal components  2, 5, and 9, accounting for 50% of explained variance"`;
 
-exports[`plainTextExplanation should return text when no projection selected 1`] = `
+exports[`plainTextExplanation > should return text when no projection selected 1`] = `
 "No projection selected, please select one or multiple projections to
     visualise its or their related data. Only the darker blue bars correspond to
     projections for which data has been calculated."

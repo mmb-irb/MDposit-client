@@ -4,14 +4,14 @@ import { MemoryRouter } from 'react-router';
 import { ProjectCtx } from '../../../contexts';
 
 // Mock the API hook so we can drive every request response from the test
-jest.mock('../../../hooks/use-api', () => ({
+vi.mock('../../../hooks/use-api', () => ({
   __esModule: true,
   default: url => global.__apiResponder(url),
 }));
 
 // Mock the heavy components which are not the target of this test
 // Note that the graph exposes both its marks and a way to select a point in the x axis
-jest.mock('../../../components/graph', () => ({
+vi.mock('../../../components/graph', () => ({
   __esModule: true,
   default: ({ title, xAxisValues, onSelect, marks }) => (
     <div
@@ -25,14 +25,14 @@ jest.mock('../../../components/graph', () => ({
   ),
 }));
 // Note that the viewer spawner exposes whether it was given a viewer to spawn
-jest.mock('../../../components/viewer-spawner', () => ({
+vi.mock('../../../components/viewer-spawner', () => ({
   __esModule: true,
   default: ({ newViewer }) => (
     <div data-testid="viewer-spawner" data-open={newViewer ? 'true' : 'false'} />
   ),
 }));
 // Mock the interaction selector so we can select interactions by index
-jest.mock('../../../components/interaction-selector', () => ({
+vi.mock('../../../components/interaction-selector', () => ({
   __esModule: true,
   default: ({ interactions, setSelectedInteraction }) => (
     <div>

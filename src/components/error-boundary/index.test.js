@@ -37,17 +37,17 @@ const originalLocation = window.location;
 
 beforeEach(() => {
   // React and the boundary log caught errors; keep the test output readable
-  jest.spyOn(console, 'error').mockImplementation(() => {});
+  vi.spyOn(console, 'error').mockImplementation(() => {});
   // jsdom does not let us spy on location.reload, so replace the whole location
   delete window.location;
-  window.location = { ...originalLocation, reload: jest.fn() };
+  window.location = { ...originalLocation, reload: vi.fn() };
   sessionStorage.clear();
 });
 
 afterEach(() => {
   cleanup();
   window.location = originalLocation;
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 describe('<ErrorBoundary />', () => {
@@ -82,7 +82,7 @@ describe('<ErrorBoundary />', () => {
     });
 
     it('does not reload again if the error comes back right after reloading', () => {
-      jest.spyOn(Date, 'now').mockReturnValue(1000000);
+      vi.spyOn(Date, 'now').mockReturnValue(1000000);
       renderAt('/bad', chunkError());
       expect(window.location.reload).toHaveBeenCalledTimes(1);
       cleanup();
@@ -94,7 +94,7 @@ describe('<ErrorBoundary />', () => {
     });
 
     it('reloads again if the error comes back much later (e.g. another release)', () => {
-      jest.spyOn(Date, 'now').mockReturnValue(1000000);
+      vi.spyOn(Date, 'now').mockReturnValue(1000000);
       renderAt('/bad', chunkError());
       cleanup();
       Date.now.mockReturnValue(1000000 + 60 * 60 * 1000);

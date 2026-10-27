@@ -1,7 +1,7 @@
 import { register } from './serviceWorker';
 
 // Service workers only register in production
-jest.mock('./utils/constants', () => ({ HOST_CONFIG: { production: true } }));
+vi.mock('./utils/constants', () => ({ HOST_CONFIG: { production: true } }));
 
 // The registration the fake browser hands back, and the 'sw' events the page sent
 let registration;
@@ -18,14 +18,14 @@ beforeEach(() => {
     href: 'http://localhost/',
     origin: 'http://localhost',
     hostname: 'localhost',
-    reload: jest.fn(),
+    reload: vi.fn(),
     toString: () => 'http://localhost/',
   };
   // Fake browser service worker API
   registration = {};
   navigator.serviceWorker = {
     controller: null,
-    register: jest.fn(() => Promise.resolve(registration)),
+    register: vi.fn(() => Promise.resolve(registration)),
     ready: new Promise(() => {}),
   };
   // Real browsers have this (deprecated) API, jsdom does not
@@ -34,7 +34,7 @@ beforeEach(() => {
     configurable: true,
   });
   // On localhost, register() first checks that sw.js exists
-  global.fetch = jest.fn(() => Promise.resolve({
+  global.fetch = vi.fn(() => Promise.resolve({
     status: 200,
     headers: { get: () => 'application/javascript' },
   }));
@@ -64,7 +64,7 @@ describe('serviceWorker register', () => {
   it('does not reload the page when a new version is installed', async () => {
     // A controller means an older version is already running this page
     navigator.serviceWorker.controller = {};
-    const onUpdate = jest.fn();
+    const onUpdate = vi.fn();
     await registerAndInstall({ onUpdate });
     expect(window.location.reload).not.toHaveBeenCalled();
     expect(onUpdate).toHaveBeenCalledWith(registration);
@@ -73,7 +73,7 @@ describe('serviceWorker register', () => {
   });
 
   it('announces the first install as available offline', async () => {
-    const onSuccess = jest.fn();
+    const onSuccess = vi.fn();
     await registerAndInstall({ onSuccess });
     expect(window.location.reload).not.toHaveBeenCalled();
     expect(onSuccess).toHaveBeenCalledWith(registration);

@@ -64,8 +64,8 @@ const PointerRow = ({ group, projects }) => {
     else {
       name = HOST_CONFIG.optionsNiceNames[group] || group;
       hasLogo = Boolean(HOST_CONFIG.optionsData && HOST_CONFIG.optionsData.logo);
-      pngImage = hasLogo && require(`src/images/${HOST_CONFIG.optionsData.logo[group]}.png`);
-      webpImage = hasLogo && require(`src/images/${HOST_CONFIG.optionsData.logo[group]}.png`);
+      pngImage = hasLogo && new URL(`../../images/${HOST_CONFIG.optionsData.logo[group]}.png`, import.meta.url).href;
+      webpImage = hasLogo && new URL(`../../images/${HOST_CONFIG.optionsData.logo[group]}.png`, import.meta.url).href;
       description = HOST_CONFIG.optionsData && HOST_CONFIG.optionsData.description;
     }
     // Render the final component

@@ -4,19 +4,19 @@ import { render, screen, fireEvent } from '@testing-library/react';
 // Count how many times the Mol* viewer module is evaluated
 // Mol* is a ~3 MB chunk, so it must only be loaded once the user switches to it
 let mockMolstarLoads = 0;
-jest.mock('../../molstar-viewer', () => {
+vi.mock('../../molstar-viewer', async () => {
   mockMolstarLoads += 1;
-  const { forwardRef } = require('react');
-  return forwardRef(() => <div>molstar stub</div>);
+  const { forwardRef } = await import('react');
+  return { default: forwardRef(() => <div>molstar stub</div>) };
 });
-jest.mock('../../ngl-viewer', () => {
-  const { forwardRef, memo } = require('react');
-  return memo(forwardRef(() => <div>ngl stub</div>));
+vi.mock('../../ngl-viewer', async () => {
+  const { forwardRef, memo } = await import('react');
+  return { default: memo(forwardRef(() => <div>ngl stub</div>)) };
 });
 
-// Keep the imports below the mocks for readability (jest hoists the mocks anyway)
-const SettingsControls = require('.').default;
-const NGLViewer = require('../../ngl-viewer');
+// Keep the imports below the mocks for readability (vi.mock calls are hoisted anyway)
+const SettingsControls = (await import('.')).default;
+const NGLViewer = (await import('../../ngl-viewer')).default;
 
 // Mimic how viewer-with-controls holds the backend and renders it
 const Harness = () => {

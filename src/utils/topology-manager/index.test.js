@@ -1,6 +1,6 @@
 import { Topology } from '.';
 
-jest.mock('ngl', () => ({}));
+vi.mock('ngl', () => ({}));
 
 // A single chain with many residues, as in solvated or membrane systems where one chain holds most atoms
 const RESIDUES = 30000;
