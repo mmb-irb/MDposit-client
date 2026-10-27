@@ -7,7 +7,7 @@ import { Project } from '.';
 jest.mock('../../hooks/use-api', () => ({ __esModule: true, default: jest.fn() }));
 // NGL is not needed to check problems and it does not load in jsdom
 jest.mock('ngl', () => ({ autoLoad: jest.fn() }));
-// The topology manager is not needed either and it uses Set methods missing in jsdom
+// The topology manager is not needed either
 jest.mock('../topology-manager', () => ({ Topology: jest.fn() }));
 // Problems are only checked in the global client
 jest.mock('../constants', () => {

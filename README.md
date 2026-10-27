@@ -2,7 +2,7 @@ This project was bootstrapped with [Create React App](https://github.com/faceboo
 
 ## Requirements
 
-Have Node.js and npm installed and working
+Have Node.js 26.12.1 or later and npm installed and working (`engine-strict` in `.npmrc` makes `npm install` fail on older versions)
 
 ## Setup
 

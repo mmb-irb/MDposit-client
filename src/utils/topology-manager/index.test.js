@@ -1,12 +1,6 @@
-jest.mock('ngl', () => ({}));
+import { Topology } from '.';
 
-// jsdom lacks Set.prototype.union, which the topology manager uses when it loads
-if (!Set.prototype.union) Set.prototype.union = function (other) {
-  const union = new Set(this);
-  other.forEach(value => union.add(value));
-  return union;
-};
-const { Topology } = require('.');
+jest.mock('ngl', () => ({}));
 
 // A single chain with many residues, as in solvated or membrane systems where one chain holds most atoms
 const RESIDUES = 30000;
