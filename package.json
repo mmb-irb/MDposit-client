@@ -72,8 +72,7 @@
     "http": "npm:stream-http@3.2.0",
     "jest-image-snapshot": "6.1.0",
     "jsdom": "^26.1.0",
-    "lint-staged": "^17.6.0",
-    "prettier": "1.18.2",
+    "prettier": "^3.9.10",
     "typescript": "^6.0.3",
     "vite": "^6.4.4",
     "vitest": "^3.2.7",
@@ -85,13 +84,10 @@
     "build": "npm run hostlink && vite build && node style-embedder/index.js && node sw-build/index.js",
     "typecheck": "tsc --project tsconfig.json",
     "lint": "eslint .",
+    "format": "prettier --write src",
+    "format:check": "prettier --check src",
     "test": "vitest",
     "hostlink": "custom=host-config.js; default=default-host-config.js; [ -f src/$custom ] && source=$custom || source=$default; ln -fs ../../$source src/utils/constants/host-config.js"
-  },
-  "lint-staged": {
-    "src/**/*.{js,json,css}": [
-      "prettier --single-quote --write"
-    ]
   },
   "overrides": {
     "molstar": {
