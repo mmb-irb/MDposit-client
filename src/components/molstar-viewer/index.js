@@ -122,6 +122,14 @@ molstarSpec.components = {
   viewport: { controls: () => null },
 };
 
+// Play the downloaded frames once while the trajectory is still downloading, since more frames are coming
+// Then loop over them, or go back and forth when bouncing, as in the NGL viewer
+export const getPlaybackMode = (isComplete, bounce) => {
+  if (!isComplete) return { name: 'once', params: { direction: 'forward' } };
+  if (bounce) return { name: 'palindrome', params: {} };
+  return { name: 'loop', params: { direction: 'forward' } };
+};
+
 // NGL spins 0.005 radians every 16 ms, which is about one turn every 20 seconds
 const SPIN_SPEED = 0.05; // Rotations per second
 // Set the canvas properties which are controlled by the viewer settings (background, camera and spin)
@@ -218,6 +226,17 @@ const atomIndicesToExpression = atomIndices =>
     'atom-test': MS.core.set.has([MS.core.type.set(atomIndices), MS.acp('sourceIndex')]),
   });
 
+// Translate the other NGL parameters of a representation (i.e. 'other') which molstar has too
+export const getOtherParams = (typeName, other) => {
+  const params = {};
+  if (!other) return params;
+  // Surfaces drawn as a net (e.g. pockets)
+  if (other.contour) params.visuals = ['molecular-surface-wireframe'];
+  // The NGL ball and stick radius is that of bonds, 0.15 by default, which is also the default molstar size factor
+  if (other.radius && typeName === 'ball+stick') params.sizeFactor = other.radius;
+  return params;
+};
+
 // Build a molstar component and representation for some atoms of a structure, as the NGL viewer represents them
 // Atom indices are those of the loaded topology, or null to represent the whole structure
 // The type and color are NGL ones, which are translated to molstar
@@ -225,7 +244,7 @@ const atomIndicesToExpression = atomIndices =>
 // Return null if there are no atoms to represent
 // The color theme may be given already translated (e.g. NGL color schemes, see nglSchemeToTheme)
 const buildRepresentation = async (molstar, structure, atomIndices, {
-  label, key, type: typeName, color, colorTheme: givenColorTheme, opacity, sizeFactor,
+  label, key, type: typeName, color, colorTheme: givenColorTheme, opacity, sizeFactor, other,
 }) => {
   let component;
   let bundleComponent = null;
@@ -292,6 +311,7 @@ const buildRepresentation = async (molstar, structure, atomIndices, {
         ...typeParams,
         ...alphaParams,
         ...sizeParams,
+        ...getOtherParams(typeName, other),
       },
       color: colorTheme.name,
       colorParams: colorTheme.params,
@@ -834,11 +854,9 @@ const MolstarViewer = memo(
         const maxFps = Math.max(1, Math.min(MAXIMUM_PLAYER_FPS, Math.round(1000 / timeout)));
         return {
           duration: { name: 'sequential', params: { maxFps } },
-          mode: isCompleteRef.current
-            ? { name: 'loop', params: { direction: 'forward' } }
-            : { name: 'once', params: { direction: 'forward' } },
+          mode: getPlaybackMode(isCompleteRef.current, bounce),
         };
-      }, []);
+      }, [bounce]);
 
       // Load topologies in molstar
       // Every topology is parsed once into a model, which is saved by the topology urlpath
@@ -1155,6 +1173,7 @@ const MolstarViewer = memo(
                 color: representation.color,
                 colorTheme: getCustomColorTheme(representation, sameTopology),
                 opacity: representation.opacity,
+                other: representation.other,
               });
               if (!built) continue;
               builtRefs.push(built.ref);

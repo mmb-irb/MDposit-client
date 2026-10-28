@@ -18,7 +18,7 @@ vi.mock('react-intersection-observer', () => ({ useInView: () => [() => {}, fals
 
 const { createPluginUI } = await import('molstar/lib/mol-plugin-ui/index');
 const { getHoveredAtoms, getHoveredAtomPair } = await import('./hovered-atoms');
-const MolstarViewer = (await import('.')).default;
+const { default: MolstarViewer, getPlaybackMode, getOtherParams } = await import('.');
 
 const viewer = ({ topology = {}, ...props } = {}) => (
   <ProjectCtx.Provider value={{ metadata: {}, topology }}>
@@ -209,5 +209,28 @@ describe('<MolstarViewer /> display settings', () => {
     expect(props.renderer.backgroundColor).toBe(0xffffff);
     expect(props.camera.mode).toBe('orthographic');
     expect(props.trackball.animate.name).toBe('off');
+  });
+});
+
+describe('<MolstarViewer /> playback', () => {
+  // e.g. pca projections go back and forth
+  it('goes back and forth when bouncing, as NGL does, once every frame is downloaded', () => {
+    expect(getPlaybackMode(true, true).name).toBe('palindrome');
+    expect(getPlaybackMode(true, false)).toEqual({ name: 'loop', params: { direction: 'forward' } });
+    // Frames still downloading are played once, since more are coming
+    expect(getPlaybackMode(false, true)).toEqual({ name: 'once', params: { direction: 'forward' } });
+  });
+});
+
+describe('<MolstarViewer /> other NGL parameters', () => {
+  // e.g. pockets
+  it('draws contour surfaces as a net', () => {
+    expect(getOtherParams('surface', { contour: true })).toEqual({ visuals: ['molecular-surface-wireframe'] });
+  });
+
+  // e.g. thickness, whose leaflets are big balls
+  it('scales ball and stick with its radius', () => {
+    expect(getOtherParams('ball+stick', { radius: 0.75 })).toEqual({ sizeFactor: 0.75 });
+    expect(getOtherParams('ball+stick', undefined)).toEqual({});
   });
 });
