@@ -90,7 +90,8 @@ const CustomRouter = ({ history, ...props }) => {
     // Note that we will not be able to access the current state value further if we don't want to rerener everything
     // Fort his reason the current state location is observed only at the begining and then updated inside the function
     let currentLocation = state.location.pathname;
-    history.listen(async newState => {
+    // Return the unsubscribe so the listener goes away if the router is ever unmounted
+    return history.listen(async newState => {
       // If the location is about to change, run a few extra logic
       const newLocation = newState.location.pathname;
       if (currentLocation != newLocation) {
