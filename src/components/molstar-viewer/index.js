@@ -38,7 +38,9 @@ import { TrajectoryFromCustomData, FrozenSecondaryStructure, parseCoordinateFram
 import { ProjectCtx } from '../../contexts';
 
 // Translate this app's NGL selections, colors and orientations to molstar
-import { nglSelectionToAtomIndices } from './ngl-selection';
+// NGL itself is used to understand selections not built by this app (e.g. typed by the user)
+import { autoLoad } from 'ngl';
+import { nglSelectionToAtomIndices, needsNglSelection } from './ngl-selection';
 import { nglColorToTheme } from './ngl-color';
 import { nglOrientationToCamera, cameraToNglOrientation } from './ngl-orientation';
 
@@ -209,8 +211,8 @@ const FOCUS_EXTRA_RADIUS = 4; // Å
 const DEFAULT_CAMERA_ROTATION = { direction: [0, 0, 1], up: [0, 1, 0] };
 
 // Get the bounding sphere of the atoms in an NGL selection, or null if it selects no atom
-const getSelectionSphere = (structure, selection, topologyManager) => {
-  const atomIndices = nglSelectionToAtomIndices(selection, topologyManager);
+const getSelectionSphere = (structure, selection, topologyManager, nglStructure) => {
+  const atomIndices = nglSelectionToAtomIndices(selection, topologyManager, nglStructure);
   if (atomIndices === null) return structure.boundary.sphere;
   if (atomIndices.length === 0) return null;
   const bundle = StructureElement.Bundle.fromExpression(structure, atomIndicesToExpression(atomIndices));
@@ -383,6 +385,25 @@ const MolstarViewer = memo(
       const trajectoryPipelineRef = useRef(null);
       // The last built structure, which the camera focuses
       const [builtStructure, setBuiltStructure] = useState(null);
+
+      // The main topology parsed by NGL, which is only needed to understand selections not built by this app
+      // It is parsed the first time one of these selections is to be represented or focused
+      const [nglStructure, setNglStructure] = useState(null);
+      const needsNglStructure = useMemo(() => {
+        const selections = (representations || []).map(representation => representation.selection);
+        if (focus) selections.push(focus.sele);
+        return selections.some(needsNglSelection);
+      }, [representations, focus]);
+      useEffect(() => {
+        if (!needsNglStructure || nglStructure) return;
+        const topology = topologies[0];
+        if (!topology || !topology.file) return;
+        let cancelled = false;
+        autoLoad(new Blob([topology.file], { type: 'text/plain' }), { ext: 'pdb' })
+          .then(structure => { if (!cancelled) setNglStructure(structure) })
+          .catch(error => console.error(error));
+        return () => { cancelled = true };
+      }, [needsNglStructure, nglStructure, topologies]);
       // How many frames the trajectory is expected to have once fully downloaded, and
       // whether it is already fully downloaded - both read by the play/pause effect and
       // by the progress subscription below, without needing to be effect dependencies
@@ -547,9 +568,11 @@ const MolstarViewer = memo(
           const pipeline = trajectoryPipelineRef.current;
           // A full rebuild is only required the first time, or if the represented model or the
           // representation set itself changed - not on every new chunk of the same trajectory
+          // It is also required once NGL has parsed the topology, to represent the selections only NGL understands
           const needsFullRebuild = !pipeline ||
             pipeline.modelReference !== modelReference ||
-            pipeline.representations !== representations;
+            pipeline.representations !== representations ||
+            pipeline.nglStructure !== nglStructure;
 
           if (needsFullRebuild) {
             // Skip if a previous rebuild triggered by an earlier chunk is still in flight
@@ -638,7 +661,8 @@ const MolstarViewer = memo(
 
                 // Resolve which atoms this representation targets, and build a component for them
                 let component;
-                const atomIndices = nglSelectionToAtomIndices(representation.selection, topologyManager);
+                const atomIndices = nglSelectionToAtomIndices(
+                  representation.selection, topologyManager, nglStructure);
                 if (atomIndices === null) {
                   // No filtering needed: represent the whole structure
                   component = structure;
@@ -772,6 +796,7 @@ const MolstarViewer = memo(
               trajectoryPipelineRef.current = {
                 modelReference,
                 representations,
+                nglStructure,
                 coordsRef: coords.ref,
                 trajectoryRef: molstarTrajectory.ref,
                 modelFromTrajectory: newModel,
@@ -828,6 +853,7 @@ const MolstarViewer = memo(
         trajectories,
         comps,
         representations,
+        nglStructure,
         topologyManager,
         noTrajectory,
         playing,
@@ -848,7 +874,7 @@ const MolstarViewer = memo(
         // The structure is missing while it is being rebuilt, then wait for the new one
         const structure = builtStructure.data;
         if (!structure) return;
-        const sphere = getSelectionSphere(structure, focus && focus.sele, topologyManager);
+        const sphere = getSelectionSphere(structure, focus && focus.sele, topologyManager, nglStructure);
         if (!sphere) return;
         const isFirstFocus = firstFocus.current;
         firstFocus.current = false;
@@ -861,7 +887,7 @@ const MolstarViewer = memo(
         if (isFirstFocus && !rotation) rotation = DEFAULT_CAMERA_ROTATION;
         const duration = isFirstFocus ? 0 : FOCUS_TRANSITION_DURATION;
         focusCamera(molstar.canvas3d.camera, structure, sphere, rotation, duration);
-      }, [molstar, builtStructure, focus, curatedOrientation, topologyManager]);
+      }, [molstar, builtStructure, focus, curatedOrientation, topologyManager, nglStructure]);
 
       // play/pause button effect
       useEffect(() => {

@@ -1,3 +1,5 @@
+import { Selection } from 'ngl';
+
 import { rangedSelectionParser } from '../../../utils/auxiliar-functions';
 
 // Matches the "(:chain and (ranges))" chunks produced by topology.residueIndices2Ngl
@@ -12,14 +14,35 @@ const NGL_ATOMS_SELECTION_REGEX = /@(\d+(?:,\d+)*)/g;
 // e.g. ":A and 64" or ":A and 64 ^B", where B is the insertion code
 const NGL_RESIDUE_SELECTION_REGEX = /^:(\S+) and (-?\d+)(?: \^(\S+))?$/;
 
-// Translate one of this app's NGL selection strings into a flat list of atom indices
+// Matches what joins the chunks above in a selection made only of them
+const NGL_JOINERS_REGEX = /\bor\b|[()\s]/g;
+
+// Tell if a selection is one of those built by this app, which are translated with the topology
+// i.e. a single residue or chain ranges and atom lists joined by 'or'
+const isAppSelection = selection => {
+  if (NGL_RESIDUE_SELECTION_REGEX.test(selection)) return true;
+  const rest = selection.replace(NGL_CHAIN_SELECTION_REGEX, '').replace(NGL_ATOMS_SELECTION_REGEX, '');
+  if (rest === selection) return false;
+  return rest.replace(NGL_JOINERS_REGEX, '') === '';
+};
+
+// Tell if a selection needs an NGL structure to be translated (e.g. selections typed by the user)
+export const needsNglSelection = selection =>
+  !!selection && selection !== 'all' && !isAppSelection(selection);
+
+// Translate an NGL selection string into a flat list of atom indices
 // Returns null when the selection targets the whole structure (no filtering needed)
-// Only understands the chain/residue-range grammar produced by topology.residueIndices2Ngl,
-// which is what every default representation (protein, ligands, membrane/lipids, ions, ...) uses,
-// the atom lists produced by topology.atomIndices2Ngl and the selection of a single residue
-// Arbitrary/custom NGL selections are not supported and fall back to representing the whole structure
-export const nglSelectionToAtomIndices = (selection, topologyManager) => {
+// The selections built by this app are translated with the topology, which is fast:
+// the chain/residue-range grammar produced by topology.residueIndices2Ngl, which is what every
+// default representation (protein, ligands, membrane/lipids, ions, ...) uses, the atom lists
+// produced by topology.atomIndices2Ngl and the selection of a single residue
+// Any other selection is evaluated by NGL in the NGL structure, and selects nothing until it is available
+export const nglSelectionToAtomIndices = (selection, topologyManager, nglStructure) => {
   if (!selection || selection === 'all') return null;
+  if (!isAppSelection(selection)) {
+    if (!nglStructure) return [];
+    return Array.from(nglStructure.getAtomIndices(new Selection(selection)));
+  }
   const residueMatch = selection.match(NGL_RESIDUE_SELECTION_REGEX);
   if (residueMatch) {
     const [, chainName, residueNumber, icode = null] = residueMatch;
@@ -31,11 +54,9 @@ export const nglSelectionToAtomIndices = (selection, topologyManager) => {
     }
   }
   const atomIndices = [];
-  let matched = false;
   let match;
   NGL_CHAIN_SELECTION_REGEX.lastIndex = 0;
   while ((match = NGL_CHAIN_SELECTION_REGEX.exec(selection))) {
-    matched = true;
     const [, chainName, ranges] = match;
     for (const residueNumber of rangedSelectionParser(ranges)) {
       try {
@@ -48,9 +69,7 @@ export const nglSelectionToAtomIndices = (selection, topologyManager) => {
   }
   NGL_ATOMS_SELECTION_REGEX.lastIndex = 0;
   while ((match = NGL_ATOMS_SELECTION_REGEX.exec(selection))) {
-    matched = true;
     atomIndices.push(...match[1].split(',').map(Number));
   }
-  if (!matched) return null;
   return atomIndices;
 };

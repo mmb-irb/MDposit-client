@@ -1,4 +1,21 @@
-import { nglSelectionToAtomIndices } from '.';
+import { autoLoad } from 'ngl';
+
+import { nglSelectionToAtomIndices, needsNglSelection } from '.';
+
+// Build a PDB atom line with its fixed width columns
+const atomLine = (serial, name, resName, chain, resSeq) =>
+  'ATOM  ' + String(serial).padStart(5) + ' ' + name.padEnd(4) + ' ' + resName.padStart(3) + ' ' +
+  chain + String(resSeq).padStart(4) + '    ' + (serial * 1.5).toFixed(3).padStart(8) +
+  '   0.000   0.000  1.00  0.00           ' + name[0];
+// Alanine and glycine in chain A plus a water in chain B: atoms 0-3, 4-7 and 8
+const PDB = [
+  ...['N', 'CA', 'C', 'O'].map((name, i) => atomLine(i + 1, name, 'ALA', 'A', 1)),
+  ...['N', 'CA', 'C', 'O'].map((name, i) => atomLine(i + 5, name, 'GLY', 'A', 2)),
+  atomLine(9, 'O', 'HOH', 'B', 3),
+  'END',
+].join('\n');
+const parseNglStructure = () =>
+  autoLoad(new Blob([PDB], { type: 'text/plain' }), { ext: 'pdb' });
 
 // Atom indices of each residue, by chain, number and insertion code
 const RESIDUE_ATOMS = {
@@ -39,7 +56,29 @@ describe('NGL selection to atom indices', () => {
     expect(nglSelectionToAtomIndices('(:A and (1)) or (@9)', topologyManager)).toEqual([0, 1, 9]);
   });
 
-  it('selects the whole structure for selections it does not understand', () => {
-    expect(nglSelectionToAtomIndices('protein', topologyManager)).toBe(null);
+  // Any other selection (e.g. typed by the user) is evaluated by NGL itself
+  it('tells which selections need NGL', () => {
+    expect(needsNglSelection('all')).toBe(false);
+    expect(needsNglSelection(undefined)).toBe(false);
+    expect(needsNglSelection('(:A and (1-2)) or (:B and (1))')).toBe(false);
+    expect(needsNglSelection('((@8,10)) or ((:A and (1)))')).toBe(false);
+    expect(needsNglSelection(':A and 64 ^B')).toBe(false);
+    expect(needsNglSelection(':A and 1-20')).toBe(true);
+    expect(needsNglSelection('not protein')).toBe(true);
+    // Our own selections combined with something else are not ours anymore
+    expect(needsNglSelection('(:A and (1-2)) and .CA')).toBe(true);
+  });
+
+  it('evaluates any other selection with NGL', async () => {
+    const nglStructure = await parseNglStructure();
+    const select = selection => nglSelectionToAtomIndices(selection, topologyManager, nglStructure);
+    expect(select(':A and 1-2')).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
+    expect(select('.CA')).toEqual([1, 5]);
+    expect(select('not protein')).toEqual([8]);
+    expect(select('None')).toEqual([]);
+  });
+
+  it('selects nothing while NGL is not available yet', () => {
+    expect(nglSelectionToAtomIndices('protein', topologyManager)).toEqual([]);
   });
 });
