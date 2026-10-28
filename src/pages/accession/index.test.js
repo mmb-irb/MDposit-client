@@ -20,7 +20,7 @@ vi.mock('../../utils/project-manager', () => ({
       this.mds = [{ name: 'replica 1' }];
       this.metadata = {};
       this.collectionReferences = [];
-      this.directions = { overview: true };
+      this.directions = { overview: true, trajectory: true, files: true };
     }
     checkProblems () { return null; }
   }
@@ -28,12 +28,27 @@ vi.mock('../../utils/project-manager', () => ({
 vi.mock('../../components/project-menu', () => ({ default: () => null }));
 vi.mock('./overview', () => ({ default: () => 'Overview content' }));
 vi.mock('./data-viewer', () => ({ default: () => null }));
+// Like the trajectory player, which updates its progress state on every frame while playing
+vi.mock('./trajectory', async () => {
+  const { useEffect, useState } = await import('react');
+  return { default: () => {
+    const [frame, setFrame] = useState(0);
+    useEffect(() => {
+      const interval = setInterval(() => setFrame(frame => frame + 1), 5);
+      return () => clearInterval(interval);
+    }, []);
+    return `Trajectory frame ${frame}`;
+  } };
+});
+vi.mock('./files', () => ({ default: () => 'Files content' }));
 
 const Navigation = () => {
   const navigate = useNavigate();
   return <>
     <button onClick={() => navigate('/id/A0001/overview')}>good entry</button>
     <button onClick={() => navigate('/id/WRONG/overview')}>wrong entry</button>
+    {/* Navigate outside a React event, as the app router does on popstate (Back button, URL edits) */}
+    <button onClick={() => setTimeout(() => navigate('/id/A0001/files'))}>files later</button>
   </>;
 };
 
@@ -81,5 +96,12 @@ describe('<Accession />', () => {
     fireEvent.click(screen.getByText('good entry'));
     expect(await screen.findByText('Overview content')).toBeInTheDocument();
     expect(screen.queryByText(/Project WRONG was not found/)).not.toBeInTheDocument();
+  });
+
+  it('leaves a page which keeps updating its state', async () => {
+    renderAt('/id/A0001/trajectory');
+    expect(await screen.findByText(/Trajectory frame [1-9]/)).toBeInTheDocument();
+    fireEvent.click(screen.getByText('files later'));
+    expect(await screen.findByText('Files content', {}, { timeout: 2000 })).toBeInTheDocument();
   });
 });

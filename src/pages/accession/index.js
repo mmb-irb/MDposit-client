@@ -157,6 +157,19 @@ const AccessionHeader = ({ page, primaryDarkColor }) => {
   );
 };
 
+// One lazy component per subpage, created once and reused, so its reference stays stable.
+// A new lazy() type on a rerender would unmount and remount the entire subpage. Memoizing it in
+// the component is not enough: a render which suspends is not committed, so the memo is lost and
+// the next attempt creates a new lazy(), which suspends again. React restarts the render on every
+// update of the page being left (e.g. each frame of the trajectory player), so the navigation
+// would never complete
+const subPageComponents = new Map();
+const getSubPageComponent = subPage => {
+  if (!subPageComponents.has(subPage))
+    subPageComponents.set(subPage, lazy(() => import(`./${subPage}/index.js`)));
+  return subPageComponents.get(subPage);
+};
+
 // Render the accession content: overview, trajectory, etc
 const ContentSwitch = ({ subPage }) => {
   // Load the project context
@@ -230,10 +243,7 @@ const ContentSwitch = ({ subPage }) => {
       return `The federated node "${nodeName}" is having an unknown problem with project "${project.accession}": ${problems.message}`;
     }
   }, [project, problems, nodesPayload]);
-  // Memoize the lazy component so its reference stays stable across rerenders of ContentSwitch.
-  // Without this, every rerender (e.g. triggered by the checkProblems topology fetch on global)
-  // would create a new lazy() type, causing React to unmount and remount the entire subpage.
-  const PageComponent = useMemo(() => lazy(() => import(`./${subPage}/index.js`)), [subPage]);
+  const PageComponent = getSubPageComponent(subPage);
 
   // The overview page is prepared to work even when no additional data from the federated node is available
   // For this reason we let the render proceed only if the subpage is the overview page
