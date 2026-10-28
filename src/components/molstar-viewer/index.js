@@ -25,7 +25,8 @@ import { StateTransforms } from 'molstar/lib/mol-plugin-state/transforms';
 import { MolScriptBuilder as MS } from 'molstar/lib/mol-script/language/builder';
 import { Color } from 'molstar/lib/mol-util/color';
 import { Vec3 } from 'molstar/lib/mol-math/linear-algebra';
-import { Coordinates, Model, StructureElement, Time } from 'molstar/lib/mol-model/structure';
+import { Bond, Coordinates, Model, StructureElement, StructureProperties, Time } from 'molstar/lib/mol-model/structure';
+import { OrderedSet } from 'molstar/lib/mol-data/int';
 import { setDebugMode, setTimingMode } from 'molstar/lib/mol-util/debug';
 /*  Might require extra configuration,
 see https://webpack.js.org/loaders/sass-loader/ for example.
@@ -41,13 +42,14 @@ import { ProjectCtx } from '../../contexts';
 // NGL itself is used to understand selections not built by this app (e.g. typed by the user)
 import { autoLoad } from 'ngl';
 import { nglSelectionToAtomIndices, needsNglSelection } from './ngl-selection';
-import { getPartialSystem } from '../ngl-viewer/partial-system';
+import { getPartialSystem, toWholeAtomIndex } from '../ngl-viewer/partial-system';
+import AtomDescription from '../atom-description';
 import { nglColorToTheme } from './ngl-color';
 import { nglOrientationToCamera, cameraToNglOrientation } from './ngl-orientation';
 
 import { MAXIMUM_PLAYER_FPS, interpolateSpeed } from '../../utils/player-speed';
 
-//import { setTooltipPosition } from '../../utils/tooltip-position-manager';
+import { setTooltipPosition } from '../../utils/tooltip-position-manager';
 
 import style from './style.module.css';
 
@@ -106,6 +108,9 @@ molstarSpec.components = {
   },
   // DANI: No se que hace esto pero he visto que alguien lo ponía así que yo también
   remoteState: 'none',
+  // Hide the buttons molstar shows over the viewport (zoom, screenshot, settings, fullscreen, VR...)
+  // Our own controls already do most of it, and some open molstar panels which are hidden above
+  viewport: { controls: () => null },
 };
 
 // NGL spins 0.005 radians every 16 ms, which is about one turn every 20 seconds
@@ -203,6 +208,33 @@ const atomIndicesToExpression = atomIndices =>
   MS.struct.generator.atomGroups({
     'atom-test': MS.core.set.has([MS.core.type.set(atomIndices), MS.acp('sourceIndex')]),
   });
+
+// Get an atom of a molstar structure: its index in the loaded topology, its name and its residue name
+const hoverLocation = StructureElement.Location.create();
+const getLoadedAtom = (structure, unit, element) => {
+  StructureElement.Location.set(hoverLocation, structure, unit, element);
+  return {
+    index: StructureProperties.atom.sourceIndex(hoverLocation),
+    name: StructureProperties.atom.label_atom_id(hoverLocation),
+    residueName: StructureProperties.atom.label_comp_id(hoverLocation),
+  };
+};
+
+// Get the atoms under the mouse from a molstar hovered loci: an atom or both atoms of a bond
+const getHoveredAtoms = loci => {
+  if (StructureElement.Loci.is(loci) && loci.elements.length > 0) {
+    const { unit, indices } = loci.elements[0];
+    return [getLoadedAtom(loci.structure, unit, unit.elements[OrderedSet.getAt(indices, 0)])];
+  }
+  if (Bond.isLoci(loci) && loci.bonds.length > 0) {
+    const { aUnit, aIndex, bUnit, bIndex } = loci.bonds[0];
+    return [
+      getLoadedAtom(loci.structure, aUnit, aUnit.elements[aIndex]),
+      getLoadedAtom(loci.structure, bUnit, bUnit.elements[bIndex]),
+    ];
+  }
+  return null;
+};
 
 // Duration of the camera transitions, as in the NGL viewer
 const FOCUS_TRANSITION_DURATION = 750; // ms
@@ -352,7 +384,8 @@ const MolstarViewer = memo(
             renderer: { colorMarker: false },
             // Molstar refits the camera to the whole scene every time representations are rebuilt
             // The camera is moved only by the focus effect below instead, as in the NGL viewer
-            camera: { manualReset: true },
+            // Do not draw the axes in the corner either, which NGL does not have
+            camera: { manualReset: true, helper: { axes: { name: 'off', params: {} } } },
           });
           // DEV-ONLY: expose the plugin for debugging from the browser console, alongside the
           // debug/timing query params above and the framerate badge below. Useful for inspecting the
@@ -435,6 +468,72 @@ const MolstarViewer = memo(
         }
         return atomIndices;
       }, [centering, topologyManager, nglStructure, subset]);
+
+      // Show our tooltip with the corresponding values when the mouse hovers an atom/bond, as in the NGL viewer
+      useEffect(() => {
+        if (!molstar || !topologyManager) return;
+        const tooltip = tooltipRef.current;
+        const container = parentRef.current;
+        // Hover single atoms, as NGL does, rather than whole residues
+        molstar.managers.interactivity.setProps({ granularity: 'element' });
+        // Save a timeout before displaying the tooltip
+        // This way we can kill the display in case the mouse is out before the timeout is over
+        let timeout;
+        // Set a function that both prevents the tooltip if it is about to appear and hides it is already displayed
+        const hideTooltip = () => {
+          clearTimeout(timeout);
+          tooltip.style.display = 'none';
+        };
+        // Atom indices of the loaded topology must be translated to whole system indices in partial systems
+        const partialSystem = subset && subset.partialSystem;
+        const describe = atom => {
+          const atomIndex = toWholeAtomIndex(partialSystem, atom.index);
+          return (
+            <AtomDescription
+              atomIndex={atomIndex}
+              atomName={atom.name}
+              residueName={atom.residueName}
+              residue={topologyManager.getAtomByIndex(atomIndex).residue}
+            />
+          );
+        };
+        const subscription = molstar.behaviors.interaction.hover.subscribe(({ current, page }) => {
+          hideTooltip();
+          const atoms = getHoveredAtoms(current.loci);
+          if (!atoms || !page) return;
+          timeout = setTimeout(() => {
+            const [atom1, atom2] = atoms;
+            const description = atom2
+              ? (
+                <>
+                  <div>{`Bond ${toWholeAtomIndex(partialSystem, atom1.index)} - ${toWholeAtomIndex(partialSystem, atom2.index)}`}</div>
+                  <hr style={{ color: 'lightGrey' }} />
+                  {describe(atom1)}
+                  <hr style={{ color: 'lightGrey' }} />
+                  {describe(atom2)}
+                </>
+              )
+              : describe(atom1);
+            setTooltipContent(description);
+            // Handle tooltip position
+            // WARNING: It is important to make the display block before calculating the position
+            // This is because the position is calculated from the tooltip size, which would be 0 otherwise
+            tooltip.style.display = 'block';
+            // Molstar gives the mouse position in the page, while the tooltip is fixed in the window
+            const mouse = { x: page[0] - window.scrollX, y: page[1] - window.scrollY };
+            const { x, y } = setTooltipPosition(container, tooltip, mouse, 3);
+            tooltip.style.top = y + 'px';
+            tooltip.style.left = x + 'px';
+          }, 400); // Wait 0,4 secs before showing the tooltip
+        });
+        // Remove the tooltip when the mouse is out of the viewer container
+        container.addEventListener('mouseleave', hideTooltip, false);
+        return () => {
+          subscription.unsubscribe();
+          hideTooltip();
+          container.removeEventListener('mouseleave', hideTooltip);
+        };
+      }, [molstar, topologyManager, subset]);
 
       // How many frames the trajectory is expected to have once fully downloaded, and
       // whether it is already fully downloaded - both read by the play/pause effect and

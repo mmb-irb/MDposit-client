@@ -33,9 +33,14 @@ const renderViewer = props => render(viewer(props));
 
 // The speed effect reads the animation state as soon as the plugin is set
 // The play/pause effect stops the animation when there is a trajectory not playing
+// The tooltip effect listens to hovered atoms
 const fakePlugin = () => ({
   dispose: vi.fn(),
-  managers: { animation: { state: { animationState: 'stopped' }, stop: vi.fn() } },
+  managers: {
+    animation: { state: { animationState: 'stopped' }, stop: vi.fn() },
+    interactivity: { setProps: vi.fn() },
+  },
+  behaviors: { interaction: { hover: { subscribe: () => ({ unsubscribe: vi.fn() }) } } },
   canvas3d: { setProps: vi.fn() },
 });
 
