@@ -46,6 +46,7 @@ import { ProjectCtx } from '../../contexts';
 // NGL itself is used to understand selections not built by this app (e.g. typed by the user)
 import { autoLoad } from 'ngl';
 import { nglSelectionToAtomIndices, needsNglSelection } from './ngl-selection';
+import { diffRepresentations, getRepresentationKey } from './representations-diff';
 import { getPartialSystem, toWholeAtomIndex, toPartialColorScheme, toPartialAtomGroups } from '../ngl-viewer/partial-system';
 import { nglSchemeToTheme, NglSchemeColorThemeProvider, isNglScheme } from './ngl-color-scheme';
 import AtomDescription from '../atom-description';
@@ -234,55 +235,11 @@ export const getOtherParams = (typeName, other) => {
   return params;
 };
 
-// Build a molstar component and representation for some atoms of a structure, as the NGL viewer represents them
-// Atom indices are those of the loaded topology, or null to represent the whole structure
-// The type and color are NGL ones, which are translated to molstar
-// Return the node which is to be deleted to remove the representation and the built bundle component, if any
-// Return null if there are no atoms to represent
-// The color theme may be given already translated (e.g. NGL color schemes, see nglSchemeToTheme)
-const buildRepresentation = async (molstar, structure, atomIndices, {
-  label, key, type: typeName, color, colorTheme: givenColorTheme, opacity, sizeFactor, other,
-}) => {
-  let component;
-  let bundleComponent = null;
-  if (atomIndices === null) {
-    // No filtering needed: represent the whole structure
-    component = structure;
-  } else {
-    if (atomIndices.length === 0) return null;
-    // Resolve the selection into a 'bundle' (a plain list of unit ids + element
-    // index ranges/sets) ONCE, here, rather than letting molstar re-resolve it on
-    // every single playback frame
-    // Every frame replaces the structure with a coordinate-only remap, so molstar
-    // re-runs each component's update. For a component built from an expression
-    // there is no cheap path: 'a === cache.source' is never true for the fresh
-    // structure, so updateStructureComponent re-executes the compiled query, and an
-    // atom-test-only atomGroups query scans EVERY atom of EVERY unit. That is why
-    // the cost tracked the whole structure rather than the selection: on A01IP the
-    // 220-atom glycans component cost as much per frame as the 80k-atom membrane one
-    // A 'bundle' component instead updates via Bundle.toStructure, which just maps
-    // the stored index ranges through the (unchanged) unit element arrays
-    // See mol-plugin-state/helpers/structure-component.js, updateStructureComponent
-    const bundle = StructureElement.Bundle.fromExpression(
-      structure.data,
-      atomIndicesToExpression(atomIndices),
-    );
-    component = await molstar.builders.structure.tryCreateComponent(
-      structure,
-      {
-        type: { name: 'bundle', params: bundle },
-        nullIfEmpty: true,
-        label,
-      },
-      key,
-    );
-    // The selection matched no atoms in the loaded structure
-    if (!component) return null;
-    bundleComponent = { label, component, elementCount: component.data.elementCount };
-  }
-
+// Get the molstar parameters of a representation, as the NGL viewer represents it
+// The type is an NGL one, which is translated to molstar, and the color theme is already translated
+// (see nglColorToTheme and nglSchemeToTheme)
+const getRepresentationParams = (molstar, { type: typeName, colorTheme, opacity, sizeFactor, other }) => {
   const { type, typeParams } = getRepresentationType(typeName);
-  const colorTheme = givenColorTheme || nglColorToTheme(color);
   // Molstar calls opacity 'alpha'. Representations only carry an opacity when
   // something asked for one (e.g. PBC regions, which are drawn faded so it is
   // clear they have jumped across a periodic boundary), so leave molstar's own
@@ -292,7 +249,7 @@ const buildRepresentation = async (molstar, structure, atomIndices, {
     : { alpha: opacity };
   // NGL calls the size factor 'scale'
   const sizeParams = sizeFactor ? { sizeFactor } : undefined;
-  const reprParams = createStructureRepresentationParams(
+  return createStructureRepresentationParams(
     molstar,
     void 0,
     {
@@ -314,32 +271,68 @@ const buildRepresentation = async (molstar, structure, atomIndices, {
       colorParams: colorTheme.params,
     },
   );
-
-  const update = molstar.build();
-  const representationNode = update.to(component).apply(
-    StateTransforms.Representation.StructureRepresentation3D,
-    reprParams,
-  );
-  await update.commit();
-  // Deleting a component deletes its representation as well
-  return { ref: component === structure ? representationNode.ref : component.ref, bundleComponent };
 };
 
-// Build the links of an NGL distance representation, which go between pairs of atoms (see AtomPairsShape)
+// Add a molstar component and representation for some atoms of a structure to a state update
+// Atom indices are those of the loaded topology, or null to represent the whole structure
+// Return the node which is to be deleted to remove the representation, the representation node itself,
+// to update its parameters, and the bundle component, if any
+// Return null if there are no atoms to represent
+const addRepresentation = (molstar, update, structure, atomIndices, { label, ...params }) => {
+  let component = structure;
+  if (atomIndices !== null) {
+    if (atomIndices.length === 0) return null;
+    // Resolve the selection into a 'bundle' (a plain list of unit ids + element
+    // index ranges/sets) ONCE, here, rather than letting molstar re-resolve it on
+    // every single playback frame
+    // Every frame replaces the structure with a coordinate-only remap, so molstar
+    // re-runs each component's update. For a component built from an expression
+    // there is no cheap path: 'a === cache.source' is never true for the fresh
+    // structure, so updateStructureComponent re-executes the compiled query, and an
+    // atom-test-only atomGroups query scans EVERY atom of EVERY unit. That is why
+    // the cost tracked the whole structure rather than the selection: on A01IP the
+    // 220-atom glycans component cost as much per frame as the 80k-atom membrane one
+    // A 'bundle' component instead updates via Bundle.toStructure, which just maps
+    // the stored index ranges through the (unchanged) unit element arrays
+    // See mol-plugin-state/helpers/structure-component.js, updateStructureComponent
+    const bundle = StructureElement.Bundle.fromExpression(
+      structure.data,
+      atomIndicesToExpression(atomIndices),
+    );
+    // The selection matched no atoms in the loaded structure
+    if (bundle.elements.length === 0) return null;
+    component = update.to(structure).apply(StateTransforms.Model.StructureComponent, {
+      type: { name: 'bundle', params: bundle },
+      nullIfEmpty: true,
+      label,
+    });
+  }
+  const representation = update.to(component).apply(
+    StateTransforms.Representation.StructureRepresentation3D,
+    getRepresentationParams(molstar, params),
+  );
+  // Deleting a component deletes its representation as well
+  return {
+    ref: component === structure ? representation.ref : component.ref,
+    representationRef: representation.ref,
+    bundleComponent: component === structure ? null : { label, component: component.selector },
+  };
+};
+
+// Add the links of an NGL distance representation, which go between pairs of atoms, to a state update
+// (see AtomPairsShape)
 // Atom indices are those of the loaded topology
 // Return the node which is to be deleted to remove the representation
-const buildAtomPairs = async (molstar, structure, pairs, { label, color, colorTheme, opacity, radius }) => {
-  const update = molstar.build();
+const addAtomPairs = (update, structure, pairs, { label, colorTheme, opacity, radius }) => {
   const shape = update.to(structure).apply(AtomPairsShape, {
     label,
     pairs,
     radius,
-    colorTheme: colorTheme || nglColorToTheme(color),
+    colorTheme,
     alpha: opacity === undefined || opacity === null ? 1 : opacity,
   });
   shape.apply(StateTransforms.Representation.ShapeRepresentation3D);
-  await update.commit();
-  return { ref: shape.ref, bundleComponent: null };
+  return { ref: shape.ref, representationRef: null, bundleComponent: null };
 };
 
 // Color of the distance lines, as in the NGL viewer
@@ -561,8 +554,9 @@ const MolstarViewer = memo(
       const nglStructure = nglParse && nglParse.file === topologyFile ? nglParse.structure : null;
 
       // Set if only a subset of the system atoms is loaded (e.g. the reduced membrane view or embed selections)
-      // Then topology atom indices do not match the loaded atoms and every selection needs NGL
-      // The partial system is null when it is unknown which atoms are loaded (residue/chain subsets)
+      // Then topology atom indices do not match the loaded atoms, so they are translated with the partial system
+      // The partial system is null when it is unknown which atoms are loaded (residue/chain subsets),
+      // and then every selection needs NGL (see nglSelectionToAtomIndices)
       // The subset is set in the main component, whose atom indices are sorted when the topology is requested
       const subset = useMemo(() => {
         const mainComponent = components && components[0];
@@ -578,7 +572,6 @@ const MolstarViewer = memo(
       }), [topologyManager, highlightTypes, selectedAtoms, selectedResidueIndices, snapRepresentations]);
 
       const needsNglStructure = useMemo(() => {
-        if (subset) return true;
         // NGL color schemes are calculated with NGL as well
         if ((representations || []).some(representation =>
           representation.customScheme || isNglScheme(representation.color))) return true;
@@ -589,7 +582,7 @@ const MolstarViewer = memo(
         // Distances may be given as NGL selections as well
         [...(selectedDistances || []), ...(selectedAngles || [])].forEach(atoms =>
           atoms.forEach(atom => { if (typeof atom === 'string') selections.push(atom) }));
-        return selections.some(needsNglSelection);
+        return selections.some(selection => needsNglSelection(selection, subset));
       }, [subset, representations, focus, centering, highlights, selectedDistances, selectedAngles]);
       useEffect(() => {
         if (!needsNglStructure || nglStructure || !topologyFile) return;
@@ -604,7 +597,7 @@ const MolstarViewer = memo(
       // It is null when there is no centering, and undefined while NGL is still needed to find the atoms
       const centeringAtomIndices = useMemo(() => {
         if (!centering || !topologyManager) return null;
-        if ((subset || needsNglSelection(centering)) && !nglStructure) return undefined;
+        if (needsNglSelection(centering, subset) && !nglStructure) return undefined;
         const atomIndices = nglSelectionToAtomIndices(centering, topologyManager, nglStructure, subset);
         if (!atomIndices || atomIndices.length === 0) {
           console.error(`Centering selection "${centering}" matches no atoms`);
@@ -956,11 +949,12 @@ const MolstarViewer = memo(
           const staleNames = [...inputs.keys()].filter(name => isStale(pipelines.get(name), inputs.get(name)));
           // Components which are not anymore are discarded
           const removedNames = [...pipelines.keys()].filter(name => !components.some(comp => comp.name === name));
-          // When only the representations change, they are rebuilt alone
+          // When only the representations change, they are updated alone
           // This keeps the parsed coordinates and the current frame, as the NGL viewer does
-          // They are also rebuilt once NGL has parsed the topology, to represent the selections only NGL understands
+          // They are also updated once NGL has parsed the topology, for the selections and color schemes
+          // only NGL understands
           const lastBuild = representationsBuildRef.current;
-          const needsRepresentationsRebuild = staleNames.length > 0 || removedNames.length > 0 || !lastBuild ||
+          const needsRepresentationsUpdate = staleNames.length > 0 || removedNames.length > 0 || !lastBuild ||
             lastBuild.representations !== representations ||
             lastBuild.nglStructure !== nglStructure;
 
@@ -1104,97 +1098,104 @@ const MolstarViewer = memo(
             return nglSchemeToTheme(nglStructure, schemeId);
           };
 
-          // Build one molstar component + representation per data representation
+          // Describe the representations to be built with the values they are built with (see diffRepresentations)
           // (mirrors what the NGL viewer does with the same `representations`/`components` props)
           // Every representation is built on the structure of its component, or the main component
-          // Return the references of the built nodes, which are to be deleted to rebuild them
-          const buildRepresentations = async () => {
+          // Hidden representations and those of components which are not built are not described
+          const describeRepresentations = builtComponents => {
             // Fall back to a single lightweight cartoon over the whole structure when there is
             // no representations data yet (e.g. still loading) or none was provided at all
             const reps = representations && representations.length > 0
               ? representations
               : [{ selection: 'all', type: 'cartoon', color: 'chainid' }];
-
-            const builtRefs = [];
-            // Built bundle components, kept only so the dev-only sanity check above can notice if
-            // one of them ever silently empties out during playback (see the check for why)
-            const builtBundleComponents = [];
-
+            const snapshots = [];
             for (const [repIndex, representation] of reps.entries()) {
               if (representation.show === false) continue;
-              // Find the structure of the representation component, if it is already built
               const componentName = representation.component || mainComponent.name;
-              const pipeline = pipelines.get(componentName);
-              if (!pipeline) continue;
-              const structure = pipeline.structure;
+              if (!builtComponents.has(componentName)) continue;
               // Selections are translated with the main topology (see nglSelectionToAtomIndices)
               // Components with other topologies (e.g. pockets) only understand our own selections
               const comp = components.find(comp => comp.name === componentName);
-              const sameTopology = comp && comp.topologyURL === mainComponent.topologyURL;
-
-              // NGL distance representations link pairs of whole system atom indices instead (e.g. allostery)
-              // Their selection is ignored, as in NGL
-              if (representation.type === 'distance') {
-                const atomPairs = (representation.other && representation.other.atomPair) || [];
-                const partialSystem = sameTopology && subset ? subset.partialSystem : null;
-                const built = await buildAtomPairs(molstar, structure, toPartialAtomGroups(partialSystem, atomPairs), {
-                  label: representation.name || 'Distances',
-                  color: representation.color,
-                  colorTheme: getCustomColorTheme(representation, sameTopology),
-                  opacity: representation.opacity,
-                  radius: representation.other && representation.other.radiusSize,
-                });
-                builtRefs.push(built.ref);
-                continue;
-              }
-              const atomIndices = nglSelectionToAtomIndices(
-                representation.selection, topologyManager,
-                sameTopology ? nglStructure : null, sameTopology ? subset : null);
-              const built = await buildRepresentation(molstar, structure, atomIndices, {
-                // 'label' is what molstar names this node in the state tree and in its per-node
-                // update timing log; without it every component is just 'Selection'
-                label: representation.name || representation.selection,
-                // The key is what tryCreateComponent tags the node with, and equal keys
-                // UPDATE the same node instead of adding a second one. Names are not
-                // guaranteed unique (a representation with no name falls back to its
-                // selection, and different representations may share a selection), so
-                // disambiguate with the index
-                key: `${representation.name || representation.selection}#${repIndex}`,
-                type: representation.type,
-                color: representation.color,
-                colorTheme: getCustomColorTheme(representation, sameTopology),
-                opacity: representation.opacity,
-                other: representation.other,
+              const sameTopology = !!comp && comp.topologyURL === mainComponent.topologyURL;
+              const { name, selection, type, color, opacity, other } = representation;
+              snapshots.push({
+                key: getRepresentationKey(representation, repIndex),
+                component: componentName,
+                sameTopology,
+                name,
+                selection,
+                type,
+                opacity,
+                other,
+                // The NGL structure the selection is translated with, if it needs NGL
+                // NGL distance representations ignore their selection, as in NGL
+                nglStructure: sameTopology && type !== 'distance' && needsNglSelection(selection, subset)
+                  ? nglStructure
+                  : null,
+                colorTheme: getCustomColorTheme(representation, sameTopology) || nglColorToTheme(color),
               });
-              if (!built) continue;
-              builtRefs.push(built.ref);
-              if (built.bundleComponent) builtBundleComponents.push(built.bundleComponent);
             }
-            bundleComponentsRef.current = { components: builtBundleComponents, reported: false };
-            return builtRefs;
+            return snapshots;
           };
 
-          if (needsRepresentationsRebuild) {
-            // Skip if a previous rebuild triggered by an earlier chunk is still in flight
-            // It will be retried once the current rebuild is done (see skippedRebuildRef)
+          // Add a described representation to a state update (see addRepresentation)
+          const addDescribedRepresentation = (update, snapshot) => {
+            const { component, sameTopology, name, selection, type, opacity, other, colorTheme } = snapshot;
+            const { structure } = pipelines.get(component);
+            // NGL distance representations link pairs of whole system atom indices instead (e.g. allostery)
+            if (type === 'distance') {
+              const atomPairs = (other && other.atomPair) || [];
+              const partialSystem = sameTopology && subset ? subset.partialSystem : null;
+              return addAtomPairs(update, structure, toPartialAtomGroups(partialSystem, atomPairs), {
+                label: name || 'Distances',
+                colorTheme,
+                opacity,
+                radius: other && other.radiusSize,
+              });
+            }
+            const atomIndices = nglSelectionToAtomIndices(
+              selection, topologyManager, snapshot.nglStructure, sameTopology ? subset : null);
+            return addRepresentation(molstar, update, structure, atomIndices, {
+              // 'label' is what molstar names this node in the state tree and in its per-node
+              // update timing log; without it every component is just 'Selection'
+              label: name || selection,
+              type,
+              colorTheme,
+              opacity,
+              other,
+            });
+          };
+
+          if (needsRepresentationsUpdate) {
+            // Skip if a previous update triggered by an earlier chunk is still in flight
+            // It will be retried once the current update is done (see skippedRebuildRef)
             if (buildingRef.current) {
               skippedRebuildRef.current = true;
               return;
             }
             buildingRef.current = true;
-            setBuilding(true);
             try {
-              // Discard the previous representations first, then the pipelines which are to be rebuilt
-              // Otherwise every rebuild would stack a new duplicate on top of the previous one
-              const update = molstar.build();
-              if (lastBuild) lastBuild.representationRefs.forEach(ref => update.delete(ref));
-              for (const name of [...removedNames, ...staleNames]) {
-                const pipeline = pipelines.get(name);
-                if (!pipeline) continue;
-                pipeline.rootRefs.forEach(ref => update.delete(ref));
-                pipelines.delete(name);
+              // Find what changes in the representations of the components built once stale ones are rebuilt
+              // Representations which only change their color or opacity are updated in place, as in NGL
+              const builtComponents = new Set([...pipelines.keys(), ...staleNames]);
+              removedNames.forEach(name => builtComponents.delete(name));
+              const { kept, toUpdate, toBuild, toDelete } = diffRepresentations(
+                lastBuild ? lastBuild.built : new Map(),
+                describeRepresentations(builtComponents),
+                new Set(staleNames),
+              );
+              // Recoloring is quick, so tell the user only when something is built
+              if (staleNames.length > 0 || toBuild.length > 0) setBuilding(true);
+              // Discard the pipelines which are to be rebuilt, which deletes their representations as well
+              const discardedNames = [...removedNames, ...staleNames].filter(name => pipelines.has(name));
+              if (discardedNames.length > 0) {
+                const discard = molstar.build();
+                for (const name of discardedNames) {
+                  pipelines.get(name).rootRefs.forEach(ref => discard.delete(ref));
+                  pipelines.delete(name);
+                }
+                await discard.commit();
               }
-              await update.commit();
               // Build the new pipelines
               for (const name of staleNames) {
                 const pipeline = await buildPipeline(inputs.get(name));
@@ -1202,8 +1203,38 @@ const MolstarViewer = memo(
                 if (name === mainComponent.name && pipeline.modelFromTrajectory)
                   subscribeProgress(pipeline.modelFromTrajectory);
               }
-              const representationRefs = await buildRepresentations();
-              representationsBuildRef.current = { representations, nglStructure, representationRefs };
+              // Delete, update and build representations all at once
+              // Otherwise every rebuild would stack a new duplicate on top of the previous one
+              const built = new Map();
+              kept.forEach(({ previous, snapshot }) => built.set(snapshot.key, { ...previous, snapshot }));
+              if (toDelete.length > 0 || toUpdate.length > 0 || toBuild.length > 0) {
+                const update = molstar.build();
+                toDelete.forEach(previous => { if (previous.ref) update.delete(previous.ref) });
+                // Molstar recolors a representation without building its geometry again
+                // Representations with no atoms have nothing to update
+                toUpdate.forEach(({ previous, snapshot }) => {
+                  if (previous.representationRef)
+                    update.to(previous.representationRef).update(getRepresentationParams(molstar, snapshot));
+                });
+                toBuild.forEach(snapshot => {
+                  // Representations with no atoms are not built, but they are kept to tell when they change
+                  const nodes = addDescribedRepresentation(update, snapshot)
+                    || { ref: null, representationRef: null, bundleComponent: null };
+                  built.set(snapshot.key, { ...nodes, snapshot });
+                });
+                await update.commit();
+              }
+              representationsBuildRef.current = { representations, nglStructure, built };
+              // Built bundle components, kept only so the dev-only sanity check above can notice if
+              // one of them ever silently empties out during playback (see the check for why)
+              const bundleComponents = [...built.values()]
+                .map(({ bundleComponent }) => bundleComponent)
+                .filter(Boolean);
+              bundleComponents.forEach(bundleComponent => {
+                if (bundleComponent.elementCount === undefined)
+                  bundleComponent.elementCount = bundleComponent.component.data?.elementCount ?? 0;
+              });
+              bundleComponentsRef.current = { components: bundleComponents, reported: false };
               const mainPipeline = pipelines.get(mainComponent.name) || null;
               trajectoryPipelineRef.current = mainPipeline;
               if (staleNames.includes(mainComponent.name)) setBuiltStructure(mainPipeline.structure);
@@ -1295,7 +1326,7 @@ const MolstarViewer = memo(
         // The first time, frame everything if the selection has no atoms (e.g. a residue which is not loaded)
         // Otherwise the camera would never frame anything, since molstar does not do it alone (see manualReset)
         // Selections waiting for NGL are not empty though, they are just not translated yet
-        const waitingForNgl = !nglStructure && (subset || needsNglSelection(selection));
+        const waitingForNgl = !nglStructure && needsNglSelection(selection, subset);
         if (!sphere && firstFocus.current && !waitingForNgl) sphere = structure.boundary.sphere;
         if (!sphere) return;
         const isFirstFocus = firstFocus.current;
@@ -1326,24 +1357,22 @@ const MolstarViewer = memo(
           highlightRefsRef.current.forEach(ref => {
             update.delete(ref);
           });
-          await update.commit();
           highlightRefsRef.current = [];
           // The structure may be gone if it is being rebuilt, then highlights are built on the new one
-          if (!builtStructure.data) return;
-          for (const [index, highlight] of highlights.entries()) {
+          if (builtStructure.data) highlights.forEach(highlight => {
             const atomIndices = nglSelectionToAtomIndices(
               highlight.selection, topologyManager, nglStructure, subset);
-            const built = await buildRepresentation(molstar, builtStructure, atomIndices, {
+            const built = addRepresentation(molstar, update, builtStructure, atomIndices, {
               label: highlight.label || 'Highlight',
-              key: `*highlight#${index}`,
               type: highlight.type,
               // NGL colors representations by element by default, but cartoons by chain
-              color: highlight.color || (highlight.type === 'cartoon' ? 'chainid' : 'element'),
+              colorTheme: nglColorToTheme(highlight.color || (highlight.type === 'cartoon' ? 'chainid' : 'element')),
               opacity: highlight.opacity,
               sizeFactor: highlight.sizeFactor,
             });
             if (built) highlightRefsRef.current.push(built.ref);
-          }
+          });
+          await update.commit();
         }).catch(error => console.error(error));
       }, [molstar, builtStructure, highlights, nglStructure, subset, topologyManager]);
 

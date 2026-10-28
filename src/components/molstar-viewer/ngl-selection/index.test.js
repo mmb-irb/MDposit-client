@@ -96,23 +96,36 @@ describe('NGL selection to atom indices', () => {
   });
 
   // e.g. the reduced membrane view, where topology atom indices do not match the loaded atoms
-  it('evaluates every selection with NGL when only a subset of atoms is loaded', async () => {
+  // This way the loaded atoms are drawn without waiting for NGL to parse the topology
+  it('translates its own selections to the loaded atoms when only a subset of atoms is loaded', () => {
+    // The loaded atoms are whole system atoms 1, 2, 3, 5 and 8
+    const subset = { partialSystem: getPartialSystem([1, 2, 3, 5, 8], 9) };
+    const select = selection => nglSelectionToAtomIndices(selection, topologyManager, null, subset);
+    // Atoms which are not loaded are dropped
+    expect(select('(:A and (1-2))')).toEqual([0, 1, 2]);
+    expect(select('(:A and (1)) or (@5,6)')).toEqual([0, 3]);
+    expect(select(':A and 64')).toEqual([4]);
+    expect(select('@30')).toEqual([]);
+    expect(select('all')).toBe(null);
+    expect(needsNglSelection('(:A and (1-2))', subset)).toBe(false);
+  });
+
+  it('evaluates any other selection with NGL in the loaded atoms', async () => {
     const nglStructure = await parseNglStructure();
     // The loaded atoms are whole system atoms 10 to 18
     const subset = { partialSystem: getPartialSystem([10, 11, 12, 13, 14, 15, 16, 17, 18], 20) };
     const select = selection => nglSelectionToAtomIndices(selection, topologyManager, nglStructure, subset);
-    expect(select('(:A and (2))')).toEqual([4, 5, 6, 7]);
+    expect(needsNglSelection('.CA', subset)).toBe(true);
     // Atom lists are translated to the loaded atoms, and atoms which are not loaded are dropped
-    expect(select('@12,19')).toEqual([2]);
-    expect(select('@19')).toEqual([]);
-    expect(select('all')).toBe(null);
-    expect(nglSelectionToAtomIndices('(:A and (2))', topologyManager, null, subset)).toEqual([]);
+    expect(select('.CA or @12,19')).toEqual([1, 2, 5]);
+    expect(nglSelectionToAtomIndices('.CA', topologyManager, null, subset)).toEqual([]);
   });
 
-  it('evaluates selections with NGL also when the loaded atoms are unknown', async () => {
+  it('evaluates every selection with NGL when the loaded atoms are unknown', async () => {
     const nglStructure = await parseNglStructure();
     // e.g. residue subsets, where the server resolves which atoms are loaded
     const subset = { partialSystem: null };
-    expect(nglSelectionToAtomIndices(':A and 1', topologyManager, nglStructure, subset)).toEqual([0, 1, 2, 3]);
+    expect(needsNglSelection('(:A and (1))', subset)).toBe(true);
+    expect(nglSelectionToAtomIndices('(:A and (1))', topologyManager, nglStructure, subset)).toEqual([0, 1, 2, 3]);
   });
 });

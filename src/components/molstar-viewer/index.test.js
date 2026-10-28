@@ -6,18 +6,21 @@ import { ProjectCtx } from '../../contexts';
 // Replace the Mol* plugin with a fake whose creation the test controls
 vi.mock('molstar/lib/mol-plugin-ui/index', () => ({ createPluginUI: vi.fn() }));
 vi.mock('molstar/lib/mol-plugin-ui/spec', () => ({ DefaultPluginUISpec: () => ({}) }));
-vi.mock('molstar/lib/mol-plugin-state/transforms/model', () => ({}));
-vi.mock('molstar/lib/mol-plugin-state/animation/built-in/model-index', () => ({}));
-vi.mock('molstar/lib/mol-plugin-state/helpers/structure-representation-params', () => ({}));
-vi.mock('molstar/lib/mol-plugin-state/transforms', () => ({}));
+// Representation parameters are made of the given ones, which is what the tests check
+vi.mock('molstar/lib/mol-plugin-state/helpers/structure-representation-params', () => ({
+  createStructureRepresentationParams: (plugin, structure, params) => params,
+}));
 // The custom transformers are built with its factory (e.g. mesh)
 vi.mock('./molstar-parser', () => ({ CreateTransformer: () => () => ({}) }));
 // Molstar loci are not easy to build, so the hovered atoms are given directly
 vi.mock('./hovered-atoms', () => ({ getHoveredAtoms: vi.fn(), getHoveredAtomPair: vi.fn() }));
+// Tell when the topology is parsed with NGL, which never finishes here
+vi.mock('ngl', async importOriginal => ({ ...await importOriginal(), autoLoad: vi.fn(() => new Promise(() => {})) }));
 // jsdom has no IntersectionObserver
 vi.mock('react-intersection-observer', () => ({ useInView: () => [() => {}, false] }));
 
 const { createPluginUI } = await import('molstar/lib/mol-plugin-ui/index');
+const { autoLoad } = await import('ngl');
 const { getHoveredAtoms, getHoveredAtomPair } = await import('./hovered-atoms');
 const { default: MolstarViewer, getPlaybackMode, getOtherParams } = await import('.');
 
@@ -233,5 +236,151 @@ describe('<MolstarViewer /> other NGL parameters', () => {
   it('scales ball and stick with its radius', () => {
     expect(getOtherParams('ball+stick', { radius: 0.75 })).toEqual({ sizeFactor: 0.75 });
     expect(getOtherParams('ball+stick', undefined)).toEqual({});
+  });
+});
+
+describe('<MolstarViewer /> representations', () => {
+  // A fake molstar state, which records the changes of every commit
+  const fakeState = () => {
+    const commits = [];
+    let nodeCount = 0;
+    const build = () => {
+      const changes = [];
+      const node = ref => ({
+        ref,
+        selector: { ref },
+        apply: (transformer, params) => {
+          const child = node(`node${++nodeCount}`);
+          changes.push(['apply', ref, child.ref, params]);
+          return child;
+        },
+        update: params => changes.push(['update', ref, params]),
+      });
+      return {
+        to: target => node(target.ref || target),
+        delete: ref => changes.push(['delete', ref]),
+        commit: async () => { if (changes.length > 0) commits.push(changes) },
+      };
+    };
+    return { build, commits };
+  };
+
+  // Let molstar and every effect finish
+  const settle = () => act(() => new Promise(resolve => setTimeout(resolve, 0)));
+
+  // Render the viewer with a single component which represents its topology
+  // Representations select the whole structure, so molstar is not asked to find their atoms
+  const renderRepresentations = async (representations, { component, topology } = {}) => {
+    const plugin = fakePlugin();
+    const { build, commits } = fakeState();
+    const structure = { ref: 'structure', data: { boundary: { sphere: { center: [0, 0, 0], radius: 10 } } } };
+    Object.assign(plugin, {
+      build,
+      builders: {
+        data: { rawData: async () => ({ ref: 'data' }) },
+        structure: {
+          parseTrajectory: async () => ({ ref: 'trajectory' }),
+          createModel: async () => ({ ref: 'model' }),
+          createStructure: async () => structure,
+        },
+      },
+    });
+    plugin.managers.structure = { measurement: {} };
+    plugin.canvas3d.camera = {
+      state: { target: [0, 0, 0], position: [0, 0, -50], up: [0, 1, 0] },
+      getInvariantFocus: () => ({}),
+      setState: vi.fn(),
+    };
+    createPluginUI.mockResolvedValue(plugin);
+    const props = {
+      anyLoadingTopology: false,
+      topologies: [{ urlpath: 'topology', file: 'ATOM' }],
+      components: [{ name: 'main', topologyURL: 'topology', onlyTopology: true, ...component }],
+      topology,
+    };
+    const { rerender } = renderViewer({ ...props, representations });
+    for (let tick = 0; tick < 5; tick++) await settle();
+    // Change the representations as RepresentationsManager does: in place, then in a new array
+    const change = async edit => {
+      commits.length = 0;
+      edit(representations);
+      rerender(viewer({ ...props, representations: [...representations] }));
+      await settle();
+    };
+    return { commits, change };
+  };
+
+  const representations = () => [
+    { name: 'Protein', selection: 'all', type: 'cartoon', color: 'chainid', opacity: 1, show: true },
+    { name: 'Membrane', selection: 'all', type: 'licorice', color: 'element', opacity: 1, show: true },
+  ];
+
+  it('builds every representation in a single commit', async () => {
+    const { commits } = await renderRepresentations(representations());
+    expect(commits).toHaveLength(1);
+    expect(commits[0].map(([action, parent, , params]) => [action, parent, params.color])).toEqual([
+      ['apply', 'structure', 'chain-id'],
+      ['apply', 'structure', 'element-symbol'],
+    ]);
+  });
+
+  // e.g. the membrane of an 80k atom system must not be built again when a ligand is hidden
+  it('only deletes a hidden representation', async () => {
+    const { commits, change } = await renderRepresentations(representations());
+    const membraneNode = commits[0][1][2];
+    await change(reps => { reps[1].show = false });
+    expect(commits).toEqual([[['delete', membraneNode]]]);
+    // Showing it again builds it alone
+    await change(reps => { reps[1].show = true });
+    expect(commits).toHaveLength(1);
+    expect(commits[0].map(([action, parent]) => [action, parent])).toEqual([['apply', 'structure']]);
+  });
+
+  // Molstar recolors a representation without building its geometry again, as NGL does
+  it('updates the color and opacity of a representation in place', async () => {
+    const { commits, change } = await renderRepresentations(representations());
+    const proteinNode = commits[0][0][2];
+    await change(reps => {
+      reps[0].color = 'red';
+      reps[0].opacity = 0.5;
+    });
+    expect(commits).toHaveLength(1);
+    expect(commits[0]).toHaveLength(1);
+    const [action, node, params] = commits[0][0];
+    expect([action, node]).toEqual(['update', proteinNode]);
+    expect(params.color).toBe('uniform');
+    expect(params.typeParams.alpha).toBe(0.5);
+  });
+
+  it('builds again a representation whose drawing method changes', async () => {
+    const { commits, change } = await renderRepresentations(representations());
+    const proteinNode = commits[0][0][2];
+    await change(reps => { reps[0].type = 'spacefill' });
+    expect(commits).toHaveLength(1);
+    expect(commits[0].map(([action, parent, , params]) => [action, parent, params && params.type])).toEqual([
+      ['delete', proteinNode, undefined],
+      ['apply', 'structure', 'spacefill'],
+    ]);
+  });
+
+  describe('with a subset of atoms', () => {
+    afterEach(() => autoLoad.mockClear());
+
+    // e.g. the reduced membrane view, where this app's selections are translated with the topology
+    it('does not wait for NGL to parse the topology', async () => {
+      const { commits } = await renderRepresentations(representations(), {
+        component: { atomIndices: [0, 1, 2] },
+        topology: { atomCount: 10 },
+      });
+      expect(autoLoad).not.toHaveBeenCalled();
+      expect(commits).toHaveLength(1);
+    });
+
+    it('parses the topology with NGL for selections only NGL understands', async () => {
+      const reps = representations();
+      reps[1].selection = 'not protein';
+      await renderRepresentations(reps, { component: { atomIndices: [0, 1, 2] }, topology: { atomCount: 10 } });
+      expect(autoLoad).toHaveBeenCalledTimes(1);
+    });
   });
 });
