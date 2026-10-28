@@ -24,6 +24,7 @@ import { createStructureRepresentationParams } from 'molstar/lib/mol-plugin-stat
 import { StateTransforms } from 'molstar/lib/mol-plugin-state/transforms';
 import { MolScriptBuilder as MS } from 'molstar/lib/mol-script/language/builder';
 import { Color } from 'molstar/lib/mol-util/color';
+import { Vec3 } from 'molstar/lib/mol-math/linear-algebra';
 import { Coordinates, Model, StructureElement, Time } from 'molstar/lib/mol-model/structure';
 import { setDebugMode, setTimingMode } from 'molstar/lib/mol-util/debug';
 /*  Might require extra configuration,
@@ -100,6 +101,19 @@ molstarSpec.components = {
   // DANI: No se que hace esto pero he visto que alguien lo ponía así que yo también
   remoteState: 'none',
 };
+
+// NGL spins 0.005 radians every 16 ms, which is about one turn every 20 seconds
+const SPIN_SPEED = 0.05; // Rotations per second
+// Set the canvas properties which are controlled by the viewer settings (background, camera and spin)
+const getSettingsCanvasProps = ({ darkBackground, perspective, spinning }) => ({
+  renderer: { backgroundColor: Color(darkBackground ? 0x000000 : 0xffffff) },
+  camera: { mode: perspective ? 'perspective' : 'orthographic' },
+  trackball: {
+    animate: spinning
+      ? { name: 'spin', params: { speed: SPIN_SPEED, axis: Vec3.create(0, -1, 0) } }
+      : { name: 'off', params: {} },
+  },
+});
 
 // Set the number of bytes per element in trajectory data
 const BYTES_PER_COORDINATE = 4; // float 32
@@ -321,7 +335,12 @@ const MolstarViewer = memo(
           molstarInstance = await createPluginUI({
             target: parentRef.current,
             render: renderReact18,
-            spec: molstarSpec,
+            // Start with the current settings so the very first frame already has them
+            // Later changes are applied by the settings effect below
+            spec: {
+              ...molstarSpec,
+              canvas3d: getSettingsCanvasProps({ darkBackground, perspective, spinning }),
+            },
           });
           // If we were unmounted while creating it then nobody else will dispose it
           if (unmounted) {
@@ -352,6 +371,12 @@ const MolstarViewer = memo(
           if (molstarInstance) molstarInstance.dispose();
         };
       }, []);
+
+      // Apply the viewer settings: background, camera and spin
+      useEffect(() => {
+        if (!molstar) return;
+        molstar.canvas3d?.setProps(getSettingsCanvasProps({ darkBackground, perspective, spinning }));
+      }, [molstar, darkBackground, perspective, spinning]);
 
       // Set the molstar model reference
       const [modelReference, setModelReference] = useState(null);

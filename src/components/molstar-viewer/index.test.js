@@ -17,23 +17,25 @@ vi.mock('react-intersection-observer', () => ({ useInView: () => [() => {}, fals
 const { createPluginUI } = await import('molstar/lib/mol-plugin-ui/index');
 const MolstarViewer = (await import('.')).default;
 
-const renderViewer = () =>
-  render(
-    <ProjectCtx.Provider value={{ metadata: {}, topology: {} }}>
-      <MolstarViewer
-        noTrajectory
-        anyLoadingTopology
-        components={[]}
-        topologies={[]}
-        trajectories={[]}
-      />
-    </ProjectCtx.Provider>,
-  );
+const viewer = props => (
+  <ProjectCtx.Provider value={{ metadata: {}, topology: {} }}>
+    <MolstarViewer
+      noTrajectory
+      anyLoadingTopology
+      components={[]}
+      topologies={[]}
+      trajectories={[]}
+      {...props}
+    />
+  </ProjectCtx.Provider>
+);
+const renderViewer = props => render(viewer(props));
 
 // The speed effect reads the animation state as soon as the plugin is set
 const fakePlugin = () => ({
   dispose: vi.fn(),
   managers: { animation: { state: { animationState: 'stopped' } } },
+  canvas3d: { setProps: vi.fn() },
 });
 
 describe('<MolstarViewer /> plugin lifecycle', () => {
@@ -55,5 +57,36 @@ describe('<MolstarViewer /> plugin lifecycle', () => {
     unmount();
     await act(async () => resolvePlugin(plugin));
     expect(plugin.dispose).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('<MolstarViewer /> display settings', () => {
+  it('creates the plugin with the background, camera and spin already set', async () => {
+    createPluginUI.mockResolvedValue(fakePlugin());
+    renderViewer({ darkBackground: true, perspective: false, spinning: true });
+    await act(async () => {});
+    const { canvas3d } = createPluginUI.mock.calls[0][0].spec;
+    expect(canvas3d.renderer.backgroundColor).toBe(0x000000);
+    expect(canvas3d.camera.mode).toBe('orthographic');
+    expect(canvas3d.trackball.animate.name).toBe('spin');
+  });
+
+  it('updates the background, camera and spin when the settings change', async () => {
+    const plugin = fakePlugin();
+    createPluginUI.mockResolvedValue(plugin);
+    const { rerender } = renderViewer({ darkBackground: false, perspective: false, spinning: false });
+    await act(async () => {});
+
+    rerender(viewer({ darkBackground: true, perspective: true, spinning: true }));
+    let props = plugin.canvas3d.setProps.mock.lastCall[0];
+    expect(props.renderer.backgroundColor).toBe(0x000000);
+    expect(props.camera.mode).toBe('perspective');
+    expect(props.trackball.animate.name).toBe('spin');
+
+    rerender(viewer({ darkBackground: false, perspective: false, spinning: false }));
+    props = plugin.canvas3d.setProps.mock.lastCall[0];
+    expect(props.renderer.backgroundColor).toBe(0xffffff);
+    expect(props.camera.mode).toBe('orthographic');
+    expect(props.trackball.animate.name).toBe('off');
   });
 });
