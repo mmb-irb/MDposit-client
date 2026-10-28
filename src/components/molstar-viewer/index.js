@@ -37,8 +37,9 @@ import { TrajectoryFromCustomData, FrozenSecondaryStructure, parseCoordinateFram
 
 import { ProjectCtx } from '../../contexts';
 
-// Translate this app's NGL selections and orientations to molstar
+// Translate this app's NGL selections, colors and orientations to molstar
 import { nglSelectionToAtomIndices } from './ngl-selection';
+import { nglColorToTheme } from './ngl-color';
 import { nglOrientationToCamera, cameraToNglOrientation } from './ngl-orientation';
 
 import { MAXIMUM_PLAYER_FPS, interpolateSpeed } from '../../utils/player-speed';
@@ -191,26 +192,6 @@ const DEFAULT_REPRESENTATION_TYPE = { type: 'ball-and-stick' };
 const getRepresentationType = typeName =>
   REPRESENTATION_TYPES[typeName] || DEFAULT_REPRESENTATION_TYPE;
 
-// Map this app's NGL-style color names to molstar color themes
-const COLOR_THEMES = {
-  chainid: 'chain-id',
-  element: 'element-symbol',
-  resname: 'residue-name',
-};
-// Plain color names/values with no direct molstar theme equivalent are rendered as a uniform color
-const NAMED_COLORS = {
-  grey: 0x808080,
-  gray: 0x808080,
-  purple: 0x800080,
-};
-const getColorTheme = colorName => {
-  const themeName = COLOR_THEMES[colorName];
-  if (themeName) return { name: themeName };
-  const namedColor = NAMED_COLORS[colorName];
-  if (namedColor !== undefined)
-    return { name: 'uniform', params: { value: Color(namedColor) } };
-  return { name: 'chain-id' };
-};
 
 // Build a molstar expression selecting exactly the given atom indices
 // This relies on 'sourceIndex', the 0-based index of the atom in the loaded topology file,
@@ -707,7 +688,7 @@ const MolstarViewer = memo(
                 }
 
                 const { type, typeParams } = getRepresentationType(representation.type);
-                const colorTheme = getColorTheme(representation.color);
+                const colorTheme = nglColorToTheme(representation.color);
                 // Molstar calls opacity 'alpha'. Representations only carry an opacity when
                 // something asked for one (currently PBC regions, which are drawn faded so it is
                 // clear they have jumped across a periodic boundary), so leave molstar's own
