@@ -1,6 +1,7 @@
 import { autoLoad } from 'ngl';
 
 import { getPartialSystem } from '../../ngl-viewer/partial-system';
+import { Topology } from '../../../utils/topology-manager';
 import { nglSelectionToAtomIndices, needsNglSelection } from '.';
 
 // Build a PDB atom line with its fixed width columns
@@ -18,21 +19,22 @@ const PDB = [
 const parseNglStructure = () =>
   autoLoad(new Blob([PDB], { type: 'text/plain' }), { ext: 'pdb' });
 
-// Atom indices of each residue, by chain, number and insertion code
-const RESIDUE_ATOMS = {
-  'A:1': [0, 1],
-  'A:2': [2, 3],
-  'A:3': [4],
-  'A:64:B': [7],
-  'B:1': [5, 6],
-};
-const topologyManager = {
-  getResidueByParameters: (chainName, number, icode = null) => {
-    const key = [chainName, number, icode].filter(value => value !== null).join(':');
-    if (!RESIDUE_ATOMS[key]) throw new Error(`No residue ${key}`);
-    return { atomIndices: RESIDUE_ATOMS[key] };
+// Residues A:1 (atoms 0-1), A:2 (2-3), A:3 (4), B:1 (5-6), A:64 with insertion code B (7) and A:64 (8)
+// The insertion code makes every other residue have an empty one, as in topologies from PDB files
+const topologyManager = new Topology(
+  {
+    atom_names: ['N', 'CA', 'N', 'CA', 'CA', 'N', 'CA', 'CA', 'CA'],
+    atom_elements: ['N', 'C', 'N', 'C', 'C', 'N', 'C', 'C', 'C'],
+    atom_residue_indices: [0, 0, 1, 1, 2, 3, 3, 4, 5],
+    residue_names: ['ALA', 'GLY', 'SER', 'ALA', 'THR', 'VAL'],
+    residue_numbers: [1, 2, 3, 1, 64, 64],
+    residue_icodes: { 4: 'B' },
+    residue_chain_indices: [0, 0, 0, 1, 0, 0],
+    chain_names: ['A', 'B'],
   },
-};
+  {},
+  { proteins: [], ligands: [], chains: [], inchikeys: [] },
+);
 
 describe('NGL selection to atom indices', () => {
   it('selects the whole structure for "all" or no selection', () => {
@@ -45,10 +47,20 @@ describe('NGL selection to atom indices', () => {
     expect(nglSelectionToAtomIndices(selection, topologyManager)).toEqual([0, 1, 2, 3, 5, 6]);
   });
 
+  // As in NGL, a number selects every residue with that number, whatever its insertion code
+  it('selects every residue with the numbers in a range', () => {
+    expect(nglSelectionToAtomIndices('(:A and (3, 64))', topologyManager)).toEqual([4, 7, 8]);
+  });
+
   // This is the selection of a single topology residue (e.g. the embed target residue)
   it('understands a single residue selection', () => {
     expect(nglSelectionToAtomIndices(':A and 3', topologyManager)).toEqual([4]);
     expect(nglSelectionToAtomIndices(':A and 64 ^B', topologyManager)).toEqual([7]);
+  });
+
+  it('selects nothing in chains which are not in the topology', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(nglSelectionToAtomIndices('(:Z and (1))', topologyManager)).toEqual([]);
   });
 
   // This is the selection made by topology.atomIndices2Ngl (e.g. interacting agents in domains)

@@ -11,10 +11,12 @@ import { ColormakerRegistry } from 'ngl';
 // Return null if the component contains the whole system
 export const getPartialSystem = (atomIndices, atomCount) => {
   if (!atomIndices || atomIndices.length >= atomCount) return null;
+  // Loaded atoms come in the topology order, whatever the order of the requested atoms (e.g. embed URL parameters)
+  const wholeIndices = [...atomIndices].sort((a, b) => a - b);
   // Whole system atom index -> partial system atom index (-1 when the atom is not loaded)
   const partialIndices = new Int32Array(atomCount).fill(-1);
-  atomIndices.forEach((wholeIndex, partialIndex) => { partialIndices[wholeIndex] = partialIndex });
-  return { wholeIndices: atomIndices, partialIndices };
+  wholeIndices.forEach((wholeIndex, partialIndex) => { partialIndices[wholeIndex] = partialIndex });
+  return { wholeIndices, partialIndices };
 };
 
 // Get the partial system index of a whole system atom index

@@ -6,7 +6,8 @@ import { Coordinates, Frame, Time } from 'molstar/lib/mol-model/structure';
 import { SecondaryStructureProvider } from 'molstar/lib/mol-model-props/computed/secondary-structure';
 import { DefaultDSSPComputationProps } from 'molstar/lib/mol-model-props/computed/secondary-structure/dssp';
 
-const CreateTransformer = StateTransformer.builderFactory('custom-namespace');
+// Factory of the custom molstar state transformers of this app
+export const CreateTransformer = StateTransformer.builderFactory('custom-namespace');
 
 // Props deliberately different from the provider's default ('auto') - see FrozenSecondaryStructure
 const FROZEN_SECONDARY_STRUCTURE_PROPS = {
@@ -81,7 +82,8 @@ export const TrajectoryFromCustomData = CreateTransformer({
     from: PluginStateObject.Root,
     to: PluginStateObject.Molecule.Coordinates,
     params: {
-        data: PD.Value<Uint8Array>(new Uint8Array(), { isHidden: true }),
+        // A view of the downloaded coordinates, so they are not copied (see parseCoordinateFrames)
+        coordinates: PD.Value<Float32Array>(new Float32Array(), { isHidden: true }),
         natoms: PD.Value<number>(0, { isHidden: true }),
         // Atoms to center every frame around, if any (see parseCoordinateFrames)
         centering: PD.Value<ArrayLike<number> | null>(null, { isHidden: true }),
@@ -90,7 +92,7 @@ export const TrajectoryFromCustomData = CreateTransformer({
     apply({ params }) {
         return Task.create('Parse atom coordinates', async (ctx) => {
             //ctx.update({ canAbort: true, message: 'Parsing trajectory...' });
-            const frames = parseCoordinateFrames(params.data, params.natoms, 0, params.centering);
+            const frames = parseCoordinateFrames(params.coordinates, params.natoms, 0, params.centering);
             const molstarCoords = Coordinates.create(
                 frames,
                 Time(1, 'step'), // deltaTime
@@ -101,14 +103,15 @@ export const TrajectoryFromCustomData = CreateTransformer({
     },
 });
 
-// Parse binary atom coordinates into molstar per-frame coordinate objects
+// Parse atom coordinates into molstar per-frame coordinate objects
+// Coordinates are the downloaded bytes read as floats: x, y and z of every atom, one frame after the other
 // Exported (and kept synchronous/task-free) so the viewer can also call it directly to parse just the
 // newly downloaded bytes of a trajectory that is still streaming in, without going through the
 // state-tree transform machinery for every single downloaded chunk
 // 'frameOffset' lets the resulting frames' Time values stay monotonic when parsing a later chunk
 // 'centering' atoms, if any, are kept at the origin by translating every frame, as the NGL viewer does
 export function parseCoordinateFrames(
-    data: Uint8Array, natoms: number, frameOffset: number = 0, centering: ArrayLike<number> | null = null,
+    coordinates: Float32Array, natoms: number, frameOffset: number = 0, centering: ArrayLike<number> | null = null,
 ): Frame[] {
     // Check the number of atoms to not be 0 (the default)
     if (natoms === 0) throw new Error('Number of atoms is 0');
@@ -119,11 +122,9 @@ export function parseCoordinateFrames(
     // Each frame has coordinates for every atom
     const frameSize = atomSize * natoms;
     // Check data contains whole frames
-    if (data.byteLength % frameSize !== 0) throw new Error('Trajectory data ends abruptly');
+    if (coordinates.byteLength % frameSize !== 0) throw new Error('Trajectory data ends abruptly');
     // Calculate the number of frames
-    const nframes = data.byteLength / frameSize;
-    // Convert binary data to coordinates
-    const coordinates = new Float32Array(data);
+    const nframes = coordinates.byteLength / frameSize;
     // Set a list with the already read coordinates
     const frameCoordinates: Frame[] = [];
     // Keep track of the coordinate we are reading

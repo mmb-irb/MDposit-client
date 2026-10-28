@@ -4,7 +4,7 @@ import { parseCoordinateFrames } from '.';
 const DATA = new Float32Array([
   1, 2, 3, 3, 4, 5,
   2, 2, 2, 4, 4, 4,
-]).buffer;
+]);
 
 const atomCoordinates = (frame, atom) => [frame.x[atom], frame.y[atom], frame.z[atom]];
 
@@ -14,6 +14,14 @@ describe('parseCoordinateFrames', () => {
     expect(frames).toHaveLength(2);
     expect(atomCoordinates(frames[0], 1)).toEqual([3, 4, 5]);
     expect(atomCoordinates(frames[1], 0)).toEqual([2, 2, 2]);
+  });
+
+  // e.g. the frames of a new chunk, which are read from the downloaded buffer without copying them
+  it('reads the frames of a view in the middle of the downloaded buffer', () => {
+    const frames = parseCoordinateFrames(new Float32Array(DATA.buffer, 6 * 4, 6), 2, 1);
+    expect(frames).toHaveLength(1);
+    expect(atomCoordinates(frames[0], 1)).toEqual([4, 4, 4]);
+    expect(frames[0].time.value).toBe(1);
   });
 
   // As the NGL viewer does when a 'centering' selection is passed (e.g. the embed target residue)

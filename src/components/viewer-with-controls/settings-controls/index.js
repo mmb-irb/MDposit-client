@@ -61,7 +61,7 @@ const SettingsControls = ({
   Viewer,
   setViewer,
   // Whether the user may switch to the MolStar viewer (see ViewerWithControls)
-  allowMolstar = false,
+  allowMolstar,
   // Player speed state and setter
   speed,
   setSpeed,

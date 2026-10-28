@@ -31,6 +31,24 @@ const isAppSelection = selection => {
 export const needsNglSelection = selection =>
   !!selection && selection !== 'all' && !isAppSelection(selection);
 
+// Get the atoms of the residues in a chain with any of the given numbers, and the given insertion code if any
+// As in NGL, a number alone matches every residue with that number, whatever its insertion code
+const getResidueAtoms = (topologyManager, chainName, numbers, icode = null) => {
+  const chainIndex = topologyManager.chainNames.indexOf(chainName);
+  if (chainIndex === -1) {
+    console.warn(`Molstar viewer: there is no chain ${chainName} in the topology`);
+    return [];
+  }
+  const { residueNumbers, residueIcodes, residueAtomIndices } = topologyManager;
+  const atomIndices = [];
+  for (const residueIndex of topologyManager.chainResidueIndices[chainIndex]) {
+    if (!numbers.has(residueNumbers[residueIndex])) continue;
+    if (icode !== null && residueIcodes[residueIndex] !== icode) continue;
+    for (const atomIndex of residueAtomIndices[residueIndex]) atomIndices.push(atomIndex);
+  }
+  return atomIndices;
+};
+
 // Translate an NGL selection string into a flat list of atom indices
 // Returns null when the selection targets the whole structure (no filtering needed)
 // The selections built by this app are translated with the topology, which is fast:
@@ -52,30 +70,16 @@ export const nglSelectionToAtomIndices = (selection, topologyManager, nglStructu
   const residueMatch = selection.match(NGL_RESIDUE_SELECTION_REGEX);
   if (residueMatch) {
     const [, chainName, residueNumber, icode = null] = residueMatch;
-    try {
-      return topologyManager.getResidueByParameters(chainName, Number(residueNumber), icode).atomIndices;
-    } catch (error) {
-      console.warn('Molstar viewer: could not resolve residue for selection', selection, error);
-      return [];
-    }
+    return getResidueAtoms(topologyManager, chainName, new Set([Number(residueNumber)]), icode);
   }
+  // Atoms are pushed one by one, since spreading lists of many atoms overflows the call stack
   const atomIndices = [];
-  let match;
-  NGL_CHAIN_SELECTION_REGEX.lastIndex = 0;
-  while ((match = NGL_CHAIN_SELECTION_REGEX.exec(selection))) {
-    const [, chainName, ranges] = match;
-    for (const residueNumber of rangedSelectionParser(ranges)) {
-      try {
-        const residue = topologyManager.getResidueByParameters(chainName, residueNumber);
-        atomIndices.push(...residue.atomIndices);
-      } catch (error) {
-        console.warn('Molstar viewer: could not resolve residue for selection', selection, error);
-      }
-    }
+  for (const [, chainName, ranges] of selection.matchAll(NGL_CHAIN_SELECTION_REGEX)) {
+    const numbers = new Set(rangedSelectionParser(ranges));
+    for (const atomIndex of getResidueAtoms(topologyManager, chainName, numbers)) atomIndices.push(atomIndex);
   }
-  NGL_ATOMS_SELECTION_REGEX.lastIndex = 0;
-  while ((match = NGL_ATOMS_SELECTION_REGEX.exec(selection))) {
-    atomIndices.push(...match[1].split(',').map(Number));
+  for (const [, atoms] of selection.matchAll(NGL_ATOMS_SELECTION_REGEX)) {
+    for (const atomIndex of atoms.split(',')) atomIndices.push(Number(atomIndex));
   }
   return atomIndices;
 };

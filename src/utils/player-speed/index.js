@@ -32,5 +32,5 @@ export const speedToFps = currentSpeed => {
     Math.pow(MAXIMUM_PLAYER_FPS / MINIMUM_PLAYER_FPS, fraction);
 };
 
-// Both backends drive playback off a timeout: the time to wait before advancing a frame, in ms
+// The NGL viewer drives playback off a timeout: the time to wait before advancing a frame, in ms
 export const interpolateSpeed = currentSpeed => 1000 / speedToFps(currentSpeed);

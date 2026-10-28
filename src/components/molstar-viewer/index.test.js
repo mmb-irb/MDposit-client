@@ -10,7 +10,8 @@ vi.mock('molstar/lib/mol-plugin-state/transforms/model', () => ({}));
 vi.mock('molstar/lib/mol-plugin-state/animation/built-in/model-index', () => ({}));
 vi.mock('molstar/lib/mol-plugin-state/helpers/structure-representation-params', () => ({}));
 vi.mock('molstar/lib/mol-plugin-state/transforms', () => ({}));
-vi.mock('./molstar-parser', () => ({}));
+// The custom transformers are built with its factory (e.g. mesh)
+vi.mock('./molstar-parser', () => ({ CreateTransformer: () => () => ({}) }));
 // Molstar loci are not easy to build, so the hovered atoms are given directly
 vi.mock('./hovered-atoms', () => ({ getHoveredAtoms: vi.fn(), getHoveredAtomPair: vi.fn() }));
 // jsdom has no IntersectionObserver

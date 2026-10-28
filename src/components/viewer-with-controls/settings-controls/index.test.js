@@ -68,14 +68,15 @@ describe('<SettingsControls /> viewer switch', () => {
     expect(screen.getByTitle('Toggle smooth interpolation off')).toBeDisabled();
   });
 
-  // Mol* lacks most of the analysis pages features, so pages must opt in
-  it('hides the switch unless the page allows Mol*', () => {
+  // e.g. thickness, which needs something Mol* lacks
+  it('hides the switch when the page opts out of Mol*', () => {
     render(
       <SettingsControls
         viewerRef={{ current: null }}
         noTrajectory
         Viewer={NGLViewer}
         setViewer={() => {}}
+        allowMolstar={false}
       />,
     );
     expect(screen.queryByTitle('Switch viwer to MolStar')).not.toBeInTheDocument();

@@ -3,7 +3,7 @@ import { trajectoryFromPDB } from 'molstar/lib/mol-model-formats/structure/pdb';
 import { Structure, StructureProperties } from 'molstar/lib/mol-model/structure';
 import { OrderedSet } from 'molstar/lib/mol-data/int';
 
-import { createAtomPairsShape } from '.';
+import { createAtomPairsShape, findAtoms } from '.';
 import { getHoveredAtomPair } from '../hovered-atoms';
 import { TEST_PDB, TEST_ATOM_COORDINATES } from '../../ngl-viewer/test-utils';
 
@@ -16,11 +16,15 @@ const getStructure = async () => {
 // Color every atom by its index, to tell which atom gave the color
 const getColor = location => StructureProperties.atom.sourceIndex(location);
 
+// Draw the links between pairs of atoms, which are found in the structure unless given (e.g. from another frame)
+const drawPairs = (structure, pairs, { atoms = findAtoms(structure, pairs.flat()), ...options } = {}, previous) =>
+  createAtomPairsShape(structure, { pairs, atoms, getColor, ...options }, previous);
+
 describe('createAtomPairsShape', () => {
   it('draws a link between the atoms of every pair, each half colored as its atom', async () => {
     const structure = await getStructure();
     // The alanine CA to the glycine CA, and the ligand C1 to the ion
-    const shape = createAtomPairsShape(structure, { pairs: [[1, 7], [10, 14]], radius: 0.1, getColor });
+    const shape = drawPairs(structure, [[1, 7], [10, 14]], { radius: 0.1 });
     expect(shape.geometry.cylinderCount).toBe(4);
     expect([0, 1, 2, 3].map(group => shape.getColor(group, 0))).toEqual([1, 7, 10, 14]);
     expect(shape.getSize(0, 0)).toBe(0.1);
@@ -42,29 +46,31 @@ describe('createAtomPairsShape', () => {
   });
 
   // Molstar keeps drawing the buffers of the first geometry, so new frames must be written in them
+  // Atoms are found in the first frame only, since every frame has the same units and elements
   it('draws new positions in the geometry of the previous links', async () => {
     const structure = await getStructure();
-    const previous = createAtomPairsShape(structure, { pairs: [[1, 7]], getColor });
+    const atoms = findAtoms(structure, [1, 7]);
+    const previous = drawPairs(structure, [[1, 7]], { atoms });
     const startBuffer = previous.geometry.startBuffer;
     // The same structure with every atom 10 Å further along X, as in another frame
     const { x } = structure.model.atomicConformation;
     for (let i = 0; i < x.length; i++) x[i] += 10;
     const moved = Structure.ofModel(structure.model);
-    const shape = createAtomPairsShape(moved, { pairs: [[1, 7]], getColor }, previous.geometry);
+    const shape = drawPairs(moved, [[1, 7]], { atoms }, previous.geometry);
     expect(shape.geometry.startBuffer).toBe(startBuffer);
     expect(startBuffer.ref.value[0]).toBeCloseTo(11.46);
   });
 
   it('skips pairs with atoms which are not in the structure', async () => {
     const structure = await getStructure();
-    const shape = createAtomPairsShape(structure, { pairs: [[1, 7], [1, 1000]], getColor });
+    const shape = drawPairs(structure, [[1, 7], [1, 1000]]);
     expect(shape.sourceData.pairs).toHaveLength(1);
     expect(shape.geometry.cylinderCount).toBe(2);
   });
 
   it('tells which pair is hovered, from either half of its link', async () => {
     const structure = await getStructure();
-    const shape = createAtomPairsShape(structure, { pairs: [[1, 7], [10, 14]], getColor });
+    const shape = drawPairs(structure, [[1, 7], [10, 14]]);
     const hover = group => getHoveredAtomPair({ kind: 'group-loci', shape, groups: [{ ids: OrderedSet.ofSingleton(group), instance: 0 }] });
     expect(hover(3).atoms.map(atom => [atom.index, atom.name, atom.residueName])).toEqual([
       [10, 'C1', 'LIG'], [14, 'NA', 'NA'],

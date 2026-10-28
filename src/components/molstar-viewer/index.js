@@ -56,14 +56,11 @@ import { MeshShape } from './mesh';
 import { nglColorToTheme } from './ngl-color';
 import { nglOrientationToCamera, cameraToNglOrientation, rotateSceneAroundX } from './ngl-orientation';
 
-import { MAXIMUM_PLAYER_FPS, interpolateSpeed } from '../../utils/player-speed';
+import { speedToFps } from '../../utils/player-speed';
 
 import { setTooltipPosition } from '../../utils/tooltip-position-manager';
 
 import style from './style.module.css';
-
-// Used to just wait
-import { sleep } from 'timing-functions';
 
 // Load the molstar plugin context in a global and accessible place
 //window.molstar = PluginUIContext;
@@ -467,8 +464,6 @@ const MolstarViewer = memo(
 
       // references
       const parentRef = useRef(null);
-      const containerRef = useRef(null);
-      const stageRef = useRef(null);
       const tooltipRef = useRef(null);
 
       // in-view hook
@@ -662,32 +657,23 @@ const MolstarViewer = memo(
           timeout = setTimeout(() => {
             const [atom1, atom2] = atoms;
             const [index1, index2] = atoms.map(atom => toWholeAtomIndex(partialSystem, atom.index));
+            const describePair = title => (
+              <>
+                <div>{title}</div>
+                <hr style={{ color: 'lightGrey' }} />
+                {describe(atom1)}
+                <hr style={{ color: 'lightGrey' }} />
+                {describe(atom2)}
+              </>
+            );
             let description;
             // When we hover a distance
             if (atomPair) {
               const custom = distanceTooltipRef.current && distanceTooltipRef.current(index1, index2);
-              description = custom || (
-                <>
-                  <div>{`Distance ${index1} - ${index2} (${atomPair.length.toFixed(2)} Å)`}</div>
-                  <hr style={{ color: 'lightGrey' }} />
-                  {describe(atom1)}
-                  <hr style={{ color: 'lightGrey' }} />
-                  {describe(atom2)}
-                </>
-              );
+              description = custom || describePair(`Distance ${index1} - ${index2} (${atomPair.length.toFixed(2)} Å)`);
             }
             // When we hover a bond
-            else if (atom2) {
-              description = (
-                <>
-                  <div>{`Bond ${index1} - ${index2}`}</div>
-                  <hr style={{ color: 'lightGrey' }} />
-                  {describe(atom1)}
-                  <hr style={{ color: 'lightGrey' }} />
-                  {describe(atom2)}
-                </>
-              );
-            }
+            else if (atom2) description = describePair(`Bond ${index1} - ${index2}`);
             // When we hover an atom
             else {
               description = describe(atom1);
@@ -791,6 +777,9 @@ const MolstarViewer = memo(
       // by the progress subscription below, without needing to be effect dependencies
       const expectedFramesRef = useRef(1);
       const isCompleteRef = useRef(false);
+      // Keep the progress function in a reference, since the subscription below is only set when rebuilding
+      const onProgressRef = useRef(onProgress);
+      onProgressRef.current = onProgress;
       // Subscription notifying onProgress/currentFrame consumers as the current frame changes
       const progressSubscriptionRef = useRef(null);
       // Guards against overlapping full rebuilds when trajectory chunks arrive faster than a rebuild
@@ -845,13 +834,11 @@ const MolstarViewer = memo(
 
       // Animation parameters shared by the play/pause effect and the streaming resume logic below
       // Loop once the full trajectory is downloaded, otherwise stop at the last downloaded frame
-      // (mirrors the NGL viewer's 'loop'/'once' player mode switch in payload-to-ngl-file)
-      // The 'speed' input ranges 0-100; interpolateSpeed turns it into the same per-frame timeout
-      // (in ms) that the NGL viewer uses, which is then expressed as molstar's fps-cap equivalent
+      // (mirrors the NGL viewer's 'loop'/'once' player mode switch)
+      // The 'speed' input ranges 0-100 and asks for the same frame rate as in the NGL viewer
       // ('sequential' duration re-applies the animation at most every 1000/maxFps ms)
       const getAnimationParams = useCallback(() => {
-        const timeout = interpolateSpeed(speedRef.current);
-        const maxFps = Math.max(1, Math.min(MAXIMUM_PLAYER_FPS, Math.round(1000 / timeout)));
+        const maxFps = Math.round(speedToFps(speedRef.current));
         return {
           duration: { name: 'sequential', params: { maxFps } },
           mode: getPlaybackMode(isCompleteRef.current, bounce),
@@ -959,10 +946,13 @@ const MolstarViewer = memo(
 
           // A component is rebuilt the first time, or if its model, its trajectory or its centering changed
           // Not on every new chunk of the same trajectory
+          // Centering atoms are compared one by one, since they are found again when NGL arrives, for instance
+          const sameAtoms = (atoms, others) => atoms === others || (!!atoms && !!others &&
+            atoms.length === others.length && atoms.every((atom, i) => atom === others[i]));
           const isStale = (pipeline, input) => !pipeline ||
             pipeline.modelRef !== input.modelRef ||
             pipeline.urlpath !== input.urlpath ||
-            pipeline.centering !== input.centering;
+            !sameAtoms(pipeline.centering, input.centering);
           const staleNames = [...inputs.keys()].filter(name => isStale(pipelines.get(name), inputs.get(name)));
           // Components which are not anymore are discarded
           const removedNames = [...pipelines.keys()].filter(name => !components.some(comp => comp.name === name));
@@ -975,7 +965,7 @@ const MolstarViewer = memo(
             lastBuild.nglStructure !== nglStructure;
 
           // Build the pipeline of a component, up to the structure the representations are built on
-          const buildPipeline = async (name, input) => {
+          const buildPipeline = async input => {
             const { modelRef, urlpath } = input;
             // Components with no trajectory represent the topology itself
             if (!urlpath) {
@@ -990,11 +980,12 @@ const MolstarViewer = memo(
             }
 
             // Load the whole frames downloaded so far
+            // They are read from the downloaded buffer, since a copy would be kept as long as the node
             const coords = await molstar
               .build()
               .toRoot()
               .apply(TrajectoryFromCustomData, {
-                data: input.trajectory.payload.slice(0, input.fitLength),
+                coordinates: new Float32Array(input.trajectory.payload, 0, input.fitLength / BYTES_PER_COORDINATE),
                 natoms: input.atoms,
                 centering: input.centering,
               })
@@ -1091,10 +1082,10 @@ const MolstarViewer = memo(
                 const modelIndex = (newModel.cell && newModel.cell.transform.params.modelIndex) || 0;
                 recordFrameTick(modelIndex);
                 if (import.meta.env.DEV) checkBundleComponents();
-                if (!onProgress) return;
+                if (!onProgressRef.current) return;
                 const total = expectedFramesRef.current;
                 if (total <= 1) return;
-                onProgress(Math.min(1, Math.max(0, modelIndex / (total - 1))));
+                onProgressRef.current(Math.min(1, Math.max(0, modelIndex / (total - 1))));
               },
             );
           };
@@ -1206,7 +1197,7 @@ const MolstarViewer = memo(
               await update.commit();
               // Build the new pipelines
               for (const name of staleNames) {
-                const pipeline = await buildPipeline(name, inputs.get(name));
+                const pipeline = await buildPipeline(inputs.get(name));
                 pipelines.set(name, pipeline);
                 if (name === mainComponent.name && pipeline.modelFromTrajectory)
                   subscribeProgress(pipeline.modelFromTrajectory);
@@ -1234,10 +1225,11 @@ const MolstarViewer = memo(
             const current = pipelines.get(name);
             if (!current || !current.trajectoryData || current.urlpath !== input.urlpath) continue;
             if (input.fitLength <= current.parsedBytes) continue;
-            const newBytes = input.trajectory.payload.slice(current.parsedBytes, input.fitLength);
+            const newCoordinates = new Float32Array(input.trajectory.payload, current.parsedBytes,
+              (input.fitLength - current.parsedBytes) / BYTES_PER_COORDINATE);
             const previousFrameCount = current.coordsData.frames.length;
             const newFrames = parseCoordinateFrames(
-              newBytes, input.atoms, previousFrameCount, current.centering);
+              newCoordinates, input.atoms, previousFrameCount, current.centering);
             current.coordsData.frames.push(...newFrames);
 
             const deltaCoords = Coordinates.create(newFrames, Time(1, 'step'), Time(0, 'step'));
@@ -1283,7 +1275,6 @@ const MolstarViewer = memo(
         noTrajectory,
         playing,
         isInView,
-        onProgress,
         getAnimationParams,
         recordFrameTick,
       ]);
@@ -1299,8 +1290,13 @@ const MolstarViewer = memo(
         // The structure is missing while it is being rebuilt, then wait for the new one
         const structure = builtStructure.data;
         if (!structure) return;
-        const sphere = getSelectionSphere(
-          structure, focus && focus.sele, topologyManager, nglStructure, subset);
+        const selection = focus && focus.sele;
+        let sphere = getSelectionSphere(structure, selection, topologyManager, nglStructure, subset);
+        // The first time, frame everything if the selection has no atoms (e.g. a residue which is not loaded)
+        // Otherwise the camera would never frame anything, since molstar does not do it alone (see manualReset)
+        // Selections waiting for NGL are not empty though, they are just not translated yet
+        const waitingForNgl = !nglStructure && (subset || needsNglSelection(selection));
+        if (!sphere && firstFocus.current && !waitingForNgl) sphere = structure.boundary.sphere;
         if (!sphere) return;
         const isFirstFocus = firstFocus.current;
         firstFocus.current = false;
@@ -1328,7 +1324,7 @@ const MolstarViewer = memo(
           // Discard the previous highlights, unless they were removed along with a previous structure
           const update = molstar.build();
           highlightRefsRef.current.forEach(ref => {
-            if (molstar.state.data.cells.has(ref)) update.delete(ref);
+            update.delete(ref);
           });
           await update.commit();
           highlightRefsRef.current = [];
@@ -1363,7 +1359,7 @@ const MolstarViewer = memo(
           // Discard the previous measurements, unless they were removed along with a previous structure
           const update = molstar.build();
           measurementRefsRef.current.forEach(ref => {
-            if (molstar.state.data.cells.has(ref)) update.delete(ref);
+            update.delete(ref);
           });
           await update.commit();
           measurementRefsRef.current = [];
@@ -1445,7 +1441,7 @@ const MolstarViewer = memo(
         else {
           molstar.managers.animation.stop();
         }
-      }, [molstar, playing, isInView, noTrajectory, bounce, getAnimationParams]);
+      }, [molstar, playing, isInView, noTrajectory, getAnimationParams]);
 
       // Handle the speed
       // Live-update the fps cap of the already-running animation, without restarting it
@@ -1456,34 +1452,12 @@ const MolstarViewer = memo(
         molstar.managers.animation.updateCurrentParams(getAnimationParams());
       }, [molstar, speed, getAnimationParams]);
 
-      // Resize logic
-      // declare handler
-      const handleResize = useCallback(async () => {
-        if (!stageRef.current) return;
-        const canvas = containerRef.current.querySelector('canvas');
-        if (canvas) {
-          canvas.style.height = '';
-          canvas.style.cursor = 'default';
-        }
-        // WARNING: This sleep here is to fix a bug
-        // When we open/close settings we trigger this function but it takes the size of the window before changing
-        // The sleep fixes this problem altought the delay is 0
-        await sleep(0);
-        stageRef.current.handleResize();
-      }, []);
-      // connect the handle to events
-      useEffect(() => {
-        window.addEventListener('resize', handleResize);
-        return () => {
-          window.removeEventListener('resize', handleResize);
-        };
-      }, [handleResize]);
-
       // Expose public methods and getters/setters
       useImperativeHandle(
         ref,
         () => ({
-          autoResize: handleResize,
+          // Molstar resizes its canvas alone, since it observes the size of its parent element
+          autoResize: () => {},
           // Output the current orientation/focus in console
           // Note: this is for the developer, not for the regular user
           // It is printed in the NGL format, which is the one stored in the ORIENTATION metadata
@@ -1527,7 +1501,7 @@ const MolstarViewer = memo(
             return expectedFramesRef.current;
           },
         }),
-        [molstar, trajectories, handleResize],
+        [molstar],
       );
 
       // workaround to have multiple ref logic on one element

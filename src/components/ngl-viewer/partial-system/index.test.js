@@ -26,6 +26,16 @@ describe('partial system', () => {
     expect(() => toWholeAtomIndex(partialSystem, 4)).toThrow();
   });
 
+  // e.g. embed atom indices, which come in the order of the URL
+  it('loads atoms in the topology order, whatever the order of the given indices', () => {
+    const unsorted = [8, 1, 5, 4];
+    const fromUnsorted = getPartialSystem(unsorted, 10);
+    expect(toPartialAtomIndex(fromUnsorted, 8)).toBe(3);
+    expect(toWholeAtomIndex(fromUnsorted, 0)).toBe(1);
+    // The given indices are left as they are
+    expect(unsorted).toEqual([8, 1, 5, 4]);
+  });
+
   it('leaves indices untouched when there is no partial system', () => {
     expect(toPartialAtomIndex(null, 3)).toBe(3);
     expect(toWholeAtomIndex(null, 3)).toBe(3);

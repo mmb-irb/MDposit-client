@@ -1,13 +1,11 @@
-import { StateTransformer } from 'molstar/lib/mol-state';
 import { PluginStateObject } from 'molstar/lib/mol-plugin-state/objects';
 import { Mesh } from 'molstar/lib/mol-geo/geometry/mesh/mesh';
 import { Shape } from 'molstar/lib/mol-model/shape';
 import { Color } from 'molstar/lib/mol-util/color';
 import { ParamDefinition as PD } from 'molstar/lib/mol-util/param-definition';
 
+import { CreateTransformer } from '../molstar-parser';
 import { getMeshColors } from '../../../utils/mesh-colors';
-
-const CreateTransformer = StateTransformer.builderFactory('custom-namespace');
 
 // Build a molstar shape of a mesh given as the NGL viewer draws it (see drawMesh in the NGL viewer)
 // Every 3 vertices make a triangle
