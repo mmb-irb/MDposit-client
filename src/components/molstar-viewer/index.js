@@ -44,6 +44,7 @@ import { nglSelectionToAtomIndices, needsNglSelection } from './ngl-selection';
 import { getPartialSystem, toWholeAtomIndex } from '../ngl-viewer/partial-system';
 import AtomDescription from '../atom-description';
 import { getHoveredAtoms } from './hovered-atoms';
+import { getHighlights } from './highlights';
 import { nglColorToTheme } from './ngl-color';
 import { nglOrientationToCamera, cameraToNglOrientation } from './ngl-orientation';
 
@@ -208,6 +209,95 @@ const atomIndicesToExpression = atomIndices =>
   MS.struct.generator.atomGroups({
     'atom-test': MS.core.set.has([MS.core.type.set(atomIndices), MS.acp('sourceIndex')]),
   });
+
+// Build a molstar component and representation for some atoms of a structure, as the NGL viewer represents them
+// Atom indices are those of the loaded topology, or null to represent the whole structure
+// The type and color are NGL ones, which are translated to molstar
+// Return the node which is to be deleted to remove the representation and the built bundle component, if any
+// Return null if there are no atoms to represent
+const buildRepresentation = async (molstar, structure, atomIndices, {
+  label, key, type: typeName, color, opacity, sizeFactor,
+}) => {
+  let component;
+  let bundleComponent = null;
+  if (atomIndices === null) {
+    // No filtering needed: represent the whole structure
+    component = structure;
+  } else {
+    if (atomIndices.length === 0) return null;
+    // Resolve the selection into a 'bundle' (a plain list of unit ids + element
+    // index ranges/sets) ONCE, here, rather than letting molstar re-resolve it on
+    // every single playback frame
+    // Every frame replaces the structure with a coordinate-only remap, so molstar
+    // re-runs each component's update. For a component built from an expression
+    // there is no cheap path: 'a === cache.source' is never true for the fresh
+    // structure, so updateStructureComponent re-executes the compiled query, and an
+    // atom-test-only atomGroups query scans EVERY atom of EVERY unit. That is why
+    // the cost tracked the whole structure rather than the selection: on A01IP the
+    // 220-atom glycans component cost as much per frame as the 80k-atom membrane one
+    // A 'bundle' component instead updates via Bundle.toStructure, which just maps
+    // the stored index ranges through the (unchanged) unit element arrays
+    // See mol-plugin-state/helpers/structure-component.js, updateStructureComponent
+    const bundle = StructureElement.Bundle.fromExpression(
+      structure.data,
+      atomIndicesToExpression(atomIndices),
+    );
+    component = await molstar.builders.structure.tryCreateComponent(
+      structure,
+      {
+        type: { name: 'bundle', params: bundle },
+        nullIfEmpty: true,
+        label,
+      },
+      key,
+    );
+    // The selection matched no atoms in the loaded structure
+    if (!component) return null;
+    bundleComponent = { label, component, elementCount: component.data.elementCount };
+  }
+
+  const { type, typeParams } = getRepresentationType(typeName);
+  const colorTheme = nglColorToTheme(color);
+  // Molstar calls opacity 'alpha'. Representations only carry an opacity when
+  // something asked for one (e.g. PBC regions, which are drawn faded so it is
+  // clear they have jumped across a periodic boundary), so leave molstar's own
+  // default alone otherwise rather than passing an explicit 1
+  const alphaParams = opacity === undefined || opacity === null
+    ? undefined
+    : { alpha: opacity };
+  // NGL calls the size factor 'scale'
+  const sizeParams = sizeFactor ? { sizeFactor } : undefined;
+  const reprParams = createStructureRepresentationParams(
+    molstar,
+    void 0,
+    {
+      type,
+      typeParams: {
+        // Quality options: custom, auto, highest, higher, high, medium, low, lower, lowest
+        // https://github.com/molstar/molstar/blob/0e197b18857d59c27f51d4aa0226cd772bc872ca/src/mol-geo/geometry/base.ts
+        // DANI: 'lowest' se ve muy feo y no mejora mucho el rendimiento
+        quality: 'lower',
+        ignoreHydrogens: 'all',
+        ignoreHydrogensVariant: 'all',
+        // ignoreLight: true,
+        ...typeParams,
+        ...alphaParams,
+        ...sizeParams,
+      },
+      color: colorTheme.name,
+      colorParams: colorTheme.params,
+    },
+  );
+
+  const update = molstar.build();
+  const representationNode = update.to(component).apply(
+    StateTransforms.Representation.StructureRepresentation3D,
+    reprParams,
+  );
+  await update.commit();
+  // Deleting a component deletes its representation as well
+  return { ref: component === structure ? representationNode.ref : component.ref, bundleComponent };
+};
 
 // Duration of the camera transitions, as in the NGL viewer
 const FOCUS_TRANSITION_DURATION = 750; // ms
@@ -418,13 +508,19 @@ const MolstarViewer = memo(
         return { partialSystem: getPartialSystem(atomIndices, topologyManager.atomCount) };
       }, [components, topologyManager]);
 
+      // Set the highlight representations, which are added on top of the regular ones (see getHighlights)
+      const highlights = useMemo(() => getHighlights({
+        topologyManager, highlightTypes, selectedAtoms, selectedResidueIndices, snapRepresentations,
+      }), [topologyManager, highlightTypes, selectedAtoms, selectedResidueIndices, snapRepresentations]);
+
       const needsNglStructure = useMemo(() => {
         if (subset) return true;
         const selections = (representations || []).map(representation => representation.selection);
         if (focus) selections.push(focus.sele);
         selections.push(centering);
+        highlights.forEach(highlight => selections.push(highlight.selection));
         return selections.some(needsNglSelection);
-      }, [subset, representations, focus, centering]);
+      }, [subset, representations, focus, centering, highlights]);
       useEffect(() => {
         if (!needsNglStructure || nglStructure || !topologyFile) return;
         let cancelled = false;
@@ -858,98 +954,26 @@ const MolstarViewer = memo(
               const comp = components.find(comp => comp.name === componentName);
               const sameTopology = comp && comp.topologyURL === mainComponent.topologyURL;
 
-              // Resolve which atoms this representation targets, and build a component for them
-              let component;
               const atomIndices = nglSelectionToAtomIndices(
                 representation.selection, topologyManager,
                 sameTopology ? nglStructure : null, sameTopology ? subset : null);
-              if (atomIndices === null) {
-                // No filtering needed: represent the whole structure
-                component = structure;
-              } else {
-                if (atomIndices.length === 0) continue;
-                // Resolve the selection into a 'bundle' (a plain list of unit ids + element
-                // index ranges/sets) ONCE, here, rather than letting molstar re-resolve it on
-                // every single playback frame
-                // Every frame replaces the structure with a coordinate-only remap, so molstar
-                // re-runs each component's update. For a component built from an expression
-                // there is no cheap path: 'a === cache.source' is never true for the fresh
-                // structure, so updateStructureComponent re-executes the compiled query, and an
-                // atom-test-only atomGroups query scans EVERY atom of EVERY unit. That is why
-                // the cost tracked the whole structure rather than the selection: on A01IP the
-                // 220-atom glycans component cost as much per frame as the 80k-atom membrane one
-                // A 'bundle' component instead updates via Bundle.toStructure, which just maps
-                // the stored index ranges through the (unchanged) unit element arrays
-                // See mol-plugin-state/helpers/structure-component.js, updateStructureComponent
-                const bundle = StructureElement.Bundle.fromExpression(
-                  structure.data,
-                  atomIndicesToExpression(atomIndices),
-                );
+              const built = await buildRepresentation(molstar, structure, atomIndices, {
                 // 'label' is what molstar names this node in the state tree and in its per-node
                 // update timing log; without it every component is just 'Selection'
-                const label = representation.name || representation.selection;
-                component = await molstar.builders.structure.tryCreateComponent(
-                  structure,
-                  {
-                    type: { name: 'bundle', params: bundle },
-                    nullIfEmpty: true,
-                    label,
-                  },
-                  // The key is what tryCreateComponent tags the node with, and equal keys
-                  // UPDATE the same node instead of adding a second one. Names are not
-                  // guaranteed unique (a representation with no name falls back to its
-                  // selection, and different representations may share a selection), so
-                  // disambiguate with the index
-                  `${label}#${repIndex}`,
-                );
-                // The selection matched no atoms in the loaded structure
-                if (!component) continue;
-                builtBundleComponents.push({
-                  label,
-                  component,
-                  elementCount: component.data.elementCount,
-                });
-              }
-
-              const { type, typeParams } = getRepresentationType(representation.type);
-              const colorTheme = nglColorToTheme(representation.color);
-              // Molstar calls opacity 'alpha'. Representations only carry an opacity when
-              // something asked for one (currently PBC regions, which are drawn faded so it is
-              // clear they have jumped across a periodic boundary), so leave molstar's own
-              // default alone otherwise rather than passing an explicit 1
-              const { opacity } = representation;
-              const alphaParams = opacity === undefined || opacity === null
-                ? undefined
-                : { alpha: opacity };
-              const reprParams = createStructureRepresentationParams(
-                molstar,
-                void 0,
-                {
-                  type,
-                  typeParams: {
-                    // Quality options: custom, auto, highest, higher, high, medium, low, lower, lowest
-                    // https://github.com/molstar/molstar/blob/0e197b18857d59c27f51d4aa0226cd772bc872ca/src/mol-geo/geometry/base.ts
-                    // DANI: 'lowest' se ve muy feo y no mejora mucho el rendimiento
-                    quality: 'lower',
-                    ignoreHydrogens: 'all',
-                    ignoreHydrogensVariant: 'all',
-                    // ignoreLight: true,
-                    ...typeParams,
-                    ...alphaParams,
-                  },
-                  color: colorTheme.name,
-                  colorParams: colorTheme.params,
-                },
-              );
-
-              const update = molstar.build();
-              const representationNode = update.to(component).apply(
-                StateTransforms.Representation.StructureRepresentation3D,
-                reprParams,
-              );
-              await update.commit();
-              // Deleting a component deletes its representation as well
-              builtRefs.push(component === structure ? representationNode.ref : component.ref);
+                label: representation.name || representation.selection,
+                // The key is what tryCreateComponent tags the node with, and equal keys
+                // UPDATE the same node instead of adding a second one. Names are not
+                // guaranteed unique (a representation with no name falls back to its
+                // selection, and different representations may share a selection), so
+                // disambiguate with the index
+                key: `${representation.name || representation.selection}#${repIndex}`,
+                type: representation.type,
+                color: representation.color,
+                opacity: representation.opacity,
+              });
+              if (!built) continue;
+              builtRefs.push(built.ref);
+              if (built.bundleComponent) builtBundleComponents.push(built.bundleComponent);
             }
             bundleComponentsRef.current = { components: builtBundleComponents, reported: false };
             return builtRefs;
@@ -1086,6 +1110,46 @@ const MolstarViewer = memo(
         const duration = isFirstFocus ? 0 : FOCUS_TRANSITION_DURATION;
         focusCamera(molstar.canvas3d.camera, structure, sphere, rotation, duration);
       }, [molstar, builtStructure, focus, curatedOrientation, topologyManager, nglStructure, subset]);
+
+      // The nodes of the built highlights, to remove them when they change
+      const highlightRefsRef = useRef([]);
+      // Highlights are built one after the other, since they may change faster than they are built
+      const highlightsQueueRef = useRef(Promise.resolve());
+      // Represent the highlights on the main component structure
+      useEffect(() => {
+        if (!molstar || !builtStructure) return;
+        highlightsQueueRef.current = highlightsQueueRef.current.then(async () => {
+          // Discard the previous highlights, unless they were removed along with a previous structure
+          const update = molstar.build();
+          highlightRefsRef.current.forEach(ref => {
+            if (molstar.state.data.cells.has(ref)) update.delete(ref);
+          });
+          await update.commit();
+          highlightRefsRef.current = [];
+          // The structure may be gone if it is being rebuilt, then highlights are built on the new one
+          if (!builtStructure.data) return;
+          for (const [index, highlight] of highlights.entries()) {
+            const atomIndices = nglSelectionToAtomIndices(
+              highlight.selection, topologyManager, nglStructure, subset);
+            const built = await buildRepresentation(molstar, builtStructure, atomIndices, {
+              label: highlight.label || 'Highlight',
+              key: `*highlight#${index}`,
+              type: highlight.type,
+              // NGL colors representations by element by default, but cartoons by chain
+              color: highlight.color || (highlight.type === 'cartoon' ? 'chainid' : 'element'),
+              opacity: highlight.opacity,
+              sizeFactor: highlight.sizeFactor,
+            });
+            if (built) highlightRefsRef.current.push(built.ref);
+          }
+        }).catch(error => console.error(error));
+      }, [molstar, builtStructure, highlights, nglStructure, subset, topologyManager]);
+
+      // Focus the highlighted atoms or residues with the camera, as in the NGL viewer
+      useEffect(() => {
+        const focused = highlights.find(highlight => highlight.focus);
+        if (focused) setFocus({ sele: focused.selection });
+      }, [highlights]);
 
       // play/pause button effect
       useEffect(() => {
