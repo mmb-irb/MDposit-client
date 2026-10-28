@@ -739,6 +739,10 @@ const ViewerWithControls = forwardRef(
       return true;
     }, [topology, effectiveComponents]);
 
+    // Arguments of the last drawMesh call
+    // Pages may draw a mesh before the viewer is mounted, and remounting the viewer would lose it
+    const [mesh, setMesh] = useState(null);
+
     // This allows parent components to interact with this component
     // WARNING: Read the viewer methods when called, not when the handle is set
     // The viewer is not mounted until the topology is ready, so it may be missing when the handle is set
@@ -747,7 +751,7 @@ const ViewerWithControls = forwardRef(
         // There is nothing to resize while the viewer is not mounted yet
         autoResize: () => { if (viewerRef.current) viewerRef.current.autoResize() },
         centerFocus: (...args) => viewerRef.current.centerFocus(...args),
-        drawMesh: (...args) => viewerRef.current.drawMesh(...args),
+        drawMesh: (...args) => setMesh(args),
         get currentFrame() {
           return viewerRef.current.currentFrame;
         },
@@ -917,6 +921,7 @@ const ViewerWithControls = forwardRef(
                   centering={centering}
                   showBox={canShowBox && showBox}
                   representations={finalRepresentations}
+                  mesh={mesh}
                   {...props}
                 />
               )}

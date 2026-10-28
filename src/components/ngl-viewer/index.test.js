@@ -72,6 +72,39 @@ describe('<NGLViewer /> stage lifecycle', () => {
   });
 });
 
+describe('<NGLViewer /> mesh', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  // Pages may set the mesh before the viewer is mounted (e.g. channels), so it comes as a prop
+  it('draws the mesh it is given once mounted', () => {
+    installFakeWebGL();
+    installFrameQueue();
+    const added = [];
+    const addComponentFromObject = Stage.prototype.addComponentFromObject;
+    vi.spyOn(Stage.prototype, 'addComponentFromObject').mockImplementation(function (object, params) {
+      added.push(params && params.name);
+      return addComponentFromObject.apply(this, arguments);
+    });
+    // A single triangle
+    const position = [0, 0, 0, 1, 0, 0, 0, 1, 0];
+    const colors = [1, 0, 0, 1, 0, 0, 1, 0, 0];
+    render(
+      <ProjectCtx.Provider value={{ metadata: {}, topology: undefined }}>
+        <NGLViewer
+          noTrajectory
+          components={[]}
+          topologies={[]}
+          trajectories={[]}
+          mesh={[position, colors, 'channel']}
+        />
+      </ProjectCtx.Provider>,
+    );
+    expect(added).toEqual(['channel']);
+  });
+});
+
 describe('<NGLViewer /> initial camera', () => {
   afterEach(() => {
     vi.restoreAllMocks();

@@ -46,6 +46,7 @@ import { nglSchemeToTheme, NglSchemeColorThemeProvider, isNglScheme } from './ng
 import AtomDescription from '../atom-description';
 import { getHoveredAtoms } from './hovered-atoms';
 import { getHighlights } from './highlights';
+import { MeshShape } from './mesh';
 import { nglColorToTheme } from './ngl-color';
 import { nglOrientationToCamera, cameraToNglOrientation, rotateSceneAroundX } from './ngl-orientation';
 
@@ -383,6 +384,8 @@ const MolstarViewer = memo(
         downloadError,
         // Set the highlight representations types
         highlightTypes = defaultHighlightTypes,
+        // Arguments of drawMesh for a mesh to be drawn, e.g. channels (see drawMesh in the NGL viewer)
+        mesh,
       },
       ref,
     ) => {
@@ -1231,6 +1234,27 @@ const MolstarViewer = memo(
         molstar, builtStructure, selectedDistances, selectedAngles, darkBackground,
         nglStructure, subset, topologyManager,
       ]);
+
+      // The node of the drawn mesh, to remove it when it changes
+      const meshRefRef = useRef(null);
+      // Meshes are drawn one after the other, as highlights
+      const meshQueueRef = useRef(Promise.resolve());
+      // Draw the mesh, if any, as in the NGL viewer
+      useEffect(() => {
+        if (!molstar || !mesh) return;
+        const [position, colorData, name = 'test', normalsData = null] = mesh;
+        meshQueueRef.current = meshQueueRef.current.then(async () => {
+          const update = molstar.build();
+          if (meshRefRef.current) update.delete(meshRefRef.current);
+          meshRefRef.current = null;
+          if (position && position.length > 0) {
+            const shape = update.toRoot().apply(MeshShape, { name, position, colorData, normalsData });
+            shape.apply(StateTransforms.Representation.ShapeRepresentation3D);
+            meshRefRef.current = shape.ref;
+          }
+          await update.commit();
+        }).catch(error => console.error(error));
+      }, [molstar, mesh]);
 
       // Focus the highlighted atoms or residues with the camera, as in the NGL viewer
       useEffect(() => {

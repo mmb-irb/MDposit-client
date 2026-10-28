@@ -50,6 +50,7 @@ import { setTooltipPosition } from '../../utils/tooltip-position-manager';
 import AtomDescription from '../atom-description';
 
 import { appendBuffer } from '../../utils/auxiliar-functions';
+import { getMeshColors } from '../../utils/mesh-colors';
 
 import { interpolateSpeed } from '../../utils/player-speed';
 
@@ -124,6 +125,28 @@ const getCentroid = structure => {
   return new Vector3(sx / count, sy / count, sz / count);
 };
 
+// Draw a triangle mesh (e.g. channels) as a shape component with the given name
+// A previous mesh with the same name is replaced, and a missing position just removes it
+const drawMesh = (stage, position, colorData, name = "test", normalsData = null) => {
+  const previousComponent = stage.compList.find(
+    (component) => component.name === name
+  );
+  if (previousComponent) {
+    stage.removeComponent(previousComponent);
+  }
+  if (!position || position.length === 0) return;
+  const shape = new Shape(name, { disableImpostor: true });
+  const colors = getMeshColors(position, colorData);
+
+  const normals = Array.isArray(normalsData) && normalsData.length === position.length
+    ? new Float32Array(normalsData)
+    : undefined;
+
+  shape.addMesh(position, colors, undefined, normals);
+  const shapeComp = stage.addComponentFromObject(shape, { name: name });
+  shapeComp.addRepresentation("buffer", { opacity: 1., roughness: 1 });
+};
+
 const NGLViewer = memo(
   forwardRef(
     (
@@ -177,6 +200,8 @@ const NGLViewer = memo(
         // Optional function which receives an atom index and returns true if the atom may be selected
         // If missing, all atoms may be selected
         isAtomSelectable,
+        // Arguments of drawMesh for a mesh to be drawn, e.g. channels
+        mesh,
       },
       ref,
     ) => {
@@ -322,6 +347,12 @@ const NGLViewer = memo(
           stageRef.current = null;
         };
       }, []);
+
+      // Draw the mesh, if any
+      useEffect(() => {
+        if (!mesh) return;
+        drawMesh(stageRef.current, ...mesh);
+      }, [mesh]);
 
       // Handle the upper left corner viewer logs
       const viewerLogs = useMemo(() => {
@@ -1686,44 +1717,6 @@ const NGLViewer = memo(
         ref,
         () => ({
           autoResize: handleResize,
-          drawMesh(position, colorData, name = "test", normalsData = null) {
-            const previousComponent = stageRef.current.compList.find(
-              (component) => component.name === name
-            );
-            if (previousComponent) {
-              stageRef.current.removeComponent(previousComponent);
-            }
-            if (!position || position.length === 0) return;
-            const shape = new Shape(name, { disableImpostor: true });
-            let colors;
-
-            // New API path: explicit RGB triplets per coordinate.
-            if (Array.isArray(colorData) && colorData.length === position.length) {
-              colors = new Float32Array(colorData);
-            } else {
-              // Backward-compatible path for previous color offset input.
-              const colorOffset = Array.isArray(colorData) ? colorData : [0, 0];
-              colors = new Float32Array(position.length);
-              colors = colors.map((v, i) => {
-                if (i > colorOffset[1] && i % 3 === 2) {
-                  return 1.0;
-                } else if (i > colorOffset[0] && i <= colorOffset[1] && i % 3 === 1) {
-                  return 1.0;
-                } else if (i <= colorOffset[0] && i % 3 === 0) {
-                  return 1.0;
-                }
-                return 0.0;
-              });
-            }
-
-            const normals = Array.isArray(normalsData) && normalsData.length === position.length
-              ? new Float32Array(normalsData)
-              : undefined;
-
-            shape.addMesh(position, colors, undefined, normals);
-            var shapeComp = stageRef.current.addComponentFromObject(shape, { name: name });
-            var rep = shapeComp.addRepresentation("buffer", { opacity: 1., roughness: 1 });
-          },
           // Output the current orientation/focus in console
           // Note: this is for the developer, not for the regular user
           displayFocus() {
