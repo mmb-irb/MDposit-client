@@ -26,6 +26,11 @@ import { MolScriptBuilder as MS } from 'molstar/lib/mol-script/language/builder'
 import { Color } from 'molstar/lib/mol-util/color';
 import { Vec3 } from 'molstar/lib/mol-math/linear-algebra';
 import { Coordinates, Model, StructureElement, Time } from 'molstar/lib/mol-model/structure';
+import { Loci } from 'molstar/lib/mol-model/loci';
+import { PluginBehaviors } from 'molstar/lib/mol-plugin/behavior';
+import { NoPrimaryFocusLociBindings } from 'molstar/lib/mol-plugin/behavior/dynamic/camera';
+import { Binding } from 'molstar/lib/mol-util/binding';
+import { ButtonsType, ModifiersKeys } from 'molstar/lib/mol-util/input/input-observer';
 import { setDebugMode, setTimingMode } from 'molstar/lib/mol-util/debug';
 /*  Might require extra configuration,
 see https://webpack.js.org/loaders/sass-loader/ for example.
@@ -41,10 +46,11 @@ import { ProjectCtx } from '../../contexts';
 // NGL itself is used to understand selections not built by this app (e.g. typed by the user)
 import { autoLoad } from 'ngl';
 import { nglSelectionToAtomIndices, needsNglSelection } from './ngl-selection';
-import { getPartialSystem, toWholeAtomIndex, toPartialColorScheme } from '../ngl-viewer/partial-system';
+import { getPartialSystem, toWholeAtomIndex, toPartialColorScheme, toPartialAtomGroups } from '../ngl-viewer/partial-system';
 import { nglSchemeToTheme, NglSchemeColorThemeProvider, isNglScheme } from './ngl-color-scheme';
 import AtomDescription from '../atom-description';
-import { getHoveredAtoms } from './hovered-atoms';
+import { getHoveredAtoms, getHoveredAtomPair } from './hovered-atoms';
+import { AtomPairsShape } from './atom-pairs';
 import { getHighlights } from './highlights';
 import { MeshShape } from './mesh';
 import { nglColorToTheme } from './ngl-color';
@@ -302,6 +308,23 @@ const buildRepresentation = async (molstar, structure, atomIndices, {
   return { ref: component === structure ? representationNode.ref : component.ref, bundleComponent };
 };
 
+// Build the links of an NGL distance representation, which go between pairs of atoms (see AtomPairsShape)
+// Atom indices are those of the loaded topology
+// Return the node which is to be deleted to remove the representation
+const buildAtomPairs = async (molstar, structure, pairs, { label, color, colorTheme, opacity, radius }) => {
+  const update = molstar.build();
+  const shape = update.to(structure).apply(AtomPairsShape, {
+    label,
+    pairs,
+    radius,
+    colorTheme: colorTheme || nglColorToTheme(color),
+    alpha: opacity === undefined || opacity === null ? 1 : opacity,
+  });
+  shape.apply(StateTransforms.Representation.ShapeRepresentation3D);
+  await update.commit();
+  return { ref: shape.ref, bundleComponent: null };
+};
+
 // Color of the distance lines, as in the NGL viewer
 const DISTANCE_COLOR = 0x87ceeb; // skyblue
 
@@ -386,6 +409,18 @@ const MolstarViewer = memo(
         highlightTypes = defaultHighlightTypes,
         // Arguments of drawMesh for a mesh to be drawn, e.g. channels (see drawMesh in the NGL viewer)
         mesh,
+        // Optional function to set the tooltip content when hovering a distance
+        // It receives both atom indices and returns JSX, or nothing to use the default content
+        distanceTooltip,
+        // Optional function to modify the tooltip content when hovering an atom
+        // It receives the atom index and the original content and returns the new content
+        onHoverDisplay,
+        // Optional function to be called with the atom index when the user clicks an atom
+        // When passed, the cursor becomes a pointer over selectable atoms
+        onAtomSelect,
+        // Optional function which receives an atom index and returns true if the atom may be selected
+        // If missing, all atoms may be selected
+        isAtomSelectable,
       },
       ref,
     ) => {
@@ -563,6 +598,13 @@ const MolstarViewer = memo(
         return atomIndices;
       }, [centering, topologyManager, nglStructure, subset]);
 
+      // Keep the distance tooltip function in a reference so the hover handler is not reset
+      const distanceTooltipRef = useRef(distanceTooltip);
+      distanceTooltipRef.current = distanceTooltip;
+      // Keep the hover display function in a reference for the same reason
+      const onHoverDisplayRef = useRef(onHoverDisplay);
+      onHoverDisplayRef.current = onHoverDisplay;
+
       // Show our tooltip with the corresponding values when the mouse hovers an atom/bond, as in the NGL viewer
       useEffect(() => {
         if (!molstar || !topologyManager) return;
@@ -593,21 +635,45 @@ const MolstarViewer = memo(
         };
         const subscription = molstar.behaviors.interaction.hover.subscribe(({ current, page }) => {
           hideTooltip();
-          const atoms = getHoveredAtoms(current.loci);
+          // A link between two atoms (see AtomPairsShape), or an atom or bond
+          const atomPair = getHoveredAtomPair(current.loci);
+          const atoms = atomPair ? atomPair.atoms : getHoveredAtoms(current.loci);
           if (!atoms || !page) return;
           timeout = setTimeout(() => {
             const [atom1, atom2] = atoms;
-            const description = atom2
-              ? (
+            const [index1, index2] = atoms.map(atom => toWholeAtomIndex(partialSystem, atom.index));
+            let description;
+            // When we hover a distance
+            if (atomPair) {
+              const custom = distanceTooltipRef.current && distanceTooltipRef.current(index1, index2);
+              description = custom || (
                 <>
-                  <div>{`Bond ${toWholeAtomIndex(partialSystem, atom1.index)} - ${toWholeAtomIndex(partialSystem, atom2.index)}`}</div>
+                  <div>{`Distance ${index1} - ${index2} (${atomPair.length.toFixed(2)} Å)`}</div>
                   <hr style={{ color: 'lightGrey' }} />
                   {describe(atom1)}
                   <hr style={{ color: 'lightGrey' }} />
                   {describe(atom2)}
                 </>
-              )
-              : describe(atom1);
+              );
+            }
+            // When we hover a bond
+            else if (atom2) {
+              description = (
+                <>
+                  <div>{`Bond ${index1} - ${index2}`}</div>
+                  <hr style={{ color: 'lightGrey' }} />
+                  {describe(atom1)}
+                  <hr style={{ color: 'lightGrey' }} />
+                  {describe(atom2)}
+                </>
+              );
+            }
+            // When we hover an atom
+            else {
+              description = describe(atom1);
+              if (onHoverDisplayRef.current)
+                description = onHoverDisplayRef.current(index1, description);
+            }
             setTooltipContent(description);
             // Handle tooltip position
             // WARNING: It is important to make the display block before calculating the position
@@ -630,6 +696,75 @@ const MolstarViewer = memo(
           container.removeEventListener('mouseleave', hideTooltip);
         };
       }, [molstar, topologyManager, subset]);
+
+      // Keep the atom selection callbacks in references so the click handler is not reset every render
+      const onAtomSelectRef = useRef(onAtomSelect);
+      onAtomSelectRef.current = onAtomSelect;
+      const isAtomSelectableRef = useRef(isAtomSelectable);
+      isAtomSelectableRef.current = isAtomSelectable;
+      const atomsSelectable = Boolean(onAtomSelect);
+
+      // Molstar focuses the clicked residue with plain left clicks, moving the camera and showing its surroundings
+      // Selecting an atom already focuses it, and both camera movements together end in a sudden jump
+      // When atoms are selectable, plain left clicks are taken from molstar then (see the effect below)
+      // Other clicks (e.g. right or ctrl + left clicks) keep their default actions
+      // Pages either let select atoms or not, so molstar defaults are not restored
+      useEffect(() => {
+        if (!molstar || !atomsSelectable) return;
+        molstar.state.updateBehavior(PluginBehaviors.Representation.FocusLoci, params => {
+          params.bindings = { ...params.bindings, clickFocus: Binding.Empty };
+        });
+        molstar.state.updateBehavior(PluginBehaviors.Camera.FocusLoci, params => {
+          params.bindings = NoPrimaryFocusLociBindings;
+        });
+      }, [molstar, atomsSelectable]);
+
+      // When atoms are selectable, change the cursor to a pointer when hovering a selectable atom
+      // Then report the atom index to the parent component when a selectable atom is clicked, as in the NGL viewer
+      useEffect(() => {
+        if (!molstar || !atomsSelectable) return;
+        const canvas = molstar.canvas3dContext.canvas;
+        const partialSystem = subset && subset.partialSystem;
+        // Find the whole system index of the selectable atom of the main component under the mouse, if any
+        // Bonds are also accepted, in which case the first atom of the bond is used
+        const getSelectableAtom = loci => {
+          const atoms = getHoveredAtoms(loci);
+          if (!atoms) return null;
+          // Atom indices are those of the main topology, so atoms of other topologies may not be selected
+          // Every frame is a new model, but all frames share the atoms of their topology
+          const mainPipeline = trajectoryPipelineRef.current;
+          const mainStructure = mainPipeline && mainPipeline.structure && mainPipeline.structure.data;
+          if (!mainStructure) return null;
+          if (loci.structure.model.atomicHierarchy !== mainStructure.model.atomicHierarchy) return null;
+          const atomIndex = toWholeAtomIndex(partialSystem, atoms[0].index);
+          const isSelectable = isAtomSelectableRef.current;
+          if (isSelectable && !isSelectable(atomIndex)) return null;
+          return atomIndex;
+        };
+        const hoverSubscription = molstar.behaviors.interaction.hover.subscribe(({ current }) => {
+          canvas.style.cursor = getSelectableAtom(current.loci) === null ? 'default' : 'pointer';
+        });
+        const clickSubscription = molstar.behaviors.interaction.click.subscribe(({ current, button, modifiers }) => {
+          if (button !== ButtonsType.Flag.Primary || !ModifiersKeys.areNone(modifiers)) return;
+          const atomIndex = getSelectableAtom(current.loci);
+          if (atomIndex !== null) {
+            onAtomSelectRef.current(atomIndex);
+            return;
+          }
+          // Otherwise focus the clicked residue as molstar does
+          if (Loci.isEmpty(current.loci)) return;
+          const loci = Loci.normalize(current.loci, 'residue');
+          const { focus } = molstar.managers.structure;
+          if (focus.current && Loci.areEqual(focus.current.loci, loci)) focus.clear();
+          else focus.setFromLoci(loci);
+          molstar.managers.camera.focusLoci(Loci.normalize(current.loci, 'element'));
+        });
+        return () => {
+          hoverSubscription.unsubscribe();
+          clickSubscription.unsubscribe();
+          canvas.style.cursor = 'default';
+        };
+      }, [molstar, atomsSelectable, subset]);
 
       // How many frames the trajectory is expected to have once fully downloaded, and
       // whether it is already fully downloaded - both read by the play/pause effect and
@@ -988,6 +1123,21 @@ const MolstarViewer = memo(
               const comp = components.find(comp => comp.name === componentName);
               const sameTopology = comp && comp.topologyURL === mainComponent.topologyURL;
 
+              // NGL distance representations link pairs of whole system atom indices instead (e.g. allostery)
+              // Their selection is ignored, as in NGL
+              if (representation.type === 'distance') {
+                const atomPairs = (representation.other && representation.other.atomPair) || [];
+                const partialSystem = sameTopology && subset ? subset.partialSystem : null;
+                const built = await buildAtomPairs(molstar, structure, toPartialAtomGroups(partialSystem, atomPairs), {
+                  label: representation.name || 'Distances',
+                  color: representation.color,
+                  colorTheme: getCustomColorTheme(representation, sameTopology),
+                  opacity: representation.opacity,
+                  radius: representation.other && representation.other.radiusSize,
+                });
+                builtRefs.push(built.ref);
+                continue;
+              }
               const atomIndices = nglSelectionToAtomIndices(
                 representation.selection, topologyManager,
                 sameTopology ? nglStructure : null, sameTopology ? subset : null);

@@ -12,12 +12,12 @@ vi.mock('molstar/lib/mol-plugin-state/helpers/structure-representation-params', 
 vi.mock('molstar/lib/mol-plugin-state/transforms', () => ({}));
 vi.mock('./molstar-parser', () => ({}));
 // Molstar loci are not easy to build, so the hovered atoms are given directly
-vi.mock('./hovered-atoms', () => ({ getHoveredAtoms: vi.fn() }));
+vi.mock('./hovered-atoms', () => ({ getHoveredAtoms: vi.fn(), getHoveredAtomPair: vi.fn() }));
 // jsdom has no IntersectionObserver
 vi.mock('react-intersection-observer', () => ({ useInView: () => [() => {}, false] }));
 
 const { createPluginUI } = await import('molstar/lib/mol-plugin-ui/index');
-const { getHoveredAtoms } = await import('./hovered-atoms');
+const { getHoveredAtoms, getHoveredAtomPair } = await import('./hovered-atoms');
 const MolstarViewer = (await import('.')).default;
 
 const viewer = ({ topology = {}, ...props } = {}) => (
@@ -91,10 +91,14 @@ describe('<MolstarViewer /> camera', () => {
 });
 
 describe('<MolstarViewer /> tooltip', () => {
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    getHoveredAtoms.mockReset();
+    getHoveredAtomPair.mockReset();
+  });
 
-  // Molstar gives the mouse position relative to the canvas, not to the page
-  it('shows the hovered atom next to the mouse', async () => {
+  // Render the viewer and hover something at a mouse position in the canvas
+  const hoverViewer = async (props, page = [0, 0]) => {
     let hover;
     const plugin = fakePlugin();
     plugin.behaviors.interaction.hover.subscribe = callback => {
@@ -103,20 +107,50 @@ describe('<MolstarViewer /> tooltip', () => {
     };
     plugin.canvas3dContext = { canvas: { getBoundingClientRect: () => ({ left: 63, top: 176 }) } };
     createPluginUI.mockResolvedValue(plugin);
-    getHoveredAtoms.mockReturnValue([{ index: 5, name: 'CA', residueName: 'ALA' }]);
     const residue = { chainName: 'A', chain: {}, number: 7 };
-    renderViewer({ topology: { getAtomByIndex: () => ({ residue }) } });
+    renderViewer({ topology: { getAtomByIndex: () => ({ residue }) }, ...props });
     await act(async () => {});
-
     vi.useFakeTimers();
-    // The mouse is at 275, 189 in the window
     act(() => {
-      hover({ current: { loci: {} }, page: [212, 13] });
+      hover({ current: { loci: {} }, page });
       vi.advanceTimersByTime(400);
     });
+  };
+
+  // Molstar gives the mouse position relative to the canvas, not to the page
+  it('shows the hovered atom next to the mouse', async () => {
+    getHoveredAtoms.mockReturnValue([{ index: 5, name: 'CA', residueName: 'ALA' }]);
+    // The mouse is at 275, 189 in the window
+    await hoverViewer({}, [212, 13]);
     const tooltip = screen.getByText(/Atom 5 \(CA\)/);
     // There is no layout in jsdom, so the tooltip is just 3 pixels away from the mouse
     expect([tooltip.style.left, tooltip.style.top]).toEqual(['278px', '192px']);
+  });
+
+  // e.g. chemical-shifts adds the shifts of the hovered atom
+  it('lets the page change the description of the hovered atom', async () => {
+    getHoveredAtoms.mockReturnValue([{ index: 5, name: 'CA', residueName: 'ALA' }]);
+    const onHoverDisplay = (atomIndex, original) => <>{original}<div>{`Shift of ${atomIndex}`}</div></>;
+    await hoverViewer({ onHoverDisplay });
+    screen.getByText(/Atom 5 \(CA\)/);
+    screen.getByText('Shift of 5');
+  });
+
+  // e.g. allostery describes the hovered link
+  it('lets the page describe the hovered link between two atoms', async () => {
+    const atoms = [{ index: 5, name: 'CA', residueName: 'ALA' }, { index: 9, name: 'CA', residueName: 'GLY' }];
+    getHoveredAtomPair.mockReturnValue({ atoms, length: 3.8 });
+    const distanceTooltip = (atom1, atom2) => atom1 === 5 && atom2 === 9 ? <div>Link strength</div> : null;
+    await hoverViewer({ distanceTooltip });
+    screen.getByText('Link strength');
+  });
+
+  it('describes the hovered link by default', async () => {
+    const atoms = [{ index: 5, name: 'CA', residueName: 'ALA' }, { index: 9, name: 'CA', residueName: 'GLY' }];
+    getHoveredAtomPair.mockReturnValue({ atoms, length: 3.8 });
+    await hoverViewer({ distanceTooltip: () => undefined });
+    screen.getByText('Distance 5 - 9 (3.80 Å)');
+    screen.getByText(/Atom 9 \(CA\)/);
   });
 });
 
