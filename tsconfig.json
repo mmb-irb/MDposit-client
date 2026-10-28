@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "es2020",
     "lib": [
       "dom",
       "dom.iterable",
@@ -13,14 +13,16 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
     "noFallthroughCasesInSwitch": true,
-    // DANI: Added this parameter to support absolute path imports
-    "baseUrl": "."
+    // Support absolute path imports such as 'src/utils/...'
+    "paths": {
+      "src/*": ["./src/*"]
+    }
   },
   "include": [
     "src"
