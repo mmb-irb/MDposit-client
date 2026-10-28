@@ -57,3 +57,27 @@ describe('<SettingsControls /> viewer switch', () => {
     expect(mockMolstarLoads).toBe(1);
   });
 });
+
+describe('<SettingsControls /> frames number', () => {
+  // Without the frames selector the number is read from the viewer
+  const renderFramesNumber = viewerRef =>
+    render(
+      <SettingsControls
+        viewerRef={viewerRef}
+        framesSelect={false}
+        Viewer={NGLViewer}
+        setViewer={() => {}}
+      />,
+    );
+
+  it('shows the total expected frames of the viewer', () => {
+    renderFramesNumber({ current: { totalExpectedFrames: 20 } });
+    expect(screen.getByText('Frames: 20')).toBeInTheDocument();
+  });
+
+  // The lazy Mol* viewer has no ref while its chunk is still loading
+  it('renders while the viewer is not mounted yet', () => {
+    renderFramesNumber({ current: null });
+    expect(screen.getByText('Frames:')).toBeInTheDocument();
+  });
+});

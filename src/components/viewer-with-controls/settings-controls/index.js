@@ -245,7 +245,8 @@ const SettingsControls = ({
           />
         ) : (
           // DANI: Esto puede que no esté bien. Deberían ser 20 frames cuando es una PCA projection
-          ' ' + viewerRef.current.totalExpectedFrames
+          // The lazy Mol* viewer has no ref while its chunk is still loading
+          viewerRef.current && ' ' + viewerRef.current.totalExpectedFrames
         )}
       </div>
     )}
