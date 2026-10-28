@@ -436,6 +436,18 @@ const MolstarViewer = memo(
       // Otherwise a change arriving mid-rebuild (e.g. the NGL parse, or the last trajectory chunk) is lost
       const skippedRebuildRef = useRef(false);
       const [rebuildRetries, setRebuildRetries] = useState(0);
+      // Set while a full rebuild is in flight, to tell the user
+      const [building, setBuilding] = useState(false);
+
+      // Handle the upper left corner viewer logs, as in the NGL viewer
+      const viewerLogs = useMemo(() => {
+        if (downloadError) return downloadError;
+        if (!topologyManager) return 'Waiting for the main topology';
+        if (!trajectories.length && !noTrajectory) return `No trajectory available`;
+        if (!builtStructure) return `Waiting for the main component`;
+        if (building) return `Rendering...`;
+        return undefined; // Show nothing when everything was finished and fine
+      }, [downloadError, topologyManager, trajectories, noTrajectory, builtStructure, building]);
 
       // DEV-ONLY: measured actual playback framerate, shown in a small on-screen badge so the
       // 'speed' slider's effect can be visually verified. Stripped in production builds since
@@ -601,6 +613,7 @@ const MolstarViewer = memo(
               return;
             }
             buildingRef.current = true;
+            setBuilding(true);
             try {
               // Discard the previously built trajectory/structure/representations, if any
               // Otherwise every rebuild would stack a new duplicate on top of the previous one
@@ -830,6 +843,7 @@ const MolstarViewer = memo(
               setBuiltStructure(structure);
             } finally {
               buildingRef.current = false;
+              setBuilding(false);
               if (skippedRebuildRef.current) {
                 skippedRebuildRef.current = false;
                 setRebuildRetries(retries => retries + 1);
@@ -1035,7 +1049,7 @@ const MolstarViewer = memo(
               [style['light-theme']]: !darkBackground,
             })}
             // Display loading status data in the upper left corner of the viewer window
-            data-loading={downloadError || undefined}
+            data-loading={viewerLogs}
           />
           <div ref={tooltipRef} className={style.tooltip}>
             {tooltipContent}

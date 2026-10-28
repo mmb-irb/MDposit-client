@@ -17,8 +17,8 @@ vi.mock('react-intersection-observer', () => ({ useInView: () => [() => {}, fals
 const { createPluginUI } = await import('molstar/lib/mol-plugin-ui/index');
 const MolstarViewer = (await import('.')).default;
 
-const viewer = props => (
-  <ProjectCtx.Provider value={{ metadata: {}, topology: {} }}>
+const viewer = ({ topology = {}, ...props } = {}) => (
+  <ProjectCtx.Provider value={{ metadata: {}, topology }}>
     <MolstarViewer
       noTrajectory
       anyLoadingTopology
@@ -32,9 +32,10 @@ const viewer = props => (
 const renderViewer = props => render(viewer(props));
 
 // The speed effect reads the animation state as soon as the plugin is set
+// The play/pause effect stops the animation when there is a trajectory not playing
 const fakePlugin = () => ({
   dispose: vi.fn(),
-  managers: { animation: { state: { animationState: 'stopped' } } },
+  managers: { animation: { state: { animationState: 'stopped' }, stop: vi.fn() } },
   canvas3d: { setProps: vi.fn() },
 });
 
@@ -78,6 +79,33 @@ describe('<MolstarViewer /> camera', () => {
     // Camera 80 Å away looking along +Z, so no rotation
     [80, 0, 0, 0, 0, 80, 0, 0, 0, 0, 80, 0, -10, -20, -30, 1].forEach((value, i) =>
       expect(orientation[i]).toBeCloseTo(value));
+  });
+});
+
+// The viewer shows its loading status in its upper left corner, as the NGL viewer does
+describe('<MolstarViewer /> loading status', () => {
+  const renderStatus = async props => {
+    createPluginUI.mockResolvedValue(fakePlugin());
+    const { container } = renderViewer(props);
+    await act(async () => {});
+    return container.querySelector('[data-loading]')?.getAttribute('data-loading');
+  };
+
+  it('shows the download error', async () => {
+    expect(await renderStatus({ downloadError: 'Could not load the trajectory' }))
+      .toBe('Could not load the trajectory');
+  });
+
+  it('waits for the main topology', async () => {
+    expect(await renderStatus({ topology: null })).toBe('Waiting for the main topology');
+  });
+
+  it('tells when there is no trajectory', async () => {
+    expect(await renderStatus({ noTrajectory: false })).toBe('No trajectory available');
+  });
+
+  it('waits for the structure to be built', async () => {
+    expect(await renderStatus({ noTrajectory: false, trajectories: [{}] })).toBe('Waiting for the main component');
   });
 });
 
