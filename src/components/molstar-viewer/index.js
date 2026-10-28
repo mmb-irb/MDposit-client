@@ -37,7 +37,9 @@ import { TrajectoryFromCustomData, FrozenSecondaryStructure, parseCoordinateFram
 
 import { ProjectCtx } from '../../contexts';
 
-import { rangedSelectionParser } from '../../utils/auxiliar-functions';
+// Translate this app's NGL selections and orientations to molstar
+import { nglSelectionToAtomIndices } from './ngl-selection';
+import { nglOrientationToCamera, cameraToNglOrientation } from './ngl-orientation';
 
 import { MAXIMUM_PLAYER_FPS, interpolateSpeed } from '../../utils/player-speed';
 
@@ -210,37 +212,6 @@ const getColorTheme = colorName => {
   return { name: 'chain-id' };
 };
 
-// Matches the "(:chain and (ranges))" chunks produced by topology.residueIndices2Ngl
-// e.g. "(:A and (1, 3-5)) or (:B and (1))"
-const NGL_CHAIN_SELECTION_REGEX = /\(:(\S+) and \(([^)]+)\)\)/g;
-
-// Translate one of this app's NGL selection strings into a flat list of atom indices
-// Returns null when the selection targets the whole structure (no filtering needed)
-// Only understands the chain/residue-range grammar produced by topology.residueIndices2Ngl,
-// which is what every default representation (protein, ligands, membrane/lipids, ions, ...) uses
-// Arbitrary/custom NGL selections are not supported and fall back to representing the whole structure
-const nglSelectionToAtomIndices = (selection, topologyManager) => {
-  if (!selection || selection === 'all') return null;
-  const atomIndices = [];
-  let matched = false;
-  let match;
-  NGL_CHAIN_SELECTION_REGEX.lastIndex = 0;
-  while ((match = NGL_CHAIN_SELECTION_REGEX.exec(selection))) {
-    matched = true;
-    const [, chainName, ranges] = match;
-    for (const residueNumber of rangedSelectionParser(ranges)) {
-      try {
-        const residue = topologyManager.getResidueByParameters(chainName, residueNumber);
-        atomIndices.push(...residue.atomIndices);
-      } catch (error) {
-        console.warn('Molstar viewer: could not resolve residue for selection', selection, error);
-      }
-    }
-  }
-  if (!matched) return null;
-  return atomIndices;
-};
-
 // Build a molstar expression selecting exactly the given atom indices
 // This relies on 'sourceIndex', the 0-based index of the atom in the loaded topology file,
 // which matches the atom indices used everywhere else in this app (topology, trajectory coordinates)
@@ -248,6 +219,40 @@ const atomIndicesToExpression = atomIndices =>
   MS.struct.generator.atomGroups({
     'atom-test': MS.core.set.has([MS.core.type.set(atomIndices), MS.acp('sourceIndex')]),
   });
+
+// Duration of the camera transitions, as in the NGL viewer
+const FOCUS_TRANSITION_DURATION = 750; // ms
+// Margin added around the focused atoms, as molstar does when it focuses something
+const FOCUS_EXTRA_RADIUS = 4; // Å
+// The NGL default view, used when there is no curated orientation: looking along +Z with Y up
+const DEFAULT_CAMERA_ROTATION = { direction: [0, 0, 1], up: [0, 1, 0] };
+
+// Get the bounding sphere of the atoms in an NGL selection, or null if it selects no atom
+const getSelectionSphere = (structure, selection, topologyManager) => {
+  const atomIndices = nglSelectionToAtomIndices(selection, topologyManager);
+  if (atomIndices === null) return structure.boundary.sphere;
+  if (atomIndices.length === 0) return null;
+  const bundle = StructureElement.Bundle.fromExpression(structure, atomIndicesToExpression(atomIndices));
+  const loci = StructureElement.Bundle.toLoci(bundle, structure);
+  if (StructureElement.Loci.isEmpty(loci)) return null;
+  return StructureElement.Loci.getBoundary(loci).sphere;
+};
+
+// Move the camera to frame a sphere, looking in the given direction or in the current one if none is given
+// Molstar clips whatever is in front of the sphere it focuses, while NGL clips nothing
+// For this reason the clipping radius is extended so it includes the whole structure
+const focusCamera = (camera, structure, sphere, rotation, durationMs) => {
+  const { direction, up } = rotation || {
+    direction: Vec3.sub(Vec3.zero(), camera.state.target, camera.state.position),
+    up: camera.state.up,
+  };
+  const snapshot = camera.getInvariantFocus(
+    sphere.center, sphere.radius + FOCUS_EXTRA_RADIUS, up, direction);
+  const whole = structure.boundary.sphere;
+  snapshot.radius = Vec3.distance(whole.center, sphere.center) + whole.radius;
+  snapshot.radiusMax = whole.radius;
+  camera.setState(snapshot, durationMs);
+};
 
 const MolstarViewer = memo(
   forwardRef(
@@ -301,6 +306,13 @@ const MolstarViewer = memo(
         topology: topologyManager,
       } = useContext(ProjectCtx);
 
+      // Set the curated orientation as camera directions
+      const curatedOrientation = useMemo(() => {
+        // If no curated orientation is set in metadata then stop
+        if (!metadata || !metadata.ORIENTATION) return;
+        return nglOrientationToCamera(metadata.ORIENTATION);
+      }, [metadata]);
+
       // The last automatic camera focus
       const [focus, setFocus] = useState(initialFocus);
       // Set the initial focus
@@ -353,6 +365,9 @@ const MolstarViewer = memo(
             multiSample: { mode: 'off' },
             marking: { enabled: false },
             renderer: { colorMarker: false },
+            // Molstar refits the camera to the whole scene every time representations are rebuilt
+            // The camera is moved only by the focus effect below instead, as in the NGL viewer
+            camera: { manualReset: true },
           });
           // DEV-ONLY: expose the plugin for debugging from the browser console, alongside the
           // debug/timing query params above and the framerate badge below. Useful for inspecting the
@@ -385,6 +400,8 @@ const MolstarViewer = memo(
       // (root-level refs to discard on a real rebuild, and the live data objects that
       // can instead be grown in place while more trajectory data keeps streaming in)
       const trajectoryPipelineRef = useRef(null);
+      // The last built structure, which the camera focuses
+      const [builtStructure, setBuiltStructure] = useState(null);
       // How many frames the trajectory is expected to have once fully downloaded, and
       // whether it is already fully downloaded - both read by the play/pause effect and
       // by the progress subscription below, without needing to be effect dependencies
@@ -782,6 +799,7 @@ const MolstarViewer = memo(
                 trajectoryData: molstarTrajectory.data,
                 parsedBytes: fitLength,
               };
+              setBuiltStructure(structure);
             } finally {
               buildingRef.current = false;
             }
@@ -838,6 +856,32 @@ const MolstarViewer = memo(
         recordFrameTick,
       ]);
 
+      // Track when the first focus has been performed, since first focus is instantaneous
+      const firstFocus = useRef(true);
+      // Track the last focus performed, since rebuilding the structure alone must not move the camera
+      const appliedFocus = useRef(null);
+      // Focus the specified selection with the camera automatically, as the NGL viewer does
+      useEffect(() => {
+        if (!molstar || !builtStructure) return;
+        if (!firstFocus.current && focus === appliedFocus.current) return;
+        // The structure is missing while it is being rebuilt, then wait for the new one
+        const structure = builtStructure.data;
+        if (!structure) return;
+        const sphere = getSelectionSphere(structure, focus && focus.sele, topologyManager);
+        if (!sphere) return;
+        const isFirstFocus = firstFocus.current;
+        firstFocus.current = false;
+        appliedFocus.current = focus;
+        // Use the curated orientation the first time and when it is explicitly requested
+        // The very first time, if there is no curated orientation, use the NGL default view
+        // Otherwise keep the current camera direction
+        let rotation = null;
+        if (isFirstFocus || (focus && focus.orient)) rotation = curatedOrientation;
+        if (isFirstFocus && !rotation) rotation = DEFAULT_CAMERA_ROTATION;
+        const duration = isFirstFocus ? 0 : FOCUS_TRANSITION_DURATION;
+        focusCamera(molstar.canvas3d.camera, structure, sphere, rotation, duration);
+      }, [molstar, builtStructure, focus, curatedOrientation, topologyManager]);
+
       // play/pause button effect
       useEffect(() => {
         // If molstar has not been yet initiated then stop here
@@ -893,15 +937,22 @@ const MolstarViewer = memo(
           autoResize: handleResize,
           // Output the current orientation/focus in console
           // Note: this is for the developer, not for the regular user
+          // It is printed in the NGL format, which is the one stored in the ORIENTATION metadata
           displayFocus() {
-            const orientation = stageRef.current.viewerControls.getOrientation();
-            const stringifiedArray = `[${orientation.elements.toString()}]`;
+            if (!molstar) return;
+            const { target, position, up } = molstar.canvas3d.camera.state;
+            const orientation = cameraToNglOrientation({
+              target,
+              distance: Vec3.distance(target, position),
+              direction: Vec3.sub(Vec3.zero(), target, position),
+              up,
+            });
+            const stringifiedArray = `[${orientation.toString()}]`;
             console.log(stringifiedArray);
           },
           centerFocus() {
-            setFocus({ comp: 0, sele: 'all' });
-            // Use the provided orientation, if any
-            // DANI: Sin hacer
+            // Focus the whole structure and use the curated orientation, if any
+            setFocus({ sele: 'all', orient: true });
           },
           get currentFrame() {
             const modelFromTrajectory = trajectoryPipelineRef.current && trajectoryPipelineRef.current.modelFromTrajectory;

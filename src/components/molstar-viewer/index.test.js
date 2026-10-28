@@ -60,6 +60,27 @@ describe('<MolstarViewer /> plugin lifecycle', () => {
   });
 });
 
+describe('<MolstarViewer /> camera', () => {
+  // Curators use this output to fill the ORIENTATION metadata field
+  it('prints the camera as an NGL orientation', async () => {
+    const plugin = fakePlugin();
+    plugin.canvas3d.camera = {
+      state: { target: [10, 20, 30], position: [10, 20, -50], up: [0, 1, 0] },
+    };
+    createPluginUI.mockResolvedValue(plugin);
+    const ref = React.createRef();
+    renderViewer({ ref });
+    await act(async () => {});
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    ref.current.displayFocus();
+    const orientation = JSON.parse(log.mock.lastCall[0]);
+    expect(orientation).toHaveLength(16);
+    // Camera 80 Å away looking along +Z, so no rotation
+    [80, 0, 0, 0, 0, 80, 0, 0, 0, 0, 80, 0, -10, -20, -30, 1].forEach((value, i) =>
+      expect(orientation[i]).toBeCloseTo(value));
+  });
+});
+
 describe('<MolstarViewer /> display settings', () => {
   it('creates the plugin with the background, camera and spin already set', async () => {
     createPluginUI.mockResolvedValue(fakePlugin());
