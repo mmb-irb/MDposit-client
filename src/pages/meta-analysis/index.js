@@ -125,15 +125,15 @@ const MetaAnalysis = () => {
         <Typography variant={'h5'} className={style.header}>
           Meta-analysis
         </Typography>
-        In this page we have prepared <span style={{ color: 'green' }}>tutorials</span>{' '}
-        and <span style={{ color: 'green' }}>use cases</span> of meta-analyses.
+        In this page we have prepared <span className={style.highlight}>tutorials</span>{' '}
+        and <span className={style.highlight}>use cases</span> of meta-analyses.
         <br />
         <br />
         Meta-analyses are analyses which use several MDs as input. This database is specially suited for this task 
         since it is endowed with a <TextLink name={'REST API'} url={BASE_PATH + 'docs/'} />. 
         Programmatic access to the database allows to automatize data requests and thus build powerful meta-analyses.
         The following examples are supported by <TextLink name={'Binder'} url={'https://mybinder.org/'} />, 
-        which opens interactive <span style={{ color: 'green' }}>Jupyter Notebooks</span>.
+        which opens interactive <span className={style.highlight}>Jupyter Notebooks</span>.
         Note that you can edit code or run the analysis online with no need to install any software.
         Here we suggest some meta-analyses but you are very welcome to make your own ones!
         <br />

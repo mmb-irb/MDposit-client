@@ -286,7 +286,6 @@ const Sasa = () => {
       graphRef.current.marks = [
         {
           x: frame,
-          attr: { fill: '#c8c8c8' },
         },
       ];
     },

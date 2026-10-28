@@ -137,7 +137,6 @@ const Density = () => {
   const marks = useMemo(() => {
     const selectedMark = {
       x: xSelected,
-      attr: { fill: '#c8c8c8' },
     };
     return [selectedMark];
   }, [xSelected]);

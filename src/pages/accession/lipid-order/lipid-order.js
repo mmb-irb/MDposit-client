@@ -168,7 +168,6 @@ const LipidOrder = () => {
   const marks = useMemo(() => {
     return xSelected !== null ? [{
       x: xSelected,
-      attr: { fill: '#c8c8c8' },
     }] : [];
   }, [xSelected]);
 

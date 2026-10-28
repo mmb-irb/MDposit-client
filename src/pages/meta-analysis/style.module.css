@@ -52,3 +52,7 @@
 .legend {
   margin: 1em;
 }
+
+.highlight {
+  color: var(--mui-palette-success-main);
+}

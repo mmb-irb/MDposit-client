@@ -19,6 +19,7 @@ import {
   Checkbox,
   ListSubheader,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import {
   faPlusCircle,
   faTrash,
@@ -146,6 +147,7 @@ const signLogic = (positive1, positive2) => {
 
 // Advanced search page
 const AdvancedSearch = () => {
+  const theme = useTheme();
   // Save the query
   const query = useRef(defaultQuery);
 
@@ -347,11 +349,11 @@ const AdvancedSearch = () => {
                     />
                   }
                   checkedIcon={<FontAwesomeIcon icon={faTimes} size="xs" />}
-                  style={{ color: 'black' }}
+                  style={{ color: theme.vars.palette.text.primary }}
                 />
               }
               label={'NOT'}
-              style={object.is ? { color: 'lightgrey' } : { color: 'black' }}
+              style={{ color: object.is ? theme.vars.palette.text.disabled : theme.vars.palette.text.primary }}
               className={style.outlined}
             />
           )}
@@ -453,11 +455,11 @@ const AdvancedSearch = () => {
                   />
                 }
                 checkedIcon={<FontAwesomeIcon icon={faTimes} size="xs" />}
-                style={{ color: 'black' }}
+                style={{ color: theme.vars.palette.text.primary }}
               />
             }
             label={'NOT'}
-            style={object.is ? { color: 'lightgrey' } : { color: 'black' }}
+            style={{ color: object.is ? theme.vars.palette.text.disabled : theme.vars.palette.text.primary }}
             className={style.outlined}
           />
           <IconButton

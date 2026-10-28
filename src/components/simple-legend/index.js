@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme } from '@mui/material/styles';
 
 // Expected input format is entires =
 //  [
@@ -9,6 +10,7 @@ import React from 'react';
 //  ]
 
 const SimpleLegend = ({ entries, className, sortValue = false }) => {
+  const theme = useTheme();
   if (sortValue) {
     entries = [...entries].sort((a, b) => b.value - a.value);
   }
@@ -27,7 +29,7 @@ const SimpleLegend = ({ entries, className, sortValue = false }) => {
             gap: '0.25rem',
             padding: '0.15rem 0.35rem',
             borderRadius: '0.35rem',
-            backgroundColor: hovered ? 'rgba(0, 0, 0, 0.08)' : 'transparent',
+            backgroundColor: hovered ? theme.vars.palette.action.selected : 'transparent',
             transform: hovered ? 'translateX(2px)' : 'none',
             transition: 'background-color 120ms ease, opacity 120ms ease, transform 120ms ease',
           }}
@@ -43,8 +45,10 @@ const SimpleLegend = ({ entries, className, sortValue = false }) => {
               backgroundColor: color,
               marginRight: '0.5em',
               fontSize: '20px',
-              border: hovered ? '2px solid #111' : hidden ? '2px solid #888' : 'none',
-              boxShadow: hovered ? '0 0 0 2px rgba(0, 0, 0, 0.12)' : 'none',
+              border: hovered
+                ? `2px solid ${theme.vars.palette.text.primary}`
+                : hidden ? `2px solid ${theme.vars.palette.text.disabled}` : 'none',
+              boxShadow: hovered ? `0 0 0 2px ${theme.vars.palette.divider}` : 'none',
               filter: hidden ? 'grayscale(80%)' : hovered ? 'brightness(1.08)' : 'none',
             }}
           />

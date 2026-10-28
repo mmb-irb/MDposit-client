@@ -126,7 +126,6 @@ const Rgyr = () => {
   const marks = useMemo(() => {
     const selectedMark = {
       x: selectedGraphIndex,
-      attr: { fill: '#c8c8c8' },
     };
     return [selectedMark];
   }, [selectedGraphIndex]);  
