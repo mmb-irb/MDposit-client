@@ -41,7 +41,8 @@ import { ProjectCtx } from '../../contexts';
 // NGL itself is used to understand selections not built by this app (e.g. typed by the user)
 import { autoLoad } from 'ngl';
 import { nglSelectionToAtomIndices, needsNglSelection } from './ngl-selection';
-import { getPartialSystem, toWholeAtomIndex } from '../ngl-viewer/partial-system';
+import { getPartialSystem, toWholeAtomIndex, toPartialColorScheme } from '../ngl-viewer/partial-system';
+import { nglSchemeToTheme, NglSchemeColorThemeProvider } from './ngl-color-scheme';
 import AtomDescription from '../atom-description';
 import { getHoveredAtoms } from './hovered-atoms';
 import { getHighlights } from './highlights';
@@ -215,8 +216,9 @@ const atomIndicesToExpression = atomIndices =>
 // The type and color are NGL ones, which are translated to molstar
 // Return the node which is to be deleted to remove the representation and the built bundle component, if any
 // Return null if there are no atoms to represent
+// The color theme may be given already translated (e.g. NGL color schemes, see nglSchemeToTheme)
 const buildRepresentation = async (molstar, structure, atomIndices, {
-  label, key, type: typeName, color, opacity, sizeFactor,
+  label, key, type: typeName, color, colorTheme: givenColorTheme, opacity, sizeFactor,
 }) => {
   let component;
   let bundleComponent = null;
@@ -257,7 +259,7 @@ const buildRepresentation = async (molstar, structure, atomIndices, {
   }
 
   const { type, typeParams } = getRepresentationType(typeName);
-  const colorTheme = nglColorToTheme(color);
+  const colorTheme = givenColorTheme || nglColorToTheme(color);
   // Molstar calls opacity 'alpha'. Representations only carry an opacity when
   // something asked for one (e.g. PBC regions, which are drawn faded so it is
   // clear they have jumped across a periodic boundary), so leave molstar's own
@@ -453,6 +455,8 @@ const MolstarViewer = memo(
           // reports how long each state node took to update - which is how the per-frame costs in
           // the comments throughout this file were attributed
           if (import.meta.env.DEV) window.__molstar = molstarInstance;
+          // Make the NGL color schemes of the analyses available as a color theme
+          molstarInstance.representation?.structure.themes.colorThemeRegistry.add(NglSchemeColorThemeProvider);
           setMolstar(molstarInstance);
         };
         wrap();
@@ -515,6 +519,8 @@ const MolstarViewer = memo(
 
       const needsNglStructure = useMemo(() => {
         if (subset) return true;
+        // NGL color schemes are calculated with NGL as well
+        if ((representations || []).some(representation => representation.customScheme)) return true;
         const selections = (representations || []).map(representation => representation.selection);
         if (focus) selections.push(focus.sele);
         selections.push(centering);
@@ -926,6 +932,18 @@ const MolstarViewer = memo(
             );
           };
 
+          // Get the molstar color theme of a representation painted with an NGL color scheme, if so
+          // Schemes are made for the whole system, so in partial systems they are adapted, as in the NGL viewer
+          // NGL is needed to calculate the colors, so representations are colored by chain until it is ready
+          const getCustomColorTheme = (representation, sameTopology) => {
+            if (representation.color !== 'custom' || !representation.customScheme) return;
+            if (!sameTopology || !nglStructure) return;
+            const schemeId = subset
+              ? toPartialColorScheme(subset.partialSystem, topologyManager, representation.customScheme)
+              : representation.customScheme;
+            return nglSchemeToTheme(nglStructure, schemeId);
+          };
+
           // Build one molstar component + representation per data representation
           // (mirrors what the NGL viewer does with the same `representations`/`components` props)
           // Every representation is built on the structure of its component, or the main component
@@ -969,6 +987,7 @@ const MolstarViewer = memo(
                 key: `${representation.name || representation.selection}#${repIndex}`,
                 type: representation.type,
                 color: representation.color,
+                colorTheme: getCustomColorTheme(representation, sameTopology),
                 opacity: representation.opacity,
               });
               if (!built) continue;
