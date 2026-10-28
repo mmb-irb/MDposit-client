@@ -301,6 +301,9 @@ const buildRepresentation = async (molstar, structure, atomIndices, {
   return { ref: component === structure ? representationNode.ref : component.ref, bundleComponent };
 };
 
+// Color of the distance lines, as in the NGL viewer
+const DISTANCE_COLOR = 0x87ceeb; // skyblue
+
 // Duration of the camera transitions, as in the NGL viewer
 const FOCUS_TRANSITION_DURATION = 750; // ms
 // Margin added around the focused atoms, as molstar does when it focuses something
@@ -525,8 +528,11 @@ const MolstarViewer = memo(
         if (focus) selections.push(focus.sele);
         selections.push(centering);
         highlights.forEach(highlight => selections.push(highlight.selection));
+        // Distances may be given as NGL selections as well
+        [...(selectedDistances || []), ...(selectedAngles || [])].forEach(atoms =>
+          atoms.forEach(atom => { if (typeof atom === 'string') selections.push(atom) }));
         return selections.some(needsNglSelection);
-      }, [subset, representations, focus, centering, highlights]);
+      }, [subset, representations, focus, centering, highlights, selectedDistances, selectedAngles]);
       useEffect(() => {
         if (!needsNglStructure || nglStructure || !topologyFile) return;
         let cancelled = false;
@@ -1163,6 +1169,59 @@ const MolstarViewer = memo(
           }
         }).catch(error => console.error(error));
       }, [molstar, builtStructure, highlights, nglStructure, subset, topologyManager]);
+
+      // The nodes of the built distances and angles, to remove them when they change
+      const measurementRefsRef = useRef([]);
+      // Measurements are built one after the other, as highlights
+      const measurementsQueueRef = useRef(Promise.resolve());
+      // Draw the selected distances and angles on the main component structure, as in the NGL viewer
+      // Their atoms are whole system atom indices or NGL selections of a single atom (e.g. '12:A.CA')
+      useEffect(() => {
+        if (!molstar || !builtStructure) return;
+        measurementsQueueRef.current = measurementsQueueRef.current.then(async () => {
+          // Discard the previous measurements, unless they were removed along with a previous structure
+          const update = molstar.build();
+          measurementRefsRef.current.forEach(ref => {
+            if (molstar.state.data.cells.has(ref)) update.delete(ref);
+          });
+          await update.commit();
+          measurementRefsRef.current = [];
+          // The structure may be gone if it is being rebuilt, then measurements are built on the new one
+          const structure = builtStructure.data;
+          if (!structure) return;
+          // Get the loci of a measured atom
+          const getLoci = atom => {
+            const selection = typeof atom === 'number' ? `@${atom}` : atom;
+            const atomIndices = nglSelectionToAtomIndices(selection, topologyManager, nglStructure, subset);
+            if (!atomIndices || atomIndices.length === 0) return null;
+            const bundle = StructureElement.Bundle.fromExpression(structure, atomIndicesToExpression(atomIndices));
+            const loci = StructureElement.Bundle.toLoci(bundle, structure);
+            return StructureElement.Loci.isEmpty(loci) ? null : loci;
+          };
+          // Labels are painted in the opposite color of the background
+          const labelParams = { textColor: Color(darkBackground ? 0xffffff : 0x000000) };
+          const { measurement } = molstar.managers.structure;
+          const measure = async (atoms, add) => {
+            const loci = atoms.map(getLoci);
+            // Atoms which are not loaded (e.g. in partial systems) can not be measured
+            if (loci.some(atomLoci => !atomLoci)) return;
+            const built = await add(...loci);
+            if (built) measurementRefsRef.current.push(built.selection.ref);
+          };
+          for (const atoms of selectedDistances || []) {
+            await measure(atoms, (a, b) => measurement.addDistance(a, b, {
+              lineParams: { linesColor: Color(DISTANCE_COLOR) },
+              labelParams,
+            }));
+          }
+          for (const atoms of selectedAngles || []) {
+            await measure(atoms, (a, b, c) => measurement.addAngle(a, b, c, { labelParams }));
+          }
+        }).catch(error => console.error(error));
+      }, [
+        molstar, builtStructure, selectedDistances, selectedAngles, darkBackground,
+        nglStructure, subset, topologyManager,
+      ]);
 
       // Focus the highlighted atoms or residues with the camera, as in the NGL viewer
       useEffect(() => {
