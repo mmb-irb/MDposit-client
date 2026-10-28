@@ -43,6 +43,14 @@ export default defineConfig({
     // Mol* alone is ~3 MB, warnings about it are expected
     chunkSizeWarningLimit: 4000,
     rollupOptions: {
+      // Vite replaces Node builtins with an empty module in the browser, e.g. 'events' for readable-stream,
+      // which https-browserify and stream-http use. Their polyfills must be installed instead, or every
+      // request through them crashes, so stop the build when one is missing
+      onwarn(warning, warn) {
+        if (warning.plugin === 'vite:resolve' && warning.message.includes('externalized for browser compatibility'))
+          throw new Error(warning.message);
+        warn(warning);
+      },
       output: {
         // CRA-like layout, so sw-build and style-embedder keep working with small changes
         entryFileNames: 'static/js/main.[hash].js',
