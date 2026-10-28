@@ -498,6 +498,30 @@ export default {
     ],
     "Other": [
         {
+            "name": "Mean global RMSD (Å)",
+            "path": "mds.rmsd_mean",
+            "type": "float",
+            "example": "any number",
+            "options": false,
+            "experimental": true,
+        },
+        {
+            "name": "Standard deviation of global RMSD (Å)",
+            "path": "mds.rmsd_stdv",
+            "type": "float",
+            "example": "any number",
+            "options": false,
+            "experimental": true,
+        },
+        {
+            "name": "Maximum global RMSD (Å)",
+            "path": "mds.rmsd_max",
+            "type": "float",
+            "example": "any number",
+            "options": false,
+            "experimental": true,
+        },
+        {
             "name": "Available MD analyses",
             "path": "mds.analyses.name",
             "type": "string",
@@ -524,6 +548,22 @@ export default {
             "type": "int",
             "example": "any integer number",
             "options": false
-        }
+        },
+        {
+            "name": "Last update date",
+            "path": "updateDate",
+            "type": "date",
+            "example": "any date",
+            "options": false
+        },
+        {
+            "name": "Creation date",
+            "path": "creationDate",
+            "type": "date",
+            "example": "any date",
+            "options": false,
+            // Render a warning for the user to know thies field is not fully confident
+            "experimental": true,
+        },
     ]
 };

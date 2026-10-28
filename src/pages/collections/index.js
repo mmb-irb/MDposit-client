@@ -1,6 +1,6 @@
 // React logic
 import React, { useEffect, useMemo, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router';
 import Row from './row';
 import Pagination from '../../components/pagination';
 
@@ -27,6 +27,8 @@ import useAPI from '../../hooks/use-api';
 import { BASE_VERSIONED_PATH } from '../../utils/constants';
 // Auxiliar functions
 import { parseLocationSearch } from '../../utils/auxiliar-functions';
+// Reference handler
+import { Reference } from 'src/utils/reference-manager';
 // String managers
 import { stringify } from 'qs';
 
@@ -91,6 +93,12 @@ const CollectionBrowser = () => {
         matchCount = previousPayload.current.referencesCount;
     } else results = [];
 
+    // Use the reference handler to parse the results
+    const parsedResults = useMemo(() => {
+        if (results.length === 0) return;
+        return results.map(ref => new Reference('collections', ref));
+    }, [results]);
+
     // While loading
     // Code above is runned multiple times (around 5) each time the browser is loaded
     if (collectionsLoading) return <Loading />;
@@ -133,7 +141,7 @@ const CollectionBrowser = () => {
                     }
                 >
                     {/* Create a row for each reference in the query payload*/}
-                    {results.map((reference, index) =>
+                    {parsedResults.map((reference, index) =>
                         <Row
                             // Load the propierties (inputs) that the class "Row" is expecting
                             data={reference} // Load reference data (id, name, description, image URL, ...)

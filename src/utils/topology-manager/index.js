@@ -22,7 +22,6 @@ import {
 // Functions te setup some predefined viewer representations
 import getDefaultRepresentations from './get-default-reprensetations';
 import getEpitopesRepresentations from './get-epitopes-representations';
-import getMutationsRepresentations from './get-mutations-representations';
 // Import the Selection class to better handle atom selections
 import { Selection } from './selections';
 
@@ -176,7 +175,7 @@ class Residue {
     // ----- Solvent -----------------------------------------------
     // Solvent is water molecules
     // First rely on the residue name
-    if (this.name in STANDARD_SOLVENT_RESIDUE_NAMES) {
+    if (STANDARD_SOLVENT_RESIDUE_NAMES.has(this.name)) {
       this._classification = 'solvent'
       return this._classification
     }
@@ -222,21 +221,27 @@ class Residue {
       this._classification = 'ligand'
       return this._classification
     }
-    // ----- Inchikey ligands -----------------------------------------------
+    // ----- Inchikey ligands and lipids -----------------------------------------------
     if (this.referenceType === 'inchikey') {
-      // Inchikey without lipidmaps or swisslipids data, or lipids(inchikeys) outside membrane are classified as ligands
-      if (isEmptyObj(this.referenceData.swisslipids) && isEmptyObj(this.referenceData.lipidmaps) ||  // Old system
-         (!this.referenceData.swisslipids && !this.referenceData.lipidmaps) ||  // New system
-         (this.topology.membraneMapping && this.topology.membraneMapping.no_mem_lipid.includes(this.index))){
+      // Lipids(inchikeys) outside membrane are classified as ligands
+      if (this.topology.noMembraneLipidResidues.has(this.index)) {
         this._classification = 'ligand'
         return this._classification
       }
-    }
-    // Lipids with inchikeys in the membrane mapping and with swisslipids or lipidmaps data are classified as lipids
-    if (this.referenceType === 'inchikey' && this.topology.membraneMapping && this.topology.membraneMapping.lipid.includes(this.index) &&
-        (!isEmptyObj(this.referenceData.swisslipids) || !isEmptyObj(this.referenceData.lipidmaps))){
-      this._classification = 'lipid'
-      return this._classification
+      // Inchikeys in the membrane mapping are classified as lipids
+      // Some have no lipidmaps or swisslipids data (e.g. synthetic lipids like MC3 in lipid nanoparticles)
+      if (this.topology.membraneLipidResidues.has(this.index)) {
+        this._classification = 'lipid'
+        return this._classification
+      }
+      // Inchikey without lipidmaps or swisslipids data are classified as ligands
+      const referenceData = this.referenceData;
+      if (!referenceData ||
+         isEmptyObj(referenceData.swisslipids) && isEmptyObj(referenceData.lipidmaps) ||  // Old system
+         (!referenceData.swisslipids && !referenceData.lipidmaps)){  // New system
+        this._classification = 'ligand'
+        return this._classification
+      }
     }
     // ----- Others -----------------------------------------------
     // If the residue does not fall in any of the previous conditions then try it with the residue name
@@ -404,9 +409,14 @@ class Chain {
     else return metadataChainNames[this.name] || '';
   }
   // Get atom indcies
+  // WARNING: append one by one, never concat residue after residue: every concat copies the list built so far,
+  // which takes seconds for chains of hundreds of thousands of atoms (e.g. the solvent chain in big systems)
   get atomIndices () {
-    return [ ...this.iterresidues() ].reduce((atomIndices, nextResidue) =>
-      atomIndices.concat(nextResidue.atomIndices), []);
+    const atomIndices = [];
+    for (const residueIndex of this.residueIndices) {
+      for (const atomIndex of this.topology.residueAtomIndices[residueIndex]) atomIndices.push(atomIndex);
+    }
+    return atomIndices;
   }
   // Get residue indcies
   get residueIndices () {
@@ -466,9 +476,22 @@ export class Topology {
     this.residueReferenceNumbers = topology.residue_reference_numbers;
     // Save atom bonds
     // Replace missing bonds flags by empty arrays
-    this.atomBonds = topology.atom_bonds && topology.atom_bonds.map(bonds => 
-      bonds === MISSING_BONDS_FLAG ? [] : bonds
-    )
+    // Copy bond arrays so we do not modify the original topology
+    this.atomBonds = topology.atom_bonds && topology.atom_bonds.map(bonds =>
+      bonds === MISSING_BONDS_FLAG ? [] : [ ...bonds ]
+    );
+    // Bonds may come deduplicated (i.e. every bond is listed only in one of its atoms)
+    // Make sure every bond is listed in both atoms
+    // Note that this is harmless if bonds are already duplicated
+    if (this.atomBonds) {
+      const originalBondCounts = this.atomBonds.map(bonds => bonds.length);
+      this.atomBonds.forEach((bonds, atomIndex) => {
+        for (let b = 0; b < originalBondCounts[atomIndex]; b++) {
+          const otherBonds = this.atomBonds[bonds[b]];
+          if (!otherBonds.includes(atomIndex)) otherBonds.push(atomIndex);
+        }
+      });
+    }
     // Data is stored in a down-top structure according to atom-residue-chain indices
     // i.e. atoms know which residue they belong to and residues know which chain they belong to
     // Now set the top-down structure values
@@ -525,6 +548,8 @@ export class Topology {
     this.metadataChainNames = metadata.CHAINNAMES;
     // Save metadata forced ligand names
     this.metadataLigandNames = metadata.LIGANDNAMES;
+    // Save lipid atoms count to know if we need to display the reduced membrane
+    this.lipidAtomsCount = metadata.LIPIATS;
     // Save the references so we can further return reference data from here
     this.proteinReferences = references.proteins;
     this.ligandReferences = references.ligands;
@@ -549,23 +574,32 @@ export class Topology {
     }
     // Process membrane mapping: convert atom indices to residue indices
     // The raw membrane mapping stores atom indices, but residue classification uses residue indices
+    // Residue indices are saved in sets, since every inchikey residue is looked up in them
+    this.membraneLipidResidues = new Set();
+    this.noMembraneLipidResidues = new Set();
     if (this.membraneMapping) {
       // Convert no_mem_lipid from atom indices to residue indices
-      if (this.membraneMapping.no_mem_lipid && this.membraneMapping.no_mem_lipid.length > 0) {
-        this.membraneMapping.no_mem_lipid = this.atom2residueIndices(this.membraneMapping.no_mem_lipid);
-      }
-      // Build a flat list of all residue indices that are part of any membrane leaflet
+      // Old workflow versions saved an empty object instead of a list in systems without lipids
+      const noMembraneLipidAtoms = this.membraneMapping.no_mem_lipid;
+      if (Array.isArray(noMembraneLipidAtoms))
+        this.noMembraneLipidResidues = new Set(this.atom2residueIndices(noMembraneLipidAtoms));
+      // Flatten every leaflet of every membrane into one list
+      // Bilayers have top, bot and midplane leaflets, vesicles outer, inner and midplane, and micelles outer
+      // The midplane holds lipids touching both leaflets alike, e.g. flip-flopping cholesterol
+      // WARNING: append one by one, never push(...leaflet): large membranes have hundreds of thousands
+      // of lipid atoms and spreading them as function arguments overflows the call stack.
       const membraneLipidAtoms = [];
       for (const memData of Object.values(this.membraneMapping.mems || {})) {
-        if (memData.leaflets) {
-          membraneLipidAtoms.push(...(memData.leaflets.top || []));
-          membraneLipidAtoms.push(...(memData.leaflets.bot || []));
+        for (const leaflet of Object.values(memData.leaflets || {})) {
+          if (!Array.isArray(leaflet)) continue;
+          for (const atomIndex of leaflet) membraneLipidAtoms.push(atomIndex);
         }
       }
-      this.membraneMapping.lipid = this.atom2residueIndices(membraneLipidAtoms);
+      this.membraneLipidResidues = new Set(this.atom2residueIndices(membraneLipidAtoms));
     }
     // Set internal values
     this._pbcAtoms = undefined;
+    this._membraneViewerSelection = undefined;
     this._defaultRepresentations = undefined;
     this._epitopeRepresentations = undefined;
     this._mutationRepresentations = undefined;
@@ -580,19 +614,21 @@ export class Topology {
     // If the selection is the 'all' word then select the whole system
     if (apiSelection === 'all') return new Selection([...Array(this.atomCount).keys()])
     // Otherwise we must convert chain and residue indices to atom indices
+    // WARNING: append one by one, never push(...indices): a single chain may have hundreds of thousands
+    // of atoms and spreading them as function arguments overflows the call stack.
     const atomIndices = [];
     // Start with chains
     if (apiSelection.ch) apiSelection.ch.forEach(chainIndex => {
       const chain = this.getChainByIndex(chainIndex);
-      atomIndices.push(...chain.atomIndices);
+      for (const atomIndex of chain.atomIndices) atomIndices.push(atomIndex);
     });
     // Continue with residues
     if (apiSelection.re) apiSelection.re.forEach(residueIndex => {
       const residue = this.getResidueByIndex(residueIndex);
-      atomIndices.push(...residue.atomIndices);
+      for (const atomIndex of residue.atomIndices) atomIndices.push(atomIndex);
     });
     // Finally add atoms
-    if (apiSelection.at) atomIndices.push(...apiSelection.at);
+    if (apiSelection.at) for (const atomIndex of apiSelection.at) atomIndices.push(atomIndex);
     // Finally return the parsed selection
     return new Selection(atomIndices);
   }
@@ -714,11 +750,11 @@ export class Topology {
   }
 
   // Given a list of residue indices, convert it to atom indices
+  // WARNING: append one by one, never concat residue after residue (see the chain atomIndices getter)
   residue2atomIndices = residueIndices => {
-    let atomIndices = [];
+    const atomIndices = [];
     for (const residueIndex of residueIndices) {
-      const residue = this.getResidueByIndex(residueIndex);
-      atomIndices = atomIndices.concat(residue.atomIndices);
+      for (const atomIndex of this.residueAtomIndices[residueIndex]) atomIndices.push(atomIndex);
     }
     return atomIndices;
   }
@@ -817,15 +853,62 @@ export class Topology {
     return this._defaultRepresentations;
   }
 
+  // Reduced atom selection used to lighten the trajectory of membrane simulations
+  // Membrane trajectories are dominated by lipid tails, water and ions, which are heavy to download
+  // and rarely useful to look at. We keep the protein/solute atoms plus the membrane polar
+  // (headgroup) atoms coming from the membrane map, dropping everything else.
+  // Returns { atomIndices, residueIndices } (both sorted, whole-system indices) or null when this
+  // is not a membrane simulation or there is nothing to gain by reducing the selection.
+  get membraneViewerSelection () {
+    if (this._membraneViewerSelection !== undefined) return this._membraneViewerSelection;
+    // This only applies to membrane simulations, which are the ones having a membrane map
+    if (!this.membraneMapping || !this.membraneMapping.mems) {
+      this._membraneViewerSelection = null;
+      return null;
+    }
+    // Get the membrane polar (headgroup) atoms of every leaflet of every membrane
+    // Bilayers have top, bot and midplane leaflets, vesicles outer, inner and midplane, and micelles outer
+    const atomIndices = new Set();
+    for (const memData of Object.values(this.membraneMapping.mems)) {
+      for (const leafletPolarAtoms of Object.values(memData.polar_atoms || {})) {
+        // Early membrane maps saved polar atoms as a flat list, which is ignored
+        if (!Array.isArray(leafletPolarAtoms)) continue;
+        leafletPolarAtoms.forEach(atomIndex => atomIndices.add(atomIndex));
+      }
+    }
+    // Without polar atoms there is no membrane to show, so skip the reduction
+    // e.g. old workflows saved empty membrane maps for systems without lipids
+    if (atomIndices.size === 0) {
+      this._membraneViewerSelection = null;
+      return null;
+    }
+    // Residue classifications whose atoms are dropped from the reduced selection
+    // Note that lipid polar atoms were already added from the membrane map
+    const droppedClasses = new Set(['lipid', 'fatty', 'steroid', 'solvent', 'ion']);
+    // Keep every atom belonging to a residue which is not in a dropped class
+    // (proteins, nucleic acids, ligands, carbohydrates, etc.)
+    for (let residueIndex = 0; residueIndex < this.residueCount; residueIndex++) {
+      const residue = this.getResidueByIndex(residueIndex);
+      if (droppedClasses.has(residue.classification)) continue;
+      residue.atomIndices.forEach(atomIndex => atomIndices.add(atomIndex));
+    }
+    // The API and the viewer expect sorted atom indices
+    const sortedAtomIndices = [...atomIndices].sort((a, b) => a - b);
+    // If we ended up keeping everything (or nothing) then there is nothing to gain, so skip the reduction
+    if (sortedAtomIndices.length === 0 || sortedAtomIndices.length >= this.atomCount) {
+      this._membraneViewerSelection = null;
+      return null;
+    }
+    this._membraneViewerSelection = {
+      atomIndices: sortedAtomIndices,
+      residueIndices: this.atom2residueIndices(sortedAtomIndices),
+    };
+    return this._membraneViewerSelection;
+  }
+
   get epitopesRepresentations () {
     if (this._epitopeRepresentations !== undefined) return this._epitopeRepresentations;
     this._epitopeRepresentations = getEpitopesRepresentations(this);
     return this._epitopeRepresentations;
-  }
-
-  get mutationsRepresentations () {
-    if (this._mutationRepresentations !== undefined) return this._mutationRepresentations;
-    this._mutationRepresentations = getMutationsRepresentations(this);
-    return this._mutationRepresentations;
   }
 }

@@ -14,6 +14,7 @@ import Loading from '../../../components/loading';
 import { UNIPROTS_WITH_ENTROPIES } from '../../../utils/constants';
 import { ProjectCtx } from '../../../contexts';
 import ResidueSelector from '../../../components/residue-selector';
+import getMutationsRepresentations from '../../../utils/topology-manager/get-mutations-representations';
 
 // Define permanent options for the "useInView"
 const useInViewOptions = { triggerOnce: true, rootMargin: '100px' };
@@ -64,7 +65,7 @@ const Mutations = () => {
   );
 
   // Set the representations for the NGL viewer
-  const representations = topology && topology.mutationsRepresentations;
+  const representations = useMemo(() => getMutationsRepresentations(topology), [topology]);
 
   // When a residue is selected
   const handleSelect = useCallback(

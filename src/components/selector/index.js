@@ -4,7 +4,7 @@ import { Card, CardContent, MenuItem, Select, Typography } from '@mui/material';
 
 import style from './style.module.css';
 
-const Selector = ({ label, options, selection, setter, disabled }) => {
+const Selector = ({ label, options, selection, setter, disabled, size }) => {
   // Make sure we have the mandatory parameters
   if (!options) return 'Missing options argument';
   if (!selection) return 'Missing selection argument';
@@ -24,6 +24,7 @@ const Selector = ({ label, options, selection, setter, disabled }) => {
         onChange={changeSelection}
         className={style['horizontal-margined']}
         disabled={disabled}
+        size={size}
       >
         {options.map((option, i) => (
           <MenuItem key={i} value={option}>

@@ -27,7 +27,8 @@ const DistPerres = () => {
   const {
     accessionAndMdNumber,
     topology,
-    interactions,
+    interactionsIndex,
+    getInteraction,
     loading: isProjectLoading,
   } = useContext(ProjectCtx);
 
@@ -39,22 +40,23 @@ const DistPerres = () => {
   // The interaction to be displayed
   const [selectedInteraction, setSelectedInteraction] = useState(0);
 
-  // The newest format has 4 fields: acceptors, donors, hydrogens and hbonds
-  // The hbonds includes arrays of true and false per frame
-  const interaction = interactions && interactions[selectedInteraction];
+  // Get the selected interaction index entry, which has at least the interaction name
+  const interactionEntry = interactionsIndex && interactionsIndex[selectedInteraction];
+  // Get the whole data of the selected interaction
+  const interaction = getInteraction(selectedInteraction);
 
   // Get analysis data from the API
   // Set the target interaction name
   const { interactionName, analysisName } = useMemo(() => {
     // Wait for main data to be downloaded
-    if (!interaction || !indexPayload) return {};
+    if (!interactionEntry || !indexPayload) return {};
     // Check if the analysis is in the old or the new format
     const isOld = indexPayload.data !== undefined;
     // If so, there is no target analysis name, but the whole data is already in the payload
-    if (isOld) return { interactionName: interaction.name };
-    const targetEntry = indexPayload.find(entry => entry.name === interaction.name);
-    return { interactionName: interaction.name, analysisName: targetEntry.analysis }
-  }, [interaction, indexPayload]);
+    if (isOld) return { interactionName: interactionEntry.name };
+    const targetEntry = indexPayload.find(entry => entry.name === interactionEntry.name);
+    return { interactionName: interactionEntry.name, analysisName: targetEntry.analysis }
+  }, [interactionEntry, indexPayload]);
 
   // Send a request to the API with the url of some specific analysis
   const interactionAnalysisUrl = analysisName ? `${analysesUrlBase}/${analysisName}` : null;
@@ -85,7 +87,12 @@ const DistPerres = () => {
   // The graphic to be displayed ('mean' or 'stdv')
   const [display, setDisplay] = useState('mean');
 
+  // Check if both the dataset and the interaction data are available and they match
+  // Note that they are downloaded apart, so one may be ready before the other
+  const isDatasetMatching = Boolean(dataset && interaction && dataset.name === interaction.name);
+
   // Filter data by selected residues
+  // Previous data is kept while the dataset and the interaction do not match
   const {
     heatmapData,
     residuesX,
@@ -93,9 +100,9 @@ const DistPerres = () => {
     xTitle,
     yTitle,
     isReduced,
-  } = useMemo(() => {
+  } = useRemfo(previous => {
     // Return if the dataset is not ready
-    if (!dataset || !topology || !interaction) return {};
+    if (!isDatasetMatching || !topology) return previous || {};
 
     // Set the data to be displayed
     const displayedData = display === 'mean' ? dataset.means : dataset.stdvs;
@@ -208,6 +215,8 @@ const DistPerres = () => {
     };
   }, [
     dataset,
+    interaction,
+    isDatasetMatching,
     topology,
     selectedResidues,
     display,
@@ -261,7 +270,7 @@ const DistPerres = () => {
   );
 
   // Check if anything is still beeing loaded
-  const anyLoading = isIndexLoading || isAnalysisLoading || isProjectLoading;
+  const anyLoading = isIndexLoading || isAnalysisLoading || isProjectLoading || !isDatasetMatching;
 
   // Render loading or error messages according with the API response
   if (indexError) return indexError.toString() + '. Analysis may not be available for this trajectory.';
@@ -269,10 +278,12 @@ const DistPerres = () => {
   if (dataset && dataset.error) return dataset.error;
   if (!dataset) {
     if (anyLoading) return <Loading />;
-    if (!interactions) return 'There are no interactions';
+    if (!interactionsIndex) return 'There are no interactions';
     if (!topology) return 'There is no topology';
     return 'Something bad happened with the analysis data';
   }
+  // The interaction data may be still downloading
+  if (!heatmapData) return <Loading />;
 
   // Handles when the tabs are switched
   const handleTabs = (event, newValue) => {
@@ -286,7 +297,8 @@ const DistPerres = () => {
         <CardContent className={style.horizontal}>
           <Typography variant="h6">Residues selection:</Typography>
           <InteractionSelector
-            interactions={interactions}
+            interactions={interactionsIndex}
+            interaction={interaction}
             selectedInteraction={selectedInteraction}
             setSelectedInteraction={setSelectedInteraction}
             selectedResidues={selectedResidues}

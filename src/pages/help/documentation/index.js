@@ -300,21 +300,24 @@ export const documentation = [
             RMSD analyses are run over different atom selections.
             By default, it is computed for protein atoms, nucleics acid atoms and
             all atoms in every defined ligand. Some projects may contain additional
-            RMSD analyses for custom atom selections. First table displays the mean
-            and standard deviation values of each atoms selection in Ångstroms (Å).
+            RMSD analyses for custom atom selections. First table displays the mean,
+            standard deviation and maximum values of each atoms selection in Ångstroms (Å).
             In addition, there is a checkbox next to each atom selection name
             which allows to hide or show data in the graph below.
             <br />
             <br />
-            Graph displays the RMSD/TM score value in each frame along the
-            trajectory. The horizontal axis stands for the trajectory time in
-            nanoseconds. The vertical axis may stand for the RMSD in Ångstroms
-            (Å) or the TM score. The graph is{' '}
+            Graph displays the RMSD/TM score values along the trajectory. RMSD is
+            computed for every frame in the trajectory, but frames are grouped in
+            consecutive blocks and only a summary of each block is displayed: the
+            line stands for the block mean value and the colored area around it
+            stands for the block standard deviation. The horizontal axis stands for
+            the trajectory time in nanoseconds. The vertical axis may stand for the
+            RMSD in Ångstroms (Å) or the TM score. The graph is{' '}
             <span style={{ color: 'lightGreen' }}>interactive</span>. Use the
             mouse wheel to zoom in a specific region. Click and hold at any
             point in the graph to drag it left or right. Hover any point in the
-            graph to show the corresponding RMSD/TM score and time/frame values.
-            Click any point in the graph to open a{' '}
+            graph to show the corresponding RMSD/TM score value and the range of
+            frames in the block. Click any point in the graph to open a{' '}
             <a
               href="/help#/help#ngl-viewer"
               target="_blank"
@@ -322,7 +325,12 @@ export const documentation = [
             >
               viewer
             </a>{' '}
-            showing the structure conformation at the selected time frame.
+            showing the structure conformation at the frame with the maximum
+            RMSD in the selected block. This is useful to inspect sudden jumps
+            in the RMSD, which may happen in a few specific frames only. When
+            several atom selections are displayed, the frame is picked from
+            the selection whose maximum stands out the most. Hide the other
+            selections in the table above to inspect a specific selection.
           </>
         ),
       },
@@ -332,12 +340,12 @@ export const documentation = [
         body: (
           <>
             RMSD analyses have been run against the first frame and against the
-            average structure of the whole trajectory. RMSD analyses have been
-            run over different protein atom selections: all protein atoms
-            (protein), heavy atoms (protein-h), backbone and alpha carbon
-            (c-alpha). The RMSD value of the structure is stored for up to 5000
-            frames along the trajectory.
-            Only atoms not in periodic boundary conditions (PBC) are measured in this analysis.
+            average structure of the whole trajectory.
+            The RMSD is computed for every frame in the trajectory.
+            Then frames are grouped in consecutive blocks and the mean, standard
+            deviation and maximum values of each block are stored, together with
+            the frame where the maximum value is found.
+            Atoms under periodic boundary conditions (PBC) are ignored in this analysis.
             <br />
             <br />
             This analysis is powered by <TextLink name={'Gromacs'} id={'gromacs'} />
@@ -1148,6 +1156,129 @@ export const documentation = [
         ),
       },
       {
+        id: 'allostery',
+        header: 'Allostery',
+        body: (
+          <>
+            Allosteric communication network analysis using{' '}
+            <a
+              href="https://github.com/yasamankarami/compass"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              ComPASS
+            </a>{' '}
+            (Communication Pathway Analysis within Protein-Nucleic Acid Complexes). 
+            This analysis is calculated using up to 1000 frames along the trajectory.
+            <br />
+            <br />
+            Residues are the nodes of a graph and links between them are weighted according to how
+            strongly they communicate along the trajectory. Link weights come from an adjacency matrix
+            which integrates three residue pairwise metrics: the generalized correlation of residue
+            motions (using CA atoms in proteins and C5' atoms in nucleic acids), the frequency of
+            interactions between residues (non-bonded contacts, salt bridges and hydrogen bonds) and
+            the communication propensity, which is derived from the variance of the distance between
+            residues along the trajectory. Only residues within a distance cutoff are linked in the graph.
+            <br />
+            <br />
+            Several graph theory properties are then calculated over the network. Allosteric hotspots
+            are the top 5% most important residues in the network according to their centrality
+            (betweenness, closeness and degree). Communities are clusters of residues which are densely
+            connected among themselves, and they are found using the Leiden algorithm. Cliques are fully
+            connected subgraphs, i.e. groups of residues where every residue is linked to every other
+            residue in the group.
+          </>
+        ),
+        page: (
+          <>
+            This is the allosteric communication network.
+            <br />
+            <br />
+            Links between residues are displayed in the{' '}
+            <a
+              href="/help#/help#ngl-viewer"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              molecular viewer
+            </a>
+            . Stronger links are thicker and more opaque. Link strengths range from 0% to 100%.
+            Hover any link to see the residues it connects and its strength.
+            <br />
+            <br />
+            Use the selector to paint hotspots, cliques or communities over the structure, or to color
+            links by their strength instead. Click any region in the legend to highlight its residues.
+            <br />
+            <br />
+            Use the sliders to hide links which are weaker than a minimum strength, or links between
+            residues of the same chain which are closer in sequence than a minimum step. For instance,
+            a minimum step of 2 hides links between consecutive residues, which are expected to be
+            strongly coupled anyway since they are covalently bonded.
+          </>
+        ),
+      },
+      {
+        id: 'chemical-shifts',
+        header: 'Chemical shifts',
+        body: (
+          <>
+            Protein NMR chemical shifts predicted along the trajectory (up to 1000 frames) using{' '}
+            <a
+              href="https://github.com/roitberg-group/legolas"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              LEGOLAS
+            </a>
+            , a machine learning model built over TorchANI which predicts chemical shifts from
+            protein structures. Chemical shifts are predicted for backbone nitrogen (N), amide
+            hydrogen (H), alpha carbon (CA) and hydrogen (HA), beta carbon (CB) and carbonyl carbon
+            (C) atoms.
+            <br />
+            <br />
+            For every atom, the average chemical shift and its standard deviation along the
+            trajectory are provided. LEGOLAS predictions come from an ensemble of 5 models, and the
+            standard deviation between models is a measure of the prediction confidence. The mean
+            of this deviation along the trajectory (csmdv) is also provided for every atom, where
+            higher values stand for less reliable predictions.
+            <br />
+            <br />
+            The trajectory is also split in 10 consecutive frame ranges and the average chemical
+            shift and its standard deviation are provided for every atom in every range, so changes
+            in the chemical shift along the trajectory can be followed.
+          </>
+        ),
+        page: (
+          <>
+            These are the predicted chemical shifts.
+            <br />
+            <br />
+            Use the selector to choose which atom name (CA, CB, C, HA, H or N) is displayed in the
+            top graph. Dots represent the average chemical shift of every atom and vertical bars
+            represent its standard deviation along the trajectory. Dots are colored according to the
+            reliability of their prediction, from blue (reliable) to red (not reliable).
+            <br />
+            <br />
+            Click any atom in the top graph to highlight it in the{' '}
+            <a
+              href="/help#/help#ngl-viewer"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              molecular viewer
+            </a>
+            {' '}and see how its chemical shift changes along the trajectory in the bottom graph.
+            Atoms may also be selected by clicking them in the viewer.
+            The line represents the average chemical shift in every frame range and the shaded area
+            represents its standard deviation.
+            <br />
+            <br />
+            The viewer loads one frame for every frame range, which is the central frame of the
+            range. Click any frame range in the bottom graph to display its frame in the viewer.
+          </>
+        ),
+      },
+      {
         id: 'markov',
         header: 'Markov Graph',
         body: (
@@ -1790,6 +1921,17 @@ export const documentation = [
         ),
       },
       {
+        id: 'compass',
+        header: 'ComPASS',
+        body: (
+          <>
+            Bheemireddy S, González Alemán R, Bignon E, Karami Y. Communication pathway analysis
+            within protein-nucleic acid complexes. bioRxiv, 2025.
+            https://doi.org/10.1101/2025.02.14.638259
+          </>
+        ),
+      },
+      {
         id: 'gromacs',
         header: 'Gromacs',
         body: (
@@ -1855,6 +1997,18 @@ export const documentation = [
             SCE, Wu CH, Bateman A and Finn RD The InterPro protein families and
             domains database: 20 years on. Nucleic Acids Research, Nov 2020,
             (doi: 10.1093/nar/gkaa977)
+          </>
+        ),
+      },
+      {
+        id: 'legolas',
+        header: 'LEGOLAS',
+        body: (
+          <>
+            Darrows MY, Kodituwakku D, Xue J, Pickering I, Terrel NS, Roitberg AE. LEGOLAS: a
+            Machine Learning method for rapid and accurate predictions of protein NMR chemical
+            shifts. J. Chem. Theory Comput. 2025, 21, 8, 4266–4275.
+            https://doi.org/10.1021/acs.jctc.5c00026
           </>
         ),
       },

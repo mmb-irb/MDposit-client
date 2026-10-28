@@ -9,7 +9,7 @@ import { faSearch } from '@fortawesome/free-solid-svg-icons';
 import { docs } from '../../pages/help/documentation';
 
 import style from './style.module.css';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router';
 import { HOST_CONFIG } from '../../utils/constants';
 
 // Half second delay (500 ms) to process changes in the search bar
@@ -46,11 +46,13 @@ export const updateLocation = (location, history, value) => {
   // Reset page to the first page
   nextSearchObject.page = undefined;
   // Update history
-  history({
-    ...location,
-    search: stringify(nextSearchObject),
-    replace: shouldReplace,
-  });
+  history(
+    {
+      ...location,
+      search: stringify(nextSearchObject),
+    },
+    { replace: shouldReplace },
+  );
 };
 
 // "debounce" is a method from the "lodash" library that invokes a function after a time delay

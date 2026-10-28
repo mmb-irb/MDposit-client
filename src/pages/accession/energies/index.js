@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState, useContext, useMemo, useEffect, useCallback } from 'react';
+import React, { lazy, Suspense, useState, useContext, useMemo, useEffect, useCallback, useRef } from 'react';
 // Import tools to retrieve data using the API
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 import useAPI from '../../../hooks/use-api';
@@ -41,8 +41,10 @@ const Energies = () => {
   // Get the current project data
   const {
     accessionAndMdNumber,
+    hasInteractions,
     topology,
-    interactions,
+    interactionsIndex,
+    getInteraction,
     loading: isProjectLoading,
   } = useContext(ProjectCtx);
 
@@ -54,41 +56,71 @@ const Energies = () => {
   // The interaction to be displayed
   const [selectedInteraction, setSelectedInteraction] = useState(0);
 
+  // Make sure the selected interaction is in range
+  // The selection is kept when changing MD, but the new MD may have less interactions
+  useEffect(() => {
+    if (!interactionsIndex) return;
+    setSelectedInteraction(previous =>
+      previous < interactionsIndex.length ? previous : 0);
+  }, [interactionsIndex]);
+
+  // Get the whole data of the selected interaction
+  const interaction = getInteraction(selectedInteraction);
+
   // Set the target interaction name
-  const { interactionName, analysisName } = useMemo(() => {
+  const { interactionName, analysisName, indexMissError } = useMemo(() => {
     // Wait for main data to be downloaded
-    if (!interactions || !indexPayload) return {};
-    // Get the selected interaction
-    const interaction = interactions[selectedInteraction];
+    if (!interactionsIndex || !indexPayload) return {};
+    // Get the selected interaction entry
+    // Note that it may be missing when the selection is out of range
+    // This happens right after changing MD, before the selection is reset
+    const interactionEntry = interactionsIndex[selectedInteraction];
+    if (!interactionEntry) return {};
     // Check if the analysis is in the old or the new format
     const isOld = indexPayload.data !== undefined;
     // If so, there is no target analysis name, but the whole data is already in the payload
-    if (isOld) return { interactionName: interaction.name };
-    const targetEntry = indexPayload.find(entry => entry.name === interaction.name);
-    return { interactionName: interaction.name, analysisName: targetEntry.analysis }
-  }, [interactions, selectedInteraction, indexPayload]);
+    if (isOld) return { interactionName: interactionEntry.name };
+    const targetEntry = indexPayload.find(entry => entry.name === interactionEntry.name);
+    if (!targetEntry) return {
+      interactionName: interactionEntry.name,
+      indexMissError: `Energies analysis for interaction "${interactionEntry.name}" not found`
+    };
+    return { interactionName: interactionEntry.name, analysisName: targetEntry.analysis }
+  }, [interactionsIndex, selectedInteraction, indexPayload]);
 
   // Send a request to the API with the url of some specific energies analysis
   const interactionAnalysisUrl = analysisName ? `${analysesUrlBase}/${analysisName}` : null;
   const { loading: isAnalysisLoading, payload, error } = useAPI(interactionAnalysisUrl);
 
+  // Keep track of the MD which the retained dataset belongs to
+  const datasetMdNumber = useRef(null);
+
   // Now set the actual dataset to be used
   // Note that this is a compatibility layer between the old and the new energies system
   const dataset = useRemfo(previous => {
+    // The previous dataset is retained while new data is being downloaded
+    // However it must be discarded when it belongs to a different MD
+    // Otherwise we would display energies from the previously selected MD
+    const retained = datasetMdNumber.current === accessionAndMdNumber ? previous : undefined;
+    datasetMdNumber.current = accessionAndMdNumber;
     // Wait for the download to finish
-    if (!indexPayload) return previous;
+    if (!indexPayload) return retained;
+    // The interaction may not be resolved yet, since interactions are downloaded apart
+    // Note that we must not claim the dataset is missing while this is the case
+    if (!interactionName) return indexMissError ? { error: indexMissError } : retained;
     // Check if the analysis is in the old or the new format
     const isOld = indexPayload.data !== undefined;
     // If this is the new system then the dataset is the payload itself
     if (!isOld) {
-      if (!payload) return previous;
+      if (indexMissError) return { error: indexMissError };
+      if (!payload) return retained;
       return payload;
     }
     // If this is the old system then the dataset is in the index payload
     const interactionData = indexPayload.data.find(entry => entry.name === interactionName);
     if (!interactionData) return { error: `Dataset for interaction "${interactionName}" not found` };
     return interactionData;
-  }, [indexPayload, payload, interactionName]);
+  }, [accessionAndMdNumber, indexPayload, payload, interactionName, indexMissError]);
 
   // This is a toggle state for which agent data is shown
   const [selectedOrder, setSelectedOrder] = useState(true);
@@ -102,9 +134,7 @@ const Energies = () => {
     strongBonds
   } = useMemo(() => {
     // Wait for main data to be downloaded
-    if (!topology || !interactions) return {}
-    // Get the selected interaction
-    const interaction = interactions[selectedInteraction];
+    if (!topology || !interaction) return {};
     // Get host atom indices
     const hostAtomIndices = selectedOrder
       ? interaction.atom_indices_1
@@ -118,7 +148,7 @@ const Energies = () => {
     // Get atom indices from covalent bonds between both interacting agents
     const strongBonds = interaction['strong_bonds'];
     return { hostAtomIndices, hostResidueIndices, guestInterfaceAtomIndices, strongBonds };
-  }, [topology, interactions, selectedInteraction, selectedOrder]);
+  }, [topology, interaction, selectedOrder]);
 
   // Get the default representations
   const defaultRepresentations = topology && topology.defaultRepresentations;;
@@ -157,7 +187,13 @@ const Energies = () => {
   // This is a toggle state for when data is displayed per atom or per residue
   const [perResidue, setPerResidue] = useState(true);
 
+  // Check if both the dataset and the interaction data are available and they match
+  // Note that they are downloaded apart, so one may be ready before the other
+  const isDatasetMatching = Boolean(dataset && interaction && dataset.name === interaction.name);
+
   // Reformat data se we can input it to the graph
+  // Previous data is kept while the dataset and the interaction do not match
+  // However it must be discarded when it belongs to a different MD
   const {
     data,
     dataError,
@@ -167,10 +203,15 @@ const Energies = () => {
     vdwData,
     bothData,
     xTooltip,
-  } = useMemo(() => {
+  } = useRemfo(previous => {
     // Return if the dataset is not ready yet
     if (!dataset || !topology) return {};
     if (dataset.error) return {};
+    // Wait also for the interaction-derived selections
+    if (!isDatasetMatching || !hostAtomIndices || !hostResidueIndices) {
+      if (previous && previous.mdNumber === accessionAndMdNumber) return previous;
+      return {};
+    }
     // Get the dataset version
     const datasetVersion = new Version(dataset.version);
     // Old versions of energies have only residue data, not atom data
@@ -272,9 +313,12 @@ const Energies = () => {
       vdwData,
       bothData,
       xTooltip,
+      mdNumber: accessionAndMdNumber,
     };
   }, [
+    accessionAndMdNumber,
     dataset,
+    isDatasetMatching,
     selectedOrder,
     perResidue,
     topology,
@@ -311,12 +355,14 @@ const Energies = () => {
 
   // Memoize the marks
   const marks = useMemo(() => {
-    if (selectedX === null) return strongBondMarks;
+    // Note that the strong bond marks may be missing while data is being downloaded
+    const bondMarks = strongBondMarks || [];
+    if (selectedX === null) return bondMarks;
     const selectedMark = {
       x: selectedX,
       attr: { fill: '#c8c8c8' },
     };
-    return [selectedMark, ...strongBondMarks];
+    return [selectedMark, ...bondMarks];
   }, [selectedX, strongBondMarks]);
 
   // Set the selected residue indices (only one index with the current implmementation)
@@ -325,6 +371,8 @@ const Energies = () => {
     if (selectedX === null) return null;
     // If we are representing data by atom, not by residue, then exit
     if (!perResidue) return null;
+    // Selections are missing while interactions are being downloaded (e.g. on MD change)
+    if (!hostResidueIndices) return null;
     // Get the selected residue index
     const residueIndex = hostResidueIndices[selectedX];
     return [residueIndex];
@@ -336,6 +384,8 @@ const Energies = () => {
     if (selectedX === null) return null;
     // If we are representing data by residue, not by atom, then exit
     if (perResidue) return null;
+    // Selections are missing while interactions are being downloaded (e.g. on MD change)
+    if (!hostAtomIndices) return null;
     // Get the selected residue index
     const atomIndex = hostAtomIndices[selectedX];
     return [atomIndex];
@@ -364,16 +414,21 @@ const Energies = () => {
   }, []);
 
   // Check if anything is still beeing loaded
-  const anyLoading = isIndexLoading || isAnalysisLoading || isProjectLoading;
+  // Note that both the topology and the interactions are undefined while downloading
+  // This is the case, for instance, when changing MD, since the whole project is requested again
+  const isProjectDataMissing = !topology || (hasInteractions && !interaction);
+  const anyLoading = isIndexLoading || isAnalysisLoading || isProjectLoading || isProjectDataMissing ||
+    !isDatasetMatching;
 
   // Render loading or error messages according with the API response
   if (indexError) return indexError.toString();
   if (error) return error.toString();
   if (dataset && dataset.error) return dataset.error;
-  if (!dataset) {
+  if (!hasInteractions) return 'There are no interactions';
+  // Note that having a dataset does not mean the graph data is ready
+  // The dataset may be retained from a previous render while the rest of the data is downloaded
+  if (!dataset || (!data && !dataError)) {
     if (anyLoading) return <Loading />;
-    if (!interactions) return 'There are no interactions';
-    if (!topology) return 'There is no topology';
     return 'Something bad happened';
   }
 
@@ -387,7 +442,8 @@ const Energies = () => {
         <CardContent className={style.horizontal}>
           <Typography variant="h6">Interaction:</Typography>
           <InteractionSelector
-            interactions={interactions}
+            interactions={interactionsIndex}
+            interaction={interaction}
             selectedInteraction={selectedInteraction}
             setSelectedInteraction={handleSelectInteraction}
             selectedOrder={selectedOrder}

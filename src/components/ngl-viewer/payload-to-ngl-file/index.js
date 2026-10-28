@@ -240,14 +240,19 @@ export const setNGLFile = (
   trajectoryAtoms,
   trajectoryFrames,
   atomIndices,
+  centeringAtomIndices,
 ) => {
   if (!(topology && trajectoryData)) return;
+
+  // The trajectory data may be longer than the frames to parse (e.g. a buffer which is still downloading)
+  // Copy only those frames, since the parsing expects the data to hold exactly the frames to parse
+  const framesData = trajectoryData.slice(0, trajectoryFrames * trajectoryAtoms * BYTES_PER_ATOM);
 
   let coordinates;
   // In case topology and trajectory atoms match go for the canonical parsing
   if (trajectoryAtoms === topology.atomCount)
     coordinates = payloadToNGLCoordinates(
-      trajectoryData,
+      framesData,
       trajectoryAtoms,
       trajectoryFrames,
     );
@@ -255,7 +260,7 @@ export const setNGLFile = (
     coordinates = payloadToNGLCoordinatesFiltered(
       topology.atomCount,
       atomIndices,
-      trajectoryData,
+      framesData,
       trajectoryAtoms,
       trajectoryFrames,
     );
@@ -266,7 +271,7 @@ export const setNGLFile = (
   else
     coordinates = payloadToNGLCoordinatesAlternative(
       topology,
-      trajectoryData,
+      framesData,
       trajectoryAtoms,
       trajectoryFrames,
     );
@@ -284,6 +289,9 @@ export const setNGLFile = (
   if (sampleCoordinates.size <= 3)
     throw new Error('Trajectory coordinates are repeated');
 
+  // If the centering was required then we will center the coordinates for every frame
+  if (centeringAtomIndices) centerFrames(coordinates, centeringAtomIndices);
+
   // Finally build the NGL object and add the parsed coordinates
   const file = new Frames('Dynamically generated trajectory', '');
   file.coordinates = coordinates;
@@ -298,6 +306,7 @@ export const updateNGLFile = (
   trajectoryAtoms,
   trajectoryFrames,
   atomIndices,
+  centeringAtomIndices,
 ) => {
   if (!(file && topology && trajectoryData)) return;
 
@@ -311,8 +320,9 @@ export const updateNGLFile = (
   if (currentFrames >= trajectoryFrames) return;
 
   // Calculate how many bytes we must discard and discard them from the begining of the array buffer
+  // The trajectory data may also be longer than the frames to parse (e.g. a buffer which is still downloading)
   const discardBytes = currentFrames * trajectoryAtoms * BYTES_PER_ATOM;
-  const newTrajectoryData = trajectoryData.slice(discardBytes);
+  const newTrajectoryData = trajectoryData.slice(discardBytes, trajectoryFrames * trajectoryAtoms * BYTES_PER_ATOM);
   const newTrajectoryFrames = trajectoryFrames - currentFrames;
 
   let coordinates;
@@ -347,6 +357,34 @@ export const updateNGLFile = (
   if (!coordinates)
     throw new Error(`Topology and trajectory data may not match`);
 
+  // If the centering was required then we will center the coordinates for every frame
+  if (centeringAtomIndices) centerFrames(coordinates, centeringAtomIndices);
+
   // Finally update the NGL file coordinates
   file.frames = file.frames.concat(coordinates);
+};
+
+// Center every frame so the geometric center of the selected atoms is placed in the origin
+// Frames are expected to include coordinates for all atoms in the structure
+// Mutate the original frames
+const centerFrames = (frames, atomIndices) => {
+  for (const frame of frames) {
+    // Calculate the geometric center of the selected atoms
+    let xSum = 0, ySum = 0, zSum = 0;
+    for (const atomIndex of atomIndices) {
+      const coordinateIndex = atomIndex * COORDINATES_PER_ATOM;
+      xSum += frame[coordinateIndex];
+      ySum += frame[coordinateIndex + 1];
+      zSum += frame[coordinateIndex + 2];
+    }
+    const x = xSum / atomIndices.length;
+    const y = ySum / atomIndices.length;
+    const z = zSum / atomIndices.length;
+    // Translate all atoms in the frame
+    for (let c = 0; c < frame.length; c += COORDINATES_PER_ATOM) {
+      frame[c] -= x;
+      frame[c + 1] -= y;
+      frame[c + 2] -= z;
+    }
+  }
 };

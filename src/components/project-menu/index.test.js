@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, cleanup, act } from '@testing-library/react';
 
-import { HashRouter as Router } from 'react-router-dom';
+import { HashRouter as Router } from 'react-router';
 
 import ProjectMenu from '.';
 
@@ -9,7 +9,7 @@ afterAll(cleanup);
 
 let fetchMock;
 beforeAll(() => {
-  fetchMock = jest.spyOn(global, 'fetch');
+  fetchMock = vi.spyOn(global, 'fetch');
 });
 
 afterAll(() => {

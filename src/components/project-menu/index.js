@@ -14,7 +14,7 @@ import {
   AppBar,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 
 // Load the project contexts
 import { ProjectCtx } from '../../contexts';
@@ -83,6 +83,8 @@ const tabs = [
           'pockets',
           'populations',
           'markov', 
+          'allostery',
+          'chemical-shifts',
         ],
       },
     ],

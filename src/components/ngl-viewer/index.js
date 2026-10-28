@@ -18,11 +18,31 @@ import cn from 'classnames';
 // Current versions of NGL do not load trajectory coordinates, starting at version 2.1.0
 // I don't know where the problem is, but there are no error logs and I have spent a few hours already
 // Previous version 2.0.1 had a bug not showing surfaces and returning "Worker.onerror molsurf"
-import { autoLoad, Stage, Shape, ColormakerRegistry, Matrix4 } from 'ngl';
+// This bug starts at version 2.0.0-dev.40, the first one released already minified
+// NGL builds its workers by stringifying its own functions, and our build minifier turns one of them anonymous
+// The worker script is then invalid JavaScript, so surfaces never show
+// The ngl.test.js tests run the real NGL, but they can not catch this since they do not use the build minifier
+import {
+  autoLoad, Stage, Shape, ColormakerRegistry, Matrix3, Matrix4, Vector3, MouseActions, Selection,
+} from 'ngl';
 
 import { frame } from 'timing-functions';
 
 import { setNGLFile, updateNGLFile } from './payload-to-ngl-file';
+
+// Improved 'element' color scheme (distinguishes coarse-grain beads instead of white)
+import getElementColorSchemeId from './element-colormaker';
+
+// PDB parser which skips the bond guessing that topology bonds replace anyway
+import { PDB_WITH_TOPOLOGY_BONDS } from './pdb-parser-with-topology-bonds';
+import {
+  getPartialSystem,
+  toPartialAtomIndex,
+  toWholeAtomIndex,
+  toPartialSelection,
+  toPartialAtomGroups,
+  toPartialColorScheme,
+} from './partial-system';
 
 import { ProjectCtx } from '../../contexts';
 
@@ -79,6 +99,30 @@ const defaultHighlightTypes = {
   selections: 'ball+stick',
 };
 
+// Edges of a cube with side 1 and one corner at the origin
+// This cube is transformed to draw the simulation box
+const UNIT_CUBE_EDGES = [
+  [[0, 0, 0], [1, 0, 0]], [[0, 0, 0], [0, 1, 0]], [[0, 0, 0], [0, 0, 1]],
+  [[1, 1, 0], [0, 1, 0]], [[1, 1, 0], [1, 0, 0]], [[1, 1, 0], [1, 1, 1]],
+  [[1, 0, 1], [0, 0, 1]], [[1, 0, 1], [1, 1, 1]], [[1, 0, 1], [1, 0, 0]],
+  [[0, 1, 1], [1, 1, 1]], [[0, 1, 1], [0, 0, 1]], [[0, 1, 1], [0, 1, 0]],
+];
+
+// Linear interpolation from start (t = 0) to stop (t = 1), as NGL does
+const lerp = (start, stop, t) => start + (stop - start) * t;
+
+// Get the centroid of the current coordinates in a NGL structure
+const getCentroid = structure => {
+  const { x, y, z, count } = structure.atomStore;
+  let sx = 0, sy = 0, sz = 0;
+  for (let a = 0; a < count; a++) {
+    sx += x[a];
+    sy += y[a];
+    sz += z[a];
+  }
+  return new Vector3(sx / count, sy / count, sz / count);
+};
+
 const NGLViewer = memo(
   forwardRef(
     (
@@ -102,9 +146,12 @@ const NGLViewer = memo(
         darkBackground,
         perspective,
         speed,
+        centering,
         xSelection, // To display planes for density analysis
         rotateX,   // To rotate the stage so the Z axis goes from bottom to top
         xAxisStep,
+        // Simulation boxes of the loaded frames, to be displayed (see useBoxData)
+        boxes,
         // Final components and representations prepared for the viewer
         components,
         representations,
@@ -113,8 +160,22 @@ const NGLViewer = memo(
         trajectories,
         anyLoadingTopology,
         anyLoadingTrajectory,
+        // Message of a failed topology or trajectory download, if any
+        downloadError,
         // Set the highlight representations types
         highlightTypes = defaultHighlightTypes,
+        // Optional function to set the tooltip content when hovering a distance
+        // It receives both atom indices and returns JSX, or nothing to use the default content
+        distanceTooltip,
+        // Optional function to modify the tooltip content when hovering an atom
+        // It receives the atom index and the original content and returns the new content
+        onHoverDisplay,
+        // Optional function to be called with the atom index when the user clicks an atom
+        // When passed, the cursor becomes a pointer over selectable atoms
+        onAtomSelect,
+        // Optional function which receives an atom index and returns true if the atom may be selected
+        // If missing, all atoms may be selected
+        isAtomSelectable,
       },
       ref,
     ) => {
@@ -154,6 +215,9 @@ const NGLViewer = memo(
         //console.log(initialFocus);
         setFocus(initialFocus);
       }, [initialFocus]);
+      // Keep the initial focus also as a reference to recover it without triggering hooks
+      const initialFocusRef = useRef(initialFocus);
+      initialFocusRef.current = initialFocus;
 
       // references
       const containerRef = useRef(null);
@@ -176,6 +240,8 @@ const NGLViewer = memo(
       const alreadyParsedTopologies = useRef(new Set());
       // Update the parsed topologies every time the downloaded topologies change
       useEffect(() => {
+        // Wait for the main topology to know if NGL bonds are to be replaced by topology bonds
+        if (!topologyManager) return;
         // Iterate downloaded topologies
         topologies.forEach(topology => {
           // If the topology still has not the data then skip it
@@ -185,7 +251,8 @@ const NGLViewer = memo(
           alreadyParsedTopologies.current.add(topology.url);
           // Parse the structure to a NGL file
           const stringBlob = new Blob( [ topology.file ], { type: 'text/plain'} );
-          autoLoad(stringBlob, { defaultRepresentation: false, ext: "pdb" })
+          const ext = topologyManager.atomBonds ? PDB_WITH_TOPOLOGY_BONDS : 'pdb';
+          autoLoad(stringBlob, { defaultRepresentation: false, ext })
             // Once the parse has been completed update the parsed topologies state
             .then(prasedFile => {
               // Copy the content of the topology object
@@ -203,7 +270,7 @@ const NGLViewer = memo(
           const newParsedTopologies = [ ...previousParsedTopologies ];
           return newParsedTopologies;
         });
-      }, [topologies]);
+      }, [topologies, topologyManager]);
 
       // Set a state to keep track of the current working tasks in the viewer
       // This is useful to update the upper left corner logs in the viewer
@@ -220,7 +287,11 @@ const NGLViewer = memo(
       // Stage creation and removal on mounting and unmounting
       useEffect(() => {
         // set-up
-        const stage = new Stage(containerRef.current);
+        // NGL defaults its background to black, which would be painted for a
+        // frame or two before the background effect below gets a chance to run
+        const stage = new Stage(containerRef.current, {
+          backgroundColor: darkBackground ? 'black' : 'white',
+        });
         // wait for a render to screen, then
         frame().then(() => {
           if (!stage) return;
@@ -236,13 +307,24 @@ const NGLViewer = memo(
           // NOTE: following line causes to fail when loading a new viewer with
           // NOTE: previous structure data
           // stageRef.current.removeAllComponents();
-          stageRef.current.dispose();
+          stage.dispose();
+          // NGL dispose (2.0.0-dev.37) leaves the viewer render loop and the mouse observer loop running forever
+          // Both loops request their next frame through these methods, so replacing them ends the loops
+          stage.viewer.animate = () => {};
+          stage.mouseObserver._listen = () => {};
+          // It does not remove the mouse observer listeners from the document either
+          // These listeners would keep the whole stage alive
+          stage.mouseObserver.dispose();
+          // Nor does it release the WebGL context
+          // Browsers limit live contexts, so every remount would cost one more until garbage collected
+          stage.viewer.renderer.forceContextLoss();
           stageRef.current = null;
         };
       }, []);
 
       // Handle the upper left corner viewer logs
       const viewerLogs = useMemo(() => {
+        if (downloadError) return downloadError;
         if (!topologyManager) return 'Waiting for the main topology';
         if (!mainComponent) return `Waiting for the main component`;
         if (!trajectories.length && !noTrajectory)
@@ -250,6 +332,7 @@ const NGLViewer = memo(
         if (runningTasks > 0) return `Rendering...`;
         return undefined; // Show nothing when everything was finished and fine
       }, [
+        downloadError,
         mainComponent,
         trajectories,
         noTrajectory,
@@ -260,9 +343,11 @@ const NGLViewer = memo(
       useEffect(() => {
         const beginning = Date.now();
         let duration = 1000;
+        // The very first background is already set in the Stage parameters
+        // Do not animate it, or we would wait a frame before painting it
         if (firstTime.current) {
-          duration = 0;
           firstTime.current = false;
+          return;
         }
         (async () => {
           while (true) {
@@ -325,10 +410,10 @@ const NGLViewer = memo(
       // DEV-ONLY: measure the actual playback framerate, shown in a small on-screen badge so the
       // 'speed' slider's effect can be visually verified. Kept independent from the onProgress
       // effect above since onProgress may not be passed. Stripped in production builds since
-      // process.env.NODE_ENV is statically known then, so this whole effect is dead-code-eliminated
+      // import.meta.env.DEV is statically known then, so this whole effect is dead-code-eliminated
       const [debugFps, setDebugFps] = useState(0);
       useEffect(() => {
-        if (process.env.NODE_ENV !== 'development') return;
+        if (!import.meta.env.DEV) return;
         if (noTrajectory || !mainNglFile) return;
         const frameTimes = [];
         const frameHandler = () => {
@@ -395,21 +480,17 @@ const NGLViewer = memo(
             topology.file.atomStore.occupancy = new Array(
               topology.file.atomStore.occupancy.length,
             ).fill(1);
+            // Take in count if the topology contains a subset of the atoms
+            const partialSystem = getPartialSystem(comp.atomIndices, topologyManager.atomCount);
             // Set atom bonds according to our topology
             let safeBonds = topologyManager.atomBonds;
             if (safeBonds) {
-              // Take in count if the topology contains a subset of the atoms
-              const atomIndices = comp.atomIndices;
-              const isPartialSystem = atomIndices && atomIndices.length < topologyManager.atomCount;
-              if (isPartialSystem) {
-                // Create a 'whole system index' to 'partial system index' map
-                const indexMap = {};
-                atomIndices.forEach((wholeIndex, partialIndex) => { indexMap[wholeIndex] = partialIndex });
+              if (partialSystem) {
                 // Convert atom indices in order to adapt safe bonds to the partial system
-                safeBonds = atomIndices.map(
-                  atomIndex => safeBonds[atomIndex].map(
-                    bondAtomindex => indexMap[bondAtomindex]
-                  ).filter(bondAtomindex => bondAtomindex != undefined));
+                safeBonds = partialSystem.wholeIndices.map(
+                  atomIndex => safeBonds[atomIndex]
+                    .map(bondAtomIndex => toPartialAtomIndex(partialSystem, bondAtomIndex))
+                    .filter(bondAtomIndex => bondAtomIndex !== null));
               }
               // Get the NGL internal bonds handler
               const bondStore = topology.file.bondStore;
@@ -420,9 +501,11 @@ const NGLViewer = memo(
               bondStore.atomIndex2 = new Int32Array;
               bondStore.bondOrder = new Int32Array;
               // Add every bond in the topology
+              // Every bond is listed in both of its atoms, so add it only from the lower index atom
               safeBonds.forEach((bondedAtomsIndices, atomIndex) => {
                 const atom1 = topology.file.getAtomProxy(atomIndex);
                 bondedAtomsIndices.forEach(bondedAtomIndex => {
+                  if (bondedAtomIndex < atomIndex) return;
                   const atom2 = topology.file.getAtomProxy(bondedAtomIndex);
                   // The '1' stands for the bond order (idk what this is)
                   bondStore.addBond(atom1, atom2, 1);
@@ -430,15 +513,32 @@ const NGLViewer = memo(
               });
             }
             // Add the topology to the NGL
-            // Make a deep copy of the topology object to prevent NGL internal bugs
-            // This object will store data which is component exclusive
-            const componentObject = cloneDeep(topology.file);
-            //const componentObject = topology.file;
+            // The structure object stores data which is component exclusive (e.g. the current frame coordinates)
+            // If other components use the same topology then make a deep copy of it to prevent NGL internal bugs
+            // Otherwise skip the copy, since it takes ~300 ms in big systems (~95k atoms)
+            const isSharedTopology = components.filter(other => (other.topologyURL || null) === urlpath).length > 1;
+            const componentObject = isSharedTopology ? cloneDeep(topology.file) : topology.file;
             stageComp = stageRef.current.addComponentFromObject(componentObject);
             stageComp.myName = comp.name;
             if (!stageComp) return;
             stageComp.onlyTopology = comp.onlyTopology;
+            // Atom indices from outside are always whole system indices
+            // Keep the partial system, if any, to translate them
+            stageComp.partialSystem = partialSystem;
+            // Keep the structure centroid before any trajectory frame overwrites its coordinates
+            // The structure is the first frame, which is used to place the simulation box
+            stageComp.structureCentroid = getCentroid(stageComp.structure);
             setMainComponent(stageComp);
+            // Set the camera on the first component now, before the first render, so it is not painted off-center
+            // The focus effect further does the same, but after a render where the camera is still at the origin
+            // Frame the initial focus already if it is in this component, so the camera does not jump to it after
+            if (c === 0) {
+              if (curatedOrientation) stageRef.current.animationControls.orient(curatedOrientation, 0);
+              const initialFocus = initialFocusRef.current;
+              stageComp.autoView(initialFocus && !initialFocus.comp
+                ? toPartialSelection(partialSystem, initialFocus.sele)
+                : '', 0);
+            }
           }
 
           // Get current component representations
@@ -465,6 +565,7 @@ const NGLViewer = memo(
             // A selection should never be empty so if it happens then it is a bug
             // To avoid showing everythin in a buggy representation we set an empty selection as None
             if (sele === '' || sele == null) sele = 'None';
+            sele = toPartialSelection(stageComp.partialSystem, sele);
             const type = rep.type
             const color = rep.color;
             const opacity = show ? rep.opacity : 0;
@@ -479,15 +580,19 @@ const NGLViewer = memo(
                 )
               // If the colorScheme is in the passed custom schemes use it
               : customColorScheme && color === 'custom'
-                ? customColorScheme
+                ? toPartialColorScheme(stageComp.partialSystem, topologyManager, customColorScheme)
                 // If the colorScheme is a defined color, create a custom colorScheme for this color
                 : isValidColor(color)
                   ? ColormakerRegistry.addSelectionScheme(
                       [[color, 'all']],
                       'custom label',
                     )
-                  // Otherwise let the color scheme as it is
-                  : color;
+                  // Use our improved element scheme so non-standard atom names
+                  // (e.g. coarse-grain beads) get distinct colors instead of white
+                  : color === 'element'
+                    ? getElementColorSchemeId()
+                    // Otherwise let the color scheme as it is
+                    : color;
 
             // Set some additional parameters which are to be modified depending on the type
             const colorDomain = type === 'surface' ? [-200, 200] : undefined;
@@ -617,6 +722,7 @@ const NGLViewer = memo(
         selectedRepresentation,
         setMainComponent,
         topologyManager,
+        curatedOrientation,
       ]);
 
       // Highlight specific atoms
@@ -656,10 +762,12 @@ const NGLViewer = memo(
         const seleHighlight = `@${atoms.map(atomIndex => atomIndex).join(',')}`;
 
         mainComponent.addRepresentation(highlightTypes.atoms, {
-          sele: seleHighlight,
+          sele: toPartialSelection(mainComponent.partialSystem, seleHighlight),
           opacity: 0.5,
           scale: 1.5,
           name: nameHighlight,
+          // The enlarged highlight must not hide nearby atoms from mouse clicks
+          disablePicking: true,
         });
 
         const otherResidueAtomsSelection = Array.from(
@@ -677,7 +785,7 @@ const NGLViewer = memo(
         mainComponent.addRepresentation(
           highlightTypes.residues,
           {
-            sele: otherResidueAtomsSelection,
+            sele: toPartialSelection(mainComponent.partialSystem, otherResidueAtomsSelection),
             name: nameContextHighlight,
           },
         );
@@ -768,7 +876,7 @@ const NGLViewer = memo(
         const currentRepresentations = mainComponent.reprList;
         snapRepresentations.forEach(snapRepresentation => {
           mainComponent.addRepresentation(snapRepresentation.type, {
-            sele: snapRepresentation.selection,
+            sele: toPartialSelection(mainComponent.partialSystem, snapRepresentation.selection),
             name: snapRepresentation.name,
             color: snapRepresentation.color,
             opacity: snapRepresentation.opacity,
@@ -810,7 +918,7 @@ const NGLViewer = memo(
         mainComponent.addRepresentation(
           highlightTypes.selections,
           {
-            sele: nglSelection,
+            sele: toPartialSelection(mainComponent.partialSystem, nglSelection),
             name: nameHighlight,
           },
         );
@@ -837,7 +945,7 @@ const NGLViewer = memo(
 
         // Display the new distance representation
         mainComponent.addRepresentation('distance', {
-          atomPair: selectedDistances,
+          atomPair: toPartialAtomGroups(mainComponent.partialSystem, selectedDistances),
           color: 'skyblue',
           labelUnit: 'angstrom',
           name: name,
@@ -884,6 +992,69 @@ const NGLViewer = memo(
         // console.log(stageRef.current.viewer.rotationGroup.rotation);
       }, [mainComponent, xSelection]);
       
+      // Display the simulation box
+      // The box is drawn once as a unit cube, which is then transformed to the box of the current frame
+      useEffect(() => {
+        if (!mainComponent || !boxes) return;
+        const name = '*box';
+        const shape = new Shape(name);
+        const color = darkBackground ? [0.8, 0.8, 0.8] : [0.3, 0.3, 0.3];
+        UNIT_CUBE_EDGES.forEach(([from, to]) => shape.addWideline(from, to, color));
+        const boxComponent = stageRef.current.addComponentFromObject(shape, { name });
+        boxComponent.addRepresentation('buffer', { linewidth: 2, disablePicking: true });
+        // Boxes have no origin, as in Gromacs, since periodic images do not depend on it
+        // Then we place the box where the original box would be: around the imaged system
+        // Fitted coordinates are the original coordinates rotated (R) and translated
+        // Then the fitted origin is the fitted centroid minus the original centroid rotated
+        // The original centroid is unknown, so we use the centroid of the first frame (i.e. the structure)
+        // Note that the first frame is the fit reference, so it is not modified by the fit
+        // Boxes are rotated as coordinates were rotated by the fit, so R = B1^-1 Bf
+        // WARNING: Use NGL math classes, since NGL uses an old three version (e.g. there is no Matrix3.invert)
+        const trajectory = mainComponent.trajList[0] && mainComponent.trajList[0].trajectory;
+        const firstCentroid = mainComponent.structureCentroid;
+        // Box vectors are rows (a, b, c), so transpose them to have them as columns
+        const reference = new Matrix3().set(...boxes.reference).transpose();
+        const referenceInverse = new Matrix3().getInverse(reference, true);
+        const getVectors = frame => boxes.boxes.subarray(frame * 9, (frame + 1) * 9);
+        // The player interpolates coordinates between frames, but the frame change signal only passes the frame
+        // Wrap the trajectory interpolation to know the previous frame and the interpolation step too
+        // Atoms are interpolated linearly from the previous frame (ip) to the frame (i), so are box vectors
+        // NOTE: The player only uses linear interpolation (see the smooth effect), never splines
+        let interpolation = null;
+        const originalInterpolate = trajectory && trajectory._interpolate;
+        if (trajectory) trajectory._interpolate = (i, ip, ipp, ippp, t, type) => {
+          interpolation = { previousFrame: ip, step: t };
+          originalInterpolate.call(trajectory, i, ip, ipp, ippp, t, type);
+          interpolation = null;
+        };
+        const updateBox = frame => {
+          const vectors = interpolation
+            ? getVectors(frame).map((value, v) =>
+              lerp(getVectors(interpolation.previousFrame)[v], value, interpolation.step))
+            : getVectors(frame);
+          const box = new Matrix3().set(...vectors).transpose();
+          const rotation = box.multiply(referenceInverse);
+          const centroid = getCentroid(mainComponent.structure);
+          const origin = firstCentroid.clone().applyMatrix3(rotation).negate().add(centroid);
+          // Transform the unit cube: x = origin + u·a + v·b + w·c
+          boxComponent.setTransform(new Matrix4().set(
+            vectors[0], vectors[3], vectors[6], origin.x,
+            vectors[1], vectors[4], vectors[7], origin.y,
+            vectors[2], vectors[5], vectors[8], origin.z,
+            0, 0, 0, 1,
+          ));
+        };
+        updateBox(trajectory ? Math.max(trajectory.currentFrame, 0) : 0);
+        if (trajectory) trajectory.signals.frameChanged.add(updateBox);
+        return () => {
+          if (trajectory) {
+            trajectory.signals.frameChanged.remove(updateBox);
+            trajectory._interpolate = originalInterpolate;
+          }
+          if (stageRef.current) stageRef.current.removeComponent(boxComponent);
+        };
+      }, [mainComponent, mainNglFile, boxes, darkBackground]);
+
       // Rotate the stage
       useEffect(() => {
         if (!mainComponent || !rotateX) return;
@@ -904,7 +1075,7 @@ const NGLViewer = memo(
           );
 
         mainComponent.addRepresentation('angle', {
-          atomTriple: selectedAngles,
+          atomTriple: toPartialAtomGroups(mainComponent.partialSystem, selectedAngles),
           name: name,
           labelColor: darkBackground ? 16777215 : 1, // 16777215 is white, 1 is black
         });
@@ -949,20 +1120,22 @@ const NGLViewer = memo(
             // If the trajectory is not downloaded yet then exit
             if (!trajectory) return;
             // Get atom counts from different trajectories and check they match
-            if (!trajectoryAtoms) trajectoryAtoms = trajectory.atoms;
-            if (trajectoryAtoms !== trajectory.atoms)
+            // If the trajectory has no atom count then read it from the already-parsed structure
+            // This may happen when we request coordinates using resindices or chaindices
+            if (!trajectoryAtoms) trajectoryAtoms = trajectory.atoms || topology.file.atomStore.count;
+            if (trajectoryAtoms !== (trajectory.atoms || topology.file.atomStore.count))
               throw new Error( `Atoms number in the different trajectories do not match`);
             // Add the final expected frames for all frames in the component
             trajectoryFinalExpectedFrames += trajectory.frames;
             // Add the main data to the array of payloads
             // Substract data from not completed frames
+            // The payload buffer is shared with the download so it is not copied here
             const payload = trajectory.payload;
             const bytesPerFrame = trajectoryAtoms * BYTES_PER_ATOM;
-            const fitLength = Math.floor(payload.byteLength / bytesPerFrame) * bytesPerFrame;
-            const fitPayload = payload.slice(0, fitLength);
-            trajectoryPayloads.push(fitPayload);
+            const fitLength = Math.floor(trajectory.loadedBytes / bytesPerFrame) * bytesPerFrame;
+            trajectoryPayloads.push({ payload, fitLength });
             combinedURL += trajectory.url;
-            combinedProgress += '/' + trajectory.progress;
+            combinedProgress += '/' + fitLength;
           }
 
           // Check if we are loading the same trajectory than before
@@ -986,22 +1159,28 @@ const NGLViewer = memo(
           stageComp.combinedProgress = combinedProgress;
 
           // Join all payloads into a single trajectory
+          // Only the first 'totalBytes' bytes of the total payload are whole downloaded frames
           let totalPayload;
+          let totalBytes;
           if (trajectoryPayloads.length === 0) return;
-          else if (trajectoryPayloads.length === 1)
-            totalPayload = trajectoryPayloads[0];
+          else if (trajectoryPayloads.length === 1) {
+            totalPayload = trajectoryPayloads[0].payload;
+            totalBytes = trajectoryPayloads[0].fitLength;
+          }
           // DANI: Esto no está bien ahora que hay streaming
           // DANI: Si hubiese dos trayectorias combinadas sus frames quedarían entrelazadas
           // DANI: Pero las trayectorias combinadas no se usan, así que no me merece la pena mantenerlo
-          else
-            totalPayload = trajectoryPayloads.reduce((cb, nb) =>
-              appendBuffer(cb, nb),
-            );
+          else {
+            totalPayload = trajectoryPayloads
+              .map(({ payload, fitLength }) => payload.slice(0, fitLength))
+              .reduce((cb, nb) => appendBuffer(cb, nb));
+            totalBytes = totalPayload.byteLength;
+          }
           // If the total payload is empty then stop here
-          if (totalPayload.byteLength === 0) return;
+          if (totalBytes === 0) return;
           // Calculate how many frames are there in total
           const bytesPerFrame = trajectoryAtoms * BYTES_PER_ATOM;
-          const totalFrames = totalPayload.byteLength / bytesPerFrame;
+          const totalFrames = totalBytes / bytesPerFrame;
           const lastFrameIndex = totalFrames - 1;
           // Check if all required data is already downloaded
           const completedTrajectory =
@@ -1013,6 +1192,15 @@ const NGLViewer = memo(
           // Make sure the number of atoms is as expected
           if (trajectoryAtomIndices && trajectoryAtomIndices.length !== trajectoryAtoms)
             throw new Error('Unexpected number of trajectory atoms');
+
+          // If centering was requested then get the indices of the atoms to center the trajectory around
+          let centeringAtomIndices = null;
+          if (centering) {
+            const partialCentering = toPartialSelection(stageComp.partialSystem, centering);
+            centeringAtomIndices = topology.file.getAtomIndices(new Selection(partialCentering));
+            if (centeringAtomIndices.length === 0)
+              throw new Error(`Centering selection "${centering}" matches no atoms`);
+          }
 
           // Get the current NGL loaded trajectories
           const compTrajectories = stageComp.trajList;
@@ -1031,6 +1219,7 @@ const NGLViewer = memo(
               trajectoryAtoms,
               totalFrames,
               trajectoryAtomIndices,
+              centeringAtomIndices,
             );
             // Adjust some parameters after the trajectory data has been changed
             nglTrajectory._frameCount = totalFrames;
@@ -1064,6 +1253,7 @@ const NGLViewer = memo(
               trajectoryAtoms,
               totalFrames,
               trajectoryAtomIndices,
+              centeringAtomIndices,
             );
             if (!file) return;
             const nglFile = stageComp.addTrajectory(file);
@@ -1086,6 +1276,13 @@ const NGLViewer = memo(
             // Set trajectory frame
             nglTrajectory.setFrame(0);
           }
+          // If the trajectory is to be centered then refocus now
+          // Otherwise we may loose the structure from outside the view of the camera
+          // Keep the initial focus if any, but set a new object so the focus is triggered again
+          if (centering) {
+            const initialFocus = initialFocusRef.current;
+            setFocus(initialFocus ? { ...initialFocus } : { comp: 0, sele: 'all' });
+          }
         });
       }, [
         parsedTopologies,
@@ -1093,6 +1290,8 @@ const NGLViewer = memo(
         components,
         noTrajectory,
         setMainNglFile,
+        setFocus,
+        centering,
         // This playing here is just to avoid the warning
         // I can't disable the warning with "// eslint-disable-line react-hooks/exhaustive-deps"
         // This is because the automatic formatter puts the warning one line down because it is stupid
@@ -1258,6 +1457,13 @@ const NGLViewer = memo(
         return () => window.removeEventListener('change', handler);
       }, [mainComponent, topologyManager, curatedOrientation]);
 
+      // Keep the distance tooltip function in a reference so the hover handler is not reset
+      const distanceTooltipRef = useRef(distanceTooltip);
+      distanceTooltipRef.current = distanceTooltip;
+      // Keep the hover display function in a reference for the same reason
+      const onHoverDisplayRef = useRef(onHoverDisplay);
+      onHoverDisplayRef.current = onHoverDisplay;
+
       // Customize the NGL tooltip
       useEffect(() => {
         if (!topologyManager) return;
@@ -1272,18 +1478,25 @@ const NGLViewer = memo(
         stageRef.current.mouseControls.remove('hoverPick');
 
         // Set a function which is used further to write a formatted output message to refer an atom
-        const formatOutput = atom => {
+        // The component is required to know if it contains a partial system
+        const formatOutput = (atom, component) => {
+          // In partial systems NGL atom and residue indices do not match the whole system indices
+          // Get the residue from the whole system atom index then
+          const partialSystem = component.partialSystem;
+          const atomIndex = toWholeAtomIndex(partialSystem, atom.index);
           // a.residueIndex starts at 0
           // WARNING: a.residueIndex is correct but we must convert it to source first
           // In some cases 1 residue can have multiple residue indices
           // (e.g. hydrogens at the end)
-          const residue = topologyManager.getResidueByIndex(atom.residueIndex);
+          const residue = partialSystem
+            ? topologyManager.getAtomByIndex(atomIndex).residue
+            : topologyManager.getResidueByIndex(atom.residueIndex);
           const chainName = residue.chain.metadataChainName;
           // Get the residue reference id
           const referenceId = residue.referenceId;
           return (
             <>
-              {`Atom ${atom.index} (${atom.atomname})
+              {`Atom ${atomIndex} (${atom.atomname})
                 Chain ${residue.chainName} ${chainName ? '(' + chainName + ')' : ''}
                 Residue ${residue.number} (${atom.resname})`}
               {(() => {
@@ -1335,23 +1548,45 @@ const NGLViewer = memo(
               let description;
               const bond = pickingProxy.bond;
               const atom = pickingProxy.atom;
+              const distance = pickingProxy.distance;
+              const component = pickingProxy.component;
+              // Get the whole system index of an atom from the hovered component
+              const wholeIndex = atom => toWholeAtomIndex(component.partialSystem, atom.index);
+              // When we hover a distance
+              if (distance) {
+                const atom1 = distance.atom1;
+                const atom2 = distance.atom2;
+                const custom = distanceTooltipRef.current &&
+                  distanceTooltipRef.current(wholeIndex(atom1), wholeIndex(atom2));
+                description = custom || (
+                  <>
+                    <div>{`Distance ${wholeIndex(atom1)} - ${wholeIndex(atom2)} (${atom1.distanceTo(atom2).toFixed(2)} Å)`}</div>
+                    <hr style={{ color: 'lightGrey' }} />
+                    {formatOutput(atom1, component)}
+                    <hr style={{ color: 'lightGrey' }} />
+                    {formatOutput(atom2, component)}
+                  </>
+                );
+              }
               // When we hover a bond
-              if (bond) {
+              else if (bond) {
                 const atom1 = bond.atom1;
                 const atom2 = bond.atom2;
                 description = (
                   <>
-                    <div>{`Bond ${atom1.index} - ${atom2.index}`}</div>
+                    <div>{`Bond ${wholeIndex(atom1)} - ${wholeIndex(atom2)}`}</div>
                     <hr style={{ color: 'lightGrey' }} />
-                    {formatOutput(atom1)}
+                    {formatOutput(atom1, component)}
                     <hr style={{ color: 'lightGrey' }} />
-                    {formatOutput(atom2)}
+                    {formatOutput(atom2, component)}
                   </>
                 );
               }
               // When we hover an atom
               else if (atom) {
-                description = formatOutput(atom);
+                description = formatOutput(atom, component);
+                if (onHoverDisplayRef.current)
+                  description = onHoverDisplayRef.current(wholeIndex(atom), description);
               }
               setTooltipContent(description);
               // Handle tooltip position
@@ -1384,6 +1619,64 @@ const NGLViewer = memo(
         };
       }, [topologyManager, setTooltipContent]);
 
+      // Keep the atom selection callback in a reference so the click handler is not reset every render
+      const onAtomSelectRef = useRef(onAtomSelect);
+      onAtomSelectRef.current = onAtomSelect;
+      const isAtomSelectableRef = useRef(isAtomSelectable);
+      isAtomSelectableRef.current = isAtomSelectable;
+      const atomsSelectable = Boolean(onAtomSelect);
+
+      // When atoms are selectable, change the cursor to a pointer when hovering a selectable atom
+      // Then report the atom index to the parent component when a selectable atom is clicked
+      useEffect(() => {
+        if (!atomsSelectable || !mainComponent) return;
+        const stage = stageRef.current;
+        const canvas = containerRef.current.querySelector('canvas');
+        // Find the index of the selectable atom of the main component under the mouse, if any
+        // Bonds are also accepted, in which case the closest atom of the bond is used
+        const getPickedAtom = pickingProxy => {
+          if (!pickingProxy || pickingProxy.component !== mainComponent) return null;
+          const atom = pickingProxy.atom || pickingProxy.closestBondAtom;
+          if (!atom) return null;
+          // Return the whole system atom index
+          const atomIndex = toWholeAtomIndex(mainComponent.partialSystem, atom.index);
+          const isSelectable = isAtomSelectableRef.current;
+          if (isSelectable && !isSelectable(atomIndex)) return null;
+          return atomIndex;
+        };
+        let hoveredAtomIndex = null;
+        const handleHover = pickingProxy => {
+          const atomIndex = getPickedAtom(pickingProxy);
+          if (atomIndex === hoveredAtomIndex) return;
+          hoveredAtomIndex = atomIndex;
+          if (canvas) canvas.style.cursor = atomIndex === null ? 'default' : 'pointer';
+        };
+        // Replace the default left click action, which moves the camera to the clicked element
+        // Selecting an atom already focuses it, and both camera movements together end in a sudden jump
+        // Note that this action is triggered by plain left clicks only
+        // Other clicks (e.g. right or ctrl + left clicks for measurements) keep their default actions
+        const handleClick = (stage, pickingProxy) => {
+          const atomIndex = getPickedAtom(pickingProxy);
+          if (atomIndex !== null) onAtomSelectRef.current(atomIndex);
+          else MouseActions.movePick(stage, pickingProxy);
+        };
+        // Reset the cursor when the mouse leaves the viewer
+        const handleLeave = () => handleHover(null);
+        stage.signals.hovered.add(handleHover);
+        stage.mouseControls.remove('clickPick-left', MouseActions.movePick);
+        stage.mouseControls.add('clickPick-left', handleClick);
+        containerRef.current.addEventListener('mouseleave', handleLeave, false);
+        // Cleaning function
+        return () => {
+          stage.signals.hovered.remove(handleHover);
+          stage.mouseControls.remove('clickPick-left', handleClick);
+          stage.mouseControls.add('clickPick-left', MouseActions.movePick);
+          if (containerRef.current)
+            containerRef.current.removeEventListener('mouseleave', handleLeave);
+          if (canvas) canvas.style.cursor = 'default';
+        };
+      }, [atomsSelectable, mainComponent]);
+
       // Track when the first focus has been performed, since first focus is instantaneous
       const firstFocus = useRef(true);
       // Focus the specified ngl selection with the camera automatically
@@ -1410,7 +1703,7 @@ const NGLViewer = memo(
           }
           firstFocus.current = false;
         }
-        comp.autoView(focus.sele, transition);
+        comp.autoView(toPartialSelection(comp.partialSystem, focus.sele), transition);
       }, [mainComponent, focus, curatedOrientation]);
 
       // Expose public methods and getters/setters
@@ -1540,7 +1833,7 @@ const NGLViewer = memo(
               {tooltipContent}
             </div>
           </div>
-          {process.env.NODE_ENV === 'development' && (
+          {import.meta.env.DEV && (
             <div style={debugFpsBadgeStyle}>{debugFps.toFixed(1)} fps</div>
           )}
         </>

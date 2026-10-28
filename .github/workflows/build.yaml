@@ -19,7 +19,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '16.19.1'
+          node-version: '26.12.1'
 
       - name: Copy host config
         run: cp ./src/default-host-config.js ./src/host-config.js
@@ -27,7 +27,7 @@ jobs:
       - name: Install dependencies
         run: |
           touch .env
-          npm install
+          npm ci
 
       - name: Build application
         run: npm run build

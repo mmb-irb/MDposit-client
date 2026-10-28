@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState, useContext, useMemo } from 'react';
+import React, { lazy, Suspense, useState, useContext, useMemo, useCallback } from 'react';
 
 import {
   CardContent,
@@ -39,6 +39,32 @@ const tabs = [
 ];
 
 const colors = ['black', 'red', 'orange', 'yellow'];
+
+const cents = num => Math.round(num * 100) / 100;
+
+const getMedian = values => {
+  if (!values || values.length === 0) return;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 1) return sorted[middle];
+  return (sorted[middle - 1] + sorted[middle]) / 2;
+};
+
+// Get the overall mean and standard deviation from the means and standard deviations of blocks
+// All blocks have the same number of frames (step) but the last one, which may be shorter
+const getBlocksMeanAndStdv = (means, stdvs, step, totalFrames) => {
+  const counts = means.map((_, i) => {
+    if (!step || !totalFrames) return 1;
+    return Math.max(Math.min(step, totalFrames - i * step), 1);
+  });
+  const total = counts.reduce((a, b) => a + b, 0);
+  const mean = means.reduce((acc, m, i) => acc + m * counts[i], 0) / total;
+  // Law of total variance: mean of the variances + variance of the means
+  const squares = means.reduce(
+    (acc, m, i) => acc + counts[i] * (stdvs[i] ** 2 + m ** 2), 0) / total;
+  const stdv = Math.sqrt(Math.max(squares - mean ** 2, 0));
+  return { mean, stdv };
+};
 
 const Rmsds = () => {
   // Get the metadata
@@ -96,11 +122,37 @@ const Rmsds = () => {
       // Proceed only if this rmsd is from the set reference
       if (rmsd.reference !== reference) return;
       const dataset = {};
-      // Multiply by 10 since rmsd analysis comes in nanometers (nm) and we want it in Ångstroms
-      dataset.data = rmsd.values;
-      const { mean: average, stdv: stddev } = getMeanAndStdv(dataset.data);
-      dataset.average = average;
-      dataset.stddev = stddev;
+      // New format: version 1.0.0
+      // The whole trajectory is analyzed and values are averaged in blocks of frames
+      // Every block has its mean, standard deviation and maximum value
+      if (rmsd.means) {
+        dataset.data = rmsd.means;
+        dataset.areaStdDev = rmsd.stdvs;
+        // Get the overall mean and standard deviation from the blocks
+        const { mean, stdv } = getBlocksMeanAndStdv(
+          rmsd.means, rmsd.stdvs, payload.step, metadata.mdFrames);
+        dataset.average = mean;
+        dataset.stddev = stdv;
+        dataset.maximum = rmsd.maxs.reduce((a, b) => Math.max(a, b), -Infinity);
+        // Keep the frame where the maximum value is found for every block, if available
+        // Note that the API returns 1-based frame numbers but we work with 0-based frame numbers
+        dataset.maxframes = rmsd.maxframes && rmsd.maxframes.map(frame => frame - 1);
+        // Get how much every block maximum stands out, compared to the typical block standard deviation
+        // This value is comparable between different datasets, so it is used to decide which frame to show
+        const typicalStdv = getMedian(rmsd.stdvs);
+        dataset.maxScores = rmsd.maxs.map((max, i) => {
+          if (!typicalStdv) return 0;
+          return (max - rmsd.means[i]) / typicalStdv;
+        });
+      }
+      // Old format: values are a subset of frames along the trajectory
+      else {
+        dataset.data = rmsd.values;
+        const { mean: average, stdv: stddev } = getMeanAndStdv(dataset.data);
+        dataset.average = average;
+        dataset.stddev = stddev;
+        dataset.maximum = rmsd.values.reduce((a, b) => Math.max(a, b), -Infinity);
+      }
       dataset.color = colors[count];
       count += 1;
       const name = rmsd.group;
@@ -136,7 +188,7 @@ const Rmsds = () => {
       xTooltip = xValue => +xValue.toFixed(2) + ' ns';
     } else {
       // Fallback to frames when no step is available
-      const totalFrames = payload.data[0].values.length;
+      const totalFrames = (payload.data[0].values || payload.data[0].means).length;
       console.log('totalFrames', totalFrames);
       xAxisStep = metadata.mdFrames / totalFrames;
       xAxisLabel = 'Frames';
@@ -166,7 +218,52 @@ const Rmsds = () => {
 
   // Set when one point in the graph is selected
   const [selected, setSelected] = useState(null);
-  const selectedFrame = selected * frameStep;
+  // Find the maximum frame of a block, if available
+  // If there are several displayed datasets then select the one whose maximum stands out the most
+  // Return both the frame and the dataset it belongs to
+  const getBlockMaxFrame = useCallback(index => {
+    let best;
+    let bestScore = -Infinity;
+    Object.entries(rmsds || {}).forEach(([key, { maxframes, maxScores }]) => {
+      if (!display[key] || !maxframes) return;
+      if (maxframes[index] === undefined) return;
+      if (maxScores[index] <= bestScore) return;
+      best = { frame: maxframes[index], group: key };
+      bestScore = maxScores[index];
+    });
+    return best;
+  }, [rmsds, display]);
+
+  // Set the frame to be loaded when a block is selected: the block maximum frame
+  // If there are not maximum frames then select the first frame in the block
+  const selectedFrame = useMemo(() => {
+    if (typeof selected !== 'number') return null;
+    const blockMax = getBlockMaxFrame(selected);
+    if (blockMax) return blockMax.frame;
+    return selected * frameStep;
+  }, [selected, getBlockMaxFrame, frameStep]);
+
+  // Set the x axis tooltip
+  // If we have maximum frames then show the block frames range
+  // Frame numbers are shown 1-based, as they are returned by the API
+  const blocksTooltip = useCallback((xValue, index) => {
+    if (!getBlockMaxFrame(index) || !frameStep) return xTooltip && xTooltip(xValue, index);
+    const firstFrame = index * frameStep + 1;
+    let lastFrame = firstFrame + frameStep - 1;
+    if (metadata.mdFrames) lastFrame = Math.min(lastFrame, metadata.mdFrames);
+    return `frames ${firstFrame}-${lastFrame}`;
+  }, [getBlockMaxFrame, frameStep, xTooltip, metadata]);
+
+  // Set the y padding so the standard deviation areas fit in the graph
+  const yPadding = useMemo(() => {
+    if (!rmsds) return 0;
+    let maxStdv = 0;
+    Object.entries(rmsds).forEach(([key, rmsd]) => {
+      if (!display[key] || !rmsd.areaStdDev) return;
+      rmsd.areaStdDev.forEach(stdv => (maxStdv = Math.max(maxStdv, stdv)));
+    });
+    return maxStdv;
+  }, [rmsds, display]);
 
   // Set the mark for selected
   const marks = useMemo(() => {
@@ -193,8 +290,6 @@ const Rmsds = () => {
   // Set the y axis label according to if it is an RMSD or a TM score
   let yAxisLabel = 'RMSD (Å)';
   if (selectedTab.type === 'tmscore') yAxisLabel = 'TM score';
-
-  const cents = num => Math.round(num * 100) / 100;
 
   // Render
   return (
@@ -231,6 +326,9 @@ const Rmsds = () => {
                 <TableCell>{`standard deviation${
                   selectedTab.type === 'rmsd' ? ' (Å)' : ''
                 }`}</TableCell>
+                <TableCell>{`maximum${
+                  selectedTab.type === 'rmsd' ? ' (Å)' : ''
+                }`}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -257,6 +355,7 @@ const Rmsds = () => {
                   </TableCell>
                   <TableCell>{cents(rmsd.average)}</TableCell>
                   <TableCell>{cents(rmsd.stddev)}</TableCell>
+                  <TableCell>{cents(rmsd.maximum)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -271,13 +370,15 @@ const Rmsds = () => {
             xAxisLabel={xAxisLabel}
             type={isEnsemble ? 'dots' : 'line'}
             xWeights={xWeights}
-            xTooltip={xTooltip}
+            xTooltip={blocksTooltip}
             xScaleFactor={1}
             yAxisLabel={yAxisLabel}
             onSelect={setSelected}
             selfLegend={false}
             dataDisplay={display}
             marks={marks}
+            areaStdDev={true}
+            yPadding={yPadding}
           />
         </CardContent>
       </Card>

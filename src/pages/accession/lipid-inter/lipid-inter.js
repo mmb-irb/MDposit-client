@@ -18,6 +18,7 @@ import ColorLegend from '../../../components/color-legend';
 import useAPI from '../../../hooks/use-api';
 import { ProjectCtx } from '../../../contexts';
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
+import { getLipidNames, getReferenceResidueNames } from '../../../utils/lipids';
 
 import style from './style.module.css';
 import { ColormakerRegistry } from 'ngl';
@@ -65,25 +66,12 @@ const LipidInteractions = () => {
     if (!lipidTypes.length || !inchikeyReferences) return {};
     return lipidTypes.reduce((acc, lipid) => {
       // Check if lipid is an inchikey (exists in inchikeyReferences)
-      let name, shortName, longName;
       const inchiKey = inchikeyReferences.find(ref => ref.inchikey === lipid);
-      if (inchiKey) {
-        if (inchiKey.lipidmaps.synonyms) {
-          name = inchiKey.lipidmaps.name;
-          shortName = inchiKey.lipidmaps.synonyms.split('; ').sort((a, b) => a.length - b.length)[0];
-          longName = inchiKey.lipidmaps.sys_name;
-        } else if (inchiKey.swisslipids.synonyms) {
-          name = shortName = inchiKey.swisslipids.synonyms.find(item => item.type === 'abbreviation').name;
-          longName = inchiKey.swisslipids.entity_name;
-        }
-      } else {
-        // Use lipid name as is
-        name = shortName = longName = lipid;
-      }
-      acc[lipid] = { name, shortName, longName };
+      const residueNames = inchiKey && getReferenceResidueNames(topology, lipid);
+      acc[lipid] = getLipidNames(lipid, inchiKey, residueNames);
       return acc;
     }, {});
-  }, [lipidTypes, inchikeyReferences]);
+  }, [lipidTypes, inchikeyReferences, topology]);
 
   // Get the lipid residue selection for the SpawnViewer
     const lipidSelection = useMemo(() => {

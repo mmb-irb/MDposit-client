@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useRef, useState } from 'react';
 // Import context data
 import { ProjectCtx } from '../../../contexts';
 // Import visual assets
@@ -93,6 +93,17 @@ const Overview = React.memo(() => {
   // Set if the collections section is to be displayed
   // If the client is focused in one collection only then there is no need
   const showCollections = !HOST_CONFIG.singleCollection;
+
+  // Retain the last collection references so the logo images are not unmounted (and thus reloaded)
+  // while references are requested again on replica change
+  const retainedCollectionReferences = useRef(null);
+  if (collectionReferences) retainedCollectionReferences.current = collectionReferences;
+  const retained = retainedCollectionReferences.current;
+  const expectedCollections = (metadata && metadata.COLLECTIONS) || [];
+  const displayedCollectionReferences = collectionReferences || (
+    retained && retained.length === expectedCollections.length &&
+    retained.every(reference => expectedCollections.includes(reference.id)) && retained
+  );
 
   return (
     <>
@@ -196,10 +207,10 @@ const Overview = React.memo(() => {
           </CardContent>
         </Card>
       )}
-      {showCollections && collectionReferences && collectionReferences.length > 0 &&
+      {showCollections && displayedCollectionReferences && displayedCollectionReferences.length > 0 &&
         <Card className={style.card}>
           <CardContent className={style['card-content']}>
-            {collectionReferences.map((collection, index) => (
+            {displayedCollectionReferences.map((collection, index) => (
               <div key={index}>
                 {index !== 0 && <hr style={{ color: 'lightGrey', marginTop: '1em' }}/>}
                 <div style={{
@@ -324,7 +335,7 @@ const Overview = React.memo(() => {
             <Typography variant="h6" sx={{ fontSize: '1.4rem', marginBottom: '10px' }}>UniProt References</Typography>
             <Grid container spacing={2}>
               {proteinReferences.map((reference, i) => (
-                <Grid item xs={12} md={proteinReferences.length > 1 ? 6 : 12} key={i}>
+                <Grid size={{ xs: 12, md: proteinReferences.length > 1 ? 6 : 12 }} key={i}>
                   <div className={`${style['card-background']} ${style['protein-reference-card']}`}>
                     <div className={style['summary-list']}>
                       <Typography variant="h6" sx={{ fontSize: '1.4rem' }}>{reference.name}</Typography>

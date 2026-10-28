@@ -48,8 +48,10 @@ const FluctuationAnalysis = () => {
     const rmsf = payload.y['rmsf'];
     // If we have a version 0.1 or grater then do nothing
     const version = new Version(payload.version);
-    if (version < '0.1') {
+    if (version < '0.1' && !rmsf.inAngstroms) {
       // If this is an old version then multiply all values by 10
+      // Mark the data as already converted to avoid multiplying it more than once
+      rmsf.inAngstroms = true;
       rmsf.data = rmsf.data.map(v => v * 10);
       rmsf.average = rmsf.average * 10;
       rmsf.stddev = rmsf.stddev * 10;
@@ -87,10 +89,8 @@ const FluctuationAnalysis = () => {
       const atom = topology.getAtomByIndex(xIndex);
       const atomName = atom.name;
       if (!atomName) return tag;
-      const residue = atom.residue;
-      const residueName = residue.name;
-      if (!residueName) return tag + ` (${atomName})`;
-      return tag + ` (${residueName} - ${atomName})`;
+      if (!atom.residue.name) return tag + ` (${atomName})`;
+      return tag + ` (${atom.label})`;
     };
     return { xColors, xTooltip };
   }, [topology]);

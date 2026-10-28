@@ -1,0 +1,135 @@
+/* Viewer on the left and graphs on the right, everything fitting in the screen */
+.layout {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5em;
+  height: 80vh;
+  margin: 0.5em 0;
+}
+
+.nglcard {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+}
+
+.container {
+  height: 100%;
+}
+
+.column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  column-gap: 1em;
+  padding: 0 1em;
+}
+
+.horizontal {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.horizontal > * {
+  padding: 0 0 0 0.5em !important;
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-size: 0.875rem;
+  cursor: help;
+}
+
+.floatinglegend {
+  position: absolute;
+  left: 0.5em;
+  bottom: 0.5em;
+  z-index: 1;
+}
+
+.gradient {
+  display: inline-block;
+  width: 100px;
+  height: 12px;
+  border: 1px solid lightgrey;
+}
+
+/* Graphs share the remaining height of the column */
+.graphcard {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* When there is one atom only its values are displayed instead of the global graph */
+.summarycard {
+  flex: none;
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 1.5em;
+  row-gap: 0.3em;
+  padding: 0.5em 1em 1em 1em;
+  font-size: 0.875rem;
+}
+
+.swatch {
+  display: inline-block;
+  width: 0.9em;
+  height: 0.9em;
+  margin-right: 0.3em;
+  border-radius: 50%;
+  border: 1px solid lightgrey;
+}
+
+.graph {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+.title {
+  padding: 0.5em 1em 0 1em;
+}
+
+.placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Stack everything in narrow screens */
+@media (max-width: 900px) {
+  .layout {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .nglcard {
+    height: 60vh;
+  }
+
+  .graphcard {
+    flex: none;
+    height: 40vh;
+  }
+}

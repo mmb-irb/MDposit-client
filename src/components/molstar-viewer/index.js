@@ -59,7 +59,7 @@ import { sleep } from 'timing-functions';
 // implies debug too, matching what a plain '?timing-mode=1' is expected to show
 // Only honoured in development, so production deployments can never be put into molstar's
 // debug/timing mode (which is slower and dumps to the console) through the URL
-if (process.env.NODE_ENV === 'development') {
+if (import.meta.env.DEV) {
   const molstarDebugParams = new URLSearchParams(window.location.search);
   const molstarTimingMode = molstarDebugParams.get('timing-mode') === '1';
   const molstarDebugMode =
@@ -271,6 +271,8 @@ const MolstarViewer = memo(
         trajectories,
         anyLoadingTopology,
         anyLoadingTrajectory,
+        // Message of a failed topology or trajectory download, if any
+        downloadError,
         // Set the highlight representations types
         highlightTypes = defaultHighlightTypes,
       },
@@ -307,21 +309,25 @@ const MolstarViewer = memo(
 
       // Set the molstar instance
       const [molstar, setMolstar] = useState(null);
-      // Mirrors 'molstar' for the cleanup function below, which otherwise closes over the stale
-      // (always null) value from this effect's one-time initial render, since 'setMolstar' only
-      // resolves asynchronously - meaning dispose() below would never actually run without it
-      const molstarRef = useRef(null);
 
       // Setup molstar
       useEffect(() => {
+        // Keep the instance here: the 'molstar' state seen by the cleanup would always be the initial null
+        let molstarInstance = null;
+        let unmounted = false;
         // This wrapper function is the most correct way to call awaits inside a use effect
         const wrap = async () => {
           // Create the plugin
-          const molstarInstance = await createPluginUI({
+          molstarInstance = await createPluginUI({
             target: parentRef.current,
             render: renderReact18,
             spec: molstarSpec,
           });
+          // If we were unmounted while creating it then nobody else will dispose it
+          if (unmounted) {
+            molstarInstance.dispose();
+            return;
+          }
           // Drop render passes we don't need, to help with large trajectories
           // (see https://github.com/molstar/molstar/issues/1880)
           molstarInstance.canvas3d?.setProps({
@@ -329,21 +335,21 @@ const MolstarViewer = memo(
             marking: { enabled: false },
             renderer: { colorMarker: false },
           });
-          molstarRef.current = molstarInstance;
           // DEV-ONLY: expose the plugin for debugging from the browser console, alongside the
           // debug/timing query params above and the framerate badge below. Useful for inspecting the
           // state tree, driving modelIndex by hand, and subscribing to state.data.events.log, which
           // reports how long each state node took to update - which is how the per-frame costs in
           // the comments throughout this file were attributed
-          if (process.env.NODE_ENV === 'development') window.__molstar = molstarInstance;
+          if (import.meta.env.DEV) window.__molstar = molstarInstance;
           setMolstar(molstarInstance);
         };
         wrap();
         // Cleanup function
+        // Disposing stops the plugin render loop and releases its WebGL context
         return () => {
+          unmounted = true;
           progressSubscriptionRef.current?.unsubscribe();
-          molstarRef.current?.dispose();
-          molstarRef.current = null;
+          if (molstarInstance) molstarInstance.dispose();
         };
       }, []);
 
@@ -368,14 +374,14 @@ const MolstarViewer = memo(
 
       // DEV-ONLY: measured actual playback framerate, shown in a small on-screen badge so the
       // 'speed' slider's effect can be visually verified. Stripped in production builds since
-      // process.env.NODE_ENV is statically known then, so this whole branch is dead-code-eliminated
+      // import.meta.env.DEV is statically known then, so this whole branch is dead-code-eliminated
       const frameTimesRef = useRef([]);
       const lastRecordedModelIndexRef = useRef(null);
       const [debugFps, setDebugFps] = useState(0);
       // 'stateUpdated' fires more than once per real frame advance (representation/render
       // bookkeeping also touches this cell), so only count a tick when modelIndex actually changed
       const recordFrameTick = useCallback(modelIndex => {
-        if (process.env.NODE_ENV !== 'development') return;
+        if (!import.meta.env.DEV) return;
         if (modelIndex === lastRecordedModelIndexRef.current) return;
         lastRecordedModelIndexRef.current = modelIndex;
         const now = Date.now();
@@ -497,17 +503,17 @@ const MolstarViewer = memo(
           // Add the final expected frames for all frames in the component
           trajectoryFinalExpectedFrames += trajectory.frames;
 
+          // Only the first 'loadedBytes' bytes of the payload buffer are downloaded
           const payload = trajectory.payload;
           const bytesPerFrame = trajectoryAtoms * BYTES_PER_ATOM;
           const fitLength =
-            Math.floor(payload.byteLength / bytesPerFrame) * bytesPerFrame;
-          const totalPayload = payload.slice(0, fitLength);
+            Math.floor(trajectory.loadedBytes / bytesPerFrame) * bytesPerFrame;
 
           // If the total payload is empty then stop here
-          if (totalPayload.byteLength === 0) return;
+          if (fitLength === 0) return;
 
           // Calculate how many frames are there in total
-          const totalFrames = totalPayload.byteLength / bytesPerFrame;
+          const totalFrames = fitLength / bytesPerFrame;
 
           // Check if all required data is already downloaded
           const completedTrajectory =
@@ -540,12 +546,12 @@ const MolstarViewer = memo(
                   .commit();
               }
 
-              // Load coordinates as they are parsed
+              // Load the whole frames downloaded so far
               const coords = await molstar
                 .build()
                 .toRoot()
                 .apply(TrajectoryFromCustomData, {
-                  data: totalPayload,
+                  data: payload.slice(0, fitLength),
                   natoms: trajectory.atoms,
                 })
                 .commit();
@@ -732,7 +738,7 @@ const MolstarViewer = memo(
                   if (event.ref !== newModel.ref) return;
                   const modelIndex = (newModel.cell && newModel.cell.transform.params.modelIndex) || 0;
                   recordFrameTick(modelIndex);
-                  if (process.env.NODE_ENV !== 'production') checkBundleComponents();
+                  if (import.meta.env.DEV) checkBundleComponents();
                   if (!onProgress) return;
                   const total = expectedFramesRef.current;
                   if (total <= 1) return;
@@ -749,17 +755,17 @@ const MolstarViewer = memo(
                 baseModel: molstar.state.data.cells.get(modelReference).obj.data,
                 coordsData: coords.data,
                 trajectoryData: molstarTrajectory.data,
-                parsedBytes: totalPayload.byteLength,
+                parsedBytes: fitLength,
               };
             } finally {
               buildingRef.current = false;
             }
-          } else if (totalPayload.byteLength > pipeline.parsedBytes) {
+          } else if (fitLength > pipeline.parsedBytes) {
             // Grow the already-built trajectory in place with just the newly downloaded bytes
             // AnimateModelIndex/ModelFromTrajectory both re-read frameCount live on every tick,
             // so mutating these live objects directly is picked up automatically, with no need
             // to rebuild or recommit anything
-            const newBytes = totalPayload.slice(pipeline.parsedBytes);
+            const newBytes = payload.slice(pipeline.parsedBytes, fitLength);
             const previousFrameCount = pipeline.coordsData.frames.length;
             const newFrames = parseCoordinateFrames(newBytes, trajectoryAtoms, previousFrameCount);
             pipeline.coordsData.frames.push(...newFrames);
@@ -770,7 +776,7 @@ const MolstarViewer = memo(
             pipeline.trajectoryData.frameCount = pipeline.trajectoryData.frames.length;
             pipeline.trajectoryData.duration = pipeline.trajectoryData.frames.length;
 
-            pipeline.parsedBytes = totalPayload.byteLength;
+            pipeline.parsedBytes = fitLength;
           }
 
           // Keep the animation's params in sync with the latest download state on every chunk
@@ -917,12 +923,12 @@ const MolstarViewer = memo(
               [style['light-theme']]: !darkBackground,
             })}
             // Display loading status data in the upper left corner of the viewer window
-            data-loading={undefined}
+            data-loading={downloadError || undefined}
           />
           <div ref={tooltipRef} className={style.tooltip}>
             {tooltipContent}
           </div>
-          {process.env.NODE_ENV === 'development' && (
+          {import.meta.env.DEV && (
             <div style={debugFpsBadgeStyle}>{debugFps.toFixed(1)} fps</div>
           )}
         </>

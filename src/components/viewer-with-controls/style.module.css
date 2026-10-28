@@ -1,15 +1,20 @@
 .adapter {
+  height: 100%;
   display: flex;
   flex-direction: column;
 }
 
 .ngl-with-settings {
   flex: 1;
+  /* Flex items default to a min-height equal to their content, which would rather overflow
+     than shrink. Override it so this can shrink enough to leave room for the controls below */
+  min-height: 0;
   display: flex;
 }
 
 .ngl-without-settings {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -18,6 +23,7 @@
   /* Fill whatever width the resizable settings panel leaves free */
   flex: 1;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   /* Positioning context for the floating settings-controls overlay */
@@ -25,6 +31,7 @@
 }
 
 .ngl-alone {
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -54,6 +61,10 @@
   flex: 1;
   min-width: 0;
   overflow-y: auto;
+  /* Column layout so the docked settings controls can be pushed to the bottom
+     (they use margin-top: auto) while the representations table stays on top */
+  display: flex;
+  flex-direction: column;
 }
 
 .hidden {
@@ -214,6 +225,8 @@
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.2s, visibility 0.2s;
+  white-space: nowrap;
+  max-width: none;
 }
 
 .timeInfo.dark {

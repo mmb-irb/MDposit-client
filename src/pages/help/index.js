@@ -1,6 +1,6 @@
 // React logic
 import React, { useRef, useEffect, createRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router';
 
 // Visual assets
 import { MenuList, MenuItem, Typography } from '@mui/material';

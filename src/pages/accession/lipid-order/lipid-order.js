@@ -22,6 +22,7 @@ import useAPI from '../../../hooks/use-api';
 import { ProjectCtx } from '../../../contexts';
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 import { getMeanAndStdv } from '../../../utils/statistics';
+import { getLipidNames, getReferenceResidueNames } from '../../../utils/lipids';
 
 import style from './style.module.css';
 
@@ -65,25 +66,13 @@ const LipidOrder = () => {
   const lipidNames = useMemo(() => {
     if (!lipidTypes.length || !inchikeyReferences) return {};
     return lipidTypes.reduce((acc, lipid) => {
+      // CG simulations use resnames as keys — no inchikey reference available
       const ref = inchikeyReferences.find(ref => ref.inchikey === lipid);
-      let name, shortName, longName;
-      if (!ref) {
-        // CG simulations use resnames as keys — no inchikey reference available
-        name = shortName = longName = lipid;
-      } else if (ref.lipidmaps && ref.lipidmaps.synonyms) {
-        name = ref.lipidmaps.name;
-        shortName = ref.lipidmaps.synonyms.split('; ').sort((a, b) => a.length - b.length)[0];
-        longName = ref.lipidmaps.sys_name;
-      } else if (ref.swisslipids && ref.swisslipids.synonyms) {
-        name = shortName = ref.swisslipids.synonyms.find(item => item.type === 'abbreviation').name;
-        longName = ref.swisslipids.entity_name;
-      } else {
-        name = shortName = longName = lipid;
-      }
-      acc[lipid] = { name, shortName, longName };
+      const residueNames = ref && getReferenceResidueNames(topology, lipid);
+      acc[lipid] = getLipidNames(lipid, ref, residueNames);
       return acc;
     }, {});
-  }, [lipidTypes, inchikeyReferences]);
+  }, [lipidTypes, inchikeyReferences, topology]);
 
   // Get the lipid residue selection for the SpawnViewer
   const lipidSelection = useMemo(() => {
@@ -140,7 +129,7 @@ const LipidOrder = () => {
   const baseLipidRep = useMemo(() => {
     if (!lipidNames[selectedLipid] || !lipidSelection[selectedLipid]) return;
     return {
-      'name': lipidNames[selectedLipid].synonym,
+      'name': lipidNames[selectedLipid].name,
       'type': 'licorice',
       'color': 'orange',
       'opacity': 0.5,
@@ -148,7 +137,7 @@ const LipidOrder = () => {
       'reference': selectedLipid,
       'show': true,
     };
-  }, [selectedLipid, topology]);
+  }, [selectedLipid, lipidNames, lipidSelection]);
 
   // Define representations when data changes
   useEffect(() => {

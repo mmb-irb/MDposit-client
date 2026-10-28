@@ -17,7 +17,7 @@
     "allowSyntheticDefaultImports": true
   },
   "files": [
-    "node_modules/react-scripts/lib/react-app.d.ts",
+    "node_modules/vite/client.d.ts",
     "types/custom.d.ts",
     "src/index.js"
   ],

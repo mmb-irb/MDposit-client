@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router';
 // Load a custom hook to quert the API
 import useAPI from 'src/hooks/use-api';
 // Automatic parsers for URL search or additional arguments

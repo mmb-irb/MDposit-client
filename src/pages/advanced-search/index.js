@@ -1,6 +1,6 @@
 // React
 import React, { useState, useRef, useMemo } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router';
 
 // Additional components
 import Card from '../../components/animated-card'; // The exceled parcels in which almost all features are based
@@ -81,6 +81,7 @@ const numericFormat = (comparator, value) => {
   return { [comparator]: +value };
 };
 const booleanFormat = (comparator, _) => comparator === 'true';
+const dateFormat = (comparator, value) => ({ [comparator]: value });
 const availableComparators = {
   string: [
     {
@@ -107,6 +108,10 @@ const availableComparators = {
   boolean: [
     { name: 'true', operator: 'true', formatter: booleanFormat },
     { name: 'false', operator: 'false', formatter: booleanFormat },
+  ],
+  date: [
+    { name: 'after', operator: '$gt', formatter: dateFormat },
+    { name: 'before', operator: '$lt', formatter: dateFormat },
   ],
 };
 
@@ -270,14 +275,15 @@ const AdvancedSearch = () => {
         availableComparators[currentField.type].map(c => c.name);
       // Seth whenever the value text input must be rendered
       const isBoolean = currentField && currentField.type === 'boolean';
+      const isDate = currentField && currentField.type === 'date';
       // Handle input errors
       const missingComparator = currentField && !object.comparator;
       const helpTextComparator =
         missingComparator && 'please select a comparator';
-      const missingValue = currentField && !isBoolean && !object.value;
-      const parameters = currentField && !isBoolean &&
+      const missingValue = currentField && !isBoolean && !isDate && !object.value;
+      const parameters = currentField && !isBoolean && !isDate &&
         inputParameteres[currentField.type];
-      const match = currentField && !isBoolean && parameters.pattern &&
+      const match = currentField && !isBoolean && !isDate && parameters.pattern &&
         object.value.match(parameters.pattern);
       const wrongValue = match && match[0] !== object.value;
       const helpTextValue =
@@ -363,7 +369,7 @@ const AdvancedSearch = () => {
               error={displayErrors && missingComparator}
             />
           )}
-          {currentField && !isBoolean && (
+          {currentField && !isBoolean && !isDate && (
             <TextField
               title={'Type here the value for the specified field'}
               defaultValue={object['value']}
@@ -377,6 +383,17 @@ const AdvancedSearch = () => {
               inputProps={{ inputMode: parameters.inputMode }}
               helperText={displayErrors && helpTextValue}
               error={displayErrors && (missingValue || wrongValue)}
+            />
+          )}
+          {currentField && isDate && (
+            <TextField
+              type="date"
+              value={object.value || ''}
+              onChange={({ target: { value } }) => {
+                object.value = value;
+                forceUpdate();
+              }}
+              size="small"
             />
           )}
           <IconButton

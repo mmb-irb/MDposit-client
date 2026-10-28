@@ -47,12 +47,13 @@
 
 .histograms {
   margin: 30px 0;
-  display: inline-flex;
+  display: grid;
   width: 100%;
 }
 
 .histogram {
-  width: 50%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .histogram text {
@@ -92,4 +93,61 @@
   font-size: 1.1em;
   background: #fff;
   padding-top: 0.3em;
+}
+
+.constantsSection {
+  margin: 30px 0;
+}
+
+.constantsGrid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: 16px;
+  row-gap: 0;
+  margin-top: 10px;
+  max-width: 720px;
+}
+
+.constantItem {
+  display: contents;
+}
+
+/* Shade every other logical row (pairs of cells) */
+.constantItem:nth-child(odd) > span {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.constantLabel {
+  font-weight: 600;
+  opacity: 0.7;
+  white-space: nowrap;
+  padding: 4px 0 4px 8px;
+  font-size: 0.875rem;
+}
+
+.constantValue {
+  font-weight: 400;
+  padding: 4px 8px 4px 0;
+  font-size: 0.875rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .constantItem:nth-child(odd) > span {
+    background: rgba(255, 255, 255, 0.04);
+  }
+}
+
+:root[data-theme="dark"] .constantItem:nth-child(odd) > span {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+:root[data-theme="light"] .constantItem:nth-child(odd) > span {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.info {
+  padding: 0.2em;
+  margin-left: 0.2em;
+  font-size: 0.8em;
+  cursor: help;
 }

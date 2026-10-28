@@ -13,6 +13,47 @@ export const caluclateAverage = values => add(values) / values.length;
 // Round a number to its neares cent
 export const round2cents = number => Math.round(number * 100) / 100;
 
+// Given a total time length in nanoseconds, pick the most readable time unit
+// (fs, ps, ns, µs or ms) so displayed numbers stay short instead of huge or tiny
+const TIME_SCALES = [
+  { threshold: 1e6, factor: 1e-6, label: 'ms' },
+  { threshold: 1e3, factor: 1e-3, label: 'µs' },
+  { threshold: 1, factor: 1, label: 'ns' },
+  { threshold: 1e-3, factor: 1e3, label: 'ps' },
+  { threshold: 0, factor: 1e6, label: 'fs' },
+];
+export const getTimeScale = totalNs =>
+  TIME_SCALES.find(scale => totalNs >= scale.threshold) || TIME_SCALES[TIME_SCALES.length - 1];
+
+// Parse the '?frames=...' query of a trajectory urlpath, if any, and return the lowest
+// and highest frame indices it covers. Used to tell apart a trajectory URL which spans
+// (almost) the whole trajectory from one restricted to a specific, narrow frame window
+// (e.g. a single cluster transition), for which showing the full trajectory time makes no sense
+const framesRangeFormat = /\?frames=(?<start>\d+):(?<end>\d+)(:(?<step>\d+))?/;
+const framesListUnit = /\d+(-\d+)?/;
+const framesListFormat = new RegExp(
+  `\\?frames=(?<ranges>${framesListUnit.source}(,${framesListUnit.source})*)$`
+);
+export const getFramesSpan = urlpath => {
+  if (!urlpath) return null;
+  const ranged = framesRangeFormat.exec(urlpath);
+  if (ranged) {
+    const start = +ranged.groups.start;
+    const end = Math.max(+ranged.groups.end, start);
+    return { start, end };
+  }
+  const listed = framesListFormat.exec(urlpath);
+  if (!listed) return null;
+  const ranges = listed.groups.ranges.split(',').map(unit => {
+    const [start, end] = unit.split('-').map(Number);
+    return { start, end: end === undefined ? start : end };
+  });
+  return {
+    start: Math.min(...ranges.map(range => range.start)),
+    end: Math.max(...ranges.map(range => range.end)),
+  };
+};
+
 // Count the number of specific elements in an array
 export const countElement = (array, target) => array.reduce((total, value) => value == target ? total + 1: total, 0);
 
@@ -52,7 +93,7 @@ export const appendBuffer = (buffer1, buffer2) => {
 const rangedSyntax = /^([0-9]*)-([0-9]*)$/;
 export const rangedSelectionParser = selection => {
   // Filter data
-  const units = selection.split(', ');
+  const units = selection.split(/\s*,\s*/);
   const parsedSelection = [];
   for (const u of units) {
     // If the ranged syntax is found, get all numbers in between

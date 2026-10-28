@@ -66,6 +66,8 @@ const ENDPOINTS = {
   'ligand-descriptors': ['references'],
   ligands: ['analyses/ligands'],
   dihenergies: ['analyses/dihenergies'],
+  allostery: ['analyses/allostery'],
+  'chemical-shifts': ['analyses/chemshifts'],
 }
 
 // Set a flag for the subpages that are not implemented yet

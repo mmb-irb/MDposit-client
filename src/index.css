@@ -1,16 +1,20 @@
 html {
   box-sizing: border-box;
+  /* Always reserve the scrollbar room, so pages getting longer or shorter than the screen do not
+  shift everything sideways. Beyond the jitter, that shift used to resize the height holder while
+  it was reacting to a resize itself, which browsers report as a ResizeObserver loop */
+  scrollbar-gutter: stable;
   /* Shared content width so the header and main layouts stay aligned */
-  --content-max-width: 1200px;
+  --content-max-width: min(1200px, 90%);
 }
 
-@media screen and (min-width: 1920px) {
+@media (min-width: 1920px) {
   html {
     --content-max-width: 1600px;
   }
 }
 
-@media screen and (min-width: 2560px) {
+@media (min-width: 2560px) {
   html {
     --content-max-width: 1920px;
   }

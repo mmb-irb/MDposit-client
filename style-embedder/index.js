@@ -1,12 +1,13 @@
 const { readFile, writeFile } = require('fs');
 const { promisify } = require('util');
+const { posix } = require('path');
 
 const asyncReadFile = promisify(readFile);
 const asyncWriteFile = promisify(writeFile);
 
 const styleLinkRE = /<link[^>]+\.css[^>]+>/gim;
 const hrefRE = /href="\.(?<href>[^"]+)"/i;
-const relativeURLInCSS = /url\(\.\.\/\.\.\//g; // matches: url(../../
+const relativeURLInCSS = /url\((['"]?)(\.\.?\/[^)'"]+)/g; // matches: url(../ and url(./
 
 /**
  * This logic is aimed at improving render by injection blocking style inside
@@ -24,7 +25,11 @@ const main = async () => {
     // read stylesheet file content
     let style = await asyncReadFile(`./build/${href}`, { encoding: 'utf8' });
     // fix relative urls since they won't be relative to CSS files anymore
-    style = style.replace(relativeURLInCSS, 'url(./');
+    // (CRA writes "url(../../static/media/x)", Vite writes "url(../media/x)": resolve both against the CSS file)
+    const cssDir = posix.dirname(href);
+    style = style.replace(relativeURLInCSS, (_, quote, url) =>
+      `url(${quote}.${posix.join(cssDir, url)}`,
+    );
     // but then, we have to add the path to the sourcemaps
     style = style.replace(
       /sourceMappingURL=/g,

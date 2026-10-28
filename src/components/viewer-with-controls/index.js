@@ -8,6 +8,7 @@ import React, {
   forwardRef,
   useImperativeHandle,
   useContext,
+  Suspense,
 } from 'react';
 import cn from 'classnames';
 import screenfull from 'screenfull';
@@ -44,6 +45,10 @@ import NGLViewer from '../ngl-viewer';
 // Hooks
 import useToggleState from '../../hooks/use-toggle-state';
 import useViewerData from '../../hooks/use-viewer-data';
+import useBoxData from '../../hooks/use-box-data';
+
+// Used to build the reduced-membrane-subset representations
+import getDefaultRepresentations from '../../utils/topology-manager/get-default-reprensetations';
 
 import connectionLevel, {
   LOW,
@@ -51,16 +56,25 @@ import connectionLevel, {
   HIGH,
 } from '../../utils/connection-level';
 import reducedMotion from '../../utils/reduced-motion';
+import { getMembraneReducedComponents } from './membrane-reduced-components';
 // Import CSS style
 import style from './style.module.css';
 // Import context data
 import { ProjectCtx } from '../../contexts';
 // Import auxiliar functions
-import { copyObject, round2cents } from 'src/utils/auxiliar-functions';
+import { copyObject, round2cents, getTimeScale, getFramesSpan } from 'src/utils/auxiliar-functions';
 
 // Decide that the default should be to play the trajectory only on "big enough"
 // screens (as a proxy for performance and low-end device detection)
 const DEFAULT_STARTS_PLAYING = !reducedMotion() && window.innerWidth > 750;
+
+// Estimated height (in px) the settings controls need once docked at the bottom
+// of the right-hand panel. Used to decide whether there is enough free vertical
+// room below the representations table to dock them (instead of floating them
+// over the viewer). Trajectory viewers also show the speed/frames sliders, so
+// they need more room than the topology-only case.
+const DOCKED_CONTROLS_HEIGHT = 200;
+const DOCKED_CONTROLS_HEIGHT_NO_TRAJECTORY = 96;
 
 const DEFAULT_FRAME_NUMBER = (() => {
   switch (connectionLevel()) {
@@ -91,6 +105,8 @@ const DEFAULT_COMPONENT_PARAMETERS = {
   trajectoryURLs: 'auto', // This is assigned further
   atomSelection: null,
   atomIndices: null,
+  resIndices: null,
+  chainIndices: null,
   frame: null,
   onlyTopology: false
 }
@@ -121,6 +137,54 @@ const completeMissingFields = (targetObject, defaultValuesObject) => {
   }
   return anyChange;
 }
+
+// Viewer backend wrapper that owns the data-download hook, kept separate from ViewerWithControls so a
+// parent key can remount just this subtree to load a different atom subset. The remount is what forces
+// the reload: neither useViewerData (dedupes by URL) nor the NGL backend (dedupes stage components by
+// name) re-fetches when a live component's atom subset changes. This is how the reduced membrane view
+// swaps its atoms without tearing down the surrounding controls (settings panel, backend, speed, ...).
+const ManagedViewer = forwardRef(
+  (
+    {
+      Viewer, // The viewer backend component (NGL/MolStar)
+      components,
+      requestedFramesNumber,
+      onLoad,
+      showBox, // Download and display the simulation box
+      ...props // Forwarded as-is to the viewer backend
+    },
+    ref,
+  ) => {
+    // Download viewer data (topologies + trajectories) from the API per the components configuration
+    const {
+      topologies,
+      trajectories,
+      anyLoadingTopology,
+      anyLoadingTrajectory,
+      downloadError,
+    } = useViewerData(components, requestedFramesNumber, onLoad);
+    // WARNING: This must be called after useViewerData (see useBoxData)
+    const boxes = useBoxData(components, requestedFramesNumber, showBox);
+    // The Mol* backend is lazy: suspend here so only the viewer area waits for its chunk, not the controls
+    return (
+      <Suspense fallback={null}>
+        <Viewer
+          ref={ref}
+          components={components}
+          // Viewer data including both structure and coordinates
+          topologies={topologies}
+          trajectories={trajectories}
+          anyLoadingTopology={anyLoadingTopology}
+          anyLoadingTrajectory={anyLoadingTrajectory}
+          downloadError={downloadError}
+          boxes={boxes}
+          {...props}
+        />
+      </Suspense>
+    );
+  },
+);
+ManagedViewer.displayName = 'ManagedViewer';
 
 // Set an NGL view window which is managed by some controls
 // There are different ways to call this script
@@ -185,6 +249,8 @@ const ViewerWithControls = forwardRef(
       preventTrajectory = false,
       // Set a state setter to handle the frame progress
       onProgress,
+      // NGL selection of atoms to center the trajectory around, every frame
+      centering = null,
       // The rest of properties paased to the NGLViewer
       ...props
     },
@@ -198,7 +264,7 @@ const ViewerWithControls = forwardRef(
     // Set which viewer is used: NGL or MolStar (the default is NGL)
     const [Viewer, setViewer] = useState(NGLViewer);
     // Get project metadata
-    const { metadata, accessionAndMdNumber, topology } = useContext(ProjectCtx);
+    const { metadata, accessionAndMdNumber, topology, fileDescriptors } = useContext(ProjectCtx);
     // Track the current frame and time
     const [currentFrameInfo, setCurrentFrameInfo] = useState({ frame: 0, time: 0 });
     // Use metadata to limit available frames number
@@ -328,15 +394,134 @@ const ViewerWithControls = forwardRef(
       if (changes.some(v => v === true)) setFinalRepresentations([...finalRepresentations]);
     }, [finalRepresentations, defaultRepresentations, completeRepresentationMissingFields]);
 
+    // Reduced membrane view ------------------------------------------------------------------------
+    // For heavy membrane trajectories (lots of lipid tails, water, ions), load only protein/solute +
+    // membrane headgroups. Lives here rather than in the parent page / Domains so toggling reloads only
+    // the viewer's data (via the ManagedViewer remount, see viewerReloadKey) instead of the whole page.
+    // It is available in every viewer, so the system looks the same in every page.
+
+    // The reduced atom subset for this topology, or null when it is not a membrane simulation
+    const membraneSelection = topology && topology.membraneViewerSelection;
+    // Components already restricted to a subset of atoms (e.g. PCA projections) are not reduced
+    const firstComponent = finalComponents && finalComponents[0];
+    const isSubsetComponent = !!firstComponent && !!(firstComponent.atomIndices
+      || firstComponent.resIndices || firstComponent.chainIndices || firstComponent.atomSelection);
+    // Whether the reduced view is available at all (an actual membrane simulation with the whole system)
+    const canReduceMembrane = !!membraneSelection && !isSubsetComponent;
+    // Default on for very large membranes, where loading every lipid atom is too heavy
+    const membraneReducedDefault = !!(topology && topology.lipidAtomsCount > 100000);
+    // Store only the user's explicit choice (null until they toggle) and derive the effective value,
+    // so it stays correct as soon as the topology (and its default) arrives.
+    const [membraneReducedOverride, setMembraneReducedOverride] = useState(null);
+    const membraneReduced = canReduceMembrane && (membraneReducedOverride ?? membraneReducedDefault);
+    // Toggle setter passed to SettingsControls (it always calls it with a function updater).
+    // Resolve the null "untouched" override to the effective default before handing it to the updater.
+    const setMembraneReduced = useCallback(updater =>
+      setMembraneReducedOverride(previous => updater(previous ?? membraneReducedDefault)),
+      [membraneReducedDefault]);
+
+    // The default representations restricted to the reduced subset, with the membrane as spacefill
+    const membraneReducedRepresentations = useMemo(() => {
+      if (!canReduceMembrane) return null;
+      return getDefaultRepresentations(topology, membraneSelection.residueIndices).map(representation =>
+        representation.name.toLowerCase().includes('lipid')
+          ? { ...representation, type: 'spacefill', opacity: 0.3 }
+          : representation);
+    }, [canReduceMembrane, topology, membraneSelection]);
+
+    // Selections of the default lipid representations
+    // Representations with these selections show lipids, even if pages customize them (e.g. color)
+    const lipidSelections = useMemo(() => {
+      if (!canReduceMembrane || !defaultRepresentations) return null;
+      return new Set(defaultRepresentations
+        .filter(representation => representation.name.toLowerCase().includes('lipid'))
+        .map(representation => representation.selection));
+    }, [canReduceMembrane, defaultRepresentations]);
+
+    // Keep representations in sync with the reduced view.
+    // Default representations (e.g. Domains always emits the FULL default set for "Overall") are swapped
+    // to the reduced set (and back) on toggle or re-selection. We match by name + selection + type (the
+    // fields distinguishing the two default sets) so other domains and manual edits (opacity, color, show)
+    // are left alone.
+    // Other representations (e.g. default representations recolored by an analysis page) are kept, but
+    // lipid representations are shown as low-opacity spacefill, since only lipid headgroups are loaded.
+    // Their original type and opacity are saved to restore them when the full view is back.
+    useEffect(() => {
+      if (!canReduceMembrane) return;
+      if (!finalRepresentations || !defaultRepresentations || !membraneReducedRepresentations) return;
+      const repsMatch = (reps, other) =>
+        reps.length === other.length && reps.every((rep, r) =>
+          rep.name === other[r].name
+          && rep.selection === other[r].selection
+          && rep.type === other[r].type);
+      const currentIsFull = repsMatch(finalRepresentations, defaultRepresentations);
+      const currentIsReduced = repsMatch(finalRepresentations, membraneReducedRepresentations);
+      // Swap default sets, only when they are not already in the toggled mode
+      if (currentIsFull || currentIsReduced) {
+        if (membraneReduced ? currentIsReduced : currentIsFull) return;
+        const target = membraneReduced ? membraneReducedRepresentations : defaultRepresentations;
+        setFinalRepresentations(target.map(rep => ({ ...rep })));
+        return;
+      }
+      // Adapt lipid representations in any other set
+      let changed = false;
+      const adapted = finalRepresentations.map(rep => {
+        if (membraneReduced && !rep.unreducedStyle && lipidSelections.has(rep.selection)) {
+          changed = true;
+          return {
+            ...rep,
+            type: 'spacefill',
+            opacity: 0.3,
+            unreducedStyle: { type: rep.type, opacity: rep.opacity },
+          };
+        }
+        if (!membraneReduced && rep.unreducedStyle) {
+          changed = true;
+          const { unreducedStyle, ...restored } = rep;
+          return { ...restored, ...unreducedStyle };
+        }
+        return rep;
+      });
+      if (changed) setFinalRepresentations(adapted);
+    }, [
+      canReduceMembrane,
+      membraneReduced,
+      finalRepresentations,
+      defaultRepresentations,
+      membraneReducedRepresentations,
+      lipidSelections,
+      setFinalRepresentations,
+    ]);
+
+    // The components actually loaded by the viewer. When the reduced view is on we inject the reduced
+    // atom subset into the main component (and the ones sharing its topology) so only those atoms are
+    // downloaded and displayed.
+    const effectiveComponents = useMemo(() => {
+      if (!finalComponents || !membraneReduced) return finalComponents;
+      return getMembraneReducedComponents(finalComponents, membraneSelection.atomIndices);
+    }, [finalComponents, membraneReduced, membraneSelection]);
+
+    // Key remounting the ManagedViewer to reload the data when the atom subset changes (i.e. on toggle).
+    // WARNING: depend only on the membrane mode, never on finalComponents. Keying on the components would
+    // flip on the initial null -> ready transition and remount mid-load; useViewerData transitively holds
+    // useAPI subscriptions (fileDescriptors) that a remount tears down and can't re-establish
+    // while a request is in flight, leaving fileDescriptors stuck loading so the trajectory never downloads.
+    const viewerReloadKey = membraneReduced ? 'membrane-reduced' : 'full';
+
     // references
     const containerRef = useRef(null);
     const viewerRef = useRef(null);
+    // Right-panel scroll container and the representations-table wrapper, measured
+    // to decide whether the settings controls can be docked below the table
+    const settingsContentRef = useRef(null);
+    const representationsRef = useRef(null);
 
     // toggle states
     const [nailed, toggleNailed] = useToggleState(false);
     const [playing, togglePlaying] = useToggleState(startsPlaying);
     const [spinning, toggleSpinning] = useToggleState(false);
     const [smooth, setSmooth] = useState(true);
+    const [showBox, toggleShowBox] = useToggleState(false);
     const [darkBackground, toggleDarkBackground] = useToggleState(
       useMemo(() => get('dark-background', false), []),
     );
@@ -353,6 +538,10 @@ const ViewerWithControls = forwardRef(
     );
     const [speed, setSpeed] = useState(useMemo(() => get('speed', 50), []));
     const [settings, openSettings] = useState(false);
+    // Whether there is enough free vertical room in the right-hand panel below the
+    // representations table to dock the settings controls there rather than float
+    // them over the viewer. Kept up to date by a ResizeObserver (see effect below).
+    const [roomBelow, setRoomBelow] = useState(false);
     // Width (in px) of the settings panel, resizable by dragging its left border
     // Cap the initial width to at most half of the window so it never opens oversized
     const [settingsWidth, setSettingsWidth] = useState(
@@ -437,6 +626,8 @@ const ViewerWithControls = forwardRef(
 
     // Set callbacks for event listeners
     const startDraggingProgress = useCallback(event => {
+      // Avoid selecting page text while dragging the progress bar
+      event.preventDefault();
       handleManualProgress(event);
       window.addEventListener('mouseup', stopDraggingProgress);
       window.addEventListener('mousemove', handleManualProgress);
@@ -506,7 +697,7 @@ const ViewerWithControls = forwardRef(
       const handleKeyPress = event => {
         if (event.key === 'Escape') {
           openSettings(false);
-          viewerRef.current.autoResize();
+          if (viewerRef.current) viewerRef.current.autoResize();
         }
         // Only handle spacebar if not typing in an input field
         if (event.key === ' ' && event.target.tagName !== 'INPUT' && event.target.tagName !== 'TEXTAREA') {
@@ -525,16 +716,16 @@ const ViewerWithControls = forwardRef(
     // If there are PBC residues then stop the smooth to prevent misleading artifacts
     const hasPbcResidues = useMemo(() => {
       if (!topology || !topology.pbcResidues) return;
-      if (!finalComponents) return;
+      if (!effectiveComponents) return;
       // Check if there is at least one residue in PBC
       const anyPbcResidues = topology.pbcResidues.size > 0;
       if (anyPbcResidues === false) return false;
       // If there is at least one PBC residue...
       // Check if we have atom indices in all components
-      const haveAllAtomIndices = finalComponents.every(comp => comp.atomIndices);
+      const haveAllAtomIndices = effectiveComponents.every(comp => comp.atomIndices);
       if (haveAllAtomIndices) {
         // Check if any atom index is included among PBC residues
-        const allAtomIndices = finalComponents.reduce((acc, comp) => acc.concat(comp.atomIndices), []);
+        const allAtomIndices = effectiveComponents.reduce((acc, comp) => acc.concat(comp.atomIndices), []);
         const anyPbcAtom = allAtomIndices.some(atomIndex => {
           const atom = topology.getAtomByIndex(atomIndex);
           return topology.pbcResidues.has(atom.residueIndex);
@@ -543,14 +734,17 @@ const ViewerWithControls = forwardRef(
       }
       setSmooth(false);
       return true;
-    }, [topology, finalComponents]);
+    }, [topology, effectiveComponents]);
 
     // This allows parent components to interact with this component
+    // WARNING: Read the viewer methods when called, not when the handle is set
+    // The viewer is not mounted until the topology is ready, so it may be missing when the handle is set
     useImperativeHandle(ref,
       () => ({
-        autoResize: viewerRef.current.autoResize,
-        centerFocus: viewerRef.current.centerFocus,
-        drawMesh: viewerRef.current.drawMesh,
+        // There is nothing to resize while the viewer is not mounted yet
+        autoResize: () => { if (viewerRef.current) viewerRef.current.autoResize() },
+        centerFocus: (...args) => viewerRef.current.centerFocus(...args),
+        drawMesh: (...args) => viewerRef.current.drawMesh(...args),
         get currentFrame() {
           return viewerRef.current.currentFrame;
         },
@@ -572,17 +766,104 @@ const ViewerWithControls = forwardRef(
     // The flag 'onlyTopology' is passed
     // there is a selected unique frame to load from the main trajectory
     // The main trajectory only has 1 frame (e.g. average.xtc)
-    const mainComponent = finalComponents && finalComponents[0];
+    const mainComponent = effectiveComponents && effectiveComponents[0];
     const noTrajectory = preventTrajectory || (mainComponent && (mainComponent.onlyTopology ||
       Number.isFinite(mainComponent.frame))); // May be 0
 
-    // Download viewer data from the API according to the components configuration
-    const {
-      topologies,
-      trajectories,
-      anyLoadingTopology,
-      anyLoadingTrajectory
-    } = useViewerData(finalComponents, requestedFramesNumber, handleLoad);
+    // Set why the simulation box may not be displayed, if so
+    // This reason is shown to the user in the disabled box button
+    // Boxes are only available for the main trajectory frames and the NGL viewer
+    // Boxes are not centered, so they would not match a centered trajectory
+    const boxUnavailableReason = useMemo(() => {
+      if (fileDescriptors.loading || !fileDescriptors.payload || !mainComponent)
+        return 'Waiting for the simulation data';
+      if (!fileDescriptors.payload.some(file => file.filename === 'box.bin'))
+        return 'There is no simulation box available for this simulation';
+      if (Viewer !== NGLViewer) return 'The simulation box can only be shown in the NGL viewer';
+      if (centering) return 'The simulation box can not be shown since the trajectory is centered here';
+      if (mainComponent.onlyTopology) return null;
+      // Components with no trajectory URLs use the main trajectory (see useViewerData)
+      const urlpaths = mainComponent.trajectoryURLs || ['/trajectory'];
+      if (urlpaths.length !== 1 || urlpaths[0].split('?')[0] !== '/trajectory')
+        return 'The simulation box is only available for the main trajectory';
+      return null;
+    }, [Viewer, centering, mainComponent, fileDescriptors]);
+    const canShowBox = !boxUnavailableReason;
+
+    // Decide where the settings controls live: docked at the bottom of the right
+    // panel when there is enough free vertical room below the representations
+    // table, otherwise floating over the viewer. Measure the right-panel scroll
+    // container height and the table height, and re-measure whenever either
+    // resizes (window/fullscreen resize, adding/removing representations, ...).
+    // The table wrapper is measured independently of the docked controls, so
+    // there is no feedback loop between docking and the measurement.
+    const neededControlsHeight = noTrajectory
+      ? DOCKED_CONTROLS_HEIGHT_NO_TRAJECTORY
+      : DOCKED_CONTROLS_HEIGHT;
+    useEffect(() => {
+      if (!settings) return setRoomBelow(false);
+      const content = settingsContentRef.current;
+      const table = representationsRef.current;
+      if (!content || !table || typeof ResizeObserver === 'undefined') return;
+      const measure = () =>
+        setRoomBelow(content.clientHeight - table.offsetHeight >= neededControlsHeight);
+      measure();
+      const observer = new ResizeObserver(measure);
+      observer.observe(content);
+      observer.observe(table);
+      return () => observer.disconnect();
+    }, [settings, neededControlsHeight, finalRepresentations]);
+
+    // Dock the settings controls under the representations panel only when the
+    // panel is open and there is enough free vertical room below the table;
+    // otherwise float them over the viewer as a translucent overlay
+    const settingsDocked = settings && roomBelow;
+
+    // Shared props for SettingsControls so it can be rendered in either location
+    // (floating overlay or docked in the right panel) without duplication
+    const settingsControlsProps = {
+      viewerRef,
+      noTrajectory,
+      hasPbcResidues,
+      toggleSpinning,
+      smooth,
+      setSmooth,
+      darkBackground,
+      toggleDarkBackground,
+      perspective,
+      togglePerspective,
+      Viewer,
+      setViewer,
+      speed,
+      setSpeed,
+      framesSelect,
+      requestedFramesNumber,
+      setRequestedFramesNumber,
+      frameNumbers,
+      showMembraneToggle: !!canReduceMembrane,
+      membraneReduced,
+      setMembraneReduced,
+      boxUnavailableReason,
+      showBox,
+      toggleShowBox,
+    };
+
+    // Pick a readable time unit (fs, ps, ns, µs, ms) based on the trajectory total length
+    const timeScale = useMemo(
+      () => getTimeScale(metadata.timeLength), [metadata.timeLength],
+    );
+
+    // Whether the loaded frames are spread across (almost) the whole trajectory, as opposed to
+    // a narrow, specific frame window (e.g. a single cluster transition). In the latter case the
+    // total trajectory time is not representative of what is loaded, so the time tooltip is hidden
+    const framesDistributed = useMemo(() => {
+      const mainComponent = finalComponents && finalComponents[0];
+      const urlpath = mainComponent && mainComponent.trajectoryURLs && mainComponent.trajectoryURLs[0];
+      const span = getFramesSpan(urlpath);
+      if (!span) return true;
+      if (!metadata.mdFrames) return true;
+      return (span.end - span.start) / metadata.mdFrames > 0.9;
+    }, [finalComponents, metadata.mdFrames]);
 
     // DANI: Si no quieres buscarte problemas no cambies las "Card"s de aquí abajo por "div"s o similar
     return (
@@ -609,46 +890,34 @@ const ViewerWithControls = forwardRef(
               }
               style={{ border: 'none', boxShadow: 'none' }}
             >
-              <Viewer
-                playing={playing}
-                spinning={spinning}
-                smooth={smooth}
-                onProgress={handleProgress}
-                ref={viewerRef}
-                noTrajectory={noTrajectory}
-                darkBackground={darkBackground}
-                perspective={perspective}
-                speed={speed}
-                components={finalComponents}
-                representations={finalRepresentations}
-                // Viewer data incluting both structure and coordinates
-                topologies={topologies}
-                trajectories={trajectories}
-                anyLoadingTopology={anyLoadingTopology}
-                anyLoadingTrajectory={anyLoadingTrajectory}
-                {...props}
-              />
-              {settings && (
-                <SettingsControls
-                  viewerRef={viewerRef}
-                  noTrajectory={noTrajectory}
-                  hasPbcResidues={hasPbcResidues}
-                  toggleSpinning={toggleSpinning}
-                  smooth={smooth}
-                  setSmooth={setSmooth}
-                  darkBackground={darkBackground}
-                  toggleDarkBackground={toggleDarkBackground}
-                  perspective={perspective}
-                  togglePerspective={togglePerspective}
+              {/* Gate the mount on this component's own topology for the reduced-membrane feature. */}
+              {/* topology is a getter running useAPI hooks, so it starts undefined here and settles a few */}
+              {/* renders later; mounting earlier would start in 'full' mode then flip viewerReloadKey once */}
+              {/* topology (and its mem-map) resolves, remounting mid-load and stranding in-flight requests. */}
+              {topology && (
+                <ManagedViewer
+                  key={viewerReloadKey}
                   Viewer={Viewer}
-                  setViewer={setViewer}
-                  speed={speed}
-                  setSpeed={setSpeed}
-                  framesSelect={framesSelect}
+                  ref={viewerRef}
+                  components={effectiveComponents}
                   requestedFramesNumber={requestedFramesNumber}
-                  setRequestedFramesNumber={setRequestedFramesNumber}
-                  frameNumbers={frameNumbers}
+                  onLoad={handleLoad}
+                  playing={playing}
+                  spinning={spinning}
+                  smooth={smooth}
+                  onProgress={handleProgress}
+                  noTrajectory={noTrajectory}
+                  darkBackground={darkBackground}
+                  perspective={perspective}
+                  speed={speed}
+                  centering={centering}
+                  showBox={canShowBox && showBox}
+                  representations={finalRepresentations}
+                  {...props}
                 />
+              )}
+              {settings && !settingsDocked && (
+                <SettingsControls {...settingsControlsProps} docked={false} />
               )}
             </Card>
             {settings && (
@@ -662,12 +931,17 @@ const ViewerWithControls = forwardRef(
                   onMouseDown={startResizingSettings}
                   title="Drag to resize the panel"
                 />
-                <div className={style['settings-right-content']}>
-                  <RepresentationsManager
-                    components={finalComponents}
-                    representations={finalRepresentations}
-                    setRepresentations={setFinalRepresentations}
-                  />
+                <div className={style['settings-right-content']} ref={settingsContentRef}>
+                  <div ref={representationsRef}>
+                    <RepresentationsManager
+                      components={finalComponents}
+                      representations={finalRepresentations}
+                      setRepresentations={setFinalRepresentations}
+                    />
+                  </div>
+                  {settingsDocked && (
+                    <SettingsControls {...settingsControlsProps} docked={true} />
+                  )}
                 </div>
               </div>
             )}
@@ -679,7 +953,7 @@ const ViewerWithControls = forwardRef(
               // Render the loading/progress bar in case there is a trajectory to be loaded
               : (<div className={style.progressContainer}>
                   <div
-                    className={cn(style.progress, { [style.dark]: darkBackground })}
+                    className={cn(style.progress, 'prevent-drag', { [style.dark]: darkBackground })}
                     onMouseDown={startDraggingProgress}
                     ref={progressRef}
                   >
@@ -691,9 +965,9 @@ const ViewerWithControls = forwardRef(
                       style={{ height: '1ch' }}
                     />
                   </div>
-                  {metadata.FRAMESTEP && (
-                    <div className={cn(style.timeInfo, { [style.dark]: darkBackground })}>
-                      Time: {currentFrameInfo.time} / {round2cents(metadata.timeLength)} ns 
+                  {metadata.FRAMESTEP && framesDistributed && (
+                    <div className={cn(style.timeInfo, 'prevent-drag', { [style.dark]: darkBackground })}>
+                      Time: {round2cents(currentFrameInfo.time * timeScale.factor)} / {round2cents(metadata.timeLength * timeScale.factor)} {timeScale.label}
                     </div>
                   )}
                 </div>)
@@ -800,7 +1074,7 @@ const ViewerWithControls = forwardRef(
                   title={'Settings'}
                   onClick={() => {
                     openSettings(previous => !previous);
-                    viewerRef.current.autoResize();
+                    if (viewerRef.current) viewerRef.current.autoResize();
                   }}
                   size="large"
                 >

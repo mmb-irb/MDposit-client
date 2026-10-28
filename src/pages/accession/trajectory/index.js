@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 // A hook to track whenever some element is on screen
 import { useInView } from 'react-intersection-observer';
+
+// Project data context
+import { ProjectCtx } from '../../../contexts';
 
 // Visual components
 import Card from '../../../components/animated-card';
@@ -29,6 +32,9 @@ const Trajectory = () => {
   const [nglRef, isNglVisible] = useInView(useInViewOptions);
   const [nightingaleRef, isNightingaleVisible] = useInView(useInViewOptions);
 
+  // Get the project topology
+  const { topology } = useContext(ProjectCtx);
+
   // Set the representations to be displayed in the viewer
   const representationsState = useState(null);
   const [ representations, setRepresentations ] = representationsState;
@@ -38,10 +44,15 @@ const Trajectory = () => {
 
   return (
     <>
-      <Domains setRepresentations={setRepresentations} setInitialFocus={setInitialFocus} />
+      <Domains
+        setRepresentations={setRepresentations}
+        setInitialFocus={setInitialFocus}
+      />
       <Card className={style['ngl-card']} ref={nglRef}>
-        {/* Render the NGL viewer when it is on screen*/}
-        {isNglVisible ? (
+        {/* Render once on screen and the topology is ready (so the reduced-membrane subset is known at */}
+        {/* mount, avoiding a full-then-reduced double download). The reduced-membrane view is handled */}
+        {/* internally by ViewerWithControls. */}
+        {isNglVisible && topology ? (
           <ViewerWithControls
             className={style.container}
             representationsState={representationsState}

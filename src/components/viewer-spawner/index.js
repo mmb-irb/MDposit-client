@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useRef, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
 
 // Rnd is the resizable and draggable system where the ngl viewer is placed
 import { Rnd } from 'react-rnd';
@@ -87,6 +87,11 @@ const NGLViewerInDND = props => {
   // If a reference is passed among the viewer arguments then use it instead
   const viewerRef = props.viewerRef || useRef(null);
 
+  // Reference to the Rnd instance, used to make sure it is spawned fully visible.
+  // WARNING: Do not measure the inner Card instead: it plays its own slide-in animation
+  // (see 'fadeSectionIn'), which would make an immediate bounding rect measurement inaccurate
+  const rndRef = useRef(null);
+
   // Set the default position and size
   const [place, setPlace] = useState(() => {
     // Set an extra margin
@@ -112,9 +117,32 @@ const NGLViewerInDND = props => {
     };
   });
 
+  // The 'y' above is a best guess based on the assumption that the viewer is positioned
+  // relative to the 'main' element, which may not hold (e.g. if 'main' is not itself a
+  // positioning context). So once mounted, measure where it actually landed and, if part
+  // of it falls outside the visible viewport, shift it back into view.
+  // WARNING: This must run after Rnd's own 'componentDidMount' HACK (which forceUpdate()s to
+  // patch its position once it knows its real offset from its offsetParent). A useLayoutEffect
+  // here would race that internal correction and get overwritten by it, so defer with a rAF
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      const selfElement = rndRef.current && rndRef.current.getSelfElement();
+      if (!selfElement) return;
+      const MARGIN = 20;
+      const rect = selfElement.getBoundingClientRect();
+      let deltaY = 0;
+      if (rect.bottom > window.innerHeight - MARGIN)
+        deltaY -= rect.bottom - (window.innerHeight - MARGIN);
+      if (rect.top + deltaY < MARGIN) deltaY += MARGIN - (rect.top + deltaY);
+      if (deltaY !== 0) setPlace(previous => ({ ...previous, y: previous.y + deltaY }));
+    });
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
   return (
     // Rnd is the draggable and resizable system where the ngl viewer is placed
     <Rnd
+      ref={rndRef}
       position={{ x: place.x, y: place.y }}
       size={{ width: place.width, height: place.height }}
       // Update the zIndex to make this window the first visible

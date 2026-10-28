@@ -284,8 +284,10 @@ const Histogram = forwardRef(({
 
     // This ref allows to update the graph without having to remake the whole graph
     updateSizeRef.current = () => {
+      if (!containerRef.current) return;
       // Change the graph size according to the container size
       const { clientWidth: width, clientHeight: height } = containerRef.current;
+      if (width <= margin.left + margin.right || height <= margin.top + margin.bottom) return;
       graph.attr('width', width).attr('height', height);
       // Get size of the graph body after substracting margins
       const actualWidth = width - margin.left - margin.right;
@@ -338,13 +340,19 @@ const Histogram = forwardRef(({
         .attr("height", d => height - margin.bottom - y(d.length))
     };
 
-    // Set the redraw logic to be run every time the graph container is resized
-    window.addEventListener('resize', updateSizeRef.current);
+    // Redraw when either the window or the graph's own container is resized.
+    const resizeGraph = () => updateSizeRef.current();
+    window.addEventListener('resize', resizeGraph);
+    const resizeObserver = typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(resizeGraph);
+    resizeObserver?.observe(containerRef.current);
 
     // Cleanup function
     return () => {
       graph.remove();
-      window.removeEventListener('resize', updateSizeRef.current);
+      resizeObserver?.disconnect();
+      window.removeEventListener('resize', resizeGraph);
     }
   }, []);
 

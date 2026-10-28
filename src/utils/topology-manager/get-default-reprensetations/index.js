@@ -15,6 +15,34 @@ const getDefaultRepresentations = (topology, selectedResidueIndices = null) => {
     if (selectedResidueIndices) selectedResidueIndices = new Set(selectedResidueIndices);
     // Set a list to store all final representations
     const reps = [];
+    // Coarse grain (CG) default coloring
+    // ----------------------------------
+    // CG residues are not representable in cartoon/licorice, so they are shown in spacefill and colored
+    // to keep chains/bead types distinguishable. Note that CG atoms share a single generic element, so
+    // the bead-type variety lives in the atom names, which is what the improved 'element' scheme uses.
+    //  - Proteins: by chain, unless there is a single protein chain (coloring by chain would be useless),
+    //    in which case by element.
+    //  - Everything else: by element, unless the group has a single bead type (a single element/atom name),
+    //    in which case by chain.
+    // Count the CG protein chains globally so the protein rule is consistent across all chains.
+    const cgProteinChains = new Set();
+    topology.iterchains().forEach(chain => {
+        let residues = chain.residues;
+        if (selectedResidueIndices)
+            residues = residues.filter(residue => selectedResidueIndices.has(residue.index));
+        if (residues.some(residue => residue.isCg && residue.classification === 'protein'))
+            cgProteinChains.add(chain.name);
+    });
+    const cgProteinColor = cgProteinChains.size > 1 ? 'chainid' : 'element';
+    // Pick the color for a group of non-protein CG residues: by element unless the group holds a single
+    // bead type (i.e. a single distinct atom name), in which case coloring by element shows no variety.
+    const cgRestColor = residues => {
+        const beadTypes = new Set();
+        for (const residue of residues)
+            for (const atom of residue.iteratoms())
+                beadTypes.add(atom.name);
+        return beadTypes.size > 1 ? 'element' : 'chainid';
+    };
     // Iterate the different chains
     // Every representation, no matter the type, will be organized as one per chain
     topology.iterchains().forEach(chain => {
@@ -28,6 +56,40 @@ const getDefaultRepresentations = (topology, selectedResidueIndices = null) => {
         // Filter away residues which are not in the residue selection, if passed
         if (selectedResidueIndices)
             chainResidues = chainResidues.filter(residue => selectedResidueIndices.has(residue.index));
+        // Represent a group of non-polymer residues (lipids, ions, solvent, other), separating all-atom
+        // residues (which keep their default type/color) from coarse grain residues. CG residues are
+        // colored by the CG "rest" rule (by element unless the group is a single bead type, then by chain).
+        // Membranes are additionally shown as low-opacity spacefill so it is easy to see what is inside.
+        const representRest = (residues, label, aaType, aaColor, isMembrane = false) => {
+            const aaResidues = residues.filter(residue => !residue.isCg);
+            if (aaResidues.length > 0) {
+                const aaResidueIndices = aaResidues.map(residue => residue.index);
+                const { rangedSelection: nglSelection } = topology.residueIndices2Ngl(aaResidueIndices);
+                const representation = {
+                    name: `${chainLabel} - ${label}`,
+                    selection: nglSelection,
+                    type: aaType,
+                    color: aaColor,
+                    residueIndices: aaResidueIndices,
+                };
+                if (isMembrane) representation.opacity = MEMBRANE_OPACITY;
+                reps.push(representation);
+            }
+            const cgResidues = residues.filter(residue => residue.isCg);
+            if (cgResidues.length > 0) {
+                const cgResidueIndices = cgResidues.map(residue => residue.index);
+                const { rangedSelection: nglSelection } = topology.residueIndices2Ngl(cgResidueIndices);
+                const representation = {
+                    name: `${chainLabel} - ${label} (coarse grain)`,
+                    selection: nglSelection,
+                    type: isMembrane ? 'spacefill' : aaType,
+                    color: cgRestColor(cgResidues),
+                    residueIndices: cgResidueIndices,
+                };
+                if (isMembrane) representation.opacity = 0.3;
+                reps.push(representation);
+            }
+        };
         // 1. Polymers such as proteins and nucleic acids
         // Represent polymers in cartoon and colored by chain
         // Note that coarse grain (CG) residues will not be properly represented in cartoon
@@ -42,12 +104,15 @@ const getDefaultRepresentations = (topology, selectedResidueIndices = null) => {
             const cgResiduesIndices = cgResidues.map(residue => residue.index);
             // Parse residue indices to the NGL selection
             const { rangedSelection: nglSelection } = topology.residueIndices2Ngl(cgResiduesIndices);
+            // Proteins are colored by chain (or by element if there is a single protein chain);
+            // other polymers (nucleic acids) follow the same rule as the rest of non-protein groups
+            const cgColor = polymer === 'protein' ? cgProteinColor : cgRestColor(cgResidues);
             // Set the new representation
             reps.push({
                 name: `${chainLabel} - ${polymer} polymer (coarse grain)`,
                 selection: nglSelection,
                 type: 'spacefill',
-                color: 'chainid',
+                color: cgColor,
                 residueIndices: cgResiduesIndices,
             });
             }
@@ -115,92 +180,42 @@ const getDefaultRepresentations = (topology, selectedResidueIndices = null) => {
             // In case we have more than a different ligand in this chain, set a representation for each one
             const ligandIds = new Set(ligandResidues.map(residue => residue.referenceId));
                 for (const ligandId of ligandIds) {
-                // Get the NGL selection of traget residues
-                const currentLigandResidueIndices = ligandResidues
-                    .filter(residue => residue.referenceId === ligandId)
-                    .map(residue => residue.index);
+                // Get the target residues of this ligand
+                const currentLigandResidues = ligandResidues
+                    .filter(residue => residue.referenceId === ligandId);
+                const currentLigandResidueIndices = currentLigandResidues.map(residue => residue.index);
                 const { rangedSelection: nglSelection } = topology.residueIndices2Ngl(currentLigandResidueIndices);
+                // Coarse grain ligands follow the same rule as the rest of non-protein groups
+                const isCgLigand = currentLigandResidues.some(residue => residue.isCg);
+                const color = isCgLigand ? cgRestColor(currentLigandResidues) : 'element';
                 // Add the representation
                 reps.push({
                     name: `${chainLabel} - ligand ${ligandId}`,
                     selection: nglSelection,
                     type: 'ball+stick',
-                    color: 'element',
+                    color,
                     residueIndices: currentLigandResidueIndices,
                 });
             }
         }
         // 3. Lipids, usually membranes
-        // Represent membranes in grey licorice, with a reduced oppacity
-        // Thus we ease observing what is there inside of the membrane
-        // Start by finding lipid residues
+        // Represent all-atom membranes in grey licorice with reduced opacity (so we can see what is inside);
+        // coarse grain membranes are shown as low-opacity spacefill instead (handled by representRest)
         const lipidClasses = new Set([ 'fatty', 'steroid' ]);  // Fallback with lipids classified by name
         const lipidResidues = chainResidues.filter(residue => residue.classification === 'lipid' || lipidClasses.has(residue.classification));
-        if (lipidResidues.length > 0) {
-            // Now parse them to a NGL selection
-            const lipidResidueIndices = lipidResidues.map(residue => residue.index);
-            const { rangedSelection: nglSelection } = topology.residueIndices2Ngl(lipidResidueIndices);
-            // Add the representation
-            reps.push({
-                name: `${chainLabel} - lipids`,
-                selection: nglSelection,
-                type: 'licorice',
-                color: 'grey',
-                opacity: MEMBRANE_OPACITY,
-                residueIndices: lipidResidueIndices,
-            });
-        }
+        representRest(lipidResidues, 'lipids', 'licorice', 'grey', true);
         // 4. Ions, single atoms
-        // Represent ions using spacefill (vdw) and colored by element
-        // Start by finding ion residues
+        // Represent ions using ball+stick and colored by element
         const ionResidues = chainResidues.filter(residue => residue.classification === 'ion');
-        if (ionResidues.length > 0) {
-            // Now parse them to a NGL selection
-            const ionResidueIndices = ionResidues.map(residue => residue.index);
-            const { rangedSelection: nglSelection } = topology.residueIndices2Ngl(ionResidueIndices);
-            // Add the representation
-            reps.push({
-                name: `${chainLabel} - ions`,
-                selection: nglSelection,
-                type: 'ball+stick',
-                color: 'element',
-                residueIndices: ionResidueIndices,
-            });
-        }
+        representRest(ionResidues, 'ions', 'ball+stick', 'element');
         // 5. Solvent, water
-        const solventClass = 'solvent';
-        const solventResidues = chainResidues.filter(residue => residue.classification === solventClass);
-        if (solventResidues.length > 0) {
-            // Now parse them to a NGL selection
-            const solventResiduesIndices = solventResidues.map(residue => residue.index);
-            const { rangedSelection: nglSelection } = topology.residueIndices2Ngl(solventResiduesIndices);
-            // Add the representation
-            reps.push({
-                name: `${chainLabel} - solvent`,
-                selection: nglSelection,
-                type: 'ball+stick',
-                color: 'element',
-                residueIndices: solventResiduesIndices,
-            });
-        }
+        const solventResidues = chainResidues.filter(residue => residue.classification === 'solvent');
+        representRest(solventResidues, 'solvent', 'ball+stick', 'element');
         // 6. Other, anything else
-        // Residues not falling in any previous section will be represented in low opacity purple licorice
-        // This includes solvent and unknown residues (e.g. carbohydrates)
+        // Residues not falling in any previous section (e.g. carbohydrates) in purple spacefill
         const otherClasses = new Set([ 'carbohydrate', 'other', 'unknown' ]);
         const otherResidues = chainResidues.filter(residue => otherClasses.has(residue.classification));
-        if (otherResidues.length > 0) {
-            // Now parse them to a NGL selection
-            const otherResiduesIndices = otherResidues.map(residue => residue.index);
-            const { rangedSelection: nglSelection } = topology.residueIndices2Ngl(otherResiduesIndices);
-            // Add the representation
-            reps.push({
-                name: `${chainLabel} - other`,
-                selection: nglSelection,
-                type: 'spacefill',
-                color: 'purple',
-                residueIndices: otherResiduesIndices,
-            });
-        }
+        representRest(otherResidues, 'other', 'spacefill', 'purple');
     });
     // Finally, for every representation, check if we have PBC residues
     // PBC regions are represented with reduced opacity

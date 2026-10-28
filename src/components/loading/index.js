@@ -5,6 +5,7 @@ import cn from 'classnames';
 import { CircularProgress } from '@mui/material';
 
 import useToggleState from '../../hooks/use-toggle-state';
+import { useHoldsHeight } from '../height-holder';
 
 import style from './style.module.css';
 
@@ -14,8 +15,10 @@ const WAIT_DELAY = 750; // 750ms
 // the next content is quick enough, because we don't want a flash with the
 // indicator), then slowly display it.
 // In the best of cases this component will *never* even have to be displayed
-const Loading = ({ wait = WAIT_DELAY }) => {
+const Loading = ({ wait = WAIT_DELAY, size = 50 }) => {
   const [flag, toggleFlag] = useToggleState(false);
+  // Tell the closest height holder, if any, that the content it had is missing while this lasts
+  useHoldsHeight();
   // This is a hook
   useLayoutEffect(() => {
     const timer = setTimeout(() => {
@@ -48,7 +51,7 @@ const Loading = ({ wait = WAIT_DELAY }) => {
         <CircularProgress
           variant="indeterminate"
           color="primary"
-          size={50}
+          size={size}
           thickness={5}
         /> // Renders the circle
       )}

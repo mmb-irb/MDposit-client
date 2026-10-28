@@ -1,6 +1,6 @@
 // React logic
-import React, { lazy, Suspense, useContext, useEffect, useMemo, useState } from 'react';
-import { Link, Routes, Route, useLocation, useParams, useNavigate } from 'react-router-dom';
+import React, { lazy, Suspense, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, Routes, Route, useLocation, useParams, useNavigate } from 'react-router';
 
 // Visual assets
 import { Typography, Button, Select, MenuItem } from '@mui/material';
@@ -14,6 +14,7 @@ import useAPI from '../../hooks/use-api'; // API acces
 // Additional components
 import ErrorBoundary from '../../components/error-boundary'; // Catch errors in React components
 import Loading from '../../components/loading'; // Displays an animated "loading" circle
+import HeightHolder from '../../components/height-holder'; // Keeps the content height while loading
 import Info from '../../components/info';
 import LazyImg from 'src/components/lazy-img';
 
@@ -27,7 +28,7 @@ import { Project } from '../../utils/project-manager';
 
 // Constants
 import {
-  BASE_PATH,
+  BASE_VERSIONED_PATH,
   BASE_PATH_PROJECTS,
   NICE_NAMES,
   HOST_CONFIG
@@ -84,9 +85,17 @@ const AccessionHeader = ({ page, primaryDarkColor }) => {
 
   // Get the collection reference for the first collection id in the metadata
   // First collection is consider the "main representative" collection
-  const mainCollection = showCollections && metadata.COLLECTIONS && metadata.COLLECTIONS[0];
-  const mainCollectionReference = mainCollection && collectionReferences &&
-    collectionReferences.find(collectionReference => collectionReference.id === mainCollection);
+  const mainCollectionId = showCollections && metadata.COLLECTIONS && metadata.COLLECTIONS[0];
+  const currentMainCollectionReference = mainCollectionId && collectionReferences &&
+    collectionReferences.find(collectionReference => collectionReference.id === mainCollectionId);
+  // Retain the last reference so the logo image is not unmounted (and thus reloaded)
+  // while references are requested again on replica change
+  const retainedMainCollectionReference = useRef(null);
+  if (currentMainCollectionReference)
+    retainedMainCollectionReference.current = currentMainCollectionReference;
+  const retained = retainedMainCollectionReference.current;
+  const mainCollectionReference = currentMainCollectionReference ||
+    (retained && retained.id === mainCollectionId && retained);
   const mainCollectionHoverText = mainCollectionReference && `The current simulation belongs to the ${
     mainCollectionReference.name} collection.\n` + mainCollectionReference.description;
 
@@ -126,7 +135,7 @@ const AccessionHeader = ({ page, primaryDarkColor }) => {
         )}
       </Typography>
       {/* Main collection image */}
-      {mainCollectionReference && <a href={`/#/collection/${mainCollection}`} target="_blank" rel="noreferrer noopener">
+      {mainCollectionReference && <a href={`/#/collection/${mainCollectionId}`} target="_blank" rel="noreferrer noopener">
         <LazyImg
           src={mainCollectionReference.image} loading="lazy" alt={`Collection logo`}
           title={mainCollectionHoverText}
@@ -152,6 +161,7 @@ const AccessionHeader = ({ page, primaryDarkColor }) => {
 const ContentSwitch = ({ subPage }) => {
   // Load the project context
   const project = useContext(ProjectCtx);
+  const location = useLocation();
 
   // Change tab title according to the current project
   useEffect(() => {
@@ -169,7 +179,7 @@ const ContentSwitch = ({ subPage }) => {
   const problems = project.checkProblems(); // This is a hook
   // Get nodes info only if there are any problems with the federated node
   // This is just to know the node name, for the logs
-  const nodesUrl = problems ? `${BASE_PATH}/current/nodes` : null;
+  const nodesUrl = problems ? `${BASE_VERSIONED_PATH}/nodes` : null;
   const { payload: nodesPayload, error: nodesError } = useAPI(nodesUrl);
   // Silently report any problem with this call since we don't really need it
   if (nodesError) console.error(nodesError.message);
@@ -185,8 +195,8 @@ const ContentSwitch = ({ subPage }) => {
         <FontAwesomeIcon icon={faGhost} size='lg'/>
         <div>
           Data from project "{project.accession}" is stored in the "{nodeName}" federated node.
-          However this node is not responding right now so data may be incomplete.
-          Please try visting this entry later.
+          However this node is not responding right now so data may be slow to load or incomplete.
+          If data does not load, please try visiting this entry later.
         </div>
       </div>
     );
@@ -223,7 +233,7 @@ const ContentSwitch = ({ subPage }) => {
   // Memoize the lazy component so its reference stays stable across rerenders of ContentSwitch.
   // Without this, every rerender (e.g. triggered by the checkProblems topology fetch on global)
   // would create a new lazy() type, causing React to unmount and remount the entire subpage.
-  const PageComponent = useMemo(() => lazy(() => import(`./${subPage}`)), [subPage]);
+  const PageComponent = useMemo(() => lazy(() => import(`./${subPage}/index.js`)), [subPage]);
 
   // The overview page is prepared to work even when no additional data from the federated node is available
   // For this reason we let the render proceed only if the subpage is the overview page
@@ -235,7 +245,7 @@ const ContentSwitch = ({ subPage }) => {
 
   // Render the accession
   return (
-    <ErrorBoundary>
+    <ErrorBoundary resetKey={location.pathname}>
       {problems && problemsBanner}
       {' '}
       <Routes>
@@ -303,8 +313,10 @@ const Accession = () => {
       return;
     }
     // Save the current project data as the state project data
+    // Forget the error from any previous entry, since this page is reused when the accession changes
     const newProject = new Project(projectQueryPayload);
     setProject(newProject);
+    setProjectError(null);
   }, [projectQueryLoading, projectQueryPayload, projectQueryError]);
   // If there was any problem with the project then stop here and report ir
   if (projectError) return projectError;
@@ -316,8 +328,12 @@ const Accession = () => {
     <ProjectCtx.Provider value={project}>
       <ProjectMenu accessionAndMdNumber={accessionAndMdNumber} subPage={page} />
       <AccessionHeader page={page} primaryDarkColor={primaryDarkColor} />
+      {/* Maintain the height of the current when the next is loading */}
+      {/*so the footer does not blink in and out meanwhile */}
+      <HeightHolder>
       {/* Load the main data summary */}
-      <ContentSwitch subPage={page} />
+        <ContentSwitch subPage={page} />
+      </HeightHolder>
     </ProjectCtx.Provider>
   );
 };

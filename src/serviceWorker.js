@@ -22,21 +22,19 @@ const isLocalhost = Boolean(
     ),
 );
 
-const QUICK_ENOUGH_TO_JUST_REFRESH = 750; // 750ms;
-
 export function register(config) {
   if (HOST_CONFIG.production && 'serviceWorker' in navigator) {
     // The URL constructor is available in all browsers that support SW.
-    const publicUrl = new URL(process.env.PUBLIC_URL, window.location);
+    const publicUrl = new URL(import.meta.env.BASE_URL, window.location);
     if (publicUrl.origin !== window.location.origin) {
-      // Our service worker won't work if PUBLIC_URL is on a different origin
+      // Our service worker won't work if BASE_URL is on a different origin
       // from what our page is served on. This might happen if a CDN is used to
       // serve assets; see https://github.com/facebook/create-react-app/issues/2374
       return;
     }
 
     window.addEventListener('load', () => {
-      const swUrl = `${process.env.PUBLIC_URL}/sw.js`;
+      const swUrl = `${import.meta.env.BASE_URL}sw.js`;
 
       if (isLocalhost) {
         // This is running on localhost. Let's check if a service worker still exists or not.
@@ -67,28 +65,14 @@ function registerValidSW(swUrl, config) {
         installingWorker.onstatechange = () => {
           if (installingWorker.state === 'installed') {
             if (navigator.serviceWorker.controller) {
-              // At this point, the old content will have been purged and
-              // the fresh content will have been added to the cache.
-              // It's the perfect time to display a "New content is
-              // available; please refresh." message in your web app.
+              // At this point, the new version has taken over and the old
+              // content has been purged. The page keeps running the old code
+              // and the user gets the new version on their next reload.
               console.log('New content is available; please refresh.');
 
               // Execute callback
               if (config.onUpdate) {
                 config.onUpdate(registration);
-              }
-
-              if (window.performance) {
-                const elapsedTime =
-                  window.performance.timing.navigationStart -
-                  window.performance.now();
-                if (elapsedTime > QUICK_ENOUGH_TO_JUST_REFRESH) {
-                  window.location.reload();
-                }
-              } else {
-                window.dispatchEvent(
-                  new CustomEvent('sw', { detail: 'update' }),
-                );
               }
             } else {
               // At this point, everything has been precached.

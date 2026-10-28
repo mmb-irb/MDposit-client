@@ -25,6 +25,7 @@ import { docs } from 'src/pages/help/documentation';
 // Import other tools
 import https from 'https-browserify';
 import Version from 'src/utils/version';
+import { getLipidCategoryName } from 'src/utils/lipids';
 
 // Set mordred and morgan documentation
 const mordredDoc = docs.find(doc => doc.id === 'mordred-descriptors');
@@ -183,11 +184,15 @@ const LigandsOverview = () => {
 
     // If there are no ligand references then show nothing
     if (!ligandAndLipidReferences || ligandAndLipidReferences.length === 0) return;
+    // References with no name in any database (e.g. synthetic lipids like MC3) are named after their residues
+    const getName = reference => reference.name
+        || residueNamesByReferenceId[String(reference.inchiRef?.inchikey || reference.inchikey)]
+        || (getLipidCategoryName(reference.inchiRef) ? 'Unnamed lipid' : 'Unnamed ligand');
     // Render the component
     // Sort references by name for display
     const sortedReferences = [...ligandAndLipidReferences].sort((a, b) => {
-        const nameA = (a?.name || '').toLowerCase();
-        const nameB = (b?.name || '').toLowerCase();
+        const nameA = (a ? getName(a) : '').toLowerCase();
+        const nameB = (b ? getName(b) : '').toLowerCase();
         if (nameA < nameB) return -1;
         if (nameA > nameB) return 1;
         return 0;
@@ -204,14 +209,15 @@ const LigandsOverview = () => {
                 const lipidmaps = normalizeObject(inchiRef?.lipidmaps);
                 const swisslipidsId = swisslipids?.entity_id || null;
                 const lipidmapsId = lipidmaps?.lm_id || null;
-                const lipidClass = lipidmaps ? lipidmaps.main_class : null;
+                // Lipids missing in LIPID MAPS may still have the LIPID MAPS category
+                const lipidClass = (lipidmaps && lipidmaps.main_class) || getLipidCategoryName(inchiRef);
                 const formula = reference.formula || inchiRef?.lipidmaps?.formula;
                 const inchikey = reference.inchikey || inchiRef?.inchikey;
                 const inchi = reference.inchi || inchiRef?.inchi;
 
                 const pubchemData = pubchemId && pubchemInfo[pubchemId]
                     ? pubchemInfo[pubchemId]
-                    : { name: reference.name };
+                    : { name: getName(reference) };
 
                 const swissSynonyms = (swisslipids && swisslipids.synonyms)
                     ? swisslipids.synonyms.map(synonym => synonym.name)
@@ -232,7 +238,8 @@ const LigandsOverview = () => {
                     ((reference.inchikey && residueNamesByReferenceId[String(reference.inchikey)]) || null),
                     ((reference.inchiRef && reference.inchiRef.inchikey && residueNamesByReferenceId[String(reference.inchiRef.inchikey)]) || null),
                 ]).sort();
-                const residueName = residueNames.length > 0 ? residueNames[0] : null;
+                // Do not repeat the residue name when the reference is named after its residues
+                const residueName = residueNames.length > 0 && reference.name ? residueNames[0] : null;
                 return (<div key={descriptorKey} className={style['summary-list']}>
                     {i !== 0 && (<hr style={{ color: 'lightGrey' }} />) /* An horizontal line */}
                     {pubchemId && (

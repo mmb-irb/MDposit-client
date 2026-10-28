@@ -1,6 +1,6 @@
 // React logic
 import React, { useRef, useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router';
 
 // This allows to render markdown
 import ReactMarkdown from 'react-markdown'

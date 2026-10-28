@@ -36,7 +36,7 @@ function processData(raw) {
         for (const md of (entry.mds ?? [])) {
             const f = md.frames;
             if (f == null) continue;
-            pts.push([framestep * f, f]); // [total_time_ns, frames]
+            pts.push([framestep * f, f, framestep]); // [total_time_ns, frames, framestep_ns]
         }
     }
     // Cut at 1e7 frames; drop degenerate points
@@ -665,13 +665,15 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
 
 // ─── React component ──────────────────────────────────────────────────────────
 // Data is fetched from jsonUrl.
-const FramestepPlot = ({ jsonUrl }) => {
+const FramestepPlot = ({ jsonUrl, onPoints }) => {
     const svgRef = useRef(null);
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
     const [points, setPoints] = useState(null);
     const [error, setError] = useState(null);
     const [width, setWidth] = useState(760);
+    const onPointsRef = useRef(onPoints);
+    useEffect(() => { onPointsRef.current = onPoints; });
 
     // Track container width for responsive layout
     useEffect(() => {
@@ -687,7 +689,11 @@ const FramestepPlot = ({ jsonUrl }) => {
     useEffect(() => {
         fetch(jsonUrl)
             .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status} while fetching framestep data`); return r.json(); })
-            .then(raw => setPoints(processData(raw)))
+            .then(raw => {
+                const pts = processData(raw);
+                setPoints(pts);
+                onPointsRef.current?.(pts);
+            })
             .catch(err => setError(err.message));
     }, [jsonUrl]);
 

@@ -1,8 +1,8 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app). See the corresponding documentation to see how you can interact with it apart from what is written in the following README.
+This project is built with [Vite](https://vite.dev/) and tested with [Vitest](https://vitest.dev/).
 
 ## Requirements
 
-Have Node.js and npm installed and working
+Have Node.js 26.12.1 or later and npm installed and working (`engine-strict` in `.npmrc` makes `npm install` fail on older versions)
 
 ## Setup
 
@@ -10,7 +10,8 @@ Have Node.js and npm installed and working
 
 1. Install the dependencies with `npm install`
 2. Create and fill an `.env` file in the root of the project (see [reference below](#host-configuration-file) for the keys)
-3. Start development version of the website with `npm run start`
+3. Start development version of the website with `npm run start` (http://localhost:3000)
+4. Run the tests with `npm test` (watch mode; `npm test -- --run` runs them once)
 
 ### production
 

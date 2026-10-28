@@ -1,6 +1,6 @@
 // React logic
 import React, { useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 // Hooks
 import useAPI from 'src/hooks/use-api'; // API acces
 
@@ -10,13 +10,15 @@ import Card from 'src/components/animated-card';
 import LazyImg from 'src/components/lazy-img';
 import ProjectBrowser from 'src/components/project-browser';
 import { CardContent, Typography, Button } from '@mui/material';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 
 // Constants
 import {
     BASE_VERSIONED_PATH,
     BASE_PATH_PROJECTS
 } from 'src/utils/constants';
+// Reference handler
+import { Reference } from 'src/utils/reference-manager';
 
 // Styling
 import style from './style.module.css';
@@ -41,6 +43,13 @@ const Collection = () => {
         payload: referenceData,
         error: referenceError
     } = useAPI(referenceURL);
+
+    // Use the reference handler
+    const reference = useMemo(() => {
+        if (!referenceData) return;
+        return new Reference('collections', referenceData);
+    }, [referenceData]);
+
     // Using the options API endpoint, get a summary of values from simulations in this collection
     const query = `query={"metadata.COLLECTIONS":"${collectionId}"}`;
     const projection = Object.values(PROJECT_OPTIONS).map(field => `projection=${field}`).join('&');
@@ -81,9 +90,9 @@ const Collection = () => {
                 }} >
                 <div>
                     <Typography marginBottom={'10px'} variant="h6" sx={{ fontSize: '1.4rem' }}>
-                        {referenceData.name}
+                        {reference.name}
                     </Typography>
-                    <div style={{ 'marginBottom': '0.5em' }}>{referenceData.description}</div>
+                    <div style={{ 'marginBottom': '0.5em' }}>{reference.description}</div>
                     {Object.entries(PROJECT_OPTIONS).map(([optionName, optionField]) => {
                         if (!optionsPayload) return;
                         // Get the option values
@@ -99,34 +108,33 @@ const Collection = () => {
                             </div>
                         </div>)
                     })}
-                    {referenceData.links && referenceData.links.length > 0 &&
+                    {reference.links && reference.links.length > 0 &&
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                         <div className={style['decorated-list-item__title']}>Links</div>
                         <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                        {referenceData.links.map((link, l) => (
+                        {reference.links.map((link, l) => (
                         <div key={l}>
-                            {link.name}:{' '}
                             <a
                             href={link.url}
                             target="_blank"
                             rel="noreferrer noopener"
                             >
-                            {link.url}
+                            {link.name}
                             </a>
                         </div>
                         ))}
                         </div>
                     </div>}
                 </div>
-                <LazyImg src={referenceData.image} loading="lazy" alt={`Collection logo`}
+                <LazyImg src={reference.image} loading="lazy" alt={`Collection logo`}
                     style={{ maxWidth: '30%', height: 'auto', margin: '0 1em' }}
                 />
             </div>
-            {referenceData.citation && <div style={{ marginTop: '0.5em' }}>
+            {reference.citation && <div style={{ marginTop: '0.5em' }}>
                 The use of any trajectory data in any reports or publications of
                 results obtained with the trajectory data should be acknowledged
                 by including a citation to:
-                <div>{referenceData.citation}</div>
+                <div>{reference.citation}</div>
             </div>}
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1em' }}>
             <Button

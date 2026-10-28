@@ -1,12 +1,11 @@
 import React, { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate, useParams, generatePath, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams, generatePath, useLocation } from 'react-router';
 import { schedule } from 'timing-functions';
 
 // Layout
 import Body from '../layout/body';
 import Main from '../layout/main';
 import Header from '../layout/header';
-//import HomeFAB from '../components/home-fab';
 
 import ErrorBoundary from '../components/error-boundary';
 
@@ -86,11 +85,12 @@ const FixedNavigate = () => {
 };
 
 const Base = () => {
+  const location = useLocation();
   return (
     <Body>
       <Header />
       <Main>
-        <ErrorBoundary>
+        <ErrorBoundary resetKey={location.pathname}>
           <Routes>
             <Route
               path="/"
@@ -222,7 +222,6 @@ const Base = () => {
                 </Suspense>
               }
             />
-            {/*<Route path={['/:page', '/']} component={HomeFAB} />*/}
           </Routes>
         </ErrorBoundary>
       </Main>

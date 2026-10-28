@@ -18,6 +18,9 @@ import Loading from '../loading';
 import { rangedSelectionParser, sameValues } from '../../utils/auxiliar-functions';
 // Get the defaults representations getter
 import getDefaultRepresentations from '../../utils/topology-manager/get-default-reprensetations';
+// The mutations representations use NGL, so they are not built in the topology manager
+// This way pages without a viewer (e.g. browse) do not load NGL
+import getMutationsRepresentations from '../../utils/topology-manager/get-mutations-representations';
 
 // Show floatting bubles with domain names
 // When a bubble is selected the domain is represented
@@ -28,8 +31,11 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
     proteinReferences,
     ligandReferences,
     topology,
-    interactions
+    getAllInteractions
   } = useContext(ProjectCtx);
+
+  // Get all interactions, since every interacting agent is a domain
+  const interactions = getAllInteractions();
 
   // Set the first domain (the overall) as the default selected domain
   const [selectedDomain, setSelectedDomain] = useState(0);
@@ -37,7 +43,7 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
 
   // Get pre-build representations
   const defaultRepresentations = topology && topology.defaultRepresentations;
-  const mutationsRepresentation = topology && topology.mutationsRepresentations;
+  const mutationsRepresentation = useMemo(() => getMutationsRepresentations(topology), [topology]);
   const epitopesRepresentation = topology && topology.epitopesRepresentations;
 
   // The domains strucutre is:
@@ -217,7 +223,8 @@ const Domains = ({ setRepresentations, setInitialFocus }) => {
       if (customDomains.find(domain => domain.name === domainName)) return;
       // Get the NGL selection for ligand residues
       // Ligands are identified by their InChIKey or PubChem ID (old system)
-      const referenceId = ligandReference.inchiRef.inchikey;
+      const inchiRef = ligandReference.inchiRef;
+      const referenceId = inchiRef.ref_type === 'ligands' ? ligandReference.pubchem : inchiRef.inchikey;
       const residueIndices = topology.getReferenceResidueIndices(referenceId)
       if (!residueIndices || residueIndices.length === 0) {
         console.error(`Ligand reference "${ligandReference.pubchem}" not found in topology`);

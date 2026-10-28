@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 // Function to request data through the API
 import useAPI from '../../hooks/use-api';
+import useBatchAPI from '../../hooks/use-batch-api';
 // Constants
 import {
     BASE_PATH_PROJECTS,
@@ -10,9 +11,43 @@ import {
     UNIPROTS_WITH_EPITOPES,
 } from '../constants';
 // Import the topology manager class
-import { Topology } from '../../utils/topology-manager';
+import { Topology } from '../topology-manager';
+import { Reference } from '../reference-manager';
 // Import the NGL structure parser
-import { autoLoad } from 'ngl';
+
+// Check if an interactions analysis payload is an index of interaction analyses (new format)
+// Index entries have the analysis name, while old entries have the whole interaction data
+const isInteractionsIndex = payload => payload.every(entry =>
+    entry.analysis !== undefined && !entry.atom_indices_1 && !entry.residue_indices_1);
+
+// Fill missing atom or residue indices in an interaction
+// Note that the interaction is modified in place, so this is done only once per interaction
+const completeInteraction = (interaction, topology) => {
+    // Old interactions have residue indices only, so add atom indices
+    if (!interaction.atom_indices_1) {
+        interaction.atom_indices_1 = topology.residue2atomIndices(interaction.residue_indices_1);
+        interaction.atom_indices_2 = topology.residue2atomIndices(interaction.residue_indices_2);
+        interaction.interface_atom_indices_1 = topology.residue2atomIndices(interaction.interface_indices_1);
+        interaction.interface_atom_indices_2 = topology.residue2atomIndices(interaction.interface_indices_2);
+    }
+    // New interactions have atom indices only, so add residue indices
+    if (!interaction.residue_indices_1) {
+        interaction.residue_indices_1 = topology.atom2residueIndices(interaction.atom_indices_1);
+        interaction.residue_indices_2 = topology.atom2residueIndices(interaction.atom_indices_2);
+        interaction.interface_indices_1 = topology.atom2residueIndices(interaction.interface_atom_indices_1);
+        interaction.interface_indices_2 = topology.atom2residueIndices(interaction.interface_atom_indices_2);
+    }
+    return interaction;
+};
+
+// Get the ligand data of a ligand or inchikey reference
+// Inchikey references have it in 'ligand' ('pubchem' in old references), or nothing for some lipids
+// Old ligand references are the ligand data themselves, with the PubChem id as a string in 'pubchem'
+const getLigandData = reference => {
+    const ligandData = reference.ligand || reference.pubchem;
+    if (ligandData && typeof ligandData === 'object') return ligandData;
+    return reference;
+};
 
 // Set the project class
 export class Project {
@@ -78,6 +113,10 @@ export class Project {
             this.directions['populations'] = this.files && this.files.find(file => file === 'populations.json');
             this.directions['markov'] = this.analyses.includes('markov');
         }
+        // Set the allostery analysis, which is hidden unless available
+        if (this.analyses.includes('allostery')) this.directions['allostery'] = true;
+        // Set the chemical shifts analysis, which is hidden unless available
+        if (this.analyses.includes('chemshifts')) this.directions['chemical-shifts'] = true;
         // Set an internal object to save loading status of every call
         this._apiQueriesLoading = {};
         // Save the topology manager apart so we do not have to re-instantiate the class every time
@@ -115,67 +154,111 @@ export class Project {
         this._apiQueriesLoading[url] = apiQuery.loading;
         // Update the "is node responding" status
         if (apiQuery.payload) this.isNodeResponding = true;
-        if (apiQuery.error && apiQuery.error.noRespone) this.isNodeResponding = false;
+        if (apiQuery.error && apiQuery.error.noResponse) this.isNodeResponding = false;
         return apiQuery
     };
 
     // If this is the global client then check that the project exists in the source federated node
     // To do so, ask for any data which is not stored in the global server (e.g. topology data)
     // Thus we will force the global API to redirect the request to the federated node
-    // Use a timeout for this query to check if the node is responding, since this query should be fast
+    // If the node takes more than 5 seconds to answer then report it as not responding, since this query should be fast
+    // Note that this is a timer and not a request timeout, since the request is shared with the real topology loads
+    // A timeout would abort the topology for everyone, even if the node is just slow
     checkProblems = () => {
         // If this is not the global client then there is no need to check
         if (!HOST_CONFIG.global) return;
-        // Request topology data with a timeout of 5 seconds
-        const response = this._apiQuery('topology', undefined, 5000);
-        // If we are still loading then there is no problem
-        if (response.loading) return;
+        // Request topology data
+        const response = this._apiQuery('topology');
+        // Save the URL whose request has been loading for more than 5 seconds
+        const [lateUrl, setLateUrl] = useState(null);
+        const url = this._apiBaseUrl + this._apiEndpoints.topology;
+        useEffect(() => {
+            if (!response.loading) return;
+            const timer = setTimeout(() => setLateUrl(url), 5000);
+            return () => clearTimeout(timer);
+        }, [url, response.loading]);
+        // If we are still loading then there is no problem, unless we have been loading for too long
+        if (response.loading) {
+            if (lateUrl === url) return { message: 'The node is not responding', noResponse: true };
+            return;
+        }
         // If we have an error instead of throwing return the error itself
         if (response.error) return response.error;
         // If we finally got the response then it means we are good
         if (response.payload) return;
     }
 
-    // Interactions getter
-    get interactions () {
+    // Interactions index getter
+    // Note that here coexist the old and the new interactions data format
+    // Old interactions contain all interactions data in the main analysis
+    // New interactions have an index in the main analysis and every interaction data in a separated analysis
+    // In both cases, every entry in the index has at least the interaction name
+    // Use getInteraction to get the whole data of a specific interaction
+    get interactionsIndex () {
         // Ask the API for the interactions analysis
         const response = this._apiQuery('interactions', this.hasInteractions);
-        const payload = response && response.payload;
-        // We will need the topology to make some corretions in old interactions
-        const topology = this.topology;
-        // Once we have interactions data, in case it is in the old format, adapt it to the new format
-        const interactions = useMemo(() => {
-            if (!payload || !topology) return;
-            // Fix old interaction by adding atom indices
-            // Iterate interactions in the payload
-            for (const interaction of response.payload) {
-                // If the interaction already has atom indices then there is nothing to do here
-                if (interaction.atom_indices_1) continue;
-                // If this is an old version then add atom indices
-                interaction.atom_indices_1 = topology.residue2atomIndices(interaction.residue_indices_1);
-                interaction.atom_indices_2 = topology.residue2atomIndices(interaction.residue_indices_2);
-                interaction.interface_atom_indices_1 = topology.residue2atomIndices(interaction.interface_indices_1);
-                interaction.interface_atom_indices_2 = topology.residue2atomIndices(interaction.interface_indices_1);
-            }
-            // Fill new interactions by adding residue indices
-            // Iterate interactions in the payload again
-            for (const interaction of response.payload) {
-                // If the interaction already has atom indices then there is nothing to do here
-                if (interaction.residue_indices_1) continue;
-                // If this is an old version then add atom indices
-                interaction.residue_indices_1 = topology.atom2residueIndices(interaction.atom_indices_1);
-                interaction.residue_indices_2 = topology.atom2residueIndices(interaction.atom_indices_2);
-                interaction.interface_indices_1 = topology.atom2residueIndices(interaction.interface_atom_indices_1);
-                interaction.interface_indices_2 = topology.atom2residueIndices(interaction.interface_atom_indices_2);
-            }
-            return response.payload;
-        }, [payload, topology]);
         // Response is undefined when there are no interactions
         if (response === undefined) return undefined;
         if (response.loading) return undefined;
         if (response.error) throw new Error('Error when downloading project interactions: ' + response.error.message);
         if (!response.payload) throw new Error('Something went wrong with project interactions');
-        return interactions;
+        return response.payload;
+    }
+
+    // Get the whole data of a specific interaction, given its index
+    // In the new format, only the data of the requested interaction is downloaded
+    // Note that this function uses hooks, so it must be called as a hook
+    // Pass a null index to get no interaction at all
+    getInteraction = (index = 0) => {
+        const interactionsIndex = this.interactionsIndex;
+        const isIndex = Boolean(interactionsIndex) && isInteractionsIndex(interactionsIndex);
+        // Get the requested entry
+        // Note that it may be missing when the index is out of range
+        // This happens, for instance, right after changing MD, if the new MD has less interactions
+        const entry = interactionsIndex && index !== null ? interactionsIndex[index] : undefined;
+        // In the new format, ask the API for the interaction analysis
+        const analysisUrl = isIndex && entry ? `${this._apiBaseUrl}/analyses/${entry.analysis}` : null;
+        const response = useAPI(analysisUrl);
+        // In the old format the entry already has all the interaction data
+        const interactionData = isIndex ? response.payload : entry;
+        // We will need the topology to complete the interaction
+        const topology = this.topology;
+        const interaction = useMemo(() => {
+            if (!interactionData || !topology) return;
+            return completeInteraction(interactionData, topology);
+        }, [interactionData, topology]);
+        if (response.error) throw new Error(`Error when downloading interaction "${entry.name}": ` + response.error.message);
+        return interaction;
+    }
+
+    // Get the whole data of all interactions
+    // Note that in the new format this means downloading every interaction analysis
+    // Use getInteraction instead when only one interaction is needed
+    // Interactions which fail to download are skipped
+    // Note that this function uses hooks, so it must be called as a hook
+    getAllInteractions = () => {
+        const interactionsIndex = this.interactionsIndex;
+        const isIndex = Boolean(interactionsIndex) && isInteractionsIndex(interactionsIndex);
+        // In the new format, ask the API for every interaction analysis
+        const analysesUrls = useMemo(() => {
+            if (!isIndex) return [];
+            return interactionsIndex.map(entry => `${this._apiBaseUrl}/analyses/${entry.analysis}`);
+        }, [interactionsIndex, isIndex]);
+        const responses = useBatchAPI(analysesUrls, 'json');
+        // We will need the topology to complete interactions
+        const topology = this.topology;
+        return useMemo(() => {
+            if (!interactionsIndex || !topology) return;
+            if (!isIndex) return interactionsIndex.map(entry => completeInteraction(entry, topology));
+            // Make sure responses belong to the current urls and wait for all of them to finish
+            // Note that responses from previous urls may be returned before the new requests are sent
+            const isReady = responses.length === analysesUrls.length &&
+                responses.every((response, i) => response.url === analysesUrls[i] && !response.loading);
+            if (!isReady) return;
+            return responses
+                .filter(response => response.payload)
+                .map(response => completeInteraction(response.payload, topology));
+        }, [interactionsIndex, isIndex, analysesUrls, responses, topology]);
     }
 
     // References getter
@@ -208,7 +291,7 @@ export class Project {
             );
             // Get the ligand data only
             return inchikeyReferencesWithLigand.map(ref => {
-                const ligandReference = ref.ligand || ref.pubchem;
+                const ligandReference = getLigandData(ref);
                 // Make sure every ligand data has a name
                 if (!ligandReference.name) ligandReference.name = ref.name || 
                     (ref.lipidmaps && ref.lipidmaps.name) || 'Unnamed ligand';
@@ -228,10 +311,11 @@ export class Project {
             );
             // Get the ligand data only
             return inchikeyReferencesWithLigand.map(ref => {
-                const ligandReference = ref.ligand || ref.pubchem || ref;
-                // Make sure every ligand data has a name
-                if (!ligandReference.name) 
-                    ligandReference.name = ref.name || ref.swisslipids?.entity_name || ref.lipidmaps?.name || 'Unnamed ligand';
+                const ligandReference = getLigandData(ref);
+                // Name the ligand data after the lipid databases when it has no name
+                // Otherwise the overview names it after its residues (e.g. synthetic lipids like MC3)
+                if (!ligandReference.name)
+                    ligandReference.name = ref.name || ref.swisslipids?.entity_name || ref.lipidmaps?.name;
                 // Add the inchi reference inside the ligand reference
                 ligandReference.inchiRef = ref;
                 return ligandReference;
@@ -268,7 +352,10 @@ export class Project {
     }
     get collectionReferences () {
         const references = this.references;
-        return useMemo(() => references && references.filter(ref => ref.ref_type === 'collections'), [references]);
+        return useMemo(() => references && references
+            .filter(ref => ref.ref_type === 'collections')
+            .map(ref => new Reference(ref.ref_type, ref)),
+        [references]);
     }
 
     get membraneMapping () {
@@ -297,6 +384,10 @@ export class Project {
         const membraneMapping = this.membraneMapping;
         // Make sure data is available
         if (response.loading) return undefined;
+        // Wait for the mem-map to resolve before building the (built-once, cached) Topology; building it
+        // now would bake in missing membrane data, making getters like membraneViewerSelection flip
+        // mid-load. 'undefined' = still loading; resolved is either the payload or null (no membrane).
+        if (membraneMapping === undefined) return undefined;
         if (response.error) {
             // We handle this problem for the topology so the overview page can still request it and not crash
             if (response.error.noResponse) return undefined;
@@ -338,6 +429,9 @@ export class Project {
     // Note that the viewer would be already able to do it itself
     // However we do it from here since this data is to be reused along different pages
     // Thus we avoid having to download the same data every time
+    // WARNING: Nothing reads this getter at the moment. Reading it, even by destructuring the project context,
+    // downloads the full structure (74 MB for big systems), so read it only where the full structure is needed
+    // WARNING: This getter calls hooks, so it must be read on every render of a component or never
     get structureData () {
         // Ask the API for the structural data
         const response = this._apiQuery('structure');
@@ -351,27 +445,6 @@ export class Project {
         if (response.error) throw new Error('Error when downloading project structure: ' + response.error.message);
         if (!response.payload) throw new Error('Something went wrong with project structure');
         return structureData
-    }
-
-    // Get the main structure data parsed by NGL
-    get nglStructure () {
-        // Set a state to store the already parsed data
-        const [ nglStructure, setNglStructure ] = useState(undefined);
-        // Get the current structure data
-        const structureData = this.structureData;
-        // Load the structure data in NGL asynchronously    
-        useEffect(() => {
-            if (!structureData) return;
-            autoLoad(structureData, { defaultRepresentation: false, ext: "pdb" })
-                // Once the parse has been completed update the parsed structure state
-                .then(prasedStructure => { setNglStructure({ file: prasedStructure }) })
-                // If there is any problem then log it to the console
-                .catch(error => {
-                    console.error(error);
-                    setNglStructure({ error });
-                });
-        }, [structureData])
-        return nglStructure;
     }
 
     // Check if there is any loading query

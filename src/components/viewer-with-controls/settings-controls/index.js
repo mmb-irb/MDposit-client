@@ -1,5 +1,5 @@
 // React logic
-import React from 'react';
+import React, { lazy } from 'react';
 import cn from 'classnames';
 // Visual assets
 import { Grid, Icon, IconButton, Slider } from '@mui/material';
@@ -18,13 +18,19 @@ import {
   faBiking,
   faStarOfLife,
   faShareAlt, // It looks like connected atoms
+  faLayerGroup, // It looks like membrane leaflets
+  faVectorSquare, // It looks like the simulation box
 } from '@fortawesome/free-solid-svg-icons';
 
 import { setAsync } from '../../../utils/storage';
 
 // The two interchangeable viewer backends, used here only to compare/switch
-import MolstarViewer from '../../molstar-viewer';
 import NGLViewer from '../../ngl-viewer';
+// Mol* is a ~3 MB chunk only needed once the user switches to it, so it is loaded lazily
+// The lazy component is created once here so the identity checks below keep working
+const MolstarViewer = lazy(() =>
+  import(/* webpackChunkName: 'molstar-viewer' */ '../../molstar-viewer'),
+);
 
 // Import CSS style
 import style from './style.module.css';
@@ -64,10 +70,22 @@ const SettingsControls = ({
   setRequestedFramesNumber,
   // Available frame-number options (marks) for the frames slider
   frameNumbers,
+  // Membrane simulations only: enable + drive the reduced membrane view toggle
+  showMembraneToggle,
+  membraneReduced,
+  setMembraneReduced,
+  // Simulation box toggle and the reason why the box can not be shown, if so
+  boxUnavailableReason,
+  showBox,
+  toggleShowBox,
+  // When true, the controls are docked at the bottom of the representations panel
+  // (normal flow) instead of floating as a translucent overlay over the viewer
+  docked = false,
 }) => (
   <div
     className={cn(style['settings-controls'], {
       [style.dark]: darkBackground,
+      [style.docked]: docked,
     })}
   >
     <div className={style['stacked-icons']}>
@@ -141,6 +159,34 @@ const SettingsControls = ({
         <FontAwesomeIcon icon={perspective ? faSquare : faCube} />
       </IconButton>
 
+      {/* Membrane simulations: toggle the reduced membrane view (protein/solute + headgroups) */}
+      {/* When active only the membrane headgroups are loaded and shown as spacefill */}
+      {showMembraneToggle && (
+        <IconButton
+          title={membraneReduced
+            ? 'Simplified membrane view is ON: only the membrane headgroups (shown as spacefill) and the protein/solute are loaded. Click to load the whole membrane.'
+            : 'Simplified membrane view is OFF: the whole system is loaded. Click to show only the membrane headgroups as spacefill.'}
+          onClick={() => setMembraneReduced(previous => !previous)}
+          color={membraneReduced ? 'primary' : 'default'}
+          size="large"
+        >
+          <FontAwesomeIcon icon={faLayerGroup} />
+        </IconButton>
+      )}
+
+      {/* Disabled buttons get no mouse events, so the reason is shown in a wrapper */}
+      <span className={style['stacked-icons']} title={boxUnavailableReason || undefined}>
+        <IconButton
+          title={showBox ? 'Hide simulation box' : 'Show simulation box'}
+          onClick={toggleShowBox}
+          disabled={!!boxUnavailableReason}
+          color={showBox && !boxUnavailableReason ? 'primary' : 'default'}
+          size="large"
+        >
+          <FontAwesomeIcon icon={faVectorSquare} />
+        </IconButton>
+      </span>
+
       <IconButton
         title={`Switch viwer to ${Viewer === NGLViewer ? 'MolStar' : 'NGL'}`}
         onClick={() => {
@@ -158,13 +204,13 @@ const SettingsControls = ({
     {noTrajectory || (
       <div>
         Speed:
-        <Grid container spacing={2} className={style['extra-top-margin']}>
-          <Grid item>
+        <Grid container spacing={2}>
+          <Grid>
             <Icon>
               <FontAwesomeIcon icon={faWalking} />
             </Icon>
           </Grid>
-          <Grid item xs>
+          <Grid size="grow">
             <Slider
               title="Change player speed"
               value={speed}
@@ -175,7 +221,7 @@ const SettingsControls = ({
               }}
             />
           </Grid>
-          <Grid item>
+          <Grid>
             <Icon>
               <FontAwesomeIcon icon={faBiking} />
             </Icon>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 
 import ViewerSpawner from '.';
 
@@ -7,11 +8,14 @@ import ViewerSpawner from '.';
 describe('<ViewerSpawner />', () => {
   it('should render without crashing when there is no viewer to spawn', () => {
     const { container } = render(
-      <ViewerSpawner
-        accession="MCNS00001"
-        analysis="fluctuation"
-        requestedFrame="1"
-      />,
+      // Animated cards require a router context to re-animate on every location change
+      <MemoryRouter>
+        <ViewerSpawner
+          accession="MCNS00001"
+          analysis="fluctuation"
+          requestedFrame="1"
+        />
+      </MemoryRouter>,
     );
     expect(container).toBeEmptyDOMElement();
   });

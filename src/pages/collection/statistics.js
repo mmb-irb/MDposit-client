@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router';
 import { Button } from '@mui/material';
 import DataSummary from 'src/components/data-summary';
 import { HOST_CONFIG } from 'src/utils/constants';
@@ -8,7 +8,7 @@ import { HOST_CONFIG } from 'src/utils/constants';
 const CollectionStatistics = () => {
     const { id: collectionId } = useParams();
     // Collection names are loaded into HOST_CONFIG.collectionNiceNames at startup
-    const collectionName = HOST_CONFIG.collectionNiceNames[collectionId] || collectionId;
+    const collectionName = HOST_CONFIG.collectionNiceNames?.[collectionId] || collectionId;
 
     const internalQuery = useMemo(
         () => ({ 'metadata.COLLECTIONS': collectionId }), [collectionId]);

@@ -1,7 +1,8 @@
 // React
 import React, { useState, useEffect, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router';
 import { parse } from 'qs';
+import { isEqual } from 'lodash-es';
 
 // Additional components
 import Card from '../../../components/animated-card'; // The exceled parcels in which almost all features are based
@@ -16,7 +17,7 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Typography
+  Typography,
 } from '@mui/material';
 
 // CSS styles
@@ -163,16 +164,24 @@ const parseQuery = (currentQuery, currentLocation) => {
       parsedQuery[key] = { $regex: parsedValue, $options: 'i' };
       return;
     }
-    // In case it has min or max propierties it comes from a number range pair of textfields
+    // In case it has min or max propierties it comes from a number/date range pair of textfields
     if (value.min || value.max) {
       const parsedValue = {};
       if (value.min) {
-        if (isNaN(+value.min)) return ++errors;
-        parsedValue['$gt'] = +value.min;
+        if (currentField.type === 'date') {
+          parsedValue['$gt'] = value.min;
+        } else {
+          if (isNaN(+value.min)) return ++errors;
+          parsedValue['$gt'] = +value.min;
+        }
       }
       if (value.max) {
-        if (isNaN(+value.max)) return ++errors;
-        parsedValue['$lt'] = +value.max;
+        if (currentField.type === 'date') {
+          parsedValue['$lt'] = value.max;
+        } else {
+          if (isNaN(+value.max)) return ++errors;
+          parsedValue['$lt'] = +value.max;
+        }
       }
       parsedQuery[key] = parsedValue;
       return;
@@ -231,6 +240,16 @@ const parseQuery = (currentQuery, currentLocation) => {
     .join('&');
 };
 
+// Check if an URL leads to the current location, regardless of how its parameters are encoded or sorted
+export const isCurrentLocation = (url, currentLocation) => {
+  const [pathname, search = ''] = url.split('?');
+  if (pathname !== currentLocation.pathname) return false;
+  return isEqual(
+    parse(search),
+    parse(currentLocation.search, { ignoreQueryPrefix: true }),
+  );
+};
+
 // Set the tag to be shown for null and undefined values
 const NA_TAG = 'Not defined';
 
@@ -271,8 +290,10 @@ const CustomSearch = () => {
 
   // Make a function to parse the query once built and browse
   const parseAndSearch = () => {
-    isUserInitiatedSearchRef.current = true; // Set the ref instead of state
     const browseURL = parseQuery(query, location);
+    // The query is reset on every URL change, so navigating to the same URL would push a duplicate history entry
+    if (isCurrentLocation(browseURL, location)) return;
+    isUserInitiatedSearchRef.current = true; // Set the ref instead of state
     history(browseURL);
   };
 
@@ -456,6 +477,11 @@ const CustomSearch = () => {
                       >
                         <AccordionSummary className={style.summary}>{field.name}</AccordionSummary>
                         <AccordionDetails>
+                          {field.experimental && (
+                            <p style={{ color: '#e60000', fontSize: '0.8rem', margin: '0 0 6px' }}>
+                              ⚠ This field is experimental. Results may be inaccurate.
+                            </p>
+                          )}
                           {(() => {
                             // Get the corresponding payload
                             if (optionsLoading) return <Loading />;
@@ -555,7 +581,7 @@ const CustomSearch = () => {
                               }
                               // Otherwise it must be a number, since booleans will always be in options
                               // Then show two textfields: one for the minimum and one for the maximum
-                              else {
+                              else if (field.type === 'int' || field.type === 'float') {
                                 // Get min and max values from query if available
                                 const minValue = currentQuery[field.path] && currentQuery[field.path].min || '';
                                 const maxValue = currentQuery[field.path] && currentQuery[field.path].max || '';
@@ -609,6 +635,34 @@ const CustomSearch = () => {
                                   </div>
                                 </>);
                               }
+                              // If the field is a date then offer a specialized selector
+                              else if (field.type === 'date') {
+                                return (<>
+                                  <div className={style.aligned}>
+                                    <span style={{padding: '3px'}}>From</span>
+                                    <TextField
+                                      type="date"
+                                      value={currentQuery[field.path]?.min || ''}
+                                      onChange={({ target: { value } }) =>
+                                        updateQueryValue(field.path, value, { isRange: true, rangeSide: 'min' })}
+                                      size="small"
+                                      className={style.spaced}
+                                    />
+                                  </div>
+                                  <div className={style.aligned}>
+                                    <span style={{padding: '3px'}}>To</span>
+                                    <TextField
+                                      type="date"
+                                      value={currentQuery[field.path]?.max || ''}
+                                      onChange={({ target: { value } }) =>
+                                        updateQueryValue(field.path, value, { isRange: true, rangeSide: 'max' })}
+                                      size="small"
+                                      className={style.spaced}
+                                    />
+                                  </div>
+                                </>);
+                              }
+                              else throw new Error(`Unknown field type ${field.type}`);
                             }
                           })()}
                         </AccordionDetails>

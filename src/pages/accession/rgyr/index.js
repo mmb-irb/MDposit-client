@@ -40,6 +40,9 @@ const Rgyr = () => {
   // Rgyr analysis comes in nanometers (nm) and we want it in Ångstroms (Å) so we must multuply by 10 all values
   useMemo(() => {
     if (!payload) return;
+    // If we already multiplied the values by 10 then skip this
+    if (payload.inAngstroms) return;
+    payload.inAngstroms = true;
     const rgyr = payload.y['rgyr'];
     rgyr.data = rgyr.data.map(v => v * 10);
     rgyr.average = rgyr.average * 10;

@@ -32,7 +32,8 @@ const residueOptions = [
 // DANI: La guinda sería un 'custom' en las opciones de residuos
 // DANI: La idea sería desplegar dos residue selectors, uno para cada interaction agent
 const InteractionSelector = ({
-  interactions,
+  interactions, // The interactions index, which may have only the interaction names
+  interaction, // The whole data of the selected interaction, which may be still loading
   selectedInteraction,
   setSelectedInteraction,
   selectedResidues,
@@ -60,7 +61,9 @@ const InteractionSelector = ({
 
   if (!interactions) return <Loading />
 
-  const currentInteraction = interactions[selectedInteraction];
+  // Get the interacting agent names, if the selected interaction data is already available
+  const agent1 = interaction ? interaction.agent_1 : '';
+  const agent2 = interaction ? interaction.agent_2 : '';
 
   // Render
   return (
@@ -100,9 +103,7 @@ const InteractionSelector = ({
             label={firstOrderLabel}
             title={firstOrderTooltip}
             value={
-              selectedOrder
-                ? currentInteraction.agent_1
-                : currentInteraction.agent_2
+              selectedOrder ? agent1 : agent2
             }
           />
           <IconButton
@@ -117,9 +118,7 @@ const InteractionSelector = ({
             label={secondOrderLabel}
             title={secondOrderTooltip}
             value={
-              selectedOrder
-                ? currentInteraction.agent_2
-                : currentInteraction.agent_1
+              selectedOrder ? agent2 : agent1
             }
           />
         </>

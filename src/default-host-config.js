@@ -52,12 +52,12 @@ import logoNostrumWebP from 'src/images/logo-nostrum.webp';
 // options - Additional flags which may be used by the cliente
 
 // Get the requesting URL domain
-const HOST = process.env.REACT_APP_HOST_NAME || window.location.hostname;
+const HOST = window.location.hostname;
 
 // Set default values for every host config fields
 // These values are used to fill missing values
 const DEFAUL_HOST_CONFIGURATION = {
-    api: HOST === 'localhost' ? 'http://localhost:8000/rest/' : `https://${HOST}/api/rest/`,
+    api: `https://${HOST}/api/rest/`,
     production: false,
     name: 'MDposit',
     favicon: 'mdposit_favicon',
@@ -285,6 +285,7 @@ const nostrumConfig = {
 const HOST_CONFIGURATIONS = {
     // Testing
     'localhost': {
+        api: 'http://localhost:8000/rest/',
         palette: {
             primary: {
             light: '#eeeeee',
@@ -612,6 +613,19 @@ const HOST_CONFIGURATIONS = {
     'mddb.nostrumbiodiscovery.com': {
         api: `https://mddb.nostrumbiodiscovery.com/api/rest/`,
         ...nostrumConfig,
+    },
+    // it4i.mddbr.eu
+    'it4i.mddbr.eu': {
+        primaryColor: '#00aca0', // I got this blue from https://www.it4i.cz/en
+        logoLabel: 'IT4I node',
+        name:'MDposit IT4I',
+        searchExample: 'e.g. Banáš',
+        footers: [
+            {
+                image: "https://www.it4i.cz/cs/file/222f01b61ad06cfe6183ba03b7fc2567/1251/IT4I-EN.png",
+                url: "https://www.it4i.cz/en",
+            },
+        ]
     },
 };
 

@@ -67,7 +67,7 @@ export const PROTEIN_RESIDUE_NAME_LETTERS = {
     'SERC':'S',
     'THR':'T',
     'THRN':'T',
-    'THRC':'R',
+    'THRC':'T',
     'TRP':'W',
     'TRPN':'W',
     'TRPC':'W',
@@ -96,6 +96,7 @@ export const DNA_RESIDUE_NAME_LETTERS = {
     'DC5': 'C',
     'DG3': 'G',
     'DG5': 'G',
+    'THY': 'T',
 };
 export const RNA_RESIDUE_NAME_LETTERS = {
     'RA': 'A',
@@ -113,6 +114,7 @@ export const RNA_RESIDUE_NAME_LETTERS = {
     'RC5': 'C',
     'RG3': 'G',
     'RG5': 'G',
+    'URA': 'U',
 };
 export const NUCLEIC_RESIDUE_NAME_LETTERS = {
     ...DNA_RESIDUE_NAME_LETTERS,
@@ -126,6 +128,9 @@ export const NUCLEIC_RESIDUE_NAME_LETTERS = {
     'G': 'G',
     'G3': 'G',
     'G5': 'G',
+    'ADE': 'A',
+    'CYT': 'C',
+    'GUA': 'G',
 };
 // All of them together
 export const RESIDUE_NAME_LETTERS = {
@@ -161,12 +166,13 @@ export const FATTY_RESIDUE_NAMES = new Set([
 export const STEROID_RESIDUE_NAMES = new Set([ "CHL", "CHL1", "CHOL", "DCHOL" ]);
 
 // Set typical residue names to guess what residues are
-export const STANDARD_SOLVENT_RESIDUE_NAMES = new Set([ 'SOL', 'WAT', 'HOH', 'TIP', 'TP3', 'SWM4' ]);
+export const STANDARD_SOLVENT_RESIDUE_NAMES = new Set([ 'SOL', 'WAT', 'HOH', 'TIP', 'TP3', 'SWM4', 'W' ]);
 // WARNING: Note that standard names also include + and - symbols
 // Use functions such as Structure.select_counter_ions instead of checking if the set includes a name
 export const STANDARD_COUNTER_CATION_ATOM_NAMES = new Set([ 'K', 'NA', 'SOD', 'POT' ]);
 export const STANDARD_COUNTER_ANION_ATOM_NAMES = new Set([ 'CL', 'CLA' ]);
 export const STANDARD_COUNTER_ION_ATOM_NAMES = STANDARD_COUNTER_CATION_ATOM_NAMES.union(STANDARD_COUNTER_ANION_ATOM_NAMES)
-export const STANDARD_DUMMY_ATOM_NAMES = new Set([ 'MW' ]);
+// Note that dummy atom names are regular expression patterns
+export const STANDARD_DUMMY_ATOM_NAMES = new Set([ 'MW', 'LP1', 'DM*', 'EPW' ]);
 export const DUMMY_ATOM_ELEMENT = 'Dm'
 export const CG_ATOM_ELEMENT = 'Cg'

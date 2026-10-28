@@ -1,6 +1,6 @@
 // React logic
 import React, { useMemo, useRef, useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router';
 import Row from './row';
 import Pagination from '../pagination';
 
