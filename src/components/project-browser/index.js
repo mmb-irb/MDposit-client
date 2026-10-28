@@ -89,7 +89,6 @@ const ProjectBrowser = ({ internalQuery }) => {
         const searchParameters = {
             search: search.search,
             query: search.query,
-            ref: search.ref,
             countMds: 'true',
         }
         if (sorting) searchParameters.sort = sorting.query;
