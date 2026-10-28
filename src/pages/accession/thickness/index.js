@@ -350,6 +350,8 @@ const Thickness = () => {
                         onProgress={updateColor}
                         ref={viewerRef}
                         rotateX={true}
+                        // Leaflets are recolored every frame (see updateColor), which MolStar does not support yet
+                        allowMolstar={false}
                     />
                 ) : (
                     <div style={{ height: '50vh' }} />

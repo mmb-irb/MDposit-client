@@ -252,8 +252,8 @@ const ViewerWithControls = forwardRef(
       // NGL selection of atoms to center the trajectory around, every frame
       centering = null,
       // Set if the user may switch to the MolStar viewer
-      // MolStar still lacks most features used in analysis pages (highlights, color schemes, meshes...)
-      allowMolstar = false,
+      // Pages opt out when MolStar lacks something they need (e.g. thickness)
+      allowMolstar = true,
       // The rest of properties paased to the NGLViewer
       ...props
     },

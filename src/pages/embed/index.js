@@ -140,7 +140,6 @@ const Embed = () => {
             className={style.container}
             startingComponents={startingComponents || undefined}
             targetResidue={targetResidue}
-            allowMolstar
           />
         </Card>
       </ProjectCtx.Provider>

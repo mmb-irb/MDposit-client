@@ -57,7 +57,6 @@ const Trajectory = () => {
             className={style.container}
             representationsState={representationsState}
             initialFocus={initialFocus}
-            allowMolstar
           />
         ) : (
           <div style={{ height: '50vh' }} />
