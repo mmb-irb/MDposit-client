@@ -73,7 +73,10 @@ describe('<ErrorBoundary />', () => {
   });
 
   describe('when a piece of the app code cannot be downloaded', () => {
-    const chunkError = () => Object.assign(new Error('Loading chunk 7 failed'), { name: 'ChunkLoadError' });
+    // What Chrome throws when a lazy import() fails
+    const chunkError = () => new TypeError(
+      'Failed to fetch dynamically imported module: https://mdposit.mddbr.eu/static/js/index.D6VLZitg.chunk.js'
+    );
 
     it('reloads the page without flashing the error message first', () => {
       renderAt('/bad', chunkError());

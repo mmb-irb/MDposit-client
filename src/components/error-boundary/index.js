@@ -5,6 +5,9 @@ import { Link } from 'react-router';
 // (e.g. a broken deploy or being offline) shows the error instead of reloading in a loop
 const CHUNK_RELOAD_KEY = 'chunkErrorReloadTime';
 const CHUNK_RELOAD_WINDOW = 10000; // ms
+// A failed lazy import() is a plain TypeError, with a different message in each browser
+// (Chrome, Firefox and Safari, in this order)
+const CHUNK_ERROR_MESSAGE = /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed/;
 
 // This is like the JavaScript catch{} block but for React components
 // Error boundaries do not catch errors inside event handlers
@@ -15,7 +18,7 @@ class ErrorBoundary extends Component {
   componentDidCatch(error, errorInfo) {
     // If we are having a then we reload the page
     // This is usally caused by when we update the client code and make a new build
-    if (error.name === 'ChunkLoadError') {
+    if (CHUNK_ERROR_MESSAGE.test(error.message)) {
       // Storage may be blocked (e.g. the embed page in a third-party iframe): then reload as usual
       let lastReload = 0;
       try { lastReload = Number(sessionStorage.getItem(CHUNK_RELOAD_KEY)); } catch {}
