@@ -25,8 +25,7 @@ import { StateTransforms } from 'molstar/lib/mol-plugin-state/transforms';
 import { MolScriptBuilder as MS } from 'molstar/lib/mol-script/language/builder';
 import { Color } from 'molstar/lib/mol-util/color';
 import { Vec3 } from 'molstar/lib/mol-math/linear-algebra';
-import { Bond, Coordinates, Model, StructureElement, StructureProperties, Time } from 'molstar/lib/mol-model/structure';
-import { OrderedSet } from 'molstar/lib/mol-data/int';
+import { Coordinates, Model, StructureElement, Time } from 'molstar/lib/mol-model/structure';
 import { setDebugMode, setTimingMode } from 'molstar/lib/mol-util/debug';
 /*  Might require extra configuration,
 see https://webpack.js.org/loaders/sass-loader/ for example.
@@ -44,6 +43,7 @@ import { autoLoad } from 'ngl';
 import { nglSelectionToAtomIndices, needsNglSelection } from './ngl-selection';
 import { getPartialSystem, toWholeAtomIndex } from '../ngl-viewer/partial-system';
 import AtomDescription from '../atom-description';
+import { getHoveredAtoms } from './hovered-atoms';
 import { nglColorToTheme } from './ngl-color';
 import { nglOrientationToCamera, cameraToNglOrientation } from './ngl-orientation';
 
@@ -208,33 +208,6 @@ const atomIndicesToExpression = atomIndices =>
   MS.struct.generator.atomGroups({
     'atom-test': MS.core.set.has([MS.core.type.set(atomIndices), MS.acp('sourceIndex')]),
   });
-
-// Get an atom of a molstar structure: its index in the loaded topology, its name and its residue name
-const hoverLocation = StructureElement.Location.create();
-const getLoadedAtom = (structure, unit, element) => {
-  StructureElement.Location.set(hoverLocation, structure, unit, element);
-  return {
-    index: StructureProperties.atom.sourceIndex(hoverLocation),
-    name: StructureProperties.atom.label_atom_id(hoverLocation),
-    residueName: StructureProperties.atom.label_comp_id(hoverLocation),
-  };
-};
-
-// Get the atoms under the mouse from a molstar hovered loci: an atom or both atoms of a bond
-const getHoveredAtoms = loci => {
-  if (StructureElement.Loci.is(loci) && loci.elements.length > 0) {
-    const { unit, indices } = loci.elements[0];
-    return [getLoadedAtom(loci.structure, unit, unit.elements[OrderedSet.getAt(indices, 0)])];
-  }
-  if (Bond.isLoci(loci) && loci.bonds.length > 0) {
-    const { aUnit, aIndex, bUnit, bIndex } = loci.bonds[0];
-    return [
-      getLoadedAtom(loci.structure, aUnit, aUnit.elements[aIndex]),
-      getLoadedAtom(loci.structure, bUnit, bUnit.elements[bIndex]),
-    ];
-  }
-  return null;
-};
 
 // Duration of the camera transitions, as in the NGL viewer
 const FOCUS_TRANSITION_DURATION = 750; // ms
@@ -519,8 +492,10 @@ const MolstarViewer = memo(
             // WARNING: It is important to make the display block before calculating the position
             // This is because the position is calculated from the tooltip size, which would be 0 otherwise
             tooltip.style.display = 'block';
-            // Molstar gives the mouse position in the page, while the tooltip is fixed in the window
-            const mouse = { x: page[0] - window.scrollX, y: page[1] - window.scrollY };
+            // Molstar gives the mouse position relative to the canvas, despite calling it 'page'
+            // The tooltip position is calculated from the mouse position in the window
+            const canvas = molstar.canvas3dContext.canvas.getBoundingClientRect();
+            const mouse = { x: canvas.left + page[0], y: canvas.top + page[1] };
             const { x, y } = setTooltipPosition(container, tooltip, mouse, 3);
             tooltip.style.top = y + 'px';
             tooltip.style.left = x + 'px';

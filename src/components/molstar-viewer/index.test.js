@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, act } from '@testing-library/react';
+import { render, act, screen } from '@testing-library/react';
 
 import { ProjectCtx } from '../../contexts';
 
@@ -11,10 +11,13 @@ vi.mock('molstar/lib/mol-plugin-state/animation/built-in/model-index', () => ({}
 vi.mock('molstar/lib/mol-plugin-state/helpers/structure-representation-params', () => ({}));
 vi.mock('molstar/lib/mol-plugin-state/transforms', () => ({}));
 vi.mock('./molstar-parser', () => ({}));
+// Molstar loci are not easy to build, so the hovered atoms are given directly
+vi.mock('./hovered-atoms', () => ({ getHoveredAtoms: vi.fn() }));
 // jsdom has no IntersectionObserver
 vi.mock('react-intersection-observer', () => ({ useInView: () => [() => {}, false] }));
 
 const { createPluginUI } = await import('molstar/lib/mol-plugin-ui/index');
+const { getHoveredAtoms } = await import('./hovered-atoms');
 const MolstarViewer = (await import('.')).default;
 
 const viewer = ({ topology = {}, ...props } = {}) => (
@@ -84,6 +87,36 @@ describe('<MolstarViewer /> camera', () => {
     // Camera 80 Å away looking along +Z, so no rotation
     [80, 0, 0, 0, 0, 80, 0, 0, 0, 0, 80, 0, -10, -20, -30, 1].forEach((value, i) =>
       expect(orientation[i]).toBeCloseTo(value));
+  });
+});
+
+describe('<MolstarViewer /> tooltip', () => {
+  afterEach(() => vi.useRealTimers());
+
+  // Molstar gives the mouse position relative to the canvas, not to the page
+  it('shows the hovered atom next to the mouse', async () => {
+    let hover;
+    const plugin = fakePlugin();
+    plugin.behaviors.interaction.hover.subscribe = callback => {
+      hover = callback;
+      return { unsubscribe: vi.fn() };
+    };
+    plugin.canvas3dContext = { canvas: { getBoundingClientRect: () => ({ left: 63, top: 176 }) } };
+    createPluginUI.mockResolvedValue(plugin);
+    getHoveredAtoms.mockReturnValue([{ index: 5, name: 'CA', residueName: 'ALA' }]);
+    const residue = { chainName: 'A', chain: {}, number: 7 };
+    renderViewer({ topology: { getAtomByIndex: () => ({ residue }) } });
+    await act(async () => {});
+
+    vi.useFakeTimers();
+    // The mouse is at 275, 189 in the window
+    act(() => {
+      hover({ current: { loci: {} }, page: [212, 13] });
+      vi.advanceTimersByTime(400);
+    });
+    const tooltip = screen.getByText(/Atom 5 \(CA\)/);
+    // There is no layout in jsdom, so the tooltip is just 3 pixels away from the mouse
+    expect([tooltip.style.left, tooltip.style.top]).toEqual(['278px', '192px']);
   });
 });
 
