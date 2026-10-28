@@ -44,9 +44,9 @@
   line-height: 1.25;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: #5a5a5a;
-  background: #f7f7f8;
-  border-bottom: 1px solid #e2e2e5;
+  color: var(--mui-palette-text-secondary);
+  background: var(--mui-palette-surface-subtle);
+  border-bottom: 1px solid var(--mui-palette-divider);
   vertical-align: middle;
   padding: 8px 6px;
 }
@@ -63,13 +63,13 @@
 .table .nameCell {
   padding: 6px 6px;
   vertical-align: middle;
-  border-bottom: 1px solid #f0f0f2;
+  border-bottom: 1px solid var(--mui-palette-divider);
 }
 
 .table .nameCell {
   font-weight: 500;
   font-size: 0.8rem;
-  color: #2a2a2a;
+  color: var(--mui-palette-text-primary);
   line-height: 1.25;
   word-break: break-word;
 }
@@ -77,7 +77,7 @@
 /* Subtle row hover for readability */
 .table .row:hover .cell,
 .table .row:hover .nameCell {
-  background: rgba(0, 0, 0, 0.02);
+  background: var(--mui-palette-action-hover);
 }
 
 /* Controls fill their (proportional) column and shrink with it */

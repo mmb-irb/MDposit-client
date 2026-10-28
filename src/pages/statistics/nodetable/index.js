@@ -37,17 +37,17 @@ const renderHref = (nodeName, nodeUrl) => <a href={nodeUrl} target="_blank" rel=
 const renderStatusSymbol = status => {
   if (status === 'active') return (
     <Tooltip title="The node is working correctly">
-      <CheckCircleIcon style={{ color: 'green', marginTop: '0.5em' }} />
+      <CheckCircleIcon color="success" style={{ marginTop: '0.5em' }} />
     </Tooltip>
   );
   if (status === 'halted') return (
     <Tooltip title="The node is responding and the API is working, but the database is not responding">
-      <ErrorIcon style={{ color: 'orange', marginTop: '0.5em' }} />
+      <ErrorIcon color="warning" style={{ marginTop: '0.5em' }} />
     </Tooltip>
   );
   if (status === 'fallen') return (
     <Tooltip title="The node is not responding at all">
-      <ErrorIcon style={{ color: 'red', marginTop: '0.5em' }} />
+      <ErrorIcon color="error" style={{ marginTop: '0.5em' }} />
     </Tooltip>
   );
   throw new Error(`Not supported status ${status}`);
@@ -114,7 +114,7 @@ const NodeTable = ({ nodeData }) => {
         const countryCode = countryId.slice(0,2);
         const flag = <ReactCountryFlag countryCode={countryCode} svg
             style={{ width: "2.1em", height: "1.6em",
-                border: 'solid', borderWidth: "0.1em", borderColor: "black" }} />;
+                border: 'solid', borderWidth: "0.1em", borderColor: 'currentColor' }} />;
         // Set the client URL
         // HARDCODE: We technically do not know the cliente URL from the API
         // HARDCODE: However the format in all nodes is similar enought nowadays

@@ -289,7 +289,7 @@ const ChemicalShifts = () => {
   // Set the mark for the selected atom in the global graph
   const marks = useMemo(() => {
     if (!selected) return [];
-    return [{ x: selected.graphIndex, attr: { fill: '#c8c8c8' } }];
+    return [{ x: selected.graphIndex }];
   }, [selected]);
 
   // Set the atoms to be highlighted in the viewer
@@ -337,7 +337,7 @@ const ChemicalShifts = () => {
     // Progress is a float number which ranges from 0 to 1
     // WARNING: This 'round' is only for the float problem (e.g. 57 = 56.9999...)
     const frame = Math.round(progress * (rangeLabels.length - 1));
-    temporalGraphRef.current.marks = [{ x: frame, attr: { fill: '#c8c8c8' } }];
+    temporalGraphRef.current.marks = [{ x: frame }];
   }, [rangeLabels]);
 
   // Render loading or error messages according with the API response

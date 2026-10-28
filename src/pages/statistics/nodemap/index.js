@@ -44,6 +44,12 @@ const MAP_CONFIGS = [
 const NodeMap = ({ nodeData, className }) => {
   // Get the paletter primary color
   const theme = useTheme();
+  // Countries, as styles since SVG attributes can't read CSS variables
+  const landStyle = {
+    outline: 'none',
+    fill: theme.vars.palette.divider,
+    stroke: theme.vars.palette.background.paper,
+  };
   const primary = theme.palette.primary.main;
   // Set node representations
   // Several nodes may be combined in a single representation to avoid overlaps
@@ -78,17 +84,15 @@ const NodeMap = ({ nodeData, className }) => {
       >
         <Geographies
           geography={map}
-          fill="#D6D6DA"
-          stroke="#FFFFFF"
           strokeWidth={0.5}
         >
           {({ geographies }) =>
             geographies.map((geo) => (
               <Geography key={geo.rsmKey} geography={geo} 
               style={{
-                default: { outline: "none" },
-                hover: { outline: "none" },
-                pressed: { outline: "none" },
+                default: landStyle,
+                hover: landStyle,
+                pressed: landStyle,
               }}/>
             ))
           }

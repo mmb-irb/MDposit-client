@@ -44,8 +44,15 @@ if (HOST_CONFIG.palette) {
   };
 }
 // Set custom styling theme
+// The palette is also written as --mui-* CSS variables, which the CSS modules use for their colours
+// The neutrals MUI has no token for are added here (e.g. --mui-palette-surface-subtle)
 const theme = createTheme({
-  palette: palette,
+  cssVariables: true,
+  palette: {
+    ...palette,
+    surface: { subtle: '#fafafa', muted: '#eeeeee' },
+    border: { strong: 'rgba(0, 0, 0, 0.23)' },
+  },
   components: {
     MuiTablePagination: {
       styleOverrides: {

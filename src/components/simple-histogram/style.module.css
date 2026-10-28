@@ -25,7 +25,7 @@
 .chart-bar-background {
   width: 50%;
   height: 24px;
-  background-color: #f0f0f0;
+  background-color: var(--mui-palette-surface-muted);
   border-radius: 4px;
   overflow: hidden;
 }

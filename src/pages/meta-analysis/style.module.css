@@ -24,7 +24,7 @@
 
 .hr {
   margin-top: 1.5em;
-  color: lightGrey;
+  color: var(--mui-palette-divider);
 }
 
 .section {
@@ -51,4 +51,8 @@
 
 .legend {
   margin: 1em;
+}
+
+.highlight {
+  color: var(--mui-palette-success-main);
 }

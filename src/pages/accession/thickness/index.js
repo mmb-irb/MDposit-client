@@ -191,7 +191,6 @@ const Thickness = () => {
     const marks = useMemo(() => {
         const selectedMark = {
             x: selected,
-            attr: { fill: '#c8c8c8' },
         };
         return [selectedMark];
     }, [selected]);

@@ -1,5 +1,5 @@
 .entries {
-  background-color: #d6d6d6;
+  background-color: var(--mui-palette-surface-muted);
   border-radius: 0 0 0.5em 0.5em;
   padding-bottom: 0.5em;
 }

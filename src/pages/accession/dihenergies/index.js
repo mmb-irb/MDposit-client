@@ -317,7 +317,6 @@ const DihedralEnergies = () => {
         if (selectedX === null) return [];
         const selectedMark = {
             x: selectedX,
-            attr: { fill: '#c8c8c8' },
         };
         return [selectedMark];
     }, [selectedX]);

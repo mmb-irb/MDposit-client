@@ -72,7 +72,6 @@ const FluctuationAnalysis = () => {
   const marks = useMemo(() => {
     return Array.from(selectedAtoms).map(atom => ({
       x: atom,
-      attr: { fill: '#c8c8c8' },
     }));
   }, [selectedAtoms]);
 

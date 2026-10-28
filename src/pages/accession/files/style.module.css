@@ -36,7 +36,7 @@
 }
 
 .details code {
-  background: #eee;
+  background: var(--mui-palette-surface-muted);
   border-radius: 0.25ch;
   padding: 0.5ch 0.75ch;
 }

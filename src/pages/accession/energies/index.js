@@ -360,7 +360,6 @@ const Energies = () => {
     if (selectedX === null) return bondMarks;
     const selectedMark = {
       x: selectedX,
-      attr: { fill: '#c8c8c8' },
     };
     return [selectedMark, ...bondMarks];
   }, [selectedX, strongBondMarks]);

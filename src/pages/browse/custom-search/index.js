@@ -19,6 +19,7 @@ import {
   AccordionDetails,
   Typography,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 
 // CSS styles
 import style from './style.module.css';
@@ -255,6 +256,7 @@ const NA_TAG = 'Not defined';
 
 // Advanced search page
 const CustomSearch = () => {
+  const theme = useTheme();
 
   // Get access to the history so wen can redirect the user later
   const history = useNavigate();
@@ -478,7 +480,7 @@ const CustomSearch = () => {
                         <AccordionSummary className={style.summary}>{field.name}</AccordionSummary>
                         <AccordionDetails>
                           {field.experimental && (
-                            <p style={{ color: '#e60000', fontSize: '0.8rem', margin: '0 0 6px' }}>
+                            <p style={{ color: theme.vars.palette.error.main, fontSize: '0.8rem', margin: '0 0 6px' }}>
                               ⚠ This field is experimental. Results may be inaccurate.
                             </p>
                           )}
@@ -515,12 +517,12 @@ const CustomSearch = () => {
                                       control={
                                         <Checkbox
                                           checked={isChecked}
-                                          style={{ color: 'rgb(110, 110, 110)', padding: '4px 9px' }}
+                                          style={{ color: theme.vars.palette.text.secondary, padding: '4px 9px' }}
                                           inputProps={{ 'data-key': option }}
                                         />
                                       }
                                       label={`${formatOptionLabel(option)} (${count})`}
-                                      style={{ color: '#303030' }}
+                                      style={{ color: theme.vars.palette.text.primary }}
                                     />
                                   );
                                 });

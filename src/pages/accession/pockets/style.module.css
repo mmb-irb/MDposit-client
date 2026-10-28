@@ -23,7 +23,7 @@
 }
 
 .selectedrow {
-  background-color: #76ff03;
+  background-color: rgba(var(--mui-palette-primary-mainChannel) / 0.16);
 }
 
 .graph {
@@ -37,5 +37,5 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: white;
+  background-color: var(--mui-palette-background-paper);
 }

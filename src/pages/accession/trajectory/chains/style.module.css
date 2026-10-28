@@ -10,9 +10,9 @@
   padding: 1ch;
   transform: translate(0, 0);
   border-radius: 0.5ch;
-  border: #d6d6d6 solid 1px;
+  border: var(--mui-palette-border-strong) solid 1px;
   visibility: hidden;
-  background: white;
+  background: var(--mui-palette-background-paper);
   text-decoration: none;
   z-index: 2000;
 }

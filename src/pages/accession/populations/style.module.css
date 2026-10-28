@@ -19,7 +19,7 @@
 }
 
 .selectedrow {
-  background-color: #76ff03;
+  background-color: rgba(var(--mui-palette-primary-mainChannel) / 0.16);
 }
 
 .row {

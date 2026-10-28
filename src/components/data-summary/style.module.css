@@ -15,7 +15,7 @@
 }
 
 .growthChart {
-  background-color: white;
+  background-color: var(--mui-palette-background-paper);
   border-radius: 4px;
 }
 
@@ -65,7 +65,7 @@
   border-collapse: separate;
   border-spacing: 0 0.5em;
   margin-bottom: 1em;
-  background: #fcfcfc;
+  background: var(--mui-palette-surface-subtle);
   box-shadow: 0 1px 6px 0 rgba(60,60,60,0.04);
   border-radius: 8px;
   overflow: hidden;
@@ -74,24 +74,24 @@
   padding: 0.7em 2em 0.5em 1em;
   text-align: center;
   vertical-align: bottom;
-  border-right: 1.5px solid #e0e0e0;
+  border-right: 1.5px solid var(--mui-palette-divider);
 }
 .summaryTable td:last-child {
   border-right: none;
 }
 .summaryTable .summaryTitle {
   font-weight: 600;
-  color: #222;
+  color: var(--mui-palette-text-primary);
   font-size: 1.15em;
-  border-bottom: 2px solid #e0e0e0;
-  background: #f6f8fa;
+  border-bottom: 2px solid var(--mui-palette-divider);
+  background: var(--mui-palette-surface-subtle);
   padding-bottom: 0.3em;
 }
 .summaryTable .summaryValue {
   font-weight: 400;
-  color: #333;
+  color: var(--mui-palette-text-primary);
   font-size: 1.1em;
-  background: #fff;
+  background: var(--mui-palette-background-paper);
   padding-top: 0.3em;
 }
 
@@ -114,7 +114,7 @@
 
 /* Shade every other logical row (pairs of cells) */
 .constantItem:nth-child(odd) > span {
-  background: rgba(0, 0, 0, 0.03);
+  background: var(--mui-palette-action-hover);
 }
 
 .constantLabel {
@@ -129,20 +129,6 @@
   font-weight: 400;
   padding: 4px 8px 4px 0;
   font-size: 0.875rem;
-}
-
-@media (prefers-color-scheme: dark) {
-  .constantItem:nth-child(odd) > span {
-    background: rgba(255, 255, 255, 0.04);
-  }
-}
-
-:root[data-theme="dark"] .constantItem:nth-child(odd) > span {
-  background: rgba(255, 255, 255, 0.04);
-}
-
-:root[data-theme="light"] .constantItem:nth-child(odd) > span {
-  background: rgba(0, 0, 0, 0.03);
 }
 
 .info {

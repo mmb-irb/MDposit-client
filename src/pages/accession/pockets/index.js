@@ -205,7 +205,6 @@ const Pockets = () => {
   const marks = useMemo(() => {
     const selectedMark = {
       x: selectedFrame,
-      attr: { fill: '#c8c8c8' },
     };
     return [selectedMark];
   }, [selectedFrame]);

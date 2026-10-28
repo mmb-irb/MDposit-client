@@ -23,6 +23,7 @@ import {
 } from 'd3';
 
 import { FormControlLabel, Checkbox } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 
 import { NICE_NAMES } from '../../utils/constants';
 
@@ -162,6 +163,10 @@ const Graph = forwardRef(({
   const onSelectRef = useRef(noop);
   const marksRef = useRef(noop);
   const hoveredRef = useRef(noop);
+
+  // Marks are tinted with the host primary colour, like selected table rows
+  const theme = useTheme();
+  const markFill = `rgba(${theme.vars.palette.primary.mainChannel} / 0.3)`;
 
   // Get each dataset
   const { yEntries, yKeys } = useMemo(() => {
@@ -1036,7 +1041,9 @@ const Graph = forwardRef(({
           )
           .attr('y', offsetTop)  // Start from top offset
           .attr('height', height - offsetTop - offsetBottom)  // Use container height minus offsets
-          .attr('width', () => xUnitWidth);
+          .attr('width', () => xUnitWidth)
+          // A style rather than an attribute, since attributes can't read CSS variables
+          .style('fill', markFill);
         if (mark.attr)
           Object.entries(mark.attr).forEach(([key, value]) => {
             markRect.attr(key, value);

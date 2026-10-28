@@ -41,7 +41,7 @@
 }
 
 .grey {
-  color: grey;
+  color: var(--mui-palette-text-secondary);
 }
 
 /* copy of Typography component */
@@ -72,8 +72,8 @@
   white-space: pre-wrap;
   padding: 6px;
   font-size: 14px;
-  background-color: #fff;
-  border: 1px solid #ccc;
+  background-color: var(--mui-palette-background-paper);
+  border: 1px solid var(--mui-palette-border-strong);
   border-radius: 4px;
   margin-bottom: 14px;
 }
@@ -81,9 +81,9 @@
 .card-background {
   margin-bottom: 15px;
   padding: 0 10px 10px 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--mui-palette-divider);
   border-radius: 8px;
-  background-color: #f9f9f9;
+  background-color: var(--mui-palette-surface-subtle);
 }
 
 .decorated-list-item__title {

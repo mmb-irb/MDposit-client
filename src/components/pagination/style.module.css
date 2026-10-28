@@ -37,15 +37,9 @@
 
 .pagination-page-input {
   font-size: 0.875rem;
-  border: 1px solid rgba(0, 0, 0, 0.23);
+  border: 1px solid var(--mui-palette-border-strong);
   border-radius: 4px;
   padding: 0 4px;
-}
-
-@media (prefers-color-scheme: dark) {
-  .pagination-page-input {
-    border-color: rgba(255, 255, 255, 0.23);
-  }
 }
 
 .pagination-page-input :global(input) {
