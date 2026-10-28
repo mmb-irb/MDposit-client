@@ -251,6 +251,9 @@ const ViewerWithControls = forwardRef(
       onProgress,
       // NGL selection of atoms to center the trajectory around, every frame
       centering = null,
+      // Set if the user may switch to the MolStar viewer
+      // MolStar still lacks most features used in analysis pages (highlights, color schemes, meshes...)
+      allowMolstar = false,
       // The rest of properties paased to the NGLViewer
       ...props
     },
@@ -834,6 +837,7 @@ const ViewerWithControls = forwardRef(
       togglePerspective,
       Viewer,
       setViewer,
+      allowMolstar,
       speed,
       setSpeed,
       framesSelect,

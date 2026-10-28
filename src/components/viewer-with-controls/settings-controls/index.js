@@ -60,6 +60,8 @@ const SettingsControls = ({
   // Which viewer backend is active and its setter
   Viewer,
   setViewer,
+  // Whether the user may switch to the MolStar viewer (see ViewerWithControls)
+  allowMolstar = false,
   // Player speed state and setter
   speed,
   setSpeed,
@@ -187,19 +189,21 @@ const SettingsControls = ({
         </IconButton>
       </span>
 
-      <IconButton
-        title={`Switch viwer to ${Viewer === NGLViewer ? 'MolStar' : 'NGL'}`}
-        onClick={() => {
-          setViewer(currentViewer => {
-            if (currentViewer === NGLViewer) return MolstarViewer;
-            if (currentViewer === MolstarViewer) return NGLViewer;
-            throw new Error('Unrecognized current viewer');
-          });
-        }}
-        size="large"
-      >
-        <FontAwesomeIcon icon={Viewer === NGLViewer ? faStarOfLife : faShareAlt} />
-      </IconButton>
+      {allowMolstar && (
+        <IconButton
+          title={`Switch viwer to ${Viewer === NGLViewer ? 'MolStar' : 'NGL'}`}
+          onClick={() => {
+            setViewer(currentViewer => {
+              if (currentViewer === NGLViewer) return MolstarViewer;
+              if (currentViewer === MolstarViewer) return NGLViewer;
+              throw new Error('Unrecognized current viewer');
+            });
+          }}
+          size="large"
+        >
+          <FontAwesomeIcon icon={Viewer === NGLViewer ? faStarOfLife : faShareAlt} />
+        </IconButton>
+      )}
     </div>
     {noTrajectory || (
       <div>

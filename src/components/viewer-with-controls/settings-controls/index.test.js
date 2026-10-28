@@ -28,6 +28,7 @@ const Harness = () => {
         noTrajectory
         Viewer={Viewer}
         setViewer={setViewer}
+        allowMolstar
       />
       <Suspense fallback={null}>
         <Viewer />
@@ -55,6 +56,19 @@ describe('<SettingsControls /> viewer switch', () => {
     fireEvent.click(screen.getByTitle('Switch viwer to MolStar'));
     expect(await screen.findByText('molstar stub')).toBeInTheDocument();
     expect(mockMolstarLoads).toBe(1);
+  });
+
+  // Mol* lacks most of the analysis pages features, so pages must opt in
+  it('hides the switch unless the page allows Mol*', () => {
+    render(
+      <SettingsControls
+        viewerRef={{ current: null }}
+        noTrajectory
+        Viewer={NGLViewer}
+        setViewer={() => {}}
+      />,
+    );
+    expect(screen.queryByTitle('Switch viwer to MolStar')).not.toBeInTheDocument();
   });
 });
 
