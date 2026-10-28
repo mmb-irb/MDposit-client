@@ -261,6 +261,7 @@ const MolstarViewer = memo(
         darkBackground,
         perspective,
         speed,
+        centering, // NGL selection of atoms to center the trajectory around, every frame
         // Hooked values for changing representation parameters
         drawingMethods,
         coloringMethods,
@@ -410,8 +411,9 @@ const MolstarViewer = memo(
         if (subset) return true;
         const selections = (representations || []).map(representation => representation.selection);
         if (focus) selections.push(focus.sele);
+        selections.push(centering);
         return selections.some(needsNglSelection);
-      }, [subset, representations, focus]);
+      }, [subset, representations, focus, centering]);
       useEffect(() => {
         if (!needsNglStructure || nglStructure || !topologyFile) return;
         let cancelled = false;
@@ -420,6 +422,19 @@ const MolstarViewer = memo(
           .catch(error => console.error(error));
         return () => { cancelled = true };
       }, [needsNglStructure, nglStructure, topologyFile]);
+
+      // Atoms to center the trajectory around, every frame, if requested (e.g. the embed target residue)
+      // It is null when there is no centering, and undefined while NGL is still needed to find the atoms
+      const centeringAtomIndices = useMemo(() => {
+        if (!centering || !topologyManager) return null;
+        if ((subset || needsNglSelection(centering)) && !nglStructure) return undefined;
+        const atomIndices = nglSelectionToAtomIndices(centering, topologyManager, nglStructure, subset);
+        if (!atomIndices || atomIndices.length === 0) {
+          console.error(`Centering selection "${centering}" matches no atoms`);
+          return null;
+        }
+        return atomIndices;
+      }, [centering, topologyManager, nglStructure, subset]);
 
       // How many frames the trajectory is expected to have once fully downloaded, and
       // whether it is already fully downloaded - both read by the play/pause effect and
@@ -566,6 +581,9 @@ const MolstarViewer = memo(
           // If molstar or the main model are not set yet then we must wait
           if (!modelReference) return;
 
+          // If the trajectory must be centered then wait until we know around which atoms
+          if (centeringAtomIndices === undefined) return;
+
           const trajectory = trajectories[0];
 
           let trajectoryFinalExpectedFrames = 0;
@@ -603,7 +621,8 @@ const MolstarViewer = memo(
           const needsFullRebuild = !pipeline ||
             pipeline.modelReference !== modelReference ||
             pipeline.representations !== representations ||
-            pipeline.nglStructure !== nglStructure;
+            pipeline.nglStructure !== nglStructure ||
+            pipeline.centeringAtomIndices !== centeringAtomIndices;
 
           if (needsFullRebuild) {
             // Skip if a previous rebuild triggered by an earlier chunk is still in flight
@@ -634,6 +653,7 @@ const MolstarViewer = memo(
                 .apply(TrajectoryFromCustomData, {
                   data: payload.slice(0, fitLength),
                   natoms: trajectoryAtoms,
+                  centering: centeringAtomIndices,
                 })
                 .commit();
 
@@ -832,6 +852,7 @@ const MolstarViewer = memo(
                 modelReference,
                 representations,
                 nglStructure,
+                centeringAtomIndices,
                 coordsRef: coords.ref,
                 trajectoryRef: molstarTrajectory.ref,
                 modelFromTrajectory: newModel,
@@ -856,7 +877,8 @@ const MolstarViewer = memo(
             // to rebuild or recommit anything
             const newBytes = payload.slice(pipeline.parsedBytes, fitLength);
             const previousFrameCount = pipeline.coordsData.frames.length;
-            const newFrames = parseCoordinateFrames(newBytes, trajectoryAtoms, previousFrameCount);
+            const newFrames = parseCoordinateFrames(
+              newBytes, trajectoryAtoms, previousFrameCount, pipeline.centeringAtomIndices);
             pipeline.coordsData.frames.push(...newFrames);
 
             const deltaCoords = Coordinates.create(newFrames, Time(1, 'step'), Time(0, 'step'));
@@ -895,6 +917,7 @@ const MolstarViewer = memo(
         representations,
         nglStructure,
         subset,
+        centeringAtomIndices,
         rebuildRetries,
         topologyManager,
         noTrajectory,

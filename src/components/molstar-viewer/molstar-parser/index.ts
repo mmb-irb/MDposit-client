@@ -83,12 +83,14 @@ export const TrajectoryFromCustomData = CreateTransformer({
     params: {
         data: PD.Value<Uint8Array>(new Uint8Array(), { isHidden: true }),
         natoms: PD.Value<number>(0, { isHidden: true }),
+        // Atoms to center every frame around, if any (see parseCoordinateFrames)
+        centering: PD.Value<ArrayLike<number> | null>(null, { isHidden: true }),
     },
 })({
     apply({ params }) {
         return Task.create('Parse atom coordinates', async (ctx) => {
             //ctx.update({ canAbort: true, message: 'Parsing trajectory...' });
-            const frames = parseCoordinateFrames(params.data, params.natoms);
+            const frames = parseCoordinateFrames(params.data, params.natoms, 0, params.centering);
             const molstarCoords = Coordinates.create(
                 frames,
                 Time(1, 'step'), // deltaTime
@@ -104,7 +106,10 @@ export const TrajectoryFromCustomData = CreateTransformer({
 // newly downloaded bytes of a trajectory that is still streaming in, without going through the
 // state-tree transform machinery for every single downloaded chunk
 // 'frameOffset' lets the resulting frames' Time values stay monotonic when parsing a later chunk
-export function parseCoordinateFrames(data: Uint8Array, natoms: number, frameOffset: number = 0): Frame[] {
+// 'centering' atoms, if any, are kept at the origin by translating every frame, as the NGL viewer does
+export function parseCoordinateFrames(
+    data: Uint8Array, natoms: number, frameOffset: number = 0, centering: ArrayLike<number> | null = null,
+): Frame[] {
     // Check the number of atoms to not be 0 (the default)
     if (natoms === 0) throw new Error('Number of atoms is 0');
     // Each coordinates is a float32 an thus it takes 4 bytes of space
@@ -137,6 +142,21 @@ export function parseCoordinateFrames(data: Uint8Array, natoms: number, frameOff
             z_coords[atom] = coordinates[count+2];
             // Update the byte offset
             count += 3;
+        }
+        if (centering && centering.length > 0) {
+            // Calculate the geometric center of the centering atoms and translate all atoms by it
+            let xSum = 0, ySum = 0, zSum = 0;
+            for (let i = 0; i < centering.length; i++) {
+                xSum += x_coords[centering[i]];
+                ySum += y_coords[centering[i]];
+                zSum += z_coords[centering[i]];
+            }
+            const x = xSum / centering.length, y = ySum / centering.length, z = zSum / centering.length;
+            for (let atom = 0; atom < natoms; atom++) {
+                x_coords[atom] -= x;
+                y_coords[atom] -= y;
+                z_coords[atom] -= z;
+            }
         }
         // Push the current frame to the overall frames list
         frameCoordinates.push({
