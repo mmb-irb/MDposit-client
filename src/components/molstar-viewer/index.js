@@ -287,9 +287,6 @@ const MolstarViewer = memo(
       },
       ref,
     ) => {
-      // Save the components object into a local constant which can be modified
-      const comps = useMemo(() => components, [components]);
-
       // Get project data
       const {
         metadata,
@@ -384,13 +381,19 @@ const MolstarViewer = memo(
         molstar.canvas3d?.setProps(getSettingsCanvasProps({ darkBackground, perspective, spinning }));
       }, [molstar, darkBackground, perspective, spinning]);
 
-      // Set the molstar model reference
-      const [modelReference, setModelReference] = useState(null);
+      // The molstar model of every topology, by the topology urlpath
+      const [topologyModels, setTopologyModels] = useState({});
+      // The file of every topology already parsed (or being parsed), by the topology urlpath
+      const parsedTopologiesRef = useRef(new Map());
 
-      // Track the currently built trajectory/structure/representations pipeline
+      // Track the currently built pipeline of every component, by component name
       // (root-level refs to discard on a real rebuild, and the live data objects that
       // can instead be grown in place while more trajectory data keeps streaming in)
+      const pipelinesRef = useRef(new Map());
+      // The pipeline of the main component, which is the one played and focused
       const trajectoryPipelineRef = useRef(null);
+      // The inputs and nodes of the last built representations
+      const representationsBuildRef = useRef(null);
       // The last built structure, which the camera focuses
       const [builtStructure, setBuiltStructure] = useState(null);
 
@@ -398,7 +401,9 @@ const MolstarViewer = memo(
       // It is parsed the first time one of these selections is to be represented or focused
       // The parsed file is kept as well, since the topology may change (e.g. reduced membrane view toggle)
       const [nglParse, setNglParse] = useState(null);
-      const topologyFile = topologies[0] && topologies[0].file;
+      const mainTopologyUrlpath = components && components[0] && components[0].topologyURL;
+      const mainTopology = topologies.find(topology => topology.urlpath === mainTopologyUrlpath);
+      const topologyFile = mainTopology && mainTopology.file;
       const nglStructure = nglParse && nglParse.file === topologyFile ? nglParse.structure : null;
 
       // Set if only a subset of the system atoms is loaded (e.g. the reduced membrane view or embed selections)
@@ -585,6 +590,8 @@ const MolstarViewer = memo(
       }, []);
 
       // Load topologies in molstar
+      // Every topology is parsed once into a model, which is saved by the topology urlpath
+      // Components find the model of their topology by this urlpath (see the trajectories effect)
       useEffect(() => {
         // Stop here if we are still loading topologies
         if (anyLoadingTopology) return;
@@ -592,121 +599,242 @@ const MolstarViewer = memo(
         if (!molstar) return;
         // Load each topology
         topologies.forEach(async topology => {
+          if (!topology.file) return;
+          // Skip topologies already parsed or being parsed
+          // Note that parsing is async, so its model may not be in the state yet
+          if (parsedTopologiesRef.current.get(topology.urlpath) === topology.file) return;
+          parsedTopologiesRef.current.set(topology.urlpath, topology.file);
           // Download and apply data
           const data = await molstar.builders.data.rawData(
-            { data: topology.file } /* replace with your URL */,
+            { data: topology.file },
             { state: { isGhost: true } },
           );
-          // DANI: Aunque no llegues a 'aplicarla' acabas teniendo una trayectoria de una frame en la data
           const trajectory = await molstar.builders.structure.parseTrajectory(data, 'pdb');
           // WARNING: Do not modify this model
-          // WARNING: Althought it should be the same model
+          // Components with trajectories build their own models from it and their coordinates
           const model = await molstar.builders.structure.createModel(trajectory);
-
-          // DANI: Esta función te acepta igual una trayectory que un model que una structure
-          // await molstar.builders.structure.hierarchy.applyPreset(structure, "default");
-
-          // console.log(molstar);
-          // console.log(molstar.managers.structure.hierarchy.current);
-
-          // // Set the representations (https://github.com/molstar/molstar/issues/68)
-          // // WARNING: Default MolStar representation is not the most efficient one so we have to tweak it
-          // // First set the different features we may encounter within the structure
-          // const components = {
-          //     polymer: await molstar.builders.structure.tryCreateComponent(structure, 'polymer'),
-          //     ligand: await molstar.builders.structure.tryCreateComponent(structure, 'ligand'),
-          //     //water: await molstar.builders.structure.tryCreateComponent(structure, 'water'),
-          // };
-          // // Now
-          // const builder = molstar.builders.structure.representation;
-          // const update = molstar.build();
-          // if (components.polymer) builder.buildRepresentation(update, components.polymer, {
-          //   type: 'line',
-          //   //typeParams: { alpha: 0.51 } // Make it transparent
-          // }, { tag: 'polymer' });
-          // if (components.ligand) builder.buildRepresentation(update, components.ligand, {
-          //   type: 'ball-and-stick'
-          // }, { tag: 'ligand' });
-          // //if (components.water) builder.buildRepresentation(update, components.water, { type: 'ball-and-stick', typeParams: { alpha: 0.6 } }, { tag: 'water' });
-          // await update.commit();
-
-          // Save the model reference inside the molstar reference
-          setModelReference(model.ref);
+          // Save the model reference by the topology urlpath
+          setTopologyModels(previous => ({ ...previous, [topology.urlpath]: model.ref }));
         });
       }, [molstar, anyLoadingTopology, topologies]);
 
-      // Load trajectories in molstar
+      // Load the components in molstar
+      // Every component has its own pipeline: the model of its topology, the coordinates of its trajectory,
+      // if any, and the structure the representations are built on. Components which are 'only topology'
+      // (e.g. pockets) or have no trajectory get their structure from the topology itself
       // Once trajectory bytes start arriving, build the playback pipeline immediately so the trajectory
       // can play while the rest of it keeps downloading, mirroring the NGL viewer's incremental behaviour
       // (see payload-to-ngl-file/updateNGLFile). This effect reruns on every downloaded chunk; most of
       // those reruns just grow the already-built trajectory in place (mutating the live molstar
       // Coordinates/Trajectory data directly) instead of rebuilding the whole
       // coords->trajectory->model->structure->representations pipeline, which would be far too expensive
-      // to redo on every network chunk. A full rebuild only happens when the represented model or the
-      // representation set itself changes.
+      // to redo on every network chunk. A component is only rebuilt when its model, its trajectory or its
+      // centering changes, and representations are rebuilt alone when only they change.
+      // Only the main (first) component is played, as in the NGL viewer
       useEffect(() => {
         // Wait for the molstar reference to be available
-        if (!molstar) return;
-        // If there must be no trajectory then stop here
-        if (noTrajectory) return;
+        if (!molstar || !components || components.length === 0) return;
         // This wrapper function is the most correct way to call awaits inside a use effect
         const wrap = async () => {
-          // Check if trajectories are
-          if (!topologies || !trajectories || trajectories.length === 0) return;
-
-          // If molstar or the main model are not set yet then we must wait
-          if (!modelReference) return;
-
           // If the trajectory must be centered then wait until we know around which atoms
           if (centeringAtomIndices === undefined) return;
 
-          const trajectory = trajectories[0];
+          const mainComponent = components[0];
+          const pipelines = pipelinesRef.current;
 
-          let trajectoryFinalExpectedFrames = 0;
+          // Set what every component needs: the model of its topology and its trajectory, if any
+          // Components which are not ready yet (topology or trajectory still downloading) are left for later
+          // A component which was already built keeps its current pipeline meanwhile
+          const inputs = new Map();
+          for (const comp of components) {
+            const modelRef = topologyModels[comp.topologyURL];
+            if (!modelRef) continue;
+            if (comp.onlyTopology) {
+              inputs.set(comp.name, { modelRef, urlpath: null });
+              continue;
+            }
+            // NGL joins several trajectories in a component, but no page uses more than one
+            if (!comp.framedURLs || comp.framedURLs.length === 0) continue;
+            if (comp.framedURLs.length > 1)
+              console.warn(`Molstar viewer: only the first trajectory of component "${comp.name}" is loaded`);
+            const urlpath = comp.framedURLs[0];
+            const trajectory = trajectories.find(trajectory => trajectory.urlpath === urlpath);
+            if (!trajectory) continue;
+            // If the trajectory has no atom count then read it from the already-parsed structure
+            // This may happen when we request coordinates using resindices or chaindices
+            const modelAtoms = molstar.state.data.cells.get(modelRef).obj.data.atomicHierarchy.atoms._rowCount;
+            const atoms = trajectory.atoms || modelAtoms;
+            // Only the first 'loadedBytes' bytes of the payload buffer are downloaded
+            const bytesPerFrame = atoms * BYTES_PER_ATOM;
+            const fitLength = Math.floor(trajectory.loadedBytes / bytesPerFrame) * bytesPerFrame;
+            // If there is not a whole frame yet then wait
+            if (fitLength === 0) continue;
+            inputs.set(comp.name, {
+              modelRef,
+              urlpath,
+              trajectory,
+              atoms,
+              fitLength,
+              // The trajectory is centered around atoms of the main topology
+              centering: comp.topologyURL === mainComponent.topologyURL ? centeringAtomIndices : null,
+            });
+          }
 
-          // If the trajectory has no atom count then read it from the already-parsed structure
-          // This may happen when we request coordinates using resindices or chaindices
-          const modelAtoms = molstar.state.data.cells.get(modelReference).obj.data.atomicHierarchy.atoms._rowCount;
-          const trajectoryAtoms = trajectory.atoms || modelAtoms;
+          // Check if all required data of the main trajectory is already downloaded
+          const mainInput = inputs.get(mainComponent.name);
+          if (mainInput && mainInput.trajectory) {
+            const totalFrames = mainInput.fitLength / (mainInput.atoms * BYTES_PER_ATOM);
+            expectedFramesRef.current = mainInput.trajectory.frames;
+            isCompleteRef.current = totalFrames === mainInput.trajectory.frames;
+          }
 
-          // Add the final expected frames for all frames in the component
-          trajectoryFinalExpectedFrames += trajectory.frames;
-
-          // Only the first 'loadedBytes' bytes of the payload buffer are downloaded
-          const payload = trajectory.payload;
-          const bytesPerFrame = trajectoryAtoms * BYTES_PER_ATOM;
-          const fitLength =
-            Math.floor(trajectory.loadedBytes / bytesPerFrame) * bytesPerFrame;
-
-          // If the total payload is empty then stop here
-          if (fitLength === 0) return;
-
-          // Calculate how many frames are there in total
-          const totalFrames = fitLength / bytesPerFrame;
-
-          // Check if all required data is already downloaded
-          const completedTrajectory =
-            totalFrames === trajectoryFinalExpectedFrames;
-          expectedFramesRef.current = trajectoryFinalExpectedFrames;
-          isCompleteRef.current = completedTrajectory;
-
-          const pipeline = trajectoryPipelineRef.current;
-          // A full rebuild is only required the first time, or if the represented model or the
-          // centering changed - not on every new chunk of the same trajectory
-          const needsFullRebuild = !pipeline ||
-            pipeline.modelReference !== modelReference ||
-            pipeline.centeringAtomIndices !== centeringAtomIndices;
+          // A component is rebuilt the first time, or if its model, its trajectory or its centering changed
+          // Not on every new chunk of the same trajectory
+          const isStale = (pipeline, input) => !pipeline ||
+            pipeline.modelRef !== input.modelRef ||
+            pipeline.urlpath !== input.urlpath ||
+            pipeline.centering !== input.centering;
+          const staleNames = [...inputs.keys()].filter(name => isStale(pipelines.get(name), inputs.get(name)));
+          // Components which are not anymore are discarded
+          const removedNames = [...pipelines.keys()].filter(name => !components.some(comp => comp.name === name));
           // When only the representations change, they are rebuilt alone
           // This keeps the parsed coordinates and the current frame, as the NGL viewer does
           // They are also rebuilt once NGL has parsed the topology, to represent the selections only NGL understands
-          const needsRepresentationsRebuild = needsFullRebuild ||
-            pipeline.representations !== representations ||
-            pipeline.nglStructure !== nglStructure;
+          const lastBuild = representationsBuildRef.current;
+          const needsRepresentationsRebuild = staleNames.length > 0 || removedNames.length > 0 || !lastBuild ||
+            lastBuild.representations !== representations ||
+            lastBuild.nglStructure !== nglStructure;
+
+          // Build the pipeline of a component, up to the structure the representations are built on
+          const buildPipeline = async (name, input) => {
+            const { modelRef, urlpath } = input;
+            // Components with no trajectory represent the topology itself
+            if (!urlpath) {
+              // Ask for the model as-is: the default is 'assembly', which for an MD topology
+              // searches for symmetry that isn't there, logs a warning, and falls back to exactly
+              // this anyway
+              const structure = await molstar.builders.structure.createStructure(
+                modelRef,
+                { name: 'model', params: {} },
+              );
+              return { modelRef, urlpath, centering: input.centering, rootRefs: [structure.ref], structure };
+            }
+
+            // Load the whole frames downloaded so far
+            const coords = await molstar
+              .build()
+              .toRoot()
+              .apply(TrajectoryFromCustomData, {
+                data: input.trajectory.payload.slice(0, input.fitLength),
+                natoms: input.atoms,
+                centering: input.centering,
+              })
+              .commit();
+
+            const molstarTrajectory = await molstar
+              .build()
+              .toRoot()
+              .apply(
+                TrajectoryFromModelAndCoordinates,
+                {
+                  modelRef,
+                  coordinatesRef: coords.ref,
+                },
+                { dependsOn: [modelRef, coords.ref] },
+              )
+              .commit();
+
+            // Get the current trajectory model
+            // From now on, this is the model to be modified and not the topology model
+            // NOTE: keep this as molstar's own ModelFromTrajectory. AnimateModelIndex finds the
+            // node to advance by selecting that exact transformer, so replacing it with a custom
+            // equivalent (as interpolating between frames would need) leaves the animation with
+            // nothing to drive: playback then silently does nothing, with no error anywhere.
+            // Such a replacement has to land together with its own playback driver
+            const newModel = await molstar.builders.structure.createModel(
+              molstarTrajectory,
+            );
+
+            // Ask for the model as-is (see above)
+            const rootStructure = await molstar.builders.structure.createStructure(
+              newModel,
+              { name: 'model', params: {} },
+            );
+
+            // Hold secondary structure at the first frame, so cartoon representations stop
+            // recomputing DSSP on every frame. Must sit above the components so it re-plants the
+            // cached result before the representations below it update
+            const frozenSecondaryStructure = molstar.build()
+              .to(rootStructure)
+              .apply(FrozenSecondaryStructure, {});
+            await frozenSecondaryStructure.commit();
+
+            return {
+              modelRef,
+              urlpath,
+              centering: input.centering,
+              // Deleting the trajectory root cascades to its model/structure/representations
+              // descendants (parent-child tree edges), unlike the coords->trajectory dependsOn edge
+              rootRefs: [coords.ref, molstarTrajectory.ref],
+              modelFromTrajectory: newModel,
+              baseModel: molstar.state.data.cells.get(modelRef).obj.data,
+              coordsData: coords.data,
+              trajectoryData: molstarTrajectory.data,
+              parsedBytes: input.fitLength,
+              structure: frozenSecondaryStructure.selector,
+            };
+          };
+
+          // DEV-ONLY: bundle components address atoms by unit id + element index, and molstar
+          // only reuses a bundle while its stored hash still matches the structure's. The hash
+          // covers unit ids and element arrays but not coordinates, and a coordinate-only remap
+          // preserves both, so it should hold for every frame of a trajectory. If that ever
+          // stopped being true the component would be quietly replaced by an EMPTY structure
+          // and its representation would just vanish - no error, nothing in the console - so
+          // check it explicitly rather than relying on someone noticing a missing membrane
+          const checkBundleComponents = () => {
+            const check = bundleComponentsRef.current;
+            if (!check || check.reported) return;
+            for (const built of check.components) {
+              const current = built.component.data;
+              if (current && current.elementCount === built.elementCount) continue;
+              check.reported = true; // Report once, not once per frame
+              console.error(
+                'Molstar viewer: bundle component "%s" changed from %d to %d atoms during ' +
+                  'playback. Its representation has most likely disappeared. The structure ' +
+                  'hash is no longer stable across frames, so components must go back to ' +
+                  'being built from expressions (slower, but correct).',
+                built.label,
+                built.elementCount,
+                current ? current.elementCount : 0,
+              );
+              return;
+            }
+          };
+
+          // Notify onProgress/currentFrame consumers whenever the current frame changes
+          // (playback tick or manual scrub), by watching the frame-index-controlling node
+          const subscribeProgress = newModel => {
+            if (progressSubscriptionRef.current) progressSubscriptionRef.current.unsubscribe();
+            progressSubscriptionRef.current = molstar.state.data.events.cell.stateUpdated.subscribe(
+              event => {
+                if (event.ref !== newModel.ref) return;
+                const modelIndex = (newModel.cell && newModel.cell.transform.params.modelIndex) || 0;
+                recordFrameTick(modelIndex);
+                if (import.meta.env.DEV) checkBundleComponents();
+                if (!onProgress) return;
+                const total = expectedFramesRef.current;
+                if (total <= 1) return;
+                onProgress(Math.min(1, Math.max(0, modelIndex / (total - 1))));
+              },
+            );
+          };
 
           // Build one molstar component + representation per data representation
           // (mirrors what the NGL viewer does with the same `representations`/`components` props)
+          // Every representation is built on the structure of its component, or the main component
           // Return the references of the built nodes, which are to be deleted to rebuild them
-          const buildRepresentations = async structure => {
+          const buildRepresentations = async () => {
             // Fall back to a single lightweight cartoon over the whole structure when there is
             // no representations data yet (e.g. still loading) or none was provided at all
             const reps = representations && representations.length > 0
@@ -714,17 +842,27 @@ const MolstarViewer = memo(
               : [{ selection: 'all', type: 'cartoon', color: 'chainid' }];
 
             const builtRefs = [];
-            // Built bundle components, kept only so the dev-only sanity check below can notice if
+            // Built bundle components, kept only so the dev-only sanity check above can notice if
             // one of them ever silently empties out during playback (see the check for why)
             const builtBundleComponents = [];
 
             for (const [repIndex, representation] of reps.entries()) {
               if (representation.show === false) continue;
+              // Find the structure of the representation component, if it is already built
+              const componentName = representation.component || mainComponent.name;
+              const pipeline = pipelines.get(componentName);
+              if (!pipeline) continue;
+              const structure = pipeline.structure;
+              // Selections are translated with the main topology (see nglSelectionToAtomIndices)
+              // Components with other topologies (e.g. pockets) only understand our own selections
+              const comp = components.find(comp => comp.name === componentName);
+              const sameTopology = comp && comp.topologyURL === mainComponent.topologyURL;
 
               // Resolve which atoms this representation targets, and build a component for them
               let component;
               const atomIndices = nglSelectionToAtomIndices(
-                representation.selection, topologyManager, nglStructure, subset);
+                representation.selection, topologyManager,
+                sameTopology ? nglStructure : null, sameTopology ? subset : null);
               if (atomIndices === null) {
                 // No filtering needed: represent the whole structure
                 component = structure;
@@ -827,137 +965,29 @@ const MolstarViewer = memo(
             buildingRef.current = true;
             setBuilding(true);
             try {
-              let built = pipeline;
-              if (needsFullRebuild) {
-                // Discard the previously built trajectory/structure/representations, if any
-                // Otherwise every rebuild would stack a new duplicate on top of the previous one
-                // Deleting the trajectory root cascades to its model/structure/representations
-                // descendants (parent-child tree edges), unlike the coords->trajectory dependsOn edge
-                if (pipeline) {
-                  await molstar
-                    .build()
-                    .delete(pipeline.coordsRef)
-                    .delete(pipeline.trajectoryRef)
-                    .commit();
-                }
-
-                // Load the whole frames downloaded so far
-                const coords = await molstar
-                  .build()
-                  .toRoot()
-                  .apply(TrajectoryFromCustomData, {
-                    data: payload.slice(0, fitLength),
-                    natoms: trajectoryAtoms,
-                    centering: centeringAtomIndices,
-                  })
-                  .commit();
-
-                const molstarTrajectory = await molstar
-                  .build()
-                  .toRoot()
-                  .apply(
-                    TrajectoryFromModelAndCoordinates,
-                    {
-                      modelRef: modelReference,
-                      coordinatesRef: coords.ref,
-                    },
-                    { dependsOn: [modelReference, coords.ref] },
-                  )
-                  .commit();
-
-                // Get the current trajectory model
-                // From now on, this is the model to be modified and not the model in modelReference
-                // NOTE: keep this as molstar's own ModelFromTrajectory. AnimateModelIndex finds the
-                // node to advance by selecting that exact transformer, so replacing it with a custom
-                // equivalent (as interpolating between frames would need) leaves the animation with
-                // nothing to drive: playback then silently does nothing, with no error anywhere.
-                // Such a replacement has to land together with its own playback driver
-                const newModel = await molstar.builders.structure.createModel(
-                  molstarTrajectory,
-                );
-
-                // Set the default representations
-                // Ask for the model as-is: the default is 'assembly', which for an MD topology
-                // searches for symmetry that isn't there, logs a warning, and falls back to exactly
-                // this anyway
-                const rootStructure = await molstar.builders.structure.createStructure(
-                  newModel,
-                  { name: 'model', params: {} },
-                );
-
-                // Hold secondary structure at the first frame, so cartoon representations stop
-                // recomputing DSSP on every frame. Must sit above the components so it re-plants the
-                // cached result before the representations below it update
-                const frozenSecondaryStructure = molstar.build()
-                  .to(rootStructure)
-                  .apply(FrozenSecondaryStructure, {});
-                await frozenSecondaryStructure.commit();
-                const structure = frozenSecondaryStructure.selector;
-
-                // DEV-ONLY: bundle components address atoms by unit id + element index, and molstar
-                // only reuses a bundle while its stored hash still matches the structure's. The hash
-                // covers unit ids and element arrays but not coordinates, and a coordinate-only remap
-                // preserves both, so it should hold for every frame of a trajectory. If that ever
-                // stopped being true the component would be quietly replaced by an EMPTY structure
-                // and its representation would just vanish - no error, nothing in the console - so
-                // check it explicitly rather than relying on someone noticing a missing membrane
-                const checkBundleComponents = () => {
-                  const check = bundleComponentsRef.current;
-                  if (!check || check.reported) return;
-                  for (const built of check.components) {
-                    const current = built.component.data;
-                    if (current && current.elementCount === built.elementCount) continue;
-                    check.reported = true; // Report once, not once per frame
-                    console.error(
-                      'Molstar viewer: bundle component "%s" changed from %d to %d atoms during ' +
-                        'playback. Its representation has most likely disappeared. The structure ' +
-                        'hash is no longer stable across frames, so components must go back to ' +
-                        'being built from expressions (slower, but correct).',
-                      built.label,
-                      built.elementCount,
-                      current ? current.elementCount : 0,
-                    );
-                    return;
-                  }
-                };
-
-                // Notify onProgress/currentFrame consumers whenever the current frame changes
-                // (playback tick or manual scrub), by watching the frame-index-controlling node
-                if (progressSubscriptionRef.current) progressSubscriptionRef.current.unsubscribe();
-                progressSubscriptionRef.current = molstar.state.data.events.cell.stateUpdated.subscribe(
-                  event => {
-                    if (event.ref !== newModel.ref) return;
-                    const modelIndex = (newModel.cell && newModel.cell.transform.params.modelIndex) || 0;
-                    recordFrameTick(modelIndex);
-                    if (import.meta.env.DEV) checkBundleComponents();
-                    if (!onProgress) return;
-                    const total = expectedFramesRef.current;
-                    if (total <= 1) return;
-                    onProgress(Math.min(1, Math.max(0, modelIndex / (total - 1))));
-                  },
-                );
-
-                built = {
-                  modelReference,
-                  centeringAtomIndices,
-                  coordsRef: coords.ref,
-                  trajectoryRef: molstarTrajectory.ref,
-                  modelFromTrajectory: newModel,
-                  baseModel: molstar.state.data.cells.get(modelReference).obj.data,
-                  coordsData: coords.data,
-                  trajectoryData: molstarTrajectory.data,
-                  parsedBytes: fitLength,
-                  structure,
-                };
-              } else {
-                // Discard the previous representations only, keeping the structure and its current frame
-                const update = molstar.build();
-                pipeline.representationRefs.forEach(ref => update.delete(ref));
-                await update.commit();
+              // Discard the previous representations first, then the pipelines which are to be rebuilt
+              // Otherwise every rebuild would stack a new duplicate on top of the previous one
+              const update = molstar.build();
+              if (lastBuild) lastBuild.representationRefs.forEach(ref => update.delete(ref));
+              for (const name of [...removedNames, ...staleNames]) {
+                const pipeline = pipelines.get(name);
+                if (!pipeline) continue;
+                pipeline.rootRefs.forEach(ref => update.delete(ref));
+                pipelines.delete(name);
               }
-              const representationRefs = await buildRepresentations(built.structure);
-              trajectoryPipelineRef.current = { ...built, representations, nglStructure, representationRefs };
-              if (needsFullRebuild) setBuiltStructure(built.structure);
+              await update.commit();
+              // Build the new pipelines
+              for (const name of staleNames) {
+                const pipeline = await buildPipeline(name, inputs.get(name));
+                pipelines.set(name, pipeline);
+                if (name === mainComponent.name && pipeline.modelFromTrajectory)
+                  subscribeProgress(pipeline.modelFromTrajectory);
+              }
+              const representationRefs = await buildRepresentations();
+              representationsBuildRef.current = { representations, nglStructure, representationRefs };
+              const mainPipeline = pipelines.get(mainComponent.name) || null;
+              trajectoryPipelineRef.current = mainPipeline;
+              if (staleNames.includes(mainComponent.name)) setBuiltStructure(mainPipeline.structure);
             } finally {
               buildingRef.current = false;
               setBuilding(false);
@@ -968,16 +998,18 @@ const MolstarViewer = memo(
             }
           }
 
-          // Grow the already-built trajectory in place with just the newly downloaded bytes
+          // Grow the already-built trajectories in place with just the newly downloaded bytes
           // AnimateModelIndex/ModelFromTrajectory both re-read frameCount live on every tick,
           // so mutating these live objects directly is picked up automatically, with no need
           // to rebuild or recommit anything
-          const current = trajectoryPipelineRef.current;
-          if (current && fitLength > current.parsedBytes) {
-            const newBytes = payload.slice(current.parsedBytes, fitLength);
+          for (const [name, input] of inputs) {
+            const current = pipelines.get(name);
+            if (!current || !current.trajectoryData || current.urlpath !== input.urlpath) continue;
+            if (input.fitLength <= current.parsedBytes) continue;
+            const newBytes = input.trajectory.payload.slice(current.parsedBytes, input.fitLength);
             const previousFrameCount = current.coordsData.frames.length;
             const newFrames = parseCoordinateFrames(
-              newBytes, trajectoryAtoms, previousFrameCount, current.centeringAtomIndices);
+              newBytes, input.atoms, previousFrameCount, current.centering);
             current.coordsData.frames.push(...newFrames);
 
             const deltaCoords = Coordinates.create(newFrames, Time(1, 'step'), Time(0, 'step'));
@@ -986,7 +1018,7 @@ const MolstarViewer = memo(
             current.trajectoryData.frameCount = current.trajectoryData.frames.length;
             current.trajectoryData.duration = current.trajectoryData.frames.length;
 
-            current.parsedBytes = fitLength;
+            current.parsedBytes = input.fitLength;
           }
 
           // Keep the animation's params in sync with the latest download state on every chunk
@@ -996,7 +1028,9 @@ const MolstarViewer = memo(
           // in 'once' mode), nothing else would ever catch it once it later hits the last frame
           // and stops for good, since there is no further chunk left to rerun this effect and
           // resume it - this was the exact scenario that got stuck playing to a halt
-          if (playing && isInView) {
+          // There is nothing to play if there must be no trajectory (e.g. a single frame)
+          const mainPipeline = pipelines.get(mainComponent.name);
+          if (!noTrajectory && mainPipeline && mainPipeline.trajectoryData && playing && isInView) {
             if (molstar.managers.animation.state.animationState === 'playing') {
               molstar.managers.animation.updateCurrentParams(getAnimationParams());
             } else {
@@ -1009,10 +1043,9 @@ const MolstarViewer = memo(
         wrap();
       }, [
         molstar,
-        modelReference,
-        topologies,
+        topologyModels,
         trajectories,
-        comps,
+        components,
         representations,
         nglStructure,
         subset,
@@ -1142,7 +1175,8 @@ const MolstarViewer = memo(
           },
           get totalFrames() {
             const pipeline = trajectoryPipelineRef.current;
-            if (!(molstar && pipeline)) return 1;
+            // The main component may have no trajectory at all (e.g. only topology)
+            if (!(molstar && pipeline && pipeline.trajectoryData)) return 1;
             return pipeline.trajectoryData.frameCount;
           },
           get totalExpectedFrames() {
