@@ -33,7 +33,7 @@
   align-items: center;
   gap: 0.4em;
   padding: 0.2em 0.5em;
-  border: 1px solid #ccc;
+  border: 1px solid var(--mui-palette-border-strong);
   border-radius: 1em;
   font-size: 0.85em;
   cursor: pointer;
@@ -45,11 +45,11 @@
 }
 
 .region:hover {
-  background-color: #eee;
+  background-color: var(--mui-palette-surface-muted);
 }
 
 .selected-region {
-  background-color: #76ff03;
+  background-color: rgba(var(--mui-palette-primary-mainChannel) / 0.16);
 }
 
 .swatch {

@@ -37,7 +37,7 @@
 
 .error-row > * {
   opacity: 0.6;
-  color:rgb(243, 36, 0);
+  color:var(--mui-palette-error-main);
 
 }
 .center {
@@ -119,6 +119,6 @@ th.center {
 }
 
 .small {
-  color: grey;
+  color: var(--mui-palette-text-secondary);
   font-size: small;
 }

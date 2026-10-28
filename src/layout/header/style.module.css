@@ -45,7 +45,7 @@
   font-family: Ubuntu;
   font-weight: 500;
   font-size: 18px;
-  color: black;
+  color: var(--mui-palette-primary-contrastText);
   top: 36px;
   left: 81px;
   max-width: 109px;

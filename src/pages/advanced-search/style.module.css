@@ -18,7 +18,7 @@
 }
 
 .grey {
-  color: grey;
+  color: var(--mui-palette-text-secondary);
 }
 
 .unpadded {

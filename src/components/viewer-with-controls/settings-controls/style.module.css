@@ -10,21 +10,21 @@
   bottom: 0;
   z-index: 1;
   /* Translucent background: the protein shows through the menu */
-  background-color: rgba(255, 255, 255, 0.75);
+  background-color: rgba(var(--mui-palette-background-paperChannel) / 0.75);
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
 }
 
 /* Slightly darker tint when the viewer background is dark so controls stay legible */
 .settings-controls.dark {
-  background-color: rgba(0, 0, 0, 0.35);
-  color: white;
+  background-color: color-mix(in srgb, var(--mui-palette-common-black) 35%, transparent);
+  color: var(--mui-palette-common-white);
 }
 
 /* MUI icon buttons carry their own (dark) color, so they don't inherit the
    panel color above. Invert them explicitly when the background is dark. */
 .settings-controls.dark button {
-  color: white;
+  color: var(--mui-palette-common-white);
 }
 
 /* Docked variant: the controls live at the bottom of the (always light)
@@ -46,7 +46,7 @@
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   color: inherit;
-  border-top: 1px solid #e2e2e5;
+  border-top: 1px solid var(--mui-palette-divider);
 }
 
 .settings-controls.docked.dark button {

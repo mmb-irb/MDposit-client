@@ -1,7 +1,7 @@
 .maps {
   height: 100%;
   width: 50%;
-  border: solid #000;
+  border: solid var(--mui-palette-text-primary);
   border-width: 0.2em 0 0.2em 0.2em;
 }
 

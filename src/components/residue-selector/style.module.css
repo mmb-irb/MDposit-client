@@ -44,8 +44,8 @@
   font-size: 85%;
   font-family: 'Courier New', monospace;
   cursor: pointer;
-  color: white;
-  background-color: black;
+  color: var(--mui-palette-common-white);
+  background-color: var(--mui-palette-common-black);
 }
 
 .extra-right-margin {
@@ -67,7 +67,7 @@
 .pointer {
   position: absolute;
   transform: translate(-0.75em, -0.3em);
-  border-top: solid 0.4em black;
+  border-top: solid 0.4em var(--mui-palette-common-black);
   border-left: solid 0.4em transparent;
   border-right: solid 0.4em transparent;
   pointer-events: none;

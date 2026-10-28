@@ -63,7 +63,7 @@
   display: inline-block;
   width: 100px;
   height: 12px;
-  border: 1px solid lightgrey;
+  border: 1px solid var(--mui-palette-border-strong);
 }
 
 /* Graphs share the remaining height of the column */
@@ -96,7 +96,7 @@
   height: 0.9em;
   margin-right: 0.3em;
   border-radius: 50%;
-  border: 1px solid lightgrey;
+  border: 1px solid var(--mui-palette-border-strong);
 }
 
 .graph {

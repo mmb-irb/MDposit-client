@@ -9,7 +9,7 @@
   flex-wrap: wrap;
   align-items: stretch;
   height: 100%;
-  color: black;
+  color: var(--mui-palette-text-primary);
 }
 
 .button {

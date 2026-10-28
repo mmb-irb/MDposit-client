@@ -14,7 +14,7 @@
 
 .tab-drop {
   padding-top: 1ch;
-  background-color: #f1f1f1;
+  background-color: var(--mui-palette-surface-muted);
 }
 
 /* DANI: El flex no funciona bien en ningun navegador al hacer wrap en columna y no tiene solución.
@@ -36,7 +36,7 @@ https://issues.chromium.org/issues/40425575#comment22 */
 }
 
 .disabled {
-  color: #999999;
+  color: var(--mui-palette-text-disabled);
 }
 
 .popper {

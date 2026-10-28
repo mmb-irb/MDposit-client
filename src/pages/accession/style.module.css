@@ -28,8 +28,8 @@
 
 .problem {
   margin-top: 1em;
-  border: 3px solid black;
-  background-color: #FA8072;
+  border: 3px solid var(--mui-palette-text-primary);
+  background-color: rgba(var(--mui-palette-error-mainChannel) / 0.5);
   padding: 1em;
   margin-bottom: 1em;
   display: flex;
