@@ -1,6 +1,7 @@
 import { Selection } from 'ngl';
 
 import { rangedSelectionParser } from '../../../utils/auxiliar-functions';
+import { toPartialSelection } from '../../ngl-viewer/partial-system';
 
 // Matches the "(:chain and (ranges))" chunks produced by topology.residueIndices2Ngl
 // e.g. "(:A and (1, 3-5)) or (:B and (1))"
@@ -37,11 +38,16 @@ export const needsNglSelection = selection =>
 // default representation (protein, ligands, membrane/lipids, ions, ...) uses, the atom lists
 // produced by topology.atomIndices2Ngl and the selection of a single residue
 // Any other selection is evaluated by NGL in the NGL structure, and selects nothing until it is available
-export const nglSelectionToAtomIndices = (selection, topologyManager, nglStructure) => {
+// If only a subset of the system atoms is loaded (e.g. the reduced membrane view) then topology atom indices
+// do not match the loaded atoms, so every selection is evaluated by NGL in the loaded structure, as in the
+// NGL viewer. Atom lists are translated with the subset partial system (see ngl-viewer/partial-system),
+// which is null when it is unknown which atoms are loaded (e.g. residue subsets resolved by the server)
+export const nglSelectionToAtomIndices = (selection, topologyManager, nglStructure, subset = null) => {
   if (!selection || selection === 'all') return null;
-  if (!isAppSelection(selection)) {
+  if (subset || !isAppSelection(selection)) {
     if (!nglStructure) return [];
-    return Array.from(nglStructure.getAtomIndices(new Selection(selection)));
+    const loadedSelection = subset ? toPartialSelection(subset.partialSystem, selection) : selection;
+    return Array.from(nglStructure.getAtomIndices(new Selection(loadedSelection)));
   }
   const residueMatch = selection.match(NGL_RESIDUE_SELECTION_REGEX);
   if (residueMatch) {

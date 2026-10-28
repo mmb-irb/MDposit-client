@@ -1,5 +1,6 @@
 import { autoLoad } from 'ngl';
 
+import { getPartialSystem } from '../../ngl-viewer/partial-system';
 import { nglSelectionToAtomIndices, needsNglSelection } from '.';
 
 // Build a PDB atom line with its fixed width columns
@@ -80,5 +81,26 @@ describe('NGL selection to atom indices', () => {
 
   it('selects nothing while NGL is not available yet', () => {
     expect(nglSelectionToAtomIndices('protein', topologyManager)).toEqual([]);
+  });
+
+  // e.g. the reduced membrane view, where topology atom indices do not match the loaded atoms
+  it('evaluates every selection with NGL when only a subset of atoms is loaded', async () => {
+    const nglStructure = await parseNglStructure();
+    // The loaded atoms are whole system atoms 10 to 18
+    const subset = { partialSystem: getPartialSystem([10, 11, 12, 13, 14, 15, 16, 17, 18], 20) };
+    const select = selection => nglSelectionToAtomIndices(selection, topologyManager, nglStructure, subset);
+    expect(select('(:A and (2))')).toEqual([4, 5, 6, 7]);
+    // Atom lists are translated to the loaded atoms, and atoms which are not loaded are dropped
+    expect(select('@12,19')).toEqual([2]);
+    expect(select('@19')).toEqual([]);
+    expect(select('all')).toBe(null);
+    expect(nglSelectionToAtomIndices('(:A and (2))', topologyManager, null, subset)).toEqual([]);
+  });
+
+  it('evaluates selections with NGL also when the loaded atoms are unknown', async () => {
+    const nglStructure = await parseNglStructure();
+    // e.g. residue subsets, where the server resolves which atoms are loaded
+    const subset = { partialSystem: null };
+    expect(nglSelectionToAtomIndices(':A and 1', topologyManager, nglStructure, subset)).toEqual([0, 1, 2, 3]);
   });
 });
