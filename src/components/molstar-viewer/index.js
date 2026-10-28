@@ -42,12 +42,12 @@ import { ProjectCtx } from '../../contexts';
 import { autoLoad } from 'ngl';
 import { nglSelectionToAtomIndices, needsNglSelection } from './ngl-selection';
 import { getPartialSystem, toWholeAtomIndex, toPartialColorScheme } from '../ngl-viewer/partial-system';
-import { nglSchemeToTheme, NglSchemeColorThemeProvider } from './ngl-color-scheme';
+import { nglSchemeToTheme, NglSchemeColorThemeProvider, isNglScheme } from './ngl-color-scheme';
 import AtomDescription from '../atom-description';
 import { getHoveredAtoms } from './hovered-atoms';
 import { getHighlights } from './highlights';
 import { nglColorToTheme } from './ngl-color';
-import { nglOrientationToCamera, cameraToNglOrientation } from './ngl-orientation';
+import { nglOrientationToCamera, cameraToNglOrientation, rotateSceneAroundX } from './ngl-orientation';
 
 import { MAXIMUM_PLAYER_FPS, interpolateSpeed } from '../../utils/player-speed';
 
@@ -310,6 +310,9 @@ const FOCUS_TRANSITION_DURATION = 750; // ms
 const FOCUS_EXTRA_RADIUS = 4; // Å
 // The NGL default view, used when there is no curated orientation: looking along +Z with Y up
 const DEFAULT_CAMERA_ROTATION = { direction: [0, 0, 1], up: [0, 1, 0] };
+// Rotation of the scene around the X axis when 'rotateX' is requested, as in the NGL viewer
+// This makes the Z axis go from bottom to top (e.g. membrane normals)
+const ROTATE_X_ANGLE = -1.57; // radians
 
 // Get the bounding sphere of the atoms in an NGL selection, or null if it selects no atom
 const getSelectionSphere = (structure, selection, topologyManager, nglStructure, subset) => {
@@ -362,6 +365,7 @@ const MolstarViewer = memo(
         perspective,
         speed,
         centering, // NGL selection of atoms to center the trajectory around, every frame
+        rotateX, // To rotate the scene so the Z axis goes from bottom to top
         // Hooked values for changing representation parameters
         drawingMethods,
         coloringMethods,
@@ -523,7 +527,8 @@ const MolstarViewer = memo(
       const needsNglStructure = useMemo(() => {
         if (subset) return true;
         // NGL color schemes are calculated with NGL as well
-        if ((representations || []).some(representation => representation.customScheme)) return true;
+        if ((representations || []).some(representation =>
+          representation.customScheme || isNglScheme(representation.color))) return true;
         const selections = (representations || []).map(representation => representation.selection);
         if (focus) selections.push(focus.sele);
         selections.push(centering);
@@ -941,12 +946,14 @@ const MolstarViewer = memo(
           // Get the molstar color theme of a representation painted with an NGL color scheme, if so
           // Schemes are made for the whole system, so in partial systems they are adapted, as in the NGL viewer
           // NGL is needed to calculate the colors, so representations are colored by chain until it is ready
+          // The scheme is either a 'custom' color with the scheme id apart or the color itself (e.g. lipid-inter)
           const getCustomColorTheme = (representation, sameTopology) => {
-            if (representation.color !== 'custom' || !representation.customScheme) return;
-            if (!sameTopology || !nglStructure) return;
+            const { color, customScheme } = representation;
+            const scheme = color === 'custom' ? customScheme : isNglScheme(color) ? color : null;
+            if (!scheme || !sameTopology || !nglStructure) return;
             const schemeId = subset
-              ? toPartialColorScheme(subset.partialSystem, topologyManager, representation.customScheme)
-              : representation.customScheme;
+              ? toPartialColorScheme(subset.partialSystem, topologyManager, scheme)
+              : scheme;
             return nglSchemeToTheme(nglStructure, schemeId);
           };
 
@@ -1132,9 +1139,11 @@ const MolstarViewer = memo(
         let rotation = null;
         if (isFirstFocus || (focus && focus.orient)) rotation = curatedOrientation;
         if (isFirstFocus && !rotation) rotation = DEFAULT_CAMERA_ROTATION;
+        // NGL rotates the scene once it has been focused the first time
+        if (isFirstFocus && rotateX) rotation = rotateSceneAroundX(rotation, ROTATE_X_ANGLE);
         const duration = isFirstFocus ? 0 : FOCUS_TRANSITION_DURATION;
         focusCamera(molstar.canvas3d.camera, structure, sphere, rotation, duration);
-      }, [molstar, builtStructure, focus, curatedOrientation, topologyManager, nglStructure, subset]);
+      }, [molstar, builtStructure, focus, curatedOrientation, rotateX, topologyManager, nglStructure, subset]);
 
       // The nodes of the built highlights, to remove them when they change
       const highlightRefsRef = useRef([]);

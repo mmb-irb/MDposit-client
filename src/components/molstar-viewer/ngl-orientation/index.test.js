@@ -1,4 +1,4 @@
-import { nglOrientationToCamera, cameraToNglOrientation } from '.';
+import { nglOrientationToCamera, cameraToNglOrientation, rotateSceneAroundX } from '.';
 
 // Build an orientation the way NGL does (see ViewerControls.getOrientation in NGL)
 // The rotation is given by rows, and it is stored column-major with every column scaled by the distance
@@ -44,6 +44,13 @@ describe('NGL orientation', () => {
   it('turns a camera back into the same NGL orientation', () => {
     const orientation = nglOrientation(ROTATION, 80, [10, 20, 30]);
     expectClose(cameraToNglOrientation(nglOrientationToCamera(orientation)), orientation);
+  });
+
+  // As NGL rotationGroup.rotateX(-1.57), which pages use to have the Z axis from bottom to top
+  it('rotates the scene around the X axis', () => {
+    const camera = rotateSceneAroundX({ direction: [0, 0, 1], up: [0, 1, 0] }, -Math.PI / 2);
+    expectClose(camera.direction, [0, -1, 0]);
+    expectClose(camera.up, [0, 0, 1]);
   });
 
   it('makes the up direction perpendicular to the view direction', () => {

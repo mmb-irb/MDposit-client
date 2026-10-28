@@ -52,6 +52,11 @@ export const NglSchemeColorThemeProvider = {
   isApplicable: () => true,
 };
 
+// Tell if a color is the id of a scheme registered by a page (see ColormakerRegistry.addScheme)
+// NGL built-in schemes (e.g. 'element') are not, since molstar has its own equivalent themes
+export const isNglScheme = color =>
+  typeof color === 'string' && color.toLowerCase() in ColormakerRegistry.userSchemes;
+
 // Get the molstar color theme of an NGL color scheme in a given NGL structure
 // The atoms of the structure must be those of the molstar structure, in the same order
 export const nglSchemeToTheme = (nglStructure, schemeId) => {

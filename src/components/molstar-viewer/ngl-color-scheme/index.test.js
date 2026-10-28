@@ -1,6 +1,6 @@
 import { autoLoad, ColormakerRegistry } from 'ngl';
 
-import { nglSchemeToTheme, NglSchemeColorThemeProvider } from '.';
+import { nglSchemeToTheme, NglSchemeColorThemeProvider, isNglScheme } from '.';
 
 // Build a PDB atom line with its fixed width columns
 const atomLine = (serial, name, resName, chain, resSeq) =>
@@ -36,6 +36,14 @@ describe('NGL color schemes in molstar', () => {
     expect([0, 3, 4, 7, 8].map(atom => color(atomLocation(atom)))).toEqual([
       0xff0000, 0xff0000, 0x00ff00, 0x00ff00, 0x0000ff,
     ]);
+  });
+
+  // Some pages pass the scheme id as the color itself (e.g. lipid-inter), which NGL accepts
+  it('tells the schemes registered by pages from other colors', () => {
+    expect(isNglScheme(schemeId)).toBe(true);
+    expect(isNglScheme('element')).toBe(false);
+    expect(isNglScheme('red')).toBe(false);
+    expect(isNglScheme(undefined)).toBe(false);
   });
 
   // e.g. the whole system and the reduced membrane view

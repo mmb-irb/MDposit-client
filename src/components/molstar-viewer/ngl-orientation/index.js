@@ -26,6 +26,15 @@ export const nglOrientationToCamera = orientation => {
   };
 };
 
+// Rotate the scene around its X axis, as NGL does with rotationGroup.rotateX(angle)
+// NGL rotates the scene in its own frame, so the camera directions in the model frame turn the other way
+export const rotateSceneAroundX = ({ direction, up, ...camera }, angle) => {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const rotate = ([x, y, z]) => [x, cos * y + sin * z, -sin * y + cos * z];
+  return { ...camera, direction: rotate(direction), up: rotate(up) };
+};
+
 // Get the NGL orientation matrix of a camera, the inverse of the function above
 export const cameraToNglOrientation = ({ target, distance, direction, up }) => {
   // Make the directions unit vectors, and the up direction perpendicular to the view direction
