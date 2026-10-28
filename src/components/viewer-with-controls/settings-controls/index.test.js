@@ -19,13 +19,14 @@ const SettingsControls = (await import('.')).default;
 const NGLViewer = (await import('../../ngl-viewer')).default;
 
 // Mimic how viewer-with-controls holds the backend and renders it
-const Harness = () => {
+const Harness = ({ noTrajectory = true }) => {
   const [Viewer, setViewer] = useState(NGLViewer);
   return (
     <>
       <SettingsControls
-        viewerRef={{ current: null }}
-        noTrajectory
+        viewerRef={{ current: { totalExpectedFrames: 10 } }}
+        noTrajectory={noTrajectory}
+        smooth
         Viewer={Viewer}
         setViewer={setViewer}
         allowMolstar
@@ -56,6 +57,15 @@ describe('<SettingsControls /> viewer switch', () => {
     fireEvent.click(screen.getByTitle('Switch viwer to MolStar'));
     expect(await screen.findByText('molstar stub')).toBeInTheDocument();
     expect(mockMolstarLoads).toBe(1);
+  });
+
+  // Mol* can not interpolate between frames, so the toggle would do nothing
+  it('disables smooth interpolation in Mol*', async () => {
+    render(<Harness noTrajectory={false} />);
+    expect(screen.getByTitle('Toggle smooth interpolation off')).toBeEnabled();
+    fireEvent.click(screen.getByTitle('Switch viwer to MolStar'));
+    await screen.findByText('molstar stub');
+    expect(screen.getByTitle('Toggle smooth interpolation off')).toBeDisabled();
   });
 
   // Mol* lacks most of the analysis pages features, so pages must opt in

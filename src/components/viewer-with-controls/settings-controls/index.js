@@ -113,7 +113,9 @@ const SettingsControls = ({
         <div
           className={style['stacked-icons']}
           title={
-            hasPbcResidues
+            Viewer === MolstarViewer
+              ? 'Smooth interpolation is only available in the NGL viewer.'
+              : hasPbcResidues
               ? 'Smooth interpolation is not allowed since there are residues under Periodic Boundary Conditions. ' +
                 'The smoothing may result in misleading artifacts for those atoms jumping across boundaries.'
               : undefined
@@ -125,7 +127,8 @@ const SettingsControls = ({
             // If there are PBC residues then forbid the smooth to prevent misleads
             // Note that the smoothing may result in artifacts for those atoms jumping across boundaries
             // This is very clear for solvent/counter ions (breathing effect) and also visible in membrane residues
-            disabled={hasPbcResidues}
+            // MolStar plays whole frames only, so it can not interpolate
+            disabled={hasPbcResidues || Viewer === MolstarViewer}
             size="large"
           >
             <FontAwesomeIcon icon={smooth ? faImages : faVideo} />
