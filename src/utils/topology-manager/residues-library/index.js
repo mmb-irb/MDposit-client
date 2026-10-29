@@ -97,6 +97,31 @@ export const DNA_RESIDUE_NAME_LETTERS = {
     'DG3': 'G',
     'DG5': 'G',
     'THY': 'T',
+    // Residue names from Amber
+    'D3A': 'A',
+    'D3AE': 'A',
+    'D3C': 'C',
+    'D3CE': 'C',
+    'D3G': 'G',
+    'D3GE': 'G',
+    'D3T': 'T',
+    'D3TE': 'T',
+    'D5A': 'A',
+    'D5AE': 'A',
+    'D5C': 'C',
+    'D5CE': 'C',
+    'D5G': 'G',
+    'D5GE': 'G',
+    'D5T': 'T',
+    'D5TE': 'T',
+    'DAE': 'A',
+    'DAP': 'A',
+    'DCE': 'C',
+    'DCP': 'C',
+    'DGD': 'G',
+    'DGE': 'G',
+    'DTD': 'T',
+    'DTE': 'T',
 };
 export const RNA_RESIDUE_NAME_LETTERS = {
     'RA': 'A',
@@ -115,6 +140,13 @@ export const RNA_RESIDUE_NAME_LETTERS = {
     'RG3': 'G',
     'RG5': 'G',
     'URA': 'U',
+    // Residue names from Amber
+    'U3D': 'U',
+    'U3E': 'U',
+    'U5D': 'U',
+    'U5E': 'U',
+    'UD': 'U',
+    'UE': 'U',
 };
 export const NUCLEIC_RESIDUE_NAME_LETTERS = {
     ...DNA_RESIDUE_NAME_LETTERS,
@@ -131,6 +163,25 @@ export const NUCLEIC_RESIDUE_NAME_LETTERS = {
     'ADE': 'A',
     'CYT': 'C',
     'GUA': 'G',
+    // Residue names from Amber
+    'A3E': 'A',
+    'A3P': 'A',
+    'A5E': 'A',
+    'A5P': 'A',
+    'AE': 'A',
+    'AP': 'A',
+    'C3E': 'C',
+    'C3P': 'C',
+    'C5E': 'C',
+    'C5P': 'C',
+    'CE': 'C',
+    'CP': 'C',
+    'G3D': 'G',
+    'G3E': 'G',
+    'G5D': 'G',
+    'G5E': 'G',
+    'GD': 'G',
+    'GE': 'G',
 };
 // All of them together
 export const RESIDUE_NAME_LETTERS = {
@@ -162,7 +213,11 @@ export const FATTY_RESIDUE_NAMES = new Set([
     'PRPE', 'PRPG', 'PRPS', 'PUDG', 'PUPA', 'PUPC', 'PUPE', 'PUPI', 'PUPS',
     'PVDG', 'PVP', 'PVPI', 'PVSM', 'PYPC', 'SAPI', 'SAPI24', 'SAPI25', 'SDG',
     'SDPE', 'SLPI', 'SLiPC', 'SM16', 'SM18', 'SOPC', 'SSM', 'TLCL_0H', 'TMCL', 'TOCL',
-    'TPC', 'UPC', 'VPC', 'XNCE', 'XNSM']);
+    'TPC', 'UPC', 'VPC', 'XNCE', 'XNSM',
+    // Martini 3 lipids of the LNP-endosome systems
+    'SAPC', 'SDPC', 'PLPC', 'PLPE', 'PDPE', 'SAPE', 'SDPI', 'XSM', 'OSM',
+    // Ionizable lipid DLin-MC3-DMA, neutral and protonated
+    'MC3', 'MC3H']);
 export const STEROID_RESIDUE_NAMES = new Set([ "CHL", "CHL1", "CHOL", "DCHOL" ]);
 
 // Set typical residue names to guess what residues are
