@@ -1279,6 +1279,85 @@ export const documentation = [
         ),
       },
       {
+        id: 'clusters',
+        header: 'Clusters',
+        body: (
+          <>
+            The clusters analysis groups the trajectory frames in conformational states. One analysis is
+            run for the overall structure, using alpha carbons (CA) in proteins and C5' atoms in nucleic
+            acids (or all heavy atoms if there are none), and one more for every interaction, using the
+            heavy atoms of its interface residues. Atoms under periodic boundary conditions (PBC) are
+            excluded from this analysis.
+            <br />
+            <br />
+            Frames are superposed to the first frame over the selected atoms, and their coordinates are
+            reduced with PCA (Principal Component Analysis), keeping as many components as needed to
+            explain 95% of the variance. When frames are a time series with a known time step, TICA
+            (Time-lagged Independent Component Analysis) is then applied with a lag time of 1 ns. TICA
+            finds the slowest motions, so clusters stand for long-lived states rather than for wide but
+            fast fluctuations. TICA is not applied to ensembles, nor to trajectories too short to observe
+            repeated transitions between states (shorter than 10 times the time the slowest motion takes
+            to relax). At most 10 components are passed to the clustering.
+            <br />
+            <br />
+            Frames are clustered with HDBSCAN, a density-based algorithm which finds the number of
+            clusters by itself. A cluster must hold at least 1% of the frames (and at least 3 frames).
+            Frames out of any dense region are left as noise: noise frames between two different clusters
+            are transition frames, while noise frames which leave a cluster and come back to it are an
+            excursion. If no dense region is found then all frames form a single cluster. Transitions
+            between clusters are counted along the trajectory, skipping noise frames.
+            <br />
+            <br />
+            The most representative frame of each cluster is the closest one to the cluster center, and
+            the least representative frame is the farthest one. The screenshot of each cluster shows its
+            most representative frame, with the least representative one behind as a transparent
+            silhouette.
+            <br />
+            <br />
+            Analyses run with older versions of the workflow clustered up to 1000 frames according to the
+            RMSD between them, adjusting the RMSD cutoff until about 20 clusters were found. These analyses
+            have no excursions nor transition frames.
+            <br />
+            <br />
+            This analysis is powered by <TextLink name={'scikit-learn'} id={'sklearn'} /> and{' '}
+            <TextLink name={'MDtraj'} id={'mdtraj'} />. Screenshots are made with{' '}
+            <TextLink name={'VMD'} id={'vmd'} />.
+          </>
+        ),
+        page: (
+          <>
+            This is the clusters analysis.
+            <br />
+            <br />
+            Use the selector over the graph to switch between the overall clusters and the clusters of
+            each interaction interface.
+            <br />
+            <br />
+            Each node in the graph is a cluster, i.e. a conformational state, and shows a screenshot of
+            its most representative frame. The transparent silhouette behind it, if any, is its least
+            representative frame. Node areas are proportional to the number of frames in the cluster.
+            Arrows stand for transitions between clusters, and loops stand for excursions, where the
+            trajectory leaves a cluster and comes back to it without reaching another cluster. The more
+            times a transition or an excursion happens, the wider and darker its arrow.
+            <br />
+            <br />
+            The graph is <span style={{ color: 'lightGreen' }}>interactive</span>. Hover any node to show
+            its population among the displayed clusters and its most representative frame, and to fade the
+            arrows which are not connected to it. Hover any arrow or loop to show how many times it
+            happens. Click any node to open a <TextLink name={'viewer'} id={'ngl-viewer'} /> showing its
+            most representative frame. Click any arrow or loop to open a viewer playing the frames of the
+            first time it happened. Transitions with no frames in between, and those from analyses run
+            with older versions of the workflow, can not be clicked.
+            <br />
+            <br />
+            Use the sliders below the graph to change how many clusters are displayed, the most populated
+            first, and how many transitions, the most frequent first. Use the switch to show or hide the
+            excursion loops. Represented transitions is the percent of all transitions between clusters
+            which is drawn by the displayed arrows.
+          </>
+        ),
+      },
+      {
         id: 'markov',
         header: 'Markov Graph',
         body: (
@@ -2073,6 +2152,11 @@ export const documentation = [
     ],
   },
 ];
+
+// Show the analyses in alphabetical order, whatever their order above
+documentation
+  .find(doc => doc.id === 'analyses')
+  .children.sort((a, b) => a.header.localeCompare(b.header));
 
 // Get all blocks, including parent and children documentation blocks, in a single array
 export const docs = documentation.reduce((previous, current) => {
