@@ -847,9 +847,13 @@ export class Topology {
   // VIEWER PREDEFINED REPRESENTATIONS
   // --------------------------------------------------------------------
 
+  // WARNING: They are shared by every viewer of the MD, so they are frozen
+  // WARNING: Pages must copy them to customize them, or changes would reach the other pages
   get defaultRepresentations () {
     if (this._defaultRepresentations !== undefined) return this._defaultRepresentations;
-    this._defaultRepresentations = getDefaultRepresentations(this);
+    const representations = getDefaultRepresentations(this);
+    representations.forEach(representation => Object.freeze(representation));
+    this._defaultRepresentations = Object.freeze(representations);
     return this._defaultRepresentations;
   }
 

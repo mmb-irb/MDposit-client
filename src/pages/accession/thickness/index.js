@@ -216,14 +216,13 @@ const Thickness = () => {
     useMemo(() => {
         if (!components || !thicknessPayload.data || !memMapPayload) return;
         if (!defaultRepresentations || defaultRepresentations.length === 0) return;
-        const keepRepresentations = defaultRepresentations.filter(rep => (!rep.name.toLowerCase().includes('lipid')));
         setRepresentations(previous => {
             if (previous !== null) return previous;
-            keepRepresentations.forEach(rep => {
-                if (rep.name.toLowerCase().includes('protein') || chains?.indexOf(rep.selection.slice(1,2)) !== -1) {
-                    rep.color = 'grey';
-                }
-            });
+            const keepRepresentations = defaultRepresentations
+                .filter(rep => (!rep.name.toLowerCase().includes('lipid')))
+                .map(rep => rep.name.toLowerCase().includes('protein') || chains?.indexOf(rep.selection.slice(1,2)) !== -1
+                    ? { ...rep, color: 'grey' }
+                    : rep);
 
             // The thickness is calculated with the leaflets of every flat bilayer together
             // Vesicles and micelles have no thickness, and they may be the first membrane

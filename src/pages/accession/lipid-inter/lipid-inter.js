@@ -146,16 +146,16 @@ const LipidInteractions = () => {
   // Update representations when lipid or part selection changes
   useEffect(() => {
     if (!defaultRepresentations || defaultRepresentations.length === 0 || !selectedLipid) return;
-    defaultRepresentations.forEach(rep => {
-        if (rep.name.toLowerCase().includes('protein')) { 
-            rep.color = 'custom';
-            rep.type = 'spacefill';
-            rep.color = getSchemeForLipid(selectedLipid, selectedPart);
-            rep.customScheme = `${selectedLipid}_${selectedPart}`;
-        } else if (rep.name.toLowerCase().includes('lipid')) {
-            rep.color = 'grey';
-            rep.opacity = 0.1;
-        }
+    const baseRepresentations = defaultRepresentations.map(rep => {
+        if (rep.name.toLowerCase().includes('protein')) return {
+            ...rep,
+            type: 'spacefill',
+            color: getSchemeForLipid(selectedLipid, selectedPart),
+            customScheme: `${selectedLipid}_${selectedPart}`,
+        };
+        if (rep.name.toLowerCase().includes('lipid'))
+            return { ...rep, color: 'grey', opacity: 0.1 };
+        return rep;
     });
     const lipidRep = {
       'name': selectedLipid,
@@ -165,7 +165,7 @@ const LipidInteractions = () => {
       'selection': lipidSelection[selectedLipid],
     };
 
-    setRepresentations([...defaultRepresentations, lipidRep]);
+    setRepresentations([...baseRepresentations, lipidRep]);
   }, [selectedLipid, selectedPart, defaultRepresentations]);
 
   if (interactionsLoading) return <Loading />;

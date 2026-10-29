@@ -112,10 +112,8 @@ const Electrostatic = () => {
       // If this is the first render then set the representation with some default values
       if (previousRepresentations === null) {
         // Make the default representations transparent
-        defaultRepresentations.forEach(rep => {
-          rep.customScheme = chargesColorScheme;
-          rep.opacity = 0.1;
-        });
+        const baseRepresentations = defaultRepresentations.map(rep =>
+          ({ ...rep, customScheme: chargesColorScheme, opacity: 0.1 }));
         // Create a new representation for each interface
         // Set the surfaced representation
         const firstAgentInterface = {
@@ -133,7 +131,7 @@ const Electrostatic = () => {
         };
         // Join all representations and update the state
         return [
-          ...defaultRepresentations,
+          ...baseRepresentations,
           firstAgentInterface,
           secondAgentInterface,
         ];

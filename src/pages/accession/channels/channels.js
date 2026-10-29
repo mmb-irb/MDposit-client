@@ -124,18 +124,18 @@ const Channels = () => {
   useEffect(() => {
     if (!defaultRepresentations || defaultRepresentations.length === 0) return;
       setRepresentations(prev => {
-        defaultRepresentations.forEach(rep => {
-                if (rep.name.toLowerCase().includes('protein')){
-                    rep.opacity = 0.6;
-                    }
+        const baseRepresentations = defaultRepresentations.map(rep => {
+                if (rep.name.toLowerCase().includes('protein'))
+                    return { ...rep, opacity: 0.6 };
                 if (rep.name.toLowerCase().includes('lipids'))
-                    rep.opacity = 0.05;
+                    return { ...rep, opacity: 0.05 };
+                return rep;
             });
         const poreLiningRepresentation = prev && prev.find(rep => rep.reference === 'pore-lining' );
         const poreFacingRepresentation = prev && prev.find(rep => rep.reference === 'pore-facing' );
         return poreLiningRepresentation && poreFacingRepresentation
-          ? [...defaultRepresentations, poreLiningRepresentation, poreFacingRepresentation]
-          : [...defaultRepresentations];
+          ? [...baseRepresentations, poreLiningRepresentation, poreFacingRepresentation]
+          : baseRepresentations;
       });
   }, [defaultRepresentations]);
 

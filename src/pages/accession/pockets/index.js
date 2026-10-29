@@ -144,10 +144,8 @@ const Pockets = () => {
       // Make sure the conditionals above are not met until we are ready to set the representations
       if (previousRepresentations !== null) return previousRepresentations;
       // Reduce the opacity of all default representations
-      defaultRepresentations.forEach(rep => {
-        rep.color = 'black';
-        rep.opacity = 0.3;
-      });
+      const baseRepresentations = defaultRepresentations.map(rep =>
+        ({ ...rep, color: 'black', opacity: 0.3 }));
       // Set the surface representation of each pocket, which are to be linked to the main component
       const pocketSurfaceRepresentations = data.map(pocket => ({
         name: pocket.name + ' surface',
@@ -171,7 +169,7 @@ const Pockets = () => {
       }));
       // Update the state
       const allRepresentations = [
-        ...defaultRepresentations,
+        ...baseRepresentations,
         ...pocketSurfaceRepresentations,
         ...pocketRepresentations
       ];

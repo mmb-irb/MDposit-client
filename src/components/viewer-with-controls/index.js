@@ -359,12 +359,14 @@ const ViewerWithControls = forwardRef(
     const defaultRepresentations = topology && topology.defaultRepresentations;;
 
     // Set the missing value completer for representations including the main component name
-    // Return true if there was any change
-    const completeRepresentationMissingFields = useCallback(targetObject => {
-      if (!finalComponents) return false;
+    // Return a completed copy, or the same representation if nothing was missing
+    // Representations are never modified, since they may be shared (e.g. the topology default representations)
+    const completeRepresentationMissingFields = useCallback(representation => {
+      if (!finalComponents) return representation;
       const defaults = {...DEFAULT_REPRESENTATION_PARAMETERS};
       defaults.component = finalComponents[0].name;
-      return completeMissingFields(targetObject, defaults);
+      const completed = { ...representation };
+      return completeMissingFields(completed, defaults) ? completed : representation;
     }, [finalComponents]);
 
     // Anytime representations change, check if there are any missing values and fill them
@@ -381,20 +383,19 @@ const ViewerWithControls = forwardRef(
         // If it has been passed then delegate the job to that component
         // Otherwise, we could interfere as it happend with pockets (it was hard to track the problem)
         if (representationsState) return;
-        const defRepresentations = [...defaultRepresentations];
-        defRepresentations.forEach(rep => 
-          completeRepresentationMissingFields(rep));
-        return setFinalRepresentations(defRepresentations);
+        return setFinalRepresentations(defaultRepresentations.map(rep =>
+          completeRepresentationMissingFields(rep)));
       }
       // Fill missing values among representations with default values
-      const changes = finalRepresentations.map(rep => 
+      const completedRepresentations = finalRepresentations.map(rep =>
         completeRepresentationMissingFields(rep));
       // If there was any value filled then update the state to trigger a rerender
       // DANI: Este es el responsable de esto:
       //   Warning: Cannot update a component (`blablabla`) while rendering a different component (`ForwardRef`).
-      //   To locate the bad setState() call inside `ForwardRef`, follow the stack trace as described in 
+      //   To locate the bad setState() call inside `ForwardRef`, follow the stack trace as described in
       //   https://reactjs.org/link/setstate-in-render
-      if (changes.some(v => v === true)) setFinalRepresentations([...finalRepresentations]);
+      if (completedRepresentations.some((rep, r) => rep !== finalRepresentations[r]))
+        setFinalRepresentations(completedRepresentations);
     }, [finalRepresentations, defaultRepresentations, completeRepresentationMissingFields]);
 
     // Reduced membrane view ------------------------------------------------------------------------

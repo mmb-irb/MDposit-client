@@ -53,6 +53,11 @@ const RepresentationsManager = memo(
     representations, // Array with all representations
     setRepresentations, // Representations setter
   }) => {
+    // Replace a representation by a copy with some fields changed
+    // Representations are never modified, since they may be shared (e.g. the topology default representations)
+    const updateRepresentation = (index, getChanges) =>
+      setRepresentations(previousRepresentations => previousRepresentations.map((representation, r) =>
+        r === index ? { ...representation, ...getChanges(representation) } : representation));
     return (
       <div className={style.container}>
         <Table
@@ -98,10 +103,7 @@ const RepresentationsManager = memo(
                     size="small"
                     title="Show/Hide representation"
                     onClick={() =>
-                      setRepresentations(previousRepresentations => {
-                        previousRepresentations[index].show = !previousRepresentations[index].show;
-                        return [...previousRepresentations];
-                      })
+                      updateRepresentation(index, previous => ({ show: !previous.show }))
                     }
                     color={'primary'}
                   >
@@ -120,11 +122,9 @@ const RepresentationsManager = memo(
                     variant="outlined"
                     onKeyPress={event => {
                       if (event.key !== 'Enter') return;
-                      setRepresentations(previousRepresentations => {
-                        if (!event.target || !event.target.value) return previousRepresentations;
-                        previousRepresentations[index].selection = event.target.value;
-                        return [...previousRepresentations];
-                      });
+                      if (!event.target || !event.target.value) return;
+                      const selection = event.target.value;
+                      updateRepresentation(index, () => ({ selection }));
                     }}
                     disabled={!representation.custom}
                     size="small"
@@ -139,10 +139,7 @@ const RepresentationsManager = memo(
                     sx={selectSx}
                     value={representation.type}
                     onChange={({ target: { value } }) => {
-                      setRepresentations(previousRepresentations => {
-                        previousRepresentations[index].type = value;
-                        return [...previousRepresentations];
-                      })
+                      updateRepresentation(index, () => ({ type: value }));
                     }}
                   >
                     {!DrawingMethodExists(representation.type) && (
@@ -165,10 +162,7 @@ const RepresentationsManager = memo(
                     sx={selectSx}
                     value={representation.color}
                     onChange={({ target: { value } }) => {
-                      setRepresentations(previousRepresentations => {
-                        previousRepresentations[index].color = value;
-                        return [...previousRepresentations];
-                      })
+                      updateRepresentation(index, () => ({ color: value }));
                     }}
                   >
                     {representation.customScheme === 'distorsion' ? (
@@ -196,10 +190,7 @@ const RepresentationsManager = memo(
                       size="small"
                       value={representation.opacity * 100}
                       onChange={(_, value) => {
-                        setRepresentations(previousRepresentations => {
-                          previousRepresentations[index].opacity = value / 100;
-                          return [...previousRepresentations];
-                        })
+                        updateRepresentation(index, () => ({ opacity: value / 100 }));
                       }}
                       className={style['popover-slider']}
                     />

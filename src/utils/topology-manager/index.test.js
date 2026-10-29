@@ -165,3 +165,14 @@ describe('membranes', () => {
     expect(classifications(topology)).toEqual(['ligand', 'ligand', 'fatty', 'fatty', 'ligand', 'solvent']);
   });
 });
+
+// They are shared by every viewer of the MD, so a page modifying them would change the other pages
+describe('default representations', () => {
+  it('can not be modified', () => {
+    const topology = makeMembraneTopology(BILAYER_MEMBRANE_MAPPING);
+    const representations = topology.defaultRepresentations;
+    expect(representations.length).toBeGreaterThan(0);
+    expect(() => { representations[0].component = 'Main' }).toThrow(TypeError);
+    expect(() => { representations.push({ name: 'extra' }) }).toThrow(TypeError);
+  });
+});

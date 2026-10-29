@@ -268,9 +268,7 @@ const Epitopes = () => {
         const newRepresentations = [];
         // Reduce the opacity of all default representations and set their color as black
         defaultRepresentations.forEach(representation => {
-          representation.opacity = 0.3;
-          representation.color = defaultRepresentationsColor;
-          newRepresentations.push(representation);
+          newRepresentations.push({ ...representation, opacity: 0.3, color: defaultRepresentationsColor });
         });
         // In case there are selected epitopes add an extra representation for each one
         selectedEpitopes.forEach((color, i) => {
@@ -290,9 +288,9 @@ const Epitopes = () => {
       }
       // If we already have previous representations then update them
       const newRepresentations = [];
-      // Add default representations as they are
-      // Note that we used originals so they will remain the same, even if they the user modified them
-      newRepresentations.push(...defaultRepresentations);
+      // Keep the previous default representations, which always come first
+      // Note that they keep the changes made by the user
+      newRepresentations.push(...previousRepresentations.slice(0, defaultRepresentations.length));
       // Set epitope representations using previous representations when possible
       // In case there are selected epitopes add an extra representation for each one
       // Note that epitopes which are no longer selected will have no representation
