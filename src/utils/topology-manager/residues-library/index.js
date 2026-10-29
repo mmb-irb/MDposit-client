@@ -227,7 +227,8 @@ export const STANDARD_SOLVENT_RESIDUE_NAMES = new Set([ 'SOL', 'WAT', 'HOH', 'TI
 export const STANDARD_COUNTER_CATION_ATOM_NAMES = new Set([ 'K', 'NA', 'SOD', 'POT' ]);
 export const STANDARD_COUNTER_ANION_ATOM_NAMES = new Set([ 'CL', 'CLA' ]);
 export const STANDARD_COUNTER_ION_ATOM_NAMES = STANDARD_COUNTER_CATION_ATOM_NAMES.union(STANDARD_COUNTER_ANION_ATOM_NAMES)
-// Note that dummy atom names are regular expression patterns
-export const STANDARD_DUMMY_ATOM_NAMES = new Set([ 'MW', 'LP1', 'DM*', 'EPW' ]);
+// Note that dummy atom names are regular expression patterns which must match the whole atom name, so 'DM.*' matches DM1, DM2...
+// WARNING: 'DM*' would match any name starting with D (e.g. the D2A beads of Martini unsaturated tails)
+export const STANDARD_DUMMY_ATOM_NAMES = new Set([ 'MW', 'LP1', 'DM.*', 'EPW' ]);
 export const DUMMY_ATOM_ELEMENT = 'Dm'
 export const CG_ATOM_ELEMENT = 'Cg'
