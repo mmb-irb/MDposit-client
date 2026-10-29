@@ -1,6 +1,10 @@
 import React from 'react';
 import { render, act, screen } from '@testing-library/react';
 
+import { Camera } from 'molstar/lib/mol-canvas3d/camera';
+import { Viewport } from 'molstar/lib/mol-canvas3d/camera/util';
+import { Vec3 } from 'molstar/lib/mol-math/linear-algebra';
+
 import { ProjectCtx } from '../../contexts';
 
 // Replace the Mol* plugin with a fake whose creation the test controls
@@ -38,9 +42,26 @@ const viewer = ({ topology = {}, ...props } = {}) => (
 );
 const renderViewer = props => render(viewer(props));
 
+// A fake of the molstar BehaviorSubjects (e.g. canvas3d.resized), which give new subscribers the last value
+const fakeSubject = value => {
+  const callbacks = new Set();
+  return {
+    subscribe: callback => {
+      callbacks.add(callback);
+      callback(value);
+      return { unsubscribe: () => callbacks.delete(callback) };
+    },
+    next: newValue => {
+      value = newValue;
+      callbacks.forEach(callback => callback(value));
+    },
+  };
+};
+
 // The speed effect reads the animation state as soon as the plugin is set
 // The play/pause effect stops the animation when there is a trajectory not playing
 // The tooltip effect listens to hovered atoms
+// The camera focus waits for the viewport to have a size
 const fakePlugin = () => ({
   dispose: vi.fn(),
   managers: {
@@ -48,7 +69,12 @@ const fakePlugin = () => ({
     interactivity: { setProps: vi.fn() },
   },
   behaviors: { interaction: { hover: { subscribe: () => ({ unsubscribe: vi.fn() }) } } },
-  canvas3d: { setProps: vi.fn() },
+  canvas3d: {
+    setProps: vi.fn(),
+    // Molstar has not sized its viewport yet
+    resized: fakeSubject(0),
+    camera: { viewport: Viewport.create(0, 0, 300, 150) },
+  },
 });
 
 describe('<MolstarViewer /> plugin lifecycle', () => {
@@ -77,9 +103,7 @@ describe('<MolstarViewer /> camera', () => {
   // Curators use this output to fill the ORIENTATION metadata field
   it('prints the camera as an NGL orientation', async () => {
     const plugin = fakePlugin();
-    plugin.canvas3d.camera = {
-      state: { target: [10, 20, 30], position: [10, 20, -50], up: [0, 1, 0] },
-    };
+    plugin.canvas3d.camera.state = { target: [10, 20, 30], position: [10, 20, -50], up: [0, 1, 0] };
     createPluginUI.mockResolvedValue(plugin);
     const ref = React.createRef();
     renderViewer({ ref });
@@ -239,77 +263,133 @@ describe('<MolstarViewer /> other NGL parameters', () => {
   });
 });
 
-describe('<MolstarViewer /> representations', () => {
-  // A fake molstar state, which records the changes of every commit
-  const fakeState = () => {
-    const commits = [];
-    let nodeCount = 0;
-    const build = () => {
-      const changes = [];
-      const node = ref => ({
-        ref,
-        selector: { ref },
-        apply: (transformer, params) => {
-          const child = node(`node${++nodeCount}`);
-          changes.push(['apply', ref, child.ref, params]);
-          return child;
-        },
-        update: params => changes.push(['update', ref, params]),
-      });
-      return {
-        to: target => node(target.ref || target),
-        delete: ref => changes.push(['delete', ref]),
-        commit: async () => { if (changes.length > 0) commits.push(changes) },
-      };
-    };
-    return { build, commits };
-  };
-
-  // Let molstar and every effect finish
-  const settle = () => act(() => new Promise(resolve => setTimeout(resolve, 0)));
-
-  // Render the viewer with a single component which represents its topology
-  // Representations select the whole structure, so molstar is not asked to find their atoms
-  const renderRepresentations = async (representations, { component, topology } = {}) => {
-    const plugin = fakePlugin();
-    const { build, commits } = fakeState();
-    const structure = { ref: 'structure', data: { boundary: { sphere: { center: [0, 0, 0], radius: 10 } } } };
-    Object.assign(plugin, {
-      build,
-      builders: {
-        data: { rawData: async () => ({ ref: 'data' }) },
-        structure: {
-          parseTrajectory: async () => ({ ref: 'trajectory' }),
-          createModel: async () => ({ ref: 'model' }),
-          createStructure: async () => structure,
-        },
+// A fake molstar state, which records the changes of every commit
+const fakeState = () => {
+  const commits = [];
+  let nodeCount = 0;
+  const build = () => {
+    const changes = [];
+    const node = ref => ({
+      ref,
+      selector: { ref },
+      apply: (transformer, params) => {
+        const child = node(`node${++nodeCount}`);
+        changes.push(['apply', ref, child.ref, params]);
+        return child;
       },
+      update: params => changes.push(['update', ref, params]),
     });
-    plugin.managers.structure = { measurement: {} };
-    plugin.canvas3d.camera = {
-      state: { target: [0, 0, 0], position: [0, 0, -50], up: [0, 1, 0] },
-      getInvariantFocus: () => ({}),
-      setState: vi.fn(),
+    return {
+      to: target => node(target.ref || target),
+      delete: ref => changes.push(['delete', ref]),
+      commit: async () => { if (changes.length > 0) commits.push(changes) },
     };
-    createPluginUI.mockResolvedValue(plugin);
-    const props = {
-      anyLoadingTopology: false,
-      topologies: [{ urlpath: 'topology', file: 'ATOM' }],
-      components: [{ name: 'main', topologyURL: 'topology', onlyTopology: true, ...component }],
-      topology,
-    };
-    const { rerender } = renderViewer({ ...props, representations });
-    for (let tick = 0; tick < 5; tick++) await settle();
-    // Change the representations as RepresentationsManager does: in place, then in a new array
-    const change = async edit => {
-      commits.length = 0;
-      edit(representations);
-      rerender(viewer({ ...props, representations: [...representations] }));
-      await settle();
-    };
-    return { commits, change };
+  };
+  return { build, commits };
+};
+
+// Let molstar and every effect finish
+const settle = () => act(() => new Promise(resolve => setTimeout(resolve, 0)));
+
+// Render the viewer with a single component which represents its topology
+// Representations select the whole structure, so molstar is not asked to find their atoms
+// The structure is a sphere of 10 Å around the origin, which the camera focuses
+const renderRepresentations = async (representations, { component, topology, canvas3d } = {}) => {
+  const plugin = fakePlugin();
+  const { build, commits } = fakeState();
+  const structure = { ref: 'structure', data: { boundary: { sphere: { center: [0, 0, 0], radius: 10 } } } };
+  Object.assign(plugin, {
+    build,
+    builders: {
+      data: { rawData: async () => ({ ref: 'data' }) },
+      structure: {
+        parseTrajectory: async () => ({ ref: 'trajectory' }),
+        createModel: async () => ({ ref: 'model' }),
+        createStructure: async () => structure,
+      },
+    },
+  });
+  plugin.managers.structure = { measurement: {} };
+  plugin.canvas3d.camera = {
+    ...plugin.canvas3d.camera,
+    state: { target: [0, 0, 0], position: [0, 0, -50], up: [0, 1, 0] },
+    getInvariantFocus: () => ({}),
+    setState: vi.fn(),
+  };
+  Object.assign(plugin.canvas3d, canvas3d);
+  createPluginUI.mockResolvedValue(plugin);
+  const props = {
+    anyLoadingTopology: false,
+    topologies: [{ urlpath: 'topology', file: 'ATOM' }],
+    components: [{ name: 'main', topologyURL: 'topology', onlyTopology: true, ...component }],
+    topology,
+  };
+  const { rerender } = renderViewer({ ...props, representations });
+  for (let tick = 0; tick < 5; tick++) await settle();
+  // Change the representations as RepresentationsManager does: in place, then in a new array
+  const change = async edit => {
+    commits.length = 0;
+    edit(representations);
+    rerender(viewer({ ...props, representations: [...representations] }));
+    await settle();
+  };
+  return { commits, change, plugin };
+};
+
+describe('<MolstarViewer /> camera focus', () => {
+  // Distance from which the default perspective camera frames a sphere in a viewport wider than high
+  // Molstar adds 4 Å around what it focuses
+  const framingDistance = radius => (radius + 4) / Math.sin(Math.PI / 8);
+  const cameraDistance = camera => Vec3.distance(camera.state.position, camera.state.target);
+
+  // Render the structure with a real molstar camera
+  // Its viewport was last sized by molstar at the given time, or never if 0
+  const renderWithCamera = async (viewport, resizeTime) => {
+    const camera = new Camera(undefined, viewport);
+    const { plugin } = await renderRepresentations([], {
+      canvas3d: { camera, resized: fakeSubject(resizeTime) },
+    });
+    return { camera, plugin };
   };
 
+  // Molstar resizes its viewport, as it does when the size of its container changes
+  const resize = async (plugin, width, height) => {
+    Viewport.set(plugin.canvas3d.camera.viewport, 0, 0, width, height);
+    await act(async () => plugin.canvas3d.resized.next(Date.now()));
+  };
+
+  // e.g. a spawned viewer switched to Mol* from its settings panel, which takes the whole width meanwhile
+  // Molstar keeps a 1 px wide viewport then, and framing the structure in it would place the camera
+  // as many times further as the viewport is high (219 times here)
+  it('frames the structure once the viewport has a size', async () => {
+    const { camera, plugin } = await renderWithCamera(Viewport.create(0, 0, 1, 219), Date.now());
+    // The settings panel is closed
+    await resize(plugin, 384, 219);
+    expect(cameraDistance(camera)).toBeCloseTo(framingDistance(10));
+  });
+
+  // The structure may be built before the first frame, when molstar sizes the viewport
+  // The camera is then further in a viewport higher than wide, so the structure fits its width
+  it('frames the structure once molstar has sized the viewport', async () => {
+    // The default size of a canvas
+    const { camera, plugin } = await renderWithCamera(Viewport.create(0, 0, 300, 150), 0);
+    await resize(plugin, 219, 384);
+    expect(cameraDistance(camera)).toBeCloseTo(framingDistance(10) * 384 / 219);
+  });
+
+  // e.g. opening and closing the settings panel again keeps what the user did with the camera
+  it('does not move the camera when the viewport gets its size back', async () => {
+    const { camera, plugin } = await renderWithCamera(Viewport.create(0, 0, 384, 219), Date.now());
+    expect(cameraDistance(camera)).toBeCloseTo(framingDistance(10));
+    // The user zooms in
+    camera.setState({ ...camera.getSnapshot(), position: Vec3.create(0, 0, -20) }, 0);
+    await resize(plugin, 1, 219);
+    await resize(plugin, 384, 219);
+    expect(cameraDistance(camera)).toBeCloseTo(20);
+  });
+});
+
+describe('<MolstarViewer /> representations', () => {
   const representations = () => [
     { name: 'Protein', selection: 'all', type: 'cartoon', color: 'chainid', opacity: 1, show: true },
     { name: 'Membrane', selection: 'all', type: 'licorice', color: 'element', opacity: 1, show: true },

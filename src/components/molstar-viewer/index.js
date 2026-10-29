@@ -1312,13 +1312,30 @@ const MolstarViewer = memo(
         recordFrameTick,
       ]);
 
+      // Set if the molstar viewport has its size, since the camera distance of a focus depends on it
+      // Until molstar first sizes it, on its first frame, it has the default size of a canvas (300 x 150 px)
+      // Its container may also be 0 px wide (e.g. while the settings panel takes the whole width of a spawned viewer)
+      // Molstar keeps a 1 px wide viewport then, and focusing would place the camera as many times further
+      // as the viewport is high, where nothing is visible once the viewport has a size again
+      const [hasViewport, setHasViewport] = useState(false);
+      useEffect(() => {
+        if (!molstar) return;
+        // Molstar tells the time of every resize, which is 0 before the first one
+        const subscription = molstar.canvas3d.resized.subscribe(resizeTime => {
+          const { width, height } = molstar.canvas3d.camera.viewport;
+          setHasViewport(resizeTime > 0 && width > 1 && height > 1);
+        });
+        return () => subscription.unsubscribe();
+      }, [molstar]);
+
       // Track when the first focus has been performed, since first focus is instantaneous
       const firstFocus = useRef(true);
       // Track the last focus performed, since rebuilding the structure alone must not move the camera
       const appliedFocus = useRef(null);
       // Focus the specified selection with the camera automatically, as the NGL viewer does
+      // Focuses made while the viewport has no size are performed once it has one
       useEffect(() => {
-        if (!molstar || !builtStructure) return;
+        if (!molstar || !builtStructure || !hasViewport) return;
         if (!firstFocus.current && focus === appliedFocus.current) return;
         // The structure is missing while it is being rebuilt, then wait for the new one
         const structure = builtStructure.data;
@@ -1344,7 +1361,7 @@ const MolstarViewer = memo(
         if (isFirstFocus && rotateX) rotation = rotateSceneAroundX(rotation, ROTATE_X_ANGLE);
         const duration = isFirstFocus ? 0 : FOCUS_TRANSITION_DURATION;
         focusCamera(molstar.canvas3d.camera, structure, sphere, rotation, duration);
-      }, [molstar, builtStructure, focus, curatedOrientation, rotateX, topologyManager, nglStructure, subset]);
+      }, [molstar, builtStructure, hasViewport, focus, curatedOrientation, rotateX, topologyManager, nglStructure, subset]);
 
       // The nodes of the built highlights, to remove them when they change
       const highlightRefsRef = useRef([]);
