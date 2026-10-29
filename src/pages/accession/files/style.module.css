@@ -40,3 +40,13 @@
   border-radius: 0.25ch;
   padding: 0.5ch 0.75ch;
 }
+
+.description {
+  align-self: center;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 1ch;
+}

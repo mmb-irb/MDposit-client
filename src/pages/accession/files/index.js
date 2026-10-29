@@ -1,6 +1,6 @@
 // This script handles the 'Downloads' page, which was called 'Files' before
 
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import prettyBytes from 'pretty-bytes';
 
 import {
@@ -14,6 +14,8 @@ import {
   Typography,
   Chip,
   CardContent,
+  ToggleButton,
+  ToggleButtonGroup,
 } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFile } from '@fortawesome/free-regular-svg-icons';
@@ -38,6 +40,22 @@ import Loading from '../../../components/loading';
 
 // Set a regular expression to match the main topology
 const MAIN_TOPOLOGY_REGEXP = new RegExp(`^topology.(tpr|prmtop|psf|top)$`);
+
+// The main trajectory, as stored in the database, which the API exports to other formats
+const STORED_TRAJECTORY_FILENAME = 'trajectory.bin';
+
+// Formats the API exports the main structure and trajectory to
+// The first one is the format suggested by default
+const STRUCTURE_FORMATS = [
+  { format: 'cif', label: 'mmCIF' },
+  { format: 'pdb', label: 'PDB' },
+];
+const TRAJECTORY_FORMATS = [
+  { format: 'xtc', label: 'XTC' },
+  { format: 'trr', label: 'TRR' },
+  { format: 'nc', label: 'NetCDF' },
+  { format: 'dcd', label: 'DCD' },
+];
 
 // Classify files per groups according to their file format
 /*
@@ -123,9 +141,54 @@ const SuggestedFile = ({ title, filenotes, accessionAndMdNumber }) =>
     </CardContent>
   </Card>
 
+// Set a button to download a file exported by the API (e.g. the structure), with a selector of its format
+// The API names the downloaded file according to the format, so there is no filename here
+const ExportedFile = ({ title, endpoint, formats, description, accessionAndMdNumber }) => {
+  const [format, setFormat] = useState(formats[0].format);
+  return (
+    <Card className={style.title}>
+      <CardContent className={style.horizontal}>
+        <div className={style.horizontal}>
+          <Typography variant="h6">{title}</Typography>
+          <Icon className={style['main-icon']}>
+            <FontAwesomeIcon icon={faFile} />
+          </Icon>
+          {description && (
+            <Typography color="textSecondary" variant="caption" className={style.description}>
+              {description}
+            </Typography>
+          )}
+        </div>
+        <div className={style.actions}>
+          <ToggleButtonGroup
+            value={format}
+            exclusive
+            onChange={(event, newFormat) => { if (newFormat !== null) setFormat(newFormat) }}
+            size="small"
+            aria-label={`${title} format`}
+          >
+            {formats.map(({ format, label }) =>
+              <ToggleButton key={format} value={format}>{label}</ToggleButton>)}
+          </ToggleButtonGroup>
+          <Button
+            size="large"
+            color="primary"
+            component="a"
+            href={`${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/${endpoint}?format=${format}`}
+            target="_blank"
+          >
+            Download
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 // Set a list of redundant files which are not to be suggested to the user
 const REDUNDANT_FILES = [
   // Already suggested by default files
+  // The main structure and trajectory are exported by the API, but they may be stored as well
   new RegExp(MAIN_STRUCTURE_FILENAME), // The structure
   new RegExp(MAIN_TRAJECTORY_FILENAME), // The trajectory
   MAIN_TOPOLOGY_REGEXP, // The topology
@@ -152,7 +215,7 @@ const isRedundant = filename => {
 
 export default React.memo(() => {
   // Load project data
-  const { accessionAndMdNumber, fileDescriptors } = useContext(ProjectCtx);
+  const { accessionAndMdNumber, fileDescriptors, metadata } = useContext(ProjectCtx);
 
   // Send a request to the API with the url of the rgyr analysis
   const { loading, payload, error } = fileDescriptors;
@@ -162,13 +225,9 @@ export default React.memo(() => {
   else if (error) return error.toString();
   else if (!payload) return 'Something bad happened with file descriptors';
 
-  // Find the main structure file among file descriptors
-  const main_structure = payload.find(
-    file => file.filename === MAIN_STRUCTURE_FILENAME,
-  );
-  // Find the main trajectory file among file descriptors
+  // Find the stored main trajectory among file descriptors, which is exported by the API if it exists
   const main_trajectory = payload.find(
-    file => file.filename === MAIN_TRAJECTORY_FILENAME,
+    file => file.filename === STORED_TRAJECTORY_FILENAME,
   );
   // Find the main topology file among file descriptors
   const main_topology = payload.find(
@@ -180,17 +239,21 @@ export default React.memo(() => {
   return (
     <>
       {/* Main structure */}
-      {main_structure &&
-        <SuggestedFile
-          title={'Main Structure'}
-          filenotes={main_structure}
-          accessionAndMdNumber={accessionAndMdNumber}
-        />}
+      <ExportedFile
+        title={'Main Structure'}
+        endpoint={'structure'}
+        formats={STRUCTURE_FORMATS}
+        description={metadata.SYSTATS && `${formatNumber(metadata.SYSTATS)} atoms`}
+        accessionAndMdNumber={accessionAndMdNumber}
+      />
       {/* Main trajectory */}
       {main_trajectory &&
-        <SuggestedFile
+        <ExportedFile
           title={'Main Trajectory'}
-          filenotes={main_trajectory}
+          endpoint={'trajectory'}
+          formats={TRAJECTORY_FORMATS}
+          description={`${formatNumber(main_trajectory.metadata.atoms)} atoms in ` +
+            `${formatNumber(main_trajectory.metadata.frames)} frames`}
           accessionAndMdNumber={accessionAndMdNumber}
         />}
       {/* Main topology */}
