@@ -307,11 +307,18 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
                     throw new Error( `Trajectory "${trajectoryFilename}" is missing`);
                 const trajectoryMetadata = trajectoryFileDescriptor.metadata;
                 // Get the number of frames in the whole trajectory
-                const trajectoryFrames = trajectoryMetadata.frames;                
+                const trajectoryFrames = trajectoryMetadata.frames;
                 // Set the number of frames to be requested from the whole trajectory
                 let requestedFrames = requestedFramesNumber;
                 if (requestedFramesNumber > trajectoryFrames) requestedFrames = trajectoryFrames;
-                if (Number.isFinite(requestedFrame)) requestedFrames = 1;
+                // PCA projection trajectories do not accept frames selection, so they are always downloaded as a whole
+                const isPcaTrajectory = trajectoryFilename.startsWith('pca_trajectory_');
+                if (isPcaTrajectory) {
+                    if (framed || Number.isFinite(requestedFrame))
+                        throw new Error(`Frames selection is not supported for "${trajectoryFilename}"`);
+                    requestedFrames = trajectoryFrames;
+                }
+                else if (Number.isFinite(requestedFrame)) requestedFrames = 1;
                 else if (framed) requestedFrames = framed.frames;
                 // Components which are not the principal must include a 'frame' value
                 if (!isPrincipal && requestedFrames > 1) 
@@ -327,6 +334,8 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
                     const maximumFrames = Math.min(trajectoryFrames, framed.end);
                     returnedFrames = Math.ceil(maximumFrames / framed.step);
                 }
+                // PCA trajectories are requested as they are
+                else if (isPcaTrajectory) returnedFrames = trajectoryFrames;
                 // Modify the urlpath if it is not framed yet
                 else {
                     // Get the string frames range according to requestedFramesNumber
