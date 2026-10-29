@@ -26,6 +26,7 @@ import LazyImg from 'src/components/lazy-img';
 // Import other components which are part of the overview
 import LigandsOverview from './ligands';
 import PdbsOverview from './pdbs';
+import SystemKeywords from './keywords';
 // Import constants
 import { HOST_CONFIG } from '../../../utils/constants';
 
@@ -196,6 +197,7 @@ const Overview = React.memo(() => {
                 })}
                 </div>
               </div>}
+              <SystemKeywords keywords={metadata.SYSKEYS} />
               {metadata.WARNINGS &&
                 metadata.WARNINGS.map((warning, w) => (
                   <div key={w} style={{ fontWeight: 'bold' }}>
