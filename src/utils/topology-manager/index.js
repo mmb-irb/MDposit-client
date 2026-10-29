@@ -25,6 +25,12 @@ import getEpitopesRepresentations from './get-epitopes-representations';
 // Import the Selection class to better handle atom selections
 import { Selection } from './selections';
 
+// Prevent shared representations, and the list itself, from being modified
+const freezeRepresentations = representations => {
+  representations.forEach(representation => Object.freeze(representation));
+  return Object.freeze(representations);
+};
+
 // Topology manager
 // Many functions to handle atom/residue/chain numeration conversions and more
 // All these functions which need the topology are able to read the context topology
@@ -851,9 +857,7 @@ export class Topology {
   // WARNING: Pages must copy them to customize them, or changes would reach the other pages
   get defaultRepresentations () {
     if (this._defaultRepresentations !== undefined) return this._defaultRepresentations;
-    const representations = getDefaultRepresentations(this);
-    representations.forEach(representation => Object.freeze(representation));
-    this._defaultRepresentations = Object.freeze(representations);
+    this._defaultRepresentations = freezeRepresentations(getDefaultRepresentations(this));
     return this._defaultRepresentations;
   }
 
@@ -910,9 +914,12 @@ export class Topology {
     return this._membraneViewerSelection;
   }
 
+  // WARNING: They are shared by every viewer of the MD, so they are frozen (see defaultRepresentations)
+  // They are undefined when there are no epitopes
   get epitopesRepresentations () {
     if (this._epitopeRepresentations !== undefined) return this._epitopeRepresentations;
-    this._epitopeRepresentations = getEpitopesRepresentations(this);
+    const representations = getEpitopesRepresentations(this);
+    this._epitopeRepresentations = representations && freezeRepresentations(representations);
     return this._epitopeRepresentations;
   }
 }

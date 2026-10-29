@@ -176,3 +176,41 @@ describe('default representations', () => {
     expect(() => { representations.push({ name: 'extra' }) }).toThrow(TypeError);
   });
 });
+
+// A protein of 3 residues whose first 2 residues are an epitope
+const makeEpitopesTopology = () => new Topology(
+  {
+    atom_names: ['CA', 'CA', 'CA'],
+    atom_elements: ['C', 'C', 'C'],
+    atom_residue_indices: [0, 1, 2],
+    residue_names: ['ALA', 'GLY', 'SER'],
+    residue_numbers: [1, 2, 3],
+    residue_chain_indices: [0, 0, 0],
+    chain_names: ['A'],
+    references: ['P00001'],
+    reference_types: ['protein'],
+    residue_reference_indices: [0, 0, 0],
+    residue_reference_numbers: [1, 2, 3],
+  },
+  {},
+  {
+    proteins: [{ uniprot: 'P00001', epitopes: { 0: { residues: [1, 2] } } }],
+    ligands: [],
+    chains: [],
+    inchikeys: [],
+  },
+);
+
+// They are shared by the Epitopes page and the Domains of every viewer
+describe('epitopes representations', () => {
+  it('can not be modified', () => {
+    const representations = makeEpitopesTopology().epitopesRepresentations;
+    expect(representations.length).toBeGreaterThan(0);
+    expect(() => { representations[0].component = 'Main' }).toThrow(TypeError);
+    expect(() => { representations.push({ name: 'extra' }) }).toThrow(TypeError);
+  });
+
+  it('are missing when there are no epitopes', () => {
+    expect(makeMembraneTopology(null).epitopesRepresentations).toBeUndefined();
+  });
+});
