@@ -1,4 +1,5 @@
-'{{imports}}';
+// The API below is Workbox 4's: v5 removed registerNavigationRoute and renamed the plugins
+importScripts('https://storage.googleapis.com/workbox-cdn/releases/4.3.1/workbox-sw.js');
 
 const MINUTE = 60; // seconds
 const HOUR = 60 * MINUTE;
