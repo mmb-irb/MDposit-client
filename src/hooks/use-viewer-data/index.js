@@ -330,9 +330,9 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
                 let returnedFrames;
                 // In case the urlpath is already framed
                 if (framed) {
-                    // Find maximum number of frames to be returned (trajectory frames or requetsed frames)
-                    const maximumFrames = Math.min(trajectoryFrames, framed.end);
-                    returnedFrames = Math.ceil(maximumFrames / framed.step);
+                    // Count the frames in the range, which may start anywhere but never goes beyond the trajectory
+                    const lastFrame = Math.min(trajectoryFrames, framed.end);
+                    returnedFrames = Math.floor((lastFrame - framed.start) / framed.step) + 1;
                 }
                 // PCA trajectories are requested as they are
                 else if (isPcaTrajectory) returnedFrames = trajectoryFrames;

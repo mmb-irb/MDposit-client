@@ -284,3 +284,42 @@ describe('useViewerData trajectory streaming', () => {
     expect(Math.floor(result.current.trajectories[0].loadedBytes / BYTES_PER_FRAME)).toBe(0);
   });
 });
+
+describe('useViewerData framed trajectories', () => {
+  // A longer trajectory, so frame ranges which do not start at the first frame make sense
+  const longProject = {
+    ...project,
+    fileDescriptors: {
+      loading: false,
+      payload: [{ filename: 'trajectory.bin', metadata: { frames: 600, atoms: ATOMS } }],
+    },
+  };
+  // Get the frames the viewer expects for the given framed trajectory urlpath
+  const expectedFrames = urlpath => {
+    const wrapper = ({ children }) => (
+      <ProjectCtx.Provider value={longProject}>{children}</ProjectCtx.Provider>
+    );
+    // Set the components once, since a new array every render would trigger the download effects endlessly
+    const framedComponents = [{ topologyURL: '/structure', trajectoryURLs: [urlpath] }];
+    const { result } = renderHook(() => useViewerData(framedComponents, FRAMES, () => {}), { wrapper });
+    return respond(findRequest('/trajectory'), 200, trajectoryBody())
+      .then(() => result.current.trajectories[0].frames);
+  };
+
+  // e.g. a cluster transition, which used to expect 511 frames and thus broke the progress bar
+  it('expects the frames in a range which does not start at the first frame', async () => {
+    expect(await expectedFrames('/trajectory?frames=501:511:1')).toBe(11);
+  });
+
+  it('expects the frames in a stepped range which does not start at the first frame', async () => {
+    expect(await expectedFrames('/trajectory?frames=101:200:10')).toBe(10);
+  });
+
+  it('expects the frames in a stepped range from the first frame', async () => {
+    expect(await expectedFrames('/trajectory?frames=1:600:10')).toBe(60);
+  });
+
+  it('expects no frames beyond the end of the trajectory', async () => {
+    expect(await expectedFrames('/trajectory?frames=591:700:1')).toBe(10);
+  });
+});
