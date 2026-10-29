@@ -274,7 +274,7 @@ const NGLViewer = memo(
           // If the topology still has not the data then skip it
           if (!topology.file) return;
           // If the topology is already among the parsed topologies then skip it
-          if (topology.url in alreadyParsedTopologies.current) return;
+          if (alreadyParsedTopologies.current.has(topology.url)) return;
           alreadyParsedTopologies.current.add(topology.url);
           // Parse the structure to a NGL file
           // The structure may be either a PDB or a mmCIF, so the parser is chosen by looking at its content
