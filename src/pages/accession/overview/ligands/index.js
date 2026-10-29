@@ -10,6 +10,8 @@ import {
 } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLink } from '@fortawesome/free-solid-svg-icons';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { useTheme } from '@mui/material/styles';
 import style from './style.module.css';
 // Import auxiliar components
@@ -64,6 +66,20 @@ const normalizeObject = value => {
     return value;
 };
 
+// Show a molecular formula with its counts as subscripts
+const renderFormula = formula => formula.toString().split('').map((char, index) => {
+    if (char.match(/[A-Z]/)) {
+        return <span key={index} style={{ fontSize: '1.1em' }}>{char}</span>;
+    } else if (char.match(/[0-9]/)) {
+        return <sub key={index} style={{ fontSize: '0.9em' }}>{char}</sub>;
+    } else {
+        return char;
+    }
+});
+
+// Above this many references every one is shown as a row, and its details are opened on demand
+const MAX_FULL_ENTRIES = 3;
+
 const LigandsOverview = () => {
 
     // Get context data
@@ -98,6 +114,17 @@ const LigandsOverview = () => {
             if (newShowTable.has(pubchemId)) newShowTable.delete(pubchemId);
             else newShowTable.add(pubchemId);
             return newShowTable;
+        });
+    };
+
+    // Define the state and the function to open the details of a row
+    const [openEntries, setOpenEntries] = useState(new Set());
+    const toggleEntry = descriptorKey => {
+        setOpenEntries((prev) => {
+            const newOpenEntries = new Set(prev);
+            if (newOpenEntries.has(descriptorKey)) newOpenEntries.delete(descriptorKey);
+            else newOpenEntries.add(descriptorKey);
+            return newOpenEntries;
         });
     };
 
@@ -188,20 +215,39 @@ const LigandsOverview = () => {
     const getName = reference => reference.name
         || residueNamesByReferenceId[String(reference.inchiRef?.inchikey || reference.inchikey)]
         || (getLipidCategoryName(reference.inchiRef) ? 'Unnamed lipid' : 'Unnamed ligand');
+    const getPubchemId = reference => typeof reference.pubchem === 'string' ? reference.pubchem : null || reference.inchiRef?.lipidmaps?.pubchem_cid;
+    // Get the topology residue names which point to a reference
+    const getResidueNames = reference => {
+        const pubchemId = getPubchemId(reference);
+        return uniqueStrings([
+            ...(pubchemId ? [residueNamesByReferenceId[String(pubchemId)] || null] : []),
+            ((reference.inchikey && residueNamesByReferenceId[String(reference.inchikey)]) || null),
+            ((reference.inchiRef && reference.inchiRef.inchikey && residueNamesByReferenceId[String(reference.inchiRef.inchikey)]) || null),
+        ]).sort();
+    };
+    // Many references are shown as rows, so they take little space
+    const compact = ligandAndLipidReferences.filter(Boolean).length > MAX_FULL_ENTRIES;
     // Render the component
     // Sort references by name for display
-    const sortedReferences = [...ligandAndLipidReferences].sort((a, b) => {
-        const nameA = (a ? getName(a) : '').toLowerCase();
-        const nameB = (b ? getName(b) : '').toLowerCase();
-        if (nameA < nameB) return -1;
-        if (nameA > nameB) return 1;
-        return 0;
-    });
+    // Rows are sorted by residue name instead, so references of the same residue sit together
+    // References may share a residue name and still be different molecules, so they are not merged
+    const byName = (a, b) => getName(a).toLowerCase().localeCompare(getName(b).toLowerCase());
+    const byResidue = (a, b) => {
+        const residueA = getResidueNames(a)[0];
+        const residueB = getResidueNames(b)[0];
+        // References with no residue go last
+        if (residueA !== residueB) {
+            if (!residueA) return 1;
+            if (!residueB) return -1;
+            return residueA.localeCompare(residueB);
+        }
+        return byName(a, b);
+    };
+    const sortedReferences = ligandAndLipidReferences.filter(Boolean).sort(compact ? byResidue : byName);
     return (<Card className={style.card}>
         <CardContent className={style['card-content']}>
             {sortedReferences.map((reference, i) => {
-                if (!reference) return;
-                const pubchemId = typeof reference.pubchem === 'string' ? reference.pubchem : null || reference.inchiRef?.lipidmaps?.pubchem_cid;
+                const pubchemId = getPubchemId(reference);
                 const descriptorKey = String(pubchemId || reference.inchiRef?.inchikey || reference.inchikey || i);
 
                 const inchiRef = reference.inchiRef;
@@ -233,15 +279,12 @@ const LigandsOverview = () => {
                 const lipidmapsUrl = lipidmapsId
                     ? `https://www.lipidmaps.org/databases/lmsd/${lipidmapsId}`
                     : null;
-                const residueNames = uniqueStrings([
-                    ...(pubchemId ? [residueNamesByReferenceId[String(pubchemId)] || null] : []),
-                    ((reference.inchikey && residueNamesByReferenceId[String(reference.inchikey)]) || null),
-                    ((reference.inchiRef && reference.inchiRef.inchikey && residueNamesByReferenceId[String(reference.inchiRef.inchikey)]) || null),
-                ]).sort();
+                const residueNames = getResidueNames(reference);
                 // Do not repeat the residue name when the reference is named after its residues
                 const residueName = residueNames.length > 0 && reference.name ? residueNames[0] : null;
-                return (<div key={descriptorKey} className={style['summary-list']}>
-                    {i !== 0 && (<hr style={{ color: 'lightGrey' }} />) /* An horizontal line */}
+                const name = pubchemData.name.charAt(0).toUpperCase() + pubchemData.name.slice(1);
+                const details = (<div key={descriptorKey} className={style['summary-list']}>
+                    {!compact && i !== 0 && (<hr style={{ color: 'lightGrey' }} />) /* An horizontal line */}
                     {pubchemId && (
                         <LazyImg
                             src={`https://pubchem.ncbi.nlm.nih.gov/image/imgsrv.fcgi?cid=${pubchemId}&t=l`}
@@ -268,7 +311,7 @@ const LigandsOverview = () => {
                                 {residueName}
                             </span>
                         )}
-                        <Typography variant="h6" sx={{ fontSize: '1.4rem', marginLeft: residueName ? '0.8rem' : 0 }}>{pubchemData.name.charAt(0).toUpperCase() + pubchemData.name.slice(1)}</Typography>
+                        <Typography variant="h6" sx={{ fontSize: '1.4rem', marginLeft: residueName ? '0.8rem' : 0 }}>{name}</Typography>
                     </div>
                     {pubchemId && (
                         <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -310,15 +353,7 @@ const LigandsOverview = () => {
                         <div style={{ display: 'flex', alignItems: 'center' }}>
                             <div className={style["decorated-list-item__title"]}>Molecular Formula</div>
                             <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                                {formula.toString().split('').map((char, index) => {
-                                    if (char.match(/[A-Z]/)) {
-                                        return <span key={index} style={{ fontSize: '1.1em' }}>{char}</span>;
-                                    } else if (char.match(/[0-9]/)) {
-                                        return <sub key={index} style={{ fontSize: '0.9em' }}>{char}</sub>;
-                                    } else {
-                                        return char;
-                                    }
-                                })}
+                                {renderFormula(formula)}
                             </div>
                         </div>
                     }
@@ -511,6 +546,40 @@ const LigandsOverview = () => {
                             </Button>
                         </CardActions>
                     </div>)}
+                </div>);
+                if (!compact) return details;
+                // One row with what tells references apart, which opens the details below it
+                const open = openEntries.has(descriptorKey);
+                return (<div key={descriptorKey} className={style['row-entry']}>
+                    <button
+                        type="button"
+                        className={style.row}
+                        aria-expanded={open}
+                        onClick={() => toggleEntry(descriptorKey)}
+                    >
+                        {pubchemId
+                            ? <LazyImg
+                                src={`https://pubchem.ncbi.nlm.nih.gov/image/imgsrv.fcgi?cid=${pubchemId}&t=s`}
+                                width="40" height="40" loading="lazy" alt=""
+                                crossOrigin="anonymous" referrerPolicy="no-referrer"
+                                className={style.thumbnail}
+                            />
+                            : <span className={style.thumbnail} />}
+                        {/* Do not repeat the residue names when the reference is named after them */}
+                        {residueNames.length > 0 && reference.name && (
+                            <span className={style['residue-name-badge']} title="Residue name" style={{
+                                border: `1px solid ${secondaryColor.dark}`,
+                                color: secondaryColor.dark
+                            }}>
+                                {residueNames.join(', ')}
+                            </span>
+                        )}
+                        <span className={style['row-name']} title={name}>{name}</span>
+                        {formula && <span className={style['row-formula']}>{renderFormula(formula)}</span>}
+                        {lipidClass && <span className={style['row-class']}>{lipidClass}</span>}
+                        {open ? <ExpandLessIcon className={style['row-icon']} /> : <ExpandMoreIcon className={style['row-icon']} />}
+                    </button>
+                    {open && details}
                 </div>);
             })}
         </CardContent>
