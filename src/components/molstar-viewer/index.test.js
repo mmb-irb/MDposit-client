@@ -363,6 +363,16 @@ describe('<MolstarViewer /> representations', () => {
     ]);
   });
 
+  // e.g. zooming into a pocket shows the atoms inside it rather than a solid cap
+  it('leaves surfaces hollow where the camera cuts them, as NGL does', async () => {
+    const { commits } = await renderRepresentations([
+      { name: 'Pocket', selection: 'all', type: 'surface', color: 'element', opacity: 1, show: true },
+    ]);
+    const [, , , params] = commits[0][0];
+    expect(params.type).toBe('molecular-surface');
+    expect(params.typeParams.solidInterior).toBe(false);
+  });
+
   describe('with a subset of atoms', () => {
     afterEach(() => autoLoad.mockClear());
 
