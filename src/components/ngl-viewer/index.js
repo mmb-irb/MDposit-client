@@ -33,8 +33,9 @@ import { setNGLFile, updateNGLFile } from './payload-to-ngl-file';
 // Improved 'element' color scheme (distinguishes coarse-grain beads instead of white)
 import getElementColorSchemeId from './element-colormaker';
 
-// PDB parser which skips the bond guessing that topology bonds replace anyway
-import { PDB_WITH_TOPOLOGY_BONDS } from './pdb-parser-with-topology-bonds';
+// PDB and mmCIF parsers which skip the bond guessing that topology bonds replace anyway
+import { NGL_EXTENSIONS } from './pdb-parser-with-topology-bonds';
+import { getStructureFormat } from '../../utils/structure-format';
 import {
   getPartialSystem,
   toPartialAtomIndex,
@@ -276,8 +277,10 @@ const NGLViewer = memo(
           if (topology.url in alreadyParsedTopologies.current) return;
           alreadyParsedTopologies.current.add(topology.url);
           // Parse the structure to a NGL file
+          // The structure may be either a PDB or a mmCIF, so the parser is chosen by looking at its content
           const stringBlob = new Blob( [ topology.file ], { type: 'text/plain'} );
-          const ext = topologyManager.atomBonds ? PDB_WITH_TOPOLOGY_BONDS : 'pdb';
+          const extensions = NGL_EXTENSIONS[getStructureFormat(topology.file)];
+          const ext = topologyManager.atomBonds ? extensions.topologyBonds : extensions.stock;
           autoLoad(stringBlob, { defaultRepresentation: false, ext })
             // Once the parse has been completed update the parsed topologies state
             .then(prasedFile => {

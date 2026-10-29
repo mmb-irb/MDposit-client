@@ -108,3 +108,22 @@ export const TEST_PDB = TEST_ATOMS
   .map(([record, ...fields], index) => atomLine(record, index + 1, ...fields))
   .concat('END', '')
   .join('\n');
+
+// The same structure in mmCIF format, with the same fields and missing values the API writes
+const CIF_ATOM_SITE_FIELDS = [
+  'group_PDB', 'id', 'type_symbol', 'label_atom_id', 'label_alt_id', 'label_comp_id', 'label_asym_id',
+  'label_entity_id', 'label_seq_id', 'pdbx_PDB_ins_code', 'Cartn_x', 'Cartn_y', 'Cartn_z', 'occupancy',
+  'B_iso_or_equiv', 'pdbx_formal_charge', 'auth_seq_id', 'auth_comp_id', 'auth_asym_id', 'auth_atom_id',
+  'pdbx_PDB_model_num',
+];
+export const TEST_CIF = [
+  'data_test',
+  '#',
+  'loop_',
+  ...CIF_ATOM_SITE_FIELDS.map(field => `_atom_site.${field}`),
+  ...TEST_ATOMS.map(([record, name, resName, chain, resSeq, [x, y, z], element], index) =>
+    [record, index + 1, element, name, '.', resName, chain, '?', resSeq, '?', x, y, z, 1, 0, '?',
+      resSeq, resName, chain, name, 1].join(' ')),
+  '#',
+  '',
+].join('\n');

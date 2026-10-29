@@ -45,6 +45,8 @@ import { ProjectCtx } from '../../contexts';
 // Translate this app's NGL selections, colors and orientations to molstar
 // NGL itself is used to understand selections not built by this app (e.g. typed by the user)
 import { autoLoad } from 'ngl';
+import { getStructureFormat } from '../../utils/structure-format';
+import { NGL_EXTENSIONS } from '../ngl-viewer/pdb-parser-with-topology-bonds';
 import { nglSelectionToAtomIndices, needsNglSelection } from './ngl-selection';
 import { diffRepresentations, getRepresentationKey } from './representations-diff';
 import { getPartialSystem, toWholeAtomIndex, toPartialColorScheme, toPartialAtomGroups } from '../ngl-viewer/partial-system';
@@ -589,7 +591,8 @@ const MolstarViewer = memo(
       useEffect(() => {
         if (!needsNglStructure || nglStructure || !topologyFile) return;
         let cancelled = false;
-        autoLoad(new Blob([topologyFile], { type: 'text/plain' }), { ext: 'pdb' })
+        const ext = NGL_EXTENSIONS[getStructureFormat(topologyFile)].stock;
+        autoLoad(new Blob([topologyFile], { type: 'text/plain' }), { ext })
           .then(structure => { if (!cancelled) setNglParse({ file: topologyFile, structure }) })
           .catch(error => console.error(error));
         return () => { cancelled = true };
@@ -860,7 +863,9 @@ const MolstarViewer = memo(
             { data: topology.file },
             { state: { isGhost: true } },
           );
-          const trajectory = await molstar.builders.structure.parseTrajectory(data, 'pdb');
+          // The structure may be either a PDB or a mmCIF, so the format is chosen by looking at its content
+          const format = getStructureFormat(topology.file);
+          const trajectory = await molstar.builders.structure.parseTrajectory(data, format);
           // WARNING: Do not modify this model
           // Components with trajectories build their own models from it and their coordinates
           const model = await molstar.builders.structure.createModel(trajectory);

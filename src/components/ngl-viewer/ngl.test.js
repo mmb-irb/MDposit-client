@@ -9,16 +9,17 @@ import {
   ColormakerRegistry,
 } from 'ngl';
 
-import { PDB_WITH_TOPOLOGY_BONDS } from './pdb-parser-with-topology-bonds';
+import { PDB_WITH_TOPOLOGY_BONDS, CIF_WITH_TOPOLOGY_BONDS } from './pdb-parser-with-topology-bonds';
 import getElementColorSchemeId from './element-colormaker';
 import {
   installFakeWebGL,
   TEST_PDB,
+  TEST_CIF,
   TEST_ATOM_COORDINATES,
 } from './test-utils';
 
-const loadTestStructure = (ext = 'pdb') =>
-  autoLoad(new Blob([TEST_PDB], { type: 'text/plain' }), { ext });
+const loadTestStructure = (ext = 'pdb', text = TEST_PDB) =>
+  autoLoad(new Blob([text], { type: 'text/plain' }), { ext });
 
 // Count the atoms of a structure matching an NGL selection string
 const countSelected = (structure, sele) => {
@@ -75,6 +76,32 @@ describe('PDB parsing', () => {
   it('restores the spatial hash after parsing with the topology bonds parser', async () => {
     const structure = await loadTestStructure(PDB_WITH_TOPOLOGY_BONDS);
     // Atoms within 1 Å of the ion: only the ion itself
+    const within = structure.getAtomSetWithinPoint({ x: 20, y: 20, z: 20 }, 1);
+    expect(within.getSize()).toBe(1);
+  });
+});
+
+// The structure endpoint may return mmCIF instead of PDB
+describe('mmCIF parsing', () => {
+  it('parses the same atoms and residues as the PDB', async () => {
+    const pdb = await loadTestStructure();
+    const structure = await loadTestStructure('cif', TEST_CIF);
+    expect(structure.atomCount).toBe(pdb.atomCount);
+    expect(structure.residueStore.count).toBe(pdb.residueStore.count);
+    // Atoms keep the same order, which is the order of the trajectory coordinates
+    structure.eachAtom(atom => {
+      const [x, y, z] = TEST_ATOM_COORDINATES[atom.index];
+      expect([atom.x, atom.y, atom.z].map((value, i) => value - [x, y, z][i]))
+        .toEqual([expect.closeTo(0), expect.closeTo(0), expect.closeTo(0)]);
+    });
+  });
+
+  it('skips guessing non-polymer bonds with the topology bonds parser', async () => {
+    const stock = await loadTestStructure('cif', TEST_CIF);
+    const structure = await loadTestStructure(CIF_WITH_TOPOLOGY_BONDS, TEST_CIF);
+    expect(listInterResidueBonds(stock).length).toBeGreaterThan(listInterResidueBonds(structure).length);
+    expect(structure.backboneBondStore.count).toBeGreaterThan(0);
+    expect(structure.backboneBondStore.count).toBe(stock.backboneBondStore.count);
     const within = structure.getAtomSetWithinPoint({ x: 20, y: 20, z: 20 }, 1);
     expect(within.getSize()).toBe(1);
   });

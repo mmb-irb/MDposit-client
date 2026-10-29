@@ -294,7 +294,7 @@ const settle = () => act(() => new Promise(resolve => setTimeout(resolve, 0)));
 // Render the viewer with a single component which represents its topology
 // Representations select the whole structure, so molstar is not asked to find their atoms
 // The structure is a sphere of 10 Å around the origin, which the camera focuses
-const renderRepresentations = async (representations, { component, topology, canvas3d } = {}) => {
+const renderRepresentations = async (representations, { component, topology, canvas3d, topologyFile = 'ATOM' } = {}) => {
   const plugin = fakePlugin();
   const { build, commits } = fakeState();
   const structure = { ref: 'structure', data: { boundary: { sphere: { center: [0, 0, 0], radius: 10 } } } };
@@ -303,7 +303,7 @@ const renderRepresentations = async (representations, { component, topology, can
     builders: {
       data: { rawData: async () => ({ ref: 'data' }) },
       structure: {
-        parseTrajectory: async () => ({ ref: 'trajectory' }),
+        parseTrajectory: vi.fn(async () => ({ ref: 'trajectory' })),
         createModel: async () => ({ ref: 'model' }),
         createStructure: async () => structure,
       },
@@ -320,7 +320,7 @@ const renderRepresentations = async (representations, { component, topology, can
   createPluginUI.mockResolvedValue(plugin);
   const props = {
     anyLoadingTopology: false,
-    topologies: [{ urlpath: 'topology', file: 'ATOM' }],
+    topologies: [{ urlpath: 'topology', file: topologyFile }],
     components: [{ name: 'main', topologyURL: 'topology', onlyTopology: true, ...component }],
     topology,
   };
@@ -394,6 +394,17 @@ describe('<MolstarViewer /> representations', () => {
     { name: 'Protein', selection: 'all', type: 'cartoon', color: 'chainid', opacity: 1, show: true },
     { name: 'Membrane', selection: 'all', type: 'licorice', color: 'element', opacity: 1, show: true },
   ];
+
+  // The structure endpoint may return either format, without saying which one
+  it.each([
+    ['pdb', 'ATOM      1  N   ALA A   1       0.000   0.000   0.000\nEND\n'],
+    ['mmcif', 'data_structure\n#\nloop_\n_atom_site.group_PDB\n'],
+  ])('parses the topology as %s by looking at its content', async (format, topologyFile) => {
+    const { plugin } = await renderRepresentations(representations(), { topologyFile });
+    const { parseTrajectory } = plugin.builders.structure;
+    expect(parseTrajectory).toHaveBeenCalledTimes(1);
+    expect(parseTrajectory.mock.calls[0][1]).toBe(format);
+  });
 
   it('builds every representation in a single commit', async () => {
     const { commits } = await renderRepresentations(representations());
