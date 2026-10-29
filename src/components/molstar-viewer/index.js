@@ -206,7 +206,9 @@ const REPRESENTATION_TYPES = {
     type: 'spacefill',
     typeParams: { approximate: true },
   },
-  surface: { type: 'molecular-surface' },
+  // Molstar 5.13 caps a surface with a solid face where the camera or a clip cuts it, which hides
+  // what is inside (e.g. the atoms in a pocket), so leave it hollow as NGL does
+  surface: { type: 'molecular-surface', typeParams: { solidInterior: false } },
   line: { type: 'line' },
   point: { type: 'point' },
   base: { type: 'ball-and-stick' },
