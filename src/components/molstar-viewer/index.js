@@ -196,7 +196,7 @@ const REPRESENTATION_TYPES = {
   // the geometry and skip colour/size unless the structure hash changes (it doesn't) or the colour
   // theme is vertex/volume granularity (ours are group/uniform)
   // The draw-call argument does not apply here either: Structure.ofModel makes roughly one unit
-  // per chain, so we are in the single digits, nowhere near the >5000 unitSymmetryGroups at which
+  // per chain, so we are in the single digits, nowhere near the >10000 unitSymmetryGroups at which
   // molstar itself switches these on (getSpacefillParams in
   // mol-repr/structure/representation/spacefill.js)
   // 'approximate' trades some impostor-sphere shading accuracy (visible mostly on overlaps)
