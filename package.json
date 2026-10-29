@@ -103,8 +103,6 @@
     "serialize-javascript": "^7.0.5"
   },
   "allowScripts": {
-    "core-js": false,
-    "core-js-pure": false,
     "@fortawesome/fontawesome-common-types": false,
     "@scarf/scarf": false,
     "canvas@3.2.3": true,

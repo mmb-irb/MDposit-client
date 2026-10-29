@@ -12,7 +12,8 @@ const build = async () => {
     readdir('./build/static/js'),
     readFile('./sw-build/template.js', { encoding: 'utf8' }),
   ]);
-  const mainFiles = jsFiles.filter(file => /^main\..*\.js$/.test(file));
+  // The entry is main.[hash].js; a lazy chunk named "main" would be main.[hash].chunk.js
+  const mainFiles = jsFiles.filter(file => /^main\.[\w-]+\.js$/.test(file));
   if (mainFiles.length !== 1)
     throw new Error(
       `Expected one main bundle in build/static/js, found ${mainFiles.length}`,
