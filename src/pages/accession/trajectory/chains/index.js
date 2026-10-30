@@ -192,6 +192,10 @@ const ChainsAnalysis = memo(() => {
             <Typography variant="subtitle2">
             <strong>{chainReferences.length}</strong> chains were analysed.
             </Typography>
+            <Typography variant="body2">
+            Click residues or features to show them in the viewer.
+            Hold Shift to select a range from the last clicked residue and Ctrl (Cmd on Mac) to add more regions.
+            </Typography>
             <ul className={style['chain-analysis-list']}>
             {/* Here, main data is displayed */}
             {(() => {

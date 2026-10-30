@@ -3,6 +3,12 @@ import React, { memo, useEffect, useRef } from 'react';
 import loadCustomElement from '../../../../../utils/load-custom-element';
 
 import processIPScanResults from './process-ipscan-results';
+import {
+    parseHighlight,
+    formatHighlight,
+    clickSelection,
+    shiftSequence,
+} from '../selection';
 
 import style from './style.module.css';
 
@@ -75,6 +81,43 @@ const ChainAnalyses = memo(({ chain, data, firstResidueNumber }) => {
     useEffect(() => {
         importProtVista();
     }, []);
+    // Set a reference to the protvista manager, which keeps the selection (highlight)
+    const managerRef = useRef();
+    // Replace the protvista selection behaviour by our own
+    // The viewer reads the resulting highlight from the manager
+    useEffect(() => {
+        const manager = managerRef.current;
+        if (!manager) return;
+        // Keys held in the last click, since protvista change events do not include them
+        let keys = {};
+        // Residue from which shift clicks select a range and the selection before it was set
+        let anchor = null;
+        let base = [];
+        const clickHandler = event => {
+            keys = { shift: event.shiftKey, add: event.ctrlKey || event.metaKey };
+        };
+        // Listen in the capture phase so the highlight is set before the manager applies it
+        const changeHandler = event => {
+            const detail = event.detail;
+            if (!detail || detail.eventtype !== 'click' || !detail.highlight) return;
+            // Protvista appends the clicked residue to the previous highlight when shift is held
+            const feature = detail.feature;
+            const clicked = feature && feature.fragments
+                ? parseHighlight(detail.highlight)
+                : parseHighlight(detail.highlight).slice(-1);
+            const current = parseHighlight(manager.highlight);
+            const next = clickSelection({ current, clicked, anchor, base, ...keys });
+            anchor = next.anchor;
+            base = next.base;
+            detail.highlight = formatHighlight(next.selection);
+        };
+        manager.addEventListener('click', clickHandler, true);
+        manager.addEventListener('change', changeHandler, true);
+        return () => {
+            manager.removeEventListener('click', clickHandler, true);
+            manager.removeEventListener('change', changeHandler, true);
+        };
+    }, []);
     // Mine data
     const sequence = data.sequence;
     const sequenceLength = sequence.length;
@@ -84,13 +127,12 @@ const ChainAnalyses = memo(({ chain, data, firstResidueNumber }) => {
     const matches = interproscanData.results[0].matches;
     const processedMatches = processIPScanResults(matches, firstResidueNumber);
     // Set the end residue to be displayed
-    const displayEnd = firstResidueNumber + sequenceLength;
+    const displayEnd = firstResidueNumber + sequenceLength - 1;
     // Set an shifted sequence by adding null values at the begining
-    // This is the only way I figured out to offset the sequence
-    // Apparently protvista sequence components have no argument for this
-    const shiftedSequence = ' '.repeat(firstResidueNumber) + sequence;
+    const shiftedSequence = shiftSequence(sequence, firstResidueNumber);
     return (
         <protvista-manager
+            ref={managerRef}
             attributes="length displaystart displayend"
             length={sequenceLength}
             chain={chain}

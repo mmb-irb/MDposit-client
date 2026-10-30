@@ -32,6 +32,8 @@ import { setNGLFile, updateNGLFile } from './payload-to-ngl-file';
 
 // Improved 'element' color scheme (distinguishes coarse-grain beads instead of white)
 import getElementColorSchemeId from './element-colormaker';
+// Convert the chain analyses (Nightingale) selection to NGL
+import highlightToNgl from './highlight-to-ngl';
 
 // PDB and mmCIF parsers which skip the bond guessing that topology bonds replace anyway
 import { NGL_EXTENSIONS } from './pdb-parser-with-topology-bonds';
@@ -1439,14 +1441,7 @@ const NGLViewer = memo(
             const chain = manager.attributes.chain.value;
             // if none, escape
             if (!thisHiglight) continue;
-            // Start and end values are in model numeration
-            // DANI: This is totally by chance. I didn't program this previous part
-            const [start, end] = thisHiglight.split(':');
-            const sourceStart = topologyManager.getResidueByParameters(chain, +start);
-            const sourceEnd = topologyManager.getResidueByParameters(chain, +end);
-            if (sourceStart.chainName !== sourceEnd.chainName)
-              throw new Error(`Range from multiple chains is not supported`);
-            highlight += ` or :${sourceStart.chainName} and ${sourceStart.number}-${sourceEnd.number}`;
+            highlight += ` or ${highlightToNgl(topologyManager, chain, thisHiglight)}`;
           }
           highlight = highlight.substr(4); // remove initial ' or '
 
