@@ -529,6 +529,20 @@ export default {
             "options": true,
         },
         {
+            "name": "Project warnings",
+            "path": "metadata.WARNINGS.tag",
+            "type": "string",
+            "example": "stabonds",
+            "options": true,
+        },
+        {
+            "name": "MD warnings",
+            "path": "mds.warnings.tag",
+            "type": "string",
+            "example": "stabonds",
+            "options": true,
+        },
+        {
             "name": "Project files",
             "path": "files.name",
             "type": "string",
