@@ -9,7 +9,6 @@ import { useLocation, useNavigate } from 'react-router';
 import CustomSearch from './custom-search';
 
 // String managers
-import { stringify } from 'qs';
 
 // Visual assets
 import {
@@ -40,6 +39,7 @@ import style from './style.module.css';
 
 // Import auxiliar functions
 import { parseLocationSearch } from '../../utils/auxiliar-functions';
+import { buildReturn, stringifyQuery } from '../../utils/filters';
 
 // The search bar
 import SearchBar from '../../components/search-bar';
@@ -81,7 +81,7 @@ const OptionsFilter = ({ location, search, history }) => {
   const [selectedOption, setSelectedOption] = useState(search.option || ALL);
 
   // Options data from the API
-  const optionsUrl = optionsField ? `${BASE_PATH_PROJECTS}/options?projection=${optionsField}` : null;
+  const optionsUrl = optionsField ? `${BASE_PATH_PROJECTS}/options?${buildReturn([optionsField])}` : null;
   const { payload: optionsPayload, error: optionsError } = useAPI(optionsUrl);
 
   // If the options field is metadata collections (which is usual) then get collecion names
@@ -126,7 +126,7 @@ const OptionsFilter = ({ location, search, history }) => {
       // Update the history (which does not rerender the page)
       history({
         ...location,
-        search: stringify({
+        search: stringifyQuery({
           ...search,
           // Thus if option is changed then the page is reset
           option: value && value !== ALL ? value : undefined,
@@ -167,7 +167,7 @@ const Sorter = ({ history, location, search }) => {
   const handleSort = useCallback((field, direction) => {
       history({
           ...location,
-          search: stringify({
+          search: stringifyQuery({
               ...search,
               sortField: field,
               sortDirection: direction

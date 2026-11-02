@@ -11,18 +11,18 @@ import Loading from '../../components/loading'; // Displays an animated "loading
 // Utils
 import { BASE_PATH_PROJECTS } from '../../utils/constants';
 import { formatOptionLabel } from '../../utils/auxiliar-functions';
+import { buildFilter, buildReturn, stringifyQuery } from '../../utils/filters';
 // CSS style
 import style from './style.module.css';
 
 const Row = ({ data, highlight, index }) => {
   // Using the options API endpoint, get a summary of values from simulations in this collection
-  const query = `query={"metadata.COLLECTIONS":"${data.id}"}`;
-  const projection = `projection=metadata.SYSKEYS`;
-  const optionsUrl = `${BASE_PATH_PROJECTS}/options?${query}&${projection}`;
+  const filter = stringifyQuery({ filter: buildFilter('metadata.COLLECTIONS', '==', data.id) });
+  const optionsUrl = `${BASE_PATH_PROJECTS}/options?${filter}&${buildReturn(['metadata.SYSKEYS'])}`;
   const { loading: optionsLoading, payload: optionsPayload, error: optionsError } = useAPI(optionsUrl);
 
   // Using the projects API endpoint, get the sum of projects and MDs which belong to this collection
-  const projectsUrl = `${BASE_PATH_PROJECTS}?${query}&countMds=true`;
+  const projectsUrl = `${BASE_PATH_PROJECTS}?${filter}&countMds=true`;
   const { loading: projectsLoading, payload: projectsPayload, error: projectsError } = useAPI(projectsUrl);
   // In case we retrieve an errored entry
   if (data.error) return (

@@ -2,8 +2,8 @@ import { isCurrentLocation } from '.';
 
 describe('isCurrentLocation', () => {
   it('matches the same parameters despite a different encoding or order', () => {
-    const location = { pathname: '/browse', search: '?search=kin&query=%7B%22a%22%3A1%7D' };
-    expect(isCurrentLocation('/browse?query={"a":1}&search=kin', location)).toBe(true);
+    const location = { pathname: '/browse', search: "?search=kin&filter=node%3Deq%3D%27mmb%27%2C%27inria%27" };
+    expect(isCurrentLocation("/browse?filter=node=eq='mmb','inria'&search=kin", location)).toBe(true);
   });
 
   it('matches an empty search', () => {

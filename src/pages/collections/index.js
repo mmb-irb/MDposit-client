@@ -27,10 +27,10 @@ import useAPI from '../../hooks/use-api';
 import { BASE_VERSIONED_PATH } from '../../utils/constants';
 // Auxiliar functions
 import { parseLocationSearch } from '../../utils/auxiliar-functions';
+import { buildFilter, stringifyQuery } from '../../utils/filters';
 // Reference handler
 import { Reference } from 'src/utils/reference-manager';
 // String managers
-import { stringify } from 'qs';
 
 // Classnames
 import cn from 'classnames';
@@ -56,8 +56,8 @@ const CollectionBrowser = () => {
         const searchParameters = {}
         if (search.page) searchParameters.page = search.page;
         if (search.limit) searchParameters.limit = search.limit;    
-        if (search.search) searchParameters.query = JSON.stringify({ name: { $regex: search.search, $options: 'i' } });
-        return stringify(searchParameters);
+        if (search.search) searchParameters.filter = buildFilter('references.collections.name', '~=', search.search);
+        return stringifyQuery(searchParameters);
     }, [search]);
 
     // Reference data from the API

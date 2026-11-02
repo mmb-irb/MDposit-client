@@ -5,7 +5,6 @@ import Row from './row';
 import Pagination from '../pagination';
 
 // String managers
-import { stringify } from 'qs';
 
 // Classnames
 import cn from 'classnames';
@@ -33,6 +32,7 @@ import useAPI from '../../hooks/use-api';
 import { BASE_PATH_PROJECTS, HOST_CONFIG } from '../../utils/constants';
 // Auxiliar functions
 import { parseLocationSearch } from '../../utils/auxiliar-functions';
+import { buildFilter, getFiltersList, stringifyQuery } from '../../utils/filters';
 
 // CSS styles
 import style from './style.module.css';
@@ -72,9 +72,9 @@ const parseSorting = search => {
     return sorting;
 };
 
-// This component relies in the location search (the URL) to set the API query
-// However we may force an additional URL-hidden unavoidable query
-const ProjectBrowser = ({ internalQuery }) => {
+// This component relies in the location search (the URL) to set the API filters
+// However we may force additional URL-hidden unavoidable filters
+const ProjectBrowser = ({ internalFilters }) => {
     // Get the location and the history
     const location = useLocation();
     const history = useNavigate();
@@ -86,34 +86,28 @@ const ProjectBrowser = ({ internalQuery }) => {
 
     // Convert the specified object back to a single encoded string for the query
     const searchString = useMemo(() => {
+        const filters = getFiltersList(search.filter);
+        if (search.option && search.option !== 'All results')
+            filters.push(buildFilter(optionsField, '==', search.option));
+        // If there are internal filters then add them here
+        if (internalFilters) filters.push(...internalFilters);
         const searchParameters = {
             search: search.search,
-            query: search.query,
+            filter: filters.length > 0 ? filters : undefined,
             countMds: 'true',
         }
         if (sorting) searchParameters.sort = sorting.query;
         if (search.page) searchParameters.page = search.page;
         if (search.limit) searchParameters.limit = search.limit;
-        // DANI: Esto habría que mirar de hacerlo vía query, porque este sistema es viejo y redundante
-        if (search.option && search.option !== 'All results')
-            searchParameters.filter = `${optionsField}+*${search.option}`;
-        // If there is an internal query then add it here
-        if (internalQuery)
-            if (search.query) {
-                const parsedQuery = JSON.parse(searchParameters.query)
-                const extendedQuery = Object.assign(parsedQuery, internalQuery);
-                search.query = JSON.stringify(extendedQuery);
-            }
-            else search.query = JSON.stringify(internalQuery);
-        return stringify(searchParameters);
-    }, [search, sorting, internalQuery]);
+        return stringifyQuery(searchParameters);
+    }, [search, sorting, internalFilters]);
 
 
     // Unified sort handler for both dropdown changes and column header clicks
     const handleSort = useCallback((field, direction) => {
         history({
             ...location,
-            search: stringify({
+            search: stringifyQuery({
                 ...search,
                 sortField: field,
                 sortDirection: direction

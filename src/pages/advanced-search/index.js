@@ -42,7 +42,8 @@ import { HOST_CONFIG } from "../../utils/constants";
 // Auxiliar functions
 import { parseLocationSearch } from '../../utils/auxiliar-functions';
 // String managers
-import { stringify } from 'qs';
+// API filters builder
+import { buildFilter, joinConditions, stringifyQuery } from '../../utils/filters';
 
 // Get the available search fields
 const queryFields = HOST_CONFIG.queryFields;
@@ -60,60 +61,97 @@ if (!reducedMotion()) {
   keyframes.transform = ['translateX(2.5%)', 'translateX(0)'];
 }
 
-// Escape all regex sensible characters
-const escapeRegExp = input => {
-  return input.replace(/[-[/\]{}()*+?.,\\^$|#\s]/g, '\\$&');
-};
-
 // Set the basic logic operands to handle multiple conditions
-const availableLogics = [
-  { name: 'AND', operator: '$and', noperator: '$not' },
-  { name: 'OR', operator: '$or', noperator: '$nor' },
-];
+const availableLogics = [ { name: 'AND' }, { name: 'OR' } ];
 // Set the possible comparators to apply according to each field type
-// Set also the format in the mongo query for each comparator
-const simpleFormat = (comparator, value) => {
-  return { [comparator]: value };
-};
-const regexFormat = (comparator, value) => {
-  return { [comparator]: value, $options: 'i' };
-};
-const numericFormat = (comparator, value) => {
-  return { [comparator]: +value };
-};
-const booleanFormat = (comparator, _) => comparator === 'true';
-const dateFormat = (comparator, value) => ({ [comparator]: value });
+// Set also the API filter operator for each comparator, both in positive and negative
+// Comparators with a fixed value do not need the user to type it
 const availableComparators = {
   string: [
-    {
-      name: 'contains',
-      operator: '$regex',
-      formatter: (comparator, value) => {
-        // Regex characters must be scaped here
-        const parsedVaue = escapeRegExp(value);
-        return regexFormat(comparator, parsedVaue);
-      },
-    },
-    { name: 'equals', operator: '$eq', formatter: simpleFormat },
-    { name: 'regular expression', operator: '$regex', formatter: regexFormat },
+    { name: 'contains', operator: '~=', negatedOperator: '!~=' },
+    { name: 'equals', operator: '==', negatedOperator: '!=' },
   ],
   float: [
-    { name: 'greater than', operator: '$gt', formatter: numericFormat },
-    { name: 'lower than', operator: '$lt', formatter: numericFormat },
+    { name: 'greater than', operator: '>', negatedOperator: '<=' },
+    { name: 'lower than', operator: '<', negatedOperator: '>=' },
   ],
   int: [
-    { name: 'equals', operator: '$eq', formatter: numericFormat },
-    { name: 'greater than', operator: '$gt', formatter: numericFormat },
-    { name: 'lower than', operator: '$lt', formatter: numericFormat },
+    { name: 'equals', operator: '==', negatedOperator: '!=' },
+    { name: 'greater than', operator: '>', negatedOperator: '<=' },
+    { name: 'lower than', operator: '<', negatedOperator: '>=' },
   ],
   boolean: [
-    { name: 'true', operator: 'true', formatter: booleanFormat },
-    { name: 'false', operator: 'false', formatter: booleanFormat },
+    { name: 'true', operator: '==', negatedOperator: '!=', value: true },
+    { name: 'false', operator: '==', negatedOperator: '!=', value: false },
   ],
   date: [
-    { name: 'after', operator: '$gt', formatter: dateFormat },
-    { name: 'before', operator: '$lt', formatter: dateFormat },
+    { name: 'after', operator: '>', negatedOperator: '<=' },
+    { name: 'before', operator: '<', negatedOperator: '>=' },
   ],
+};
+// Set the operators which support several values, which are matched if any value matches
+const MULTIPLE_VALUES_OPERATORS = ['==', '~='];
+// Set the maximum number of filters a query may be translated to
+const MAX_FILTERS = 20;
+
+// Translate a query object into a list of clauses which must all be matched
+// Every clause is a list of conditions (path, operator and value) where any condition must be matched
+// This is how the API filters work: several filters are combined with AND and conditions in a filter with OR
+// Note that negated groups are translated thanks to De Morgan laws (e.g. NOT (A OR B) = NOT A AND NOT B)
+// Note also that an OR of ANDs is distributed (e.g. (A AND B) OR C = (A OR C) AND (B OR C)), so it may grow fast
+// Return an error if the query is too complex
+export const getClauses = (object, positive = true) => {
+  // In case it is a field
+  if (object.field !== undefined) {
+    const currentField = availableFields.find(field => field.name === object.field);
+    const comparator = availableComparators[currentField.type].find(c => c.name === object.comparator);
+    const isPositive = positive === object.is;
+    const operator = isPositive ? comparator.operator : comparator.negatedOperator;
+    // Numbers are passed as numbers, while the rest of values are passed as texts
+    let value = comparator.value !== undefined ? comparator.value : object.value;
+    if (currentField.type === 'int' || currentField.type === 'float') value = +value;
+    return [ [ { path: currentField.path, operator, value } ] ];
+  }
+  // In case it is a logic
+  const isPositive = positive === object.is;
+  // Get clauses only for fields which are not empty
+  const children = object.fields
+    .filter(f => f.field || f.logic)
+    .map(child => getClauses(child, isPositive));
+  const childError = children.find(child => child.error);
+  if (childError) return childError;
+  const childrenClauses = children.filter(child => child.length > 0);
+  // If there is no content in this logic then return nothing
+  if (childrenClauses.length === 0) return [];
+  // An AND, or a negated OR, matches when all clauses match
+  const isAnd = (object.logic === 'AND') === isPositive;
+  if (isAnd) return childrenClauses.flat();
+  // Otherwise any child must match (OR), so clauses from different children are combined
+  let clauses = [ [] ];
+  for (const childClauses of childrenClauses) {
+    clauses = clauses.flatMap(clause => childClauses.map(childClause => [ ...clause, ...childClause ]));
+    if (clauses.length > MAX_FILTERS) return { error: `This query is too complex. ` +
+      `Combining ANDs inside ORs multiplies the number of conditions. Please simplify the query.` };
+  }
+  return clauses;
+};
+
+// Translate a query object into a list of API filters
+// Conditions in the same clause with the same field and operator are merged when possible
+export const getFilters = query => {
+  const clauses = getClauses(query);
+  if (clauses.error) return clauses;
+  if (clauses.length > MAX_FILTERS) return { error: `This query is too complex. Please simplify the query.` };
+  return clauses.map(clause => {
+    const conditions = [];
+    clause.forEach(({ path, operator, value }) => {
+      const sameCondition = MULTIPLE_VALUES_OPERATORS.includes(operator) &&
+        conditions.find(condition => condition.path === path && condition.operator === operator);
+      if (sameCondition) sameCondition.values.push(value);
+      else conditions.push({ path, operator, values: [ value ] });
+    });
+    return joinConditions(conditions.map(({ path, operator, values }) => buildFilter(path, operator, values)));
+  });
 };
 
 // Set the default query configuration
@@ -126,25 +164,6 @@ const defaultQuery = {
   ],
 };
 
-// How arithmetic signs results
-const signLogic = (positive1, positive2) => {
-  if (positive1) {
-    if (positive2) return true;
-    if (!positive2) return false;
-  } else {
-    if (positive2) return false;
-    if (!positive2) return true;
-  }
-};
-
-// DANI: a esta página dejé de darle mantenimiento al introducir las queries a la colección de references
-// DANI: con la implementación actual de la API esto rompe un poco la idea de una única query
-// DANI: las queries a references van por separado internamente en la API
-// DANI: los resultados de queries a projects y queries a references se suman mediante AND por defecto
-// DANI: montar un sistema en que el usuario pueda decidir sumar estos resultados miedante un OR es un marrón
-// DANI: no permitir un OR entre estos campos no sería coherente, y dificil de entender para el usuario
-// DANI: prefiero dejar de mantener esta versión de búsqueda de momento y centrarme en la otra
-
 // Advanced search page
 const AdvancedSearch = () => {
   const theme = useTheme();
@@ -154,6 +173,8 @@ const AdvancedSearch = () => {
   // Track if the user has tried to search the current query
   // In case it has tried, all error messages appear if things are wrong
   const [displayErrors, setDisplayErrors] = useState(false);
+  // Save the error when the query can not be translated to API filters
+  const [queryError, setQueryError] = useState(null);
 
   // Get the location and the history so wen can update the URL later
   const location = useLocation();
@@ -504,72 +525,26 @@ const AdvancedSearch = () => {
     }
   };
 
-  // Parse a query object
-  // Replace names by tags
-  const parseQuery = object => {
-    // In case it is a field
-    if (object.field !== undefined) {
-      // Get the parameters for the current field
-      const currentField = availableFields.find(
-        field => field.name === object.field,
-      );
-      // Get the path to the field to be queried
-      const fieldPath = currentField.path;
-      // Get the available comparators for the current field type
-      const comparators =
-        currentField && availableComparators[currentField.type];
-      // Get the parameters for the current comparator
-      const currentComparator = comparators.find(
-        c => c.name === object.comparator,
-      );
-      // Get the comparator operator
-      const operator = currentComparator.operator;
-      // Get the formatter for using this comparator
-      const formatter = currentComparator.formatter;
-      // Return the object with the mongo format
-      if (object.is) return { [fieldPath]: formatter(operator, object.value) };
-      return { [fieldPath]: { $not: formatter(operator, object.value) } };
-    }
-    // In case it is a logic
-    if (object.logic !== undefined) {
-      const logic = object.logic;
-      const logicOperator = availableLogics.find(l => l.name === logic)[
-        object.is ? 'operator' : 'noperator'
-      ];
-      // Get only fields which are not empty
-      const fields = object.fields.filter(f => f.field || f.logic);
-      // If there is no content in this logic then return nothing
-      if (fields.length === 0) return;
-      // If there is only 1 field in this logic then the logic makes not sense
-      if (fields.length === 1) {
-        const uniqueField = fields[0];
-        uniqueField.is = signLogic(uniqueField.is, object.is);
-        return parseQuery(uniqueField);
-      }
-      // If there are several fields
-      return { [logicOperator]: fields.map(child => parseQuery(child)) };
-    }
-  };
-
-  // Parse the query to an HTML string which may be passed as an URL
+  // Parse the query to API filters which may be passed as an URL
   const searchQuery = () => {
     if (inputError) {
       setDisplayErrors(true);
       return;
     }
-    // Sum up the query parameters into an abreviated object
-    const currentQuery = query.current;
-    const parsedQuery = parseQuery(currentQuery);
-    // Convert the summary obejct to a single string
-    const stringQuery = JSON.stringify(parsedQuery);
-    if (!stringQuery) return;
-    // Then make a browse with the new query
-    //history('/browse?query=' + stringQuery);
+    // Translate the query to a list of filters
+    const filters = getFilters(query.current);
+    if (filters.error) {
+      setQueryError(filters.error);
+      return;
+    }
+    setQueryError(null);
+    if (filters.length === 0) return;
+    // Then make a browse with the new filters
     history({
       ...location,
-      search: stringify({
+      search: stringifyQuery({
         ...search,
-        query: stringQuery,
+        filter: filters,
         // If we had a new query then reset the page
         page: 0,
       }),
@@ -589,6 +564,7 @@ const AdvancedSearch = () => {
             &nbsp;
             <span>Search</span>
           </Button>
+          {queryError && <FormHelperText error>{queryError}</FormHelperText>}
         </div>
         <hr style={{ color: 'lightGrey', marginTop: '1em' }} />
         <ProjectBrowser style={{width: '100%'}} />

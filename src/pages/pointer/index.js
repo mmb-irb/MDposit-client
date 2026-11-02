@@ -6,6 +6,7 @@ import useAPI from 'src/hooks/use-api';
 import { parse } from 'qs';
 // Constants
 import { BASE_VERSIONED_PATH, HOST_CONFIG } from '../../utils/constants';
+import { buildReturn } from '../../utils/filters';
 // Import web components
 import Card from '../../components/animated-card';
 import {
@@ -35,10 +36,10 @@ const Pointer = () => {
   if (!reference) return 'Missing reference';
   if (!referenceId) return 'Missing reference id';
   // Set project metadata values to retrieve from the pointers endpoint
-  const projectionParameters = '?' + Object.values(PROJECTION_METADATA)
-    .map(field => 'projection=' + field).join('&');
+  // Note that the grouper field is missing when the host has no options field
+  const returnParameters = '?' + buildReturn(Object.values(PROJECTION_METADATA).filter(field => field));
   // Get pointers data using the API
-  const pointerURL = `${BASE_VERSIONED_PATH}/pointers/${reference}/${referenceId}${projectionParameters}`;
+  const pointerURL = `${BASE_VERSIONED_PATH}/pointers/${reference}/${referenceId}${returnParameters}`;
   const { loading, payload, error } = useAPI(pointerURL);
   // Group results according to the grouper parameter
   const groupedData = useMemo(() => {

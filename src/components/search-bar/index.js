@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { parse, stringify } from 'qs';
+import { parse } from 'qs';
+import { stringifyQuery } from '../../utils/filters';
 import { debounce } from 'lodash-es';
 
 import { InputAdornment, TextField } from '@mui/material';
@@ -49,7 +50,7 @@ export const updateLocation = (location, history, value) => {
   history(
     {
       ...location,
-      search: stringify(nextSearchObject),
+      search: stringifyQuery(nextSearchObject),
     },
     { replace: shouldReplace },
   );

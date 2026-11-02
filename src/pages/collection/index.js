@@ -19,6 +19,8 @@ import {
 } from 'src/utils/constants';
 // Reference handler
 import { Reference } from 'src/utils/reference-manager';
+// Filters builder
+import { buildFilter, buildReturn, stringifyQuery } from 'src/utils/filters';
 
 // Styling
 import style from './style.module.css';
@@ -51,14 +53,13 @@ const Collection = () => {
     }, [referenceData]);
 
     // Using the options API endpoint, get a summary of values from simulations in this collection
-    const query = `query={"metadata.COLLECTIONS":"${collectionId}"}`;
-    const projection = Object.values(PROJECT_OPTIONS).map(field => `projection=${field}`).join('&');
-    const optionsUrl = `${BASE_PATH_PROJECTS}/options?${query}&${projection}`;
+    const collectionFilter = buildFilter('metadata.COLLECTIONS', '==', collectionId);
+    const returned = buildReturn(Object.values(PROJECT_OPTIONS));
+    const optionsUrl = `${BASE_PATH_PROJECTS}/options?${stringifyQuery({ filter: collectionFilter })}&${returned}`;
     const { payload: optionsPayload, error: optionsError } = useAPI(optionsUrl);
 
-    // Set also the internal query for the project browser
-    const browserInternalQuery = useMemo(
-        () => ({ 'metadata.COLLECTIONS': collectionId }), [collectionId]);
+    // Set also the internal filters for the project browser
+    const browserInternalFilters = useMemo(() => [ collectionFilter ], [collectionFilter]);
 
     // Get the provided theme
     const theme = useTheme();
@@ -149,7 +150,7 @@ const Collection = () => {
         </CardContent>
         <hr style={{ color: 'lightGrey' }} />
         
-        <ProjectBrowser internalQuery={browserInternalQuery} />
+        <ProjectBrowser internalFilters={browserInternalFilters} />
         </Card>
     </> );
 };

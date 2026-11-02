@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
-import { stringify } from 'qs';
+import { stringifyQuery } from '../../utils/filters';
 import style from './style.module.css';
 
 const DEFAULT_ROWS_PER_PAGE_OPTIONS = [10, 25, 50, 100];
@@ -50,9 +50,9 @@ const Pagination = ({
 	const goToPage = (newPage) => {
 		history({
 			...location,
-			search: stringify({
+			search: stringifyQuery({
 				search: search.search,
-				query: search.query,
+				filter: search.filter,
 				option: search.option,
 				page: newPage + 1 === DEFAULT_PAGE ? undefined : newPage + 1,
 				limit:
@@ -69,9 +69,9 @@ const Pagination = ({
 	const changeRowsPerPage = (value) => {
 		history({
 			...location,
-			search: stringify({
+			search: stringifyQuery({
 				search: search.search,
-				query: search.query,
+				filter: search.filter,
 				option: search.option,
 				limit: +value === DEFAULT_LIMIT ? undefined : value,
 				sort: search.sort,

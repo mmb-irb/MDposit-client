@@ -14,8 +14,7 @@ const renderKeywords = keywords =>
   );
 
 // Browse URL filtering by one keyword, as the custom search builds it
-const browseHref = keyword =>
-  '/browse?query=' + encodeURIComponent(JSON.stringify({ 'metadata.SYSKEYS': keyword }));
+const browseHref = keyword => `/browse?filter=keyword=eq='${encodeURIComponent(keyword)}'`;
 
 describe('<SystemKeywords />', () => {
   it('shows each keyword as a link to Browse filtered by it', () => {

@@ -26,7 +26,8 @@ import style from './style.module.css';
 
 // Constants
 import { BASE_PATH_PROJECTS, HOST_CONFIG } from '../../../utils/constants';
-import { buildProjectionQuery, formatOptionLabel } from '../../../utils/auxiliar-functions';
+import { buildReturnQuery, formatOptionLabel, parseLocationSearch } from '../../../utils/auxiliar-functions';
+import { buildFilter, parseFilter, getFiltersList, stringifyQuery } from '../../../utils/filters';
 const SEARCH_DELAY = 500; // Half a second delay, same as in search component
 
 // Hooks
@@ -41,204 +42,91 @@ const availableFields = HOST_CONFIG.availableFields;
 // Set a regular expression for numeric values
 const NUMERIC_REGEXP = new RegExp(/[0-9+-.,]*/);
 
-// Escape all regex sensible characters
-const escapeRegExp = input => {
-  return input.replace(/[-[/\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+// Parse the URL filters back to our internal query format
+// Filters which are not built by this component are ignored
+const parseUrlFilters = urlFilters => {
+  const internalQuery = {};
+  getFiltersList(urlFilters).forEach(filter => {
+    const conditions = parseFilter(filter);
+    // Filters with several conditions are never built by this component
+    if (!conditions || conditions.length !== 1) return;
+    const { path, operator, values } = conditions[0];
+    const field = availableFields.find(f => f.path === path);
+    if (!field) return;
+    // Handle equality (for checkbox values)
+    // Empty values stand for fields with no value
+    if (operator === '==' && field.checkbox) {
+      internalQuery[path] = values.map(value => value === null ? NA_TAG : value);
+      return;
+    }
+    // The rest of components support one value only
+    if (values.length !== 1 || values[0] === null) return;
+    const value = values[0];
+    // Handle string search
+    if (operator === '~=' || operator === '==') {
+      internalQuery[path] = value;
+      return;
+    }
+    // Handle numeric ranges
+    if (operator === '>' || operator === '<') {
+      const rangeSide = operator === '>' ? 'min' : 'max';
+      internalQuery[path] = { ...internalQuery[path], [rangeSide]: value };
+    }
+  });
+  return internalQuery;
 };
 
-// Parse the URL query back to our internal query format
-const parseUrlQuery = (urlQuery) => {
-  try {
-    if (!urlQuery) return {};
-    
-    const parsedQuery = JSON.parse(urlQuery);
-    const internalQuery = {};
-
-    // Handle direct field queries (string search with regex)
-    Object.entries(parsedQuery).forEach(([key, value]) => {
-      if (key === '$and' || key === '$or') return;
-
-      const field = availableFields.find(f => f.path === key);
-      if (!field) return;
-
-      // Handle regex string search
-      if (value.$regex) {
-        internalQuery[key] = value.$regex.replace(/\\/g, '');
-        return;
-      }
-
-      // Handle numeric ranges
-      if (value.$gt !== undefined || value.$lt !== undefined) {
-        internalQuery[key] = {};
-        if (value.$gt !== undefined) internalQuery[key].min = value.$gt;
-        if (value.$lt !== undefined) internalQuery[key].max = value.$lt;
-        return;
-      }
-
-      // Handle direct equality (for checkbox values)
-      if (field.checkbox) {
-        internalQuery[key] = [value === null ? NA_TAG : String(value)];
-      } else {
-        internalQuery[key] = value === null ? NA_TAG : String(value);
-      }
-    });
-
-    // Handle $or queries (for checkboxes with multiple selections)
-    if (parsedQuery.$or && Array.isArray(parsedQuery.$or)) {
-      parsedQuery.$or.forEach(condition => {
-        const entries = Object.entries(condition);
-        if (entries.length !== 1) return;
-        
-        const [key, value] = entries[0];
-        if (!internalQuery[key]) {
-          internalQuery[key] = [value === null ? NA_TAG : String(value)];
-        } else if (Array.isArray(internalQuery[key])) {
-          internalQuery[key].push(value === null ? NA_TAG : String(value));
-        }
-      });
-    }
-
-    // Handle $and queries with nested $or conditions
-    if (parsedQuery.$and && Array.isArray(parsedQuery.$and)) {
-      parsedQuery.$and.forEach(condition => {
-        if (condition.$or && Array.isArray(condition.$or)) {
-          const firstCondition = condition.$or[0];
-          const key = Object.keys(firstCondition)[0];
-          
-          if (!internalQuery[key]) {
-            internalQuery[key] = [];
-          }
-          
-          condition.$or.forEach(orCondition => {
-            const orKey = Object.keys(orCondition)[0];
-            const orValue = orCondition[orKey];
-            if (orKey === key) {
-              internalQuery[key].push(orValue === null ? NA_TAG : String(orValue));
-            }
-          });
-        }
-      });
-    }
-
-    return internalQuery;
-  } catch (error) {
-    console.error("Error parsing URL query:", error);
-    return {};
-  }
-};
-
-// Parse the query to an HTML string which may be passed as an URL
+// Parse the query to an URL with the corresponding API filters
 // Note that this function is called only at the end, when the search button is pressed
 // The actual query is build below in the code
 const parseQuery = (currentQuery, currentLocation) => {
   // Parse current URL parameters to preserve them
-  const currentParams = parse(decodeURIComponent(currentLocation.search), {
-    ignoreQueryPrefix: true,
-    decoder: c => c,
-  });
-  // If the query is empty, rebuild the URL with only the currentParams
-  if (Object.keys(currentQuery).length === 0) {
-    delete currentParams.query; // Remove the 'query' key
-    return '/browse?' + Object.entries(currentParams)
-      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-      .join('&');
-  }
-  
-  // Set a function to parse our queries to a mongo query object
-  const parsedQuery = {};
+  const currentParams = parseLocationSearch(currentLocation.search);
+  // Set a function to parse our queries to API filters
+  const filters = [];
   let errors = 0;
-  const parseAndAddQuery = ([key, value]) => {
-    // DANI: Aquí me he quedado. Esto debería ser idéntico para las ref queries. Habría que aislar esta función.
+  const parseAndAddFilter = ([key, value]) => {
     // Get the current field to know which is the expected type
     const currentField = availableFields.find(f => f.path === key);
-    // Provided that value will allways be a string (or string array) do the corresponding parsing
-    const parseType = string => {
-      if (string === NA_TAG) return { $eq: null };
-      if (currentField.type === 'string') return string;
-      if (currentField.type === 'int' || currentField.type === 'float')
-        return +string;
-      if (currentField.type === 'boolean') return string === 'true';
-    };
     // In case it is a string search it means it comes from a string textfield
     if (typeof value === 'string') {
-      const parsedValue = escapeRegExp(value);
-      parsedQuery[key] = { $regex: parsedValue, $options: 'i' };
+      if (value) filters.push(buildFilter(key, '~=', value));
       return;
     }
     // In case it has min or max propierties it comes from a number/date range pair of textfields
+    // Numbers are passed as numbers while dates are passed as texts
     if (value.min || value.max) {
-      const parsedValue = {};
-      if (value.min) {
-        if (currentField.type === 'date') {
-          parsedValue['$gt'] = value.min;
-        } else {
-          if (isNaN(+value.min)) return ++errors;
-          parsedValue['$gt'] = +value.min;
-        }
+      const isNumeric = currentField.type !== 'date';
+      for (const [ rangeSide, operator ] of [ ['min', '>'], ['max', '<'] ]) {
+        const rangeValue = value[rangeSide];
+        if (!rangeValue) continue;
+        if (isNumeric && isNaN(+rangeValue)) return ++errors;
+        filters.push(buildFilter(key, operator, isNumeric ? +rangeValue : rangeValue));
       }
-      if (value.max) {
-        if (currentField.type === 'date') {
-          parsedValue['$lt'] = value.max;
-        } else {
-          if (isNaN(+value.max)) return ++errors;
-          parsedValue['$lt'] = +value.max;
-        }
-      }
-      parsedQuery[key] = parsedValue;
       return;
     }
     if (!Array.isArray(value))
       throw new Error('Wrong ' + key + ' -> ' + value);
     // If value is not one of the previous it must be an array, so it comes from checkboxes
-    // If value array has only one element then search only for this option
-    if (value.length === 1) {
-      parsedQuery[key] = parseType(value[0]);
-      return;
-    }
-    // Otherwise we must use a $or operand for each option
-    // In case more than one field have more than one option we must use $and operand to declare multiple $or operands
-    // So, if there is already an $and operator push the new $or operand to it
-    const currentAnd = parsedQuery['$and'];
-    if (currentAnd) {
-      currentAnd.push({ $or: value.map(v => ({ [key]: parseType(v) })) });
-      return;
-    }
-    // In case there is no $and operator but there is already an $or operand we must create the $and operator
-    // Then the old $or operator must be copied into the $and operator and deleted from the query object
-    const currentOr = parsedQuery['$or'];
-    if (currentOr) {
-      parsedQuery['$and'] = [
-        { $or: currentOr },
-        { $or: value.map(v => ({ [key]: parseType(v) })) },
-      ];
-      delete parsedQuery['$or'];
-      return;
-    }
-    // In case there is no $and/$or operators we set the first $or operator alone
-    parsedQuery['$or'] = value.map(v => ({ [key]: parseType(v) }));
+    // Several options are matched if any of them matches
+    // The not defined option is an empty value, which stands for fields with no value
+    filters.push(buildFilter(key, '==', value.map(v => v === NA_TAG ? null : v)));
   };
 
   // Parse the query
-  Object.entries(currentQuery).forEach(entry => parseAndAddQuery(entry));
+  Object.entries(currentQuery).forEach(entry => parseAndAddFilter(entry));
 
   // This may happen when a numeric textfield has text
   if (errors > 0) return;
 
-  // Create params object with preserved sort parameters
+  // Set the new filters while preserving the rest of parameters (e.g. sort parameters)
   const params = {
-    ...currentParams, // Preserve sort parameters
-    query: JSON.stringify(parsedQuery),
+    ...currentParams,
+    filter: filters.length > 0 ? filters : undefined,
   };
 
-  // Filter out undefined values
-  Object.keys(params).forEach(key => 
-    params[key] === undefined && delete params[key]
-  );
-
   // Return the query as a URL string with preserved parameters
-  return '/browse?' + Object.entries(params)
-    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-    .join('&');
+  return '/browse?' + stringifyQuery(params);
 };
 
 // Check if an URL leads to the current location, regardless of how its parameters are encoded or sorted
@@ -264,16 +152,16 @@ const CustomSearch = () => {
   // Get the location
   const location = useLocation();
   
-  // Parse the query parameter from URL 
-  const urlParams = parse(location.search, { ignoreQueryPrefix: true });
-  const urlQuery = urlParams.query;
+  // Parse the filter parameter from URL
+  const urlParams = parseLocationSearch(location.search);
+  const urlFilters = urlParams.filter;
   // Get the browser searach
   const urlBrowserSearch = urlParams.search;
   // Get the "browser option", not to be confused with the options endpoint or its projections
   const urlBrowserOption = urlParams.option;
   
   // Initialize the query based on URL or empty object
-  const initialQuery = urlQuery ? parseUrlQuery(urlQuery) : {};
+  const initialQuery = parseUrlFilters(urlFilters);
   // Use URL search params as a dependency for state
   const [query, setQuery] = useState(initialQuery);
   // Track whether search was triggered by user action or URL change
@@ -281,14 +169,8 @@ const CustomSearch = () => {
 
   // Reset query when URL changes
   useEffect(() => {
-    if (!urlQuery) {
-      // Clear the query when there's no query parameter in URL
-      setQuery({});
-    } else {
-      // Update query with parsed URL data
-      setQuery(parseUrlQuery(urlQuery));
-    }
-  }, [location.search, urlQuery]);
+    setQuery(parseUrlFilters(urlFilters));
+  }, [location.search]);
 
   // Make a function to parse the query once built and browse
   const parseAndSearch = () => {
@@ -306,21 +188,20 @@ const CustomSearch = () => {
   }, [query]);
 
   // Query all the available fields using the 'options' endpoint
-  const projectionQuery = buildProjectionQuery(availableFields);
+  const returnQuery = buildReturnQuery(availableFields);
 
   // Build the API URL for the options requests
   // DANI: Se piden todas las options de golpe, lo cual no es muy eficiente y la API tarda 3 segundos aprox
   // DANI: Hemos decidido que este valor se guardará en la db y se actualizará periódicamente, cosa mucho más eficiente
-  let optionsUrl = `${BASE_PATH_PROJECTS}/options?${projectionQuery}`;
+  let optionsUrl = `${BASE_PATH_PROJECTS}/options?${returnQuery}`;
   // In case the user has searched some text in the browser
   if (urlBrowserSearch) {
-    optionsUrl += `&search=${urlBrowserSearch}`;
+    optionsUrl += '&' + stringifyQuery({ search: urlBrowserSearch });
   }
   // In case the user has selected a specific "browser option" we filter the query
   if (urlBrowserOption) {
     const browserOptionsField = HOST_CONFIG.optionsField;
-    const browserOptionsQuery = JSON.stringify({ [browserOptionsField]: urlBrowserOption });
-    optionsUrl += `&query=${browserOptionsQuery}`;
+    optionsUrl += '&' + stringifyQuery({ filter: buildFilter(browserOptionsField, '==', urlBrowserOption) });
   }
   const {
     loading: optionsLoading,
@@ -358,7 +239,7 @@ const CustomSearch = () => {
   useEffect(() => {
     // Only reset accordions if URL was cleared externally (not by user action)
     // and there is no query or search options
-    if (!urlQuery && !isUserInitiatedSearchRef.current && !location.search) {
+    if (!urlFilters && !isUserInitiatedSearchRef.current && !location.search) {
       const { categoryState, fieldState } = initializeExpandedState(queryFields, query);
       setExpandedCategory(categoryState);
       setExpandedFields(fieldState);
@@ -367,7 +248,7 @@ const CustomSearch = () => {
     if (isUserInitiatedSearchRef.current) {
       isUserInitiatedSearchRef.current = false;
   }
-  }, [location.search, urlQuery]);
+  }, [location.search]);
 
   // Handle category accordion changes
   const handleCategoryChange = (category) => (event, isExpanded) => {

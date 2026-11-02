@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { Chip } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { formatOptionLabel } from 'src/utils/auxiliar-functions';
+import { buildFilter, stringifyQuery } from 'src/utils/filters';
 import style from '../style.module.css';
 
 // Get the system keywords as a list of strings
@@ -24,13 +25,13 @@ const SystemKeywords = ({ keywords }) => {
       <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${theme.palette.secondary.dark}` }}>
         {parsedKeywords.map(keyword => {
           // Keep the keyword as stored, since the search matches it exactly
-          const query = JSON.stringify({ 'metadata.SYSKEYS': keyword });
+          const filter = buildFilter('metadata.SYSKEYS', '==', keyword);
           return (
             <Chip
               key={keyword}
               label={formatOptionLabel(keyword)}
               component={Link}
-              to={`/browse?query=${encodeURIComponent(query)}`}
+              to={`/browse?${stringifyQuery({ filter })}`}
               clickable
               size="small"
               variant="outlined"

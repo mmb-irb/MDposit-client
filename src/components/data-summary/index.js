@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, ButtonGroup, Typography } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { buildReturn, stringifyQuery } from '../../utils/filters';
 
 import { BASE_PATH_PROJECTS, BASE_VERSIONED_PATH, HOST_CONFIG } from '../../utils/constants';
-import { buildProjectionQuery, createPalette, formatBytes } from '../../utils/auxiliar-functions';
+import { buildReturnQuery, createPalette, formatBytes } from '../../utils/auxiliar-functions';
 import useAPI from '../../hooks/use-api';
 import useBatchAPI from '../../hooks/use-batch-api';
 
@@ -56,35 +57,34 @@ export function findFieldByTitleOrLabel(queryFields, searchValue) {
  * DataSummary component — displays a summary table, pie chart, growth timeline,
  * and histograms of project statistics.
  *
- * @param {object|null} internalQuery - Optional MongoDB-style query object to filter
- *   the statistics to a subset of projects (e.g. `{ 'metadata.COLLECTIONS': 'col123' }`).
+ * @param {string[]|null} internalFilters - Optional list of API filters to restrict
+ *   the statistics to a subset of projects (e.g. `['collection=="col123"']`).
  *   When omitted the global summary is shown.
  * @param {string} [title='Data summary'] - Section heading text.
  */
-const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = null }) => {
+const DataSummary = ({ internalFilters = null, title = 'Data summary', nodeData = null }) => {
     // Get the provided theme
     const theme = useTheme();
     const primaryColor = theme.palette.primary.main;
     const secondaryColor = theme.palette.secondary.dark;
-    const isGlobalSummary = HOST_CONFIG.global && !internalQuery;
+    const isGlobalSummary = HOST_CONFIG.global && !internalFilters;
 
     // Helper to build the leading query string fragment for URLs
-    const queryPrefix = internalQuery
-        ? `query=${encodeURIComponent(JSON.stringify(internalQuery))}&`
+    const filtersQuery = internalFilters
+        ? stringifyQuery({ filter: internalFilters })
         : '';
+    const queryPrefix = filtersQuery ? `${filtersQuery}&` : '';
 
     // Use the API to get the summary
-    const summaryQueryParam = internalQuery
-        ? `?query=${encodeURIComponent(JSON.stringify(internalQuery))}`
-        : '';
+    const summaryQueryParam = filtersQuery ? `?${filtersQuery}` : '';
     const summaryUrl = `${BASE_PATH_PROJECTS}/summary${summaryQueryParam}`;
     const { payload: summaryPayload, error: summaryError } = useAPI(summaryUrl, { name: 'summary', cacheOn: true });
     // Use the API to get the options
-    // Reuse projection query logic from custom-search
+    // Reuse return query logic from custom-search
     const availableFields = HOST_CONFIG.availableFields;
     const queryFields = HOST_CONFIG.queryFields;
-    const projectionQuery = buildProjectionQuery(availableFields);
-    const optionsUrl = `${BASE_PATH_PROJECTS}/options?${queryPrefix}${projectionQuery}&countMds=true`;
+    const returnQuery = buildReturnQuery(availableFields);
+    const optionsUrl = `${BASE_PATH_PROJECTS}/options?${queryPrefix}${returnQuery}&countMds=true`;
     const { payload: optionsPayload, error: optionsError } = useAPI(optionsUrl, { name: 'browse', cacheOn: true });
 
     // State for selected options field for pie chart
@@ -138,17 +138,17 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
     // Set default selected field when variableOptionsFields is first populated
     useEffect(() => {
         if (variableOptionsFields.length > 0 && !selectedOptionsField) {
-            if (internalQuery && variableOptionsFields.includes('metadata.METHOD')) {
+            if (internalFilters && variableOptionsFields.includes('metadata.METHOD')) {
                 setSelectedOptionsField('metadata.METHOD');
-            } else if (!internalQuery && variableOptionsFields.includes('node')) {
+            } else if (!internalFilters && variableOptionsFields.includes('node')) {
                 setSelectedOptionsField('node');
-            } else if (!internalQuery && variableOptionsFields.includes('metadata.COLLECTIONS')) {
+            } else if (!internalFilters && variableOptionsFields.includes('metadata.COLLECTIONS')) {
                 setSelectedOptionsField('metadata.COLLECTIONS');
             } else {
                 setSelectedOptionsField(variableOptionsFields[0]);
             }
         }
-    }, [variableOptionsFields, internalQuery, selectedOptionsField]);
+    }, [variableOptionsFields, internalFilters, selectedOptionsField]);
 
     // Reset selection if current field moves to constant/uniform (e.g. after MDs/Projects toggle)
     useEffect(() => {
@@ -274,7 +274,7 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
     }, [isGlobalSummary, federatedStatsUrls, batchStatsResponses]);
 
     // Use the API to get the project growth data (global only — not meaningful for subsets)
-    const growthUrl = !internalQuery ? `${BASE_PATH_PROJECTS}/summary/growth` : null;
+    const growthUrl = !internalFilters ? `${BASE_PATH_PROJECTS}/summary/growth` : null;
     const { payload: growthPayload, error: growthError } = useAPI(growthUrl, { name: 'growth', cacheOn: true });
     // Use the API datapoint for the FrameStep plot
     const framestepUrl = `${BASE_PATH_PROJECTS}/summary/framestep${summaryQueryParam}`;
@@ -335,7 +335,7 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
     }, [getOptionCount, nodeNameMap, optionsPayload, selectedOptionsField, selectedStatsIndex]);
 
     // Use the API to get the snapshots options
-    const snapshotsUrl = `${BASE_PATH_PROJECTS}/options?${queryPrefix}projection=mds.frames`;
+    const snapshotsUrl = `${BASE_PATH_PROJECTS}/options?${queryPrefix}${buildReturn(['mds.frames'])}`;
     const { payload: snapshotsPayload, error: snapshotsError } = useAPI(snapshotsUrl);
 
     // Build the snapshots component
@@ -344,11 +344,11 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
         () => (snapshotsPayload ? snapshotsPayload['mds.frames'] : {}), [snapshotsPayload]);
 
     // Use the API to get the atoms options
-    const atomsUrl = `${BASE_PATH_PROJECTS}/options?${queryPrefix}projection=metadata.SYSTATS`;
+    const atomsUrl = `${BASE_PATH_PROJECTS}/options?${queryPrefix}${buildReturn(['metadata.SYSTATS'])}`;
     const { payload: atomsPayload, error: atomsError } = useAPI(atomsUrl);
 
     // Use the API to get the number of MDs per project
-    const mdCountUrl = `${BASE_PATH_PROJECTS}/options?${queryPrefix}projection=mdcount`;
+    const mdCountUrl = `${BASE_PATH_PROJECTS}/options?${queryPrefix}${buildReturn(['mdcount'])}`;
     const { payload: mdCountPayload, error: mdCountError } = useAPI(mdCountUrl);
 
     const framesBinCount = Object.keys(frameCounts).length;
@@ -444,7 +444,7 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
                 </tbody>
             </table>
         </div>
-        {!internalQuery && <div className={style.growth}>
+        {!internalFilters && <div className={style.growth}>
             <Typography variant="h5">Data Growth Over Time</Typography>
             <div className={style.timelineChart}>
                 {growthPayload ? (

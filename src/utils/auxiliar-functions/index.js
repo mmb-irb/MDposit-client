@@ -1,6 +1,7 @@
 import chroma from 'chroma-js';
 import { range } from 'lodash-es';
 import { parse } from 'qs';
+import { buildReturn } from '../filters';
 
 // Createa a copy from an object thus not conserving any pointer to the original object contents
 export const copyObject = object => JSON.parse(JSON.stringify(object));
@@ -188,17 +189,14 @@ export function* generateRanges (selection) {
 // Convert the URL string into an object
 // This "parse" comes from the "qs" library
 // WARNING: The default "parse" decoding behaviour has a strong conflict between '+' and blank space character
-// This workaround first decodes and then parses without decoding
-// The 'decoder' option is necessary for not decoding
-export const parseLocationSearch = locationSearch => {
-  const decoded = decodeURIComponent(locationSearch);
-  return parse(decoded, { ignoreQueryPrefix: true, decoder: c => c });
-}
+// This workaround decodes every key and value without replacing '+' by blank spaces
+// Note that decoding after splitting the parameters keeps encoded characters such as '&' or '=' inside values
+export const parseLocationSearch = locationSearch =>
+  parse(locationSearch, { ignoreQueryPrefix: true, decoder: decodeURIComponent });
 
-// Utility to build projection query string for options endpoints
-export function buildProjectionQuery(fields) {
-  const projectionStrings = fields.filter(field => field.options).map(field => 'projection=' + field.path);
-  return projectionStrings.join('&');
+// Utility to build the query string of fields to be returned by options endpoints
+export function buildReturnQuery(fields) {
+  return buildReturn(fields.filter(field => field.options).map(field => field.path));
 }
 // Check if an object is empty
 export const isEmptyObj = obj => obj && Object.keys(obj).length === 0;
