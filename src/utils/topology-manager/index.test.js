@@ -44,6 +44,40 @@ describe('atom indices of large chains', () => {
   });
 });
 
+// Topology selections may group consecutive indices in [first, last] ranges, mixed with single indices
+// Chain A: residues 0-3 (2 atoms each), chain B: residues 4-5 (2 atoms each)
+describe('ranged selections', () => {
+  const makeSelectionsTopology = selections => new Topology(
+    {
+      atom_names: Array(12).fill('C'),
+      atom_elements: Array(12).fill('C'),
+      atom_residue_indices: [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5],
+      residue_names: ['ALA', 'GLY', 'ALA', 'GLY', 'SOL', 'SOL'],
+      residue_numbers: [1, 2, 3, 4, 1, 2],
+      residue_chain_indices: [0, 0, 0, 0, 1, 1],
+      chain_names: ['A', 'B'],
+      selections,
+    },
+    {},
+    { proteins: [], ligands: [], chains: [], inchikeys: [] },
+  );
+
+  it('expands ranges of chain, residue and atom indices', () => {
+    const topology = makeSelectionsTopology({
+      protein: { n: 8, ch: [0] },
+      solvent: { n: 4, re: [[4, 5]] },
+      pbc: { n: 5, re: [[4, 5]], at: [1] },
+      odd: { n: 5, re: [0, [2, 3]], at: [9] },
+      mixed: { n: 4, at: [[1, 3], 7] },
+    });
+    expect([...topology.selections.protein.atomIndices]).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
+    expect([...topology.selections.solvent.atomIndices]).toEqual([8, 9, 10, 11]);
+    expect([...topology.selections.odd.atomIndices]).toEqual([0, 1, 4, 5, 6, 7, 9]);
+    expect([...topology.selections.mixed.atomIndices]).toEqual([1, 2, 3, 7]);
+    expect([...topology.pbcResidues].sort()).toEqual([0, 4, 5]);
+  });
+});
+
 // Legacy topology (no selections) with 6 residues of 3 atoms: residues 0-1 are MC3, a synthetic lipid missing in the
 // lipid databases, residues 2-3 are POPC, residue 4 is a ligand and residue 5 is water
 const MEMBRANE_RESIDUES = ['MC3', 'MC3', 'POPC', 'POPC', 'LIG', 'SOL'];

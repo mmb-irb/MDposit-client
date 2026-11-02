@@ -25,6 +25,18 @@ import getEpitopesRepresentations from './get-epitopes-representations';
 // Import the Selection class to better handle atom selections
 import { Selection } from './selections';
 
+// Run a function for every index in a list where consecutive indices may be grouped in ranges
+// Ranges are [first, last] pairs where both values are included
+const forEachIndex = (indices, callback) => {
+  for (const index of indices) {
+    if (!Array.isArray(index)) {
+      callback(index);
+      continue;
+    }
+    for (let rangeIndex = index[0]; rangeIndex <= index[1]; rangeIndex++) callback(rangeIndex);
+  }
+};
+
 // Prevent shared representations, and the list itself, from being modified
 const freezeRepresentations = representations => {
   representations.forEach(representation => Object.freeze(representation));
@@ -613,6 +625,8 @@ export class Topology {
 
   // Set a function to parse database-formatted topology selections
   // These selections are dicts with chain, residue and atom indices
+  // Consecutive indices may be grouped in [first, last] ranges, where both values are included
+  // e.g. [[1, 3], 7] means 1, 2, 3 and 7
   // Alternatively they may be simple 'all' string meaning the whole system is selected
   parseApiSelection = apiSelection => {
     // If the selection does not exist then return null
@@ -624,17 +638,17 @@ export class Topology {
     // of atoms and spreading them as function arguments overflows the call stack.
     const atomIndices = [];
     // Start with chains
-    if (apiSelection.ch) apiSelection.ch.forEach(chainIndex => {
+    if (apiSelection.ch) forEachIndex(apiSelection.ch, chainIndex => {
       const chain = this.getChainByIndex(chainIndex);
       for (const atomIndex of chain.atomIndices) atomIndices.push(atomIndex);
     });
     // Continue with residues
-    if (apiSelection.re) apiSelection.re.forEach(residueIndex => {
+    if (apiSelection.re) forEachIndex(apiSelection.re, residueIndex => {
       const residue = this.getResidueByIndex(residueIndex);
       for (const atomIndex of residue.atomIndices) atomIndices.push(atomIndex);
     });
     // Finally add atoms
-    if (apiSelection.at) for (const atomIndex of apiSelection.at) atomIndices.push(atomIndex);
+    if (apiSelection.at) forEachIndex(apiSelection.at, atomIndex => atomIndices.push(atomIndex));
     // Finally return the parsed selection
     return new Selection(atomIndices);
   }
