@@ -338,27 +338,10 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
     const snapshotsUrl = `${BASE_PATH_PROJECTS}/options?${queryPrefix}projection=mds.frames`;
     const { payload: snapshotsPayload, error: snapshotsError } = useAPI(snapshotsUrl);
 
-    // Use the API to get the snapshots options
-    const oldSnapshotsBaseQuery = { mds: { $exists: false } };
-    const oldSnapshotsQuery = internalQuery
-        ? { ...oldSnapshotsBaseQuery, ...internalQuery }
-        : oldSnapshotsBaseQuery;
-    const oldSnapshotsUrl = `${BASE_PATH_PROJECTS}/options?query=${encodeURIComponent(JSON.stringify(oldSnapshotsQuery))}&projection=metadata.SNAPSHOTS`;
-    const { payload: oldSnapshotsPayload, error: oldSnapshotsError } = useAPI(oldSnapshotsUrl);
-
     // Build the snapshots component
     // If snapshots data is not yet downloaded then show an empty plot
-    const frameCounts = useMemo(() => {
-        // Merge both the new and the old format frame counts
-        let frameCounts = {};
-        if (snapshotsPayload) frameCounts = { ...snapshotsPayload['mds.frames'] };
-        if (oldSnapshotsPayload) {
-            Object.entries(oldSnapshotsPayload['metadata.SNAPSHOTS']).forEach(([frameCount, amount]) => {
-                frameCounts[frameCount] = (frameCounts[frameCount] || 0) + amount;
-            });
-        }
-        return frameCounts;
-    }, [snapshotsPayload, oldSnapshotsPayload]);
+    const frameCounts = useMemo(
+        () => (snapshotsPayload ? snapshotsPayload['mds.frames'] : {}), [snapshotsPayload]);
 
     // Use the API to get the atoms options
     const atomsUrl = `${BASE_PATH_PROJECTS}/options?${queryPrefix}projection=metadata.SYSTATS`;
@@ -396,7 +379,7 @@ const DataSummary = ({ internalQuery = null, title = 'Data summary', nodeData = 
 
     // Handle possible errors by just showing a log error in the console
     // Thus we allow the rest of the page to keep loading
-    const errorMap = { summaryError, optionsError, snapshotsError, oldSnapshotsError, atomsError, mdCountError, growthError, statsError, bsError };
+    const errorMap = { summaryError, optionsError, snapshotsError, atomsError, mdCountError, growthError, statsError, bsError };
     Object.entries(errorMap).forEach(([name, error]) => {
         if (error) console.error(`${name}:`, error.message);
     });
