@@ -424,6 +424,14 @@ const NGLViewer = memo(
           );
       }, [perspective]);
 
+      // The diameter of the main structure when it is loaded, before the trajectory plays
+      // The bounding box of every frame is different, so it must be read only once
+      const sceneDiameterRef = useRef(0);
+      useEffect(() => {
+        if (!mainComponent) return;
+        sceneDiameterRef.current = mainComponent.structure.getBoundingBox().getSize(new Vector3()).length();
+      }, [mainComponent]);
+
       // slab
       // In the absolute scene mode the clipping planes are offsets in Å from the rotation center, facing the camera,
       // so the slab stays a cross-section while rotating (e.g. to see inside vesicles)
@@ -1765,7 +1773,7 @@ const NGLViewer = memo(
           },
           // The diameter of the whole scene in Å, to know how thick a slab can be
           get sceneDiameter() {
-            return (stageRef.current && stageRef.current.viewer.boundingBoxLength) || 0;
+            return sceneDiameterRef.current;
           },
           get totalFrames() {
             if (!(mainComponent && trajectories.length)) return 1;

@@ -1382,6 +1382,14 @@ const MolstarViewer = memo(
 
       // Clip everything out of the slab, a camera-facing sheet around the target, so it stays a cross-section
       // while rotating (e.g. to see inside vesicles)
+      // The diameter of the structure as it was built, before the trajectory plays
+      // The bounding sphere of every frame is different (e.g. 330 to 660 Å in A05TX), so it must be read only once
+      const sceneDiameterRef = useRef({ structure: null, diameter: 0 });
+      useEffect(() => {
+        const structure = builtStructure && builtStructure.data;
+        if (!structure || sceneDiameterRef.current.structure === builtStructure) return;
+        sceneDiameterRef.current = { structure: builtStructure, diameter: 2 * structure.boundary.sphere.radius };
+      }, [builtStructure]);
       // Only when the slab changes: rebuilds do not touch the clipping, and setting it would stop a focus transition
       const appliedSlabRef = useRef(null);
       useEffect(() => {
@@ -1582,11 +1590,10 @@ const MolstarViewer = memo(
           },
           // The diameter of the whole scene in Å, to know how thick a slab can be
           get sceneDiameter() {
-            const structure = builtStructure && builtStructure.data;
-            return structure ? 2 * structure.boundary.sphere.radius : 0;
+            return sceneDiameterRef.current.diameter;
           },
         }),
-        [molstar, builtStructure],
+        [molstar],
       );
 
       // workaround to have multiple ref logic on one element
