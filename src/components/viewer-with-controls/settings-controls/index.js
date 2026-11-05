@@ -2,7 +2,7 @@
 import React, { lazy } from 'react';
 import cn from 'classnames';
 // Visual assets
-import { IconButton, Slider } from '@mui/material';
+import { Checkbox, IconButton, Slider } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faDotCircle,
@@ -20,7 +20,6 @@ import {
   faShareAlt, // It looks like connected atoms
   faLayerGroup, // It looks like membrane leaflets
   faVectorSquare, // It looks like the simulation box
-  faCut, // Clipping
 } from '@fortawesome/free-solid-svg-icons';
 
 import { setAsync } from '../../../utils/storage';
@@ -118,7 +117,6 @@ const SettingsControls = ({
             if (getFocus) viewerRef.current.displayFocus();
             else viewerRef.current.centerFocus();
           }}
-         
         >
           <FontAwesomeIcon icon={faDotCircle} />
         </IconButton>
@@ -143,7 +141,6 @@ const SettingsControls = ({
               // This is very clear for solvent/counter ions (breathing effect) and also visible in membrane residues
               // MolStar plays whole frames only, so it can not interpolate
               disabled={hasPbcResidues || Viewer === MolstarViewer}
-             
             >
               <FontAwesomeIcon icon={smooth ? faImages : faVideo} />
             </IconButton>
@@ -156,7 +153,6 @@ const SettingsControls = ({
             toggleDarkBackground();
             setAsync('dark-background', !darkBackground);
           }}
-         
         >
           <div
             className={cn(style['background-toggle'], {
@@ -173,7 +169,6 @@ const SettingsControls = ({
             togglePerspective();
             setAsync('perspective', !perspective);
           }}
-         
         >
           <FontAwesomeIcon icon={perspective ? faSquare : faCube} />
         </IconButton>
@@ -187,7 +182,6 @@ const SettingsControls = ({
               : 'Simplified membrane view is OFF: the whole system is loaded. Click to show only the membrane headgroups as spacefill.'}
             onClick={() => setMembraneReduced(previous => !previous)}
             color={membraneReduced ? 'primary' : 'default'}
-           
           >
             <FontAwesomeIcon icon={faLayerGroup} />
           </IconButton>
@@ -200,19 +194,10 @@ const SettingsControls = ({
             onClick={toggleShowBox}
             disabled={!!boxUnavailableReason}
             color={showBox && !boxUnavailableReason ? 'primary' : 'default'}
-           
           >
             <FontAwesomeIcon icon={faVectorSquare} />
           </IconButton>
         </span>
-
-        <IconButton
-          title={clipping ? 'Show the whole system' : 'Clip the view: show only a slab around the focus'}
-          onClick={() => setClipping(previous => !previous)}
-          color={clipping ? 'primary' : 'default'}
-        >
-          <FontAwesomeIcon icon={faCut} />
-        </IconButton>
 
         {allowMolstar && (
           <IconButton
@@ -224,7 +209,6 @@ const SettingsControls = ({
                 throw new Error('Unrecognized current viewer');
               });
             }}
-           
           >
             <FontAwesomeIcon icon={Viewer === NGLViewer ? faStarOfLife : faShareAlt} />
           </IconButton>
@@ -247,6 +231,29 @@ const SettingsControls = ({
           <FontAwesomeIcon icon={faBiking} className={style.end} />
         </div>
       )}
+      <div className={style.row}>
+        <label className={style.label}>
+          Clipping
+          <Checkbox
+            size="small"
+            className={style.checkbox}
+            checked={!!clipping}
+            onChange={event => setClipping(event.target.checked)}
+            inputProps={{ title: 'Show only a slab around the focus' }}
+          />
+        </label>
+        <Slider
+          size="small"
+          title="Thickness of the slab which is shown around the focus"
+          value={Math.min(slabThickness, slabMax)}
+          min={MIN_SLAB_THICKNESS}
+          max={slabMax}
+          disabled={!clipping}
+          aria-label="Clipping slab thickness in Å"
+          onChange={(_, value) => setSlabThickness(value)}
+        />
+        <span className={style.value}>{`${Math.min(slabThickness, slabMax)} Å`}</span>
+      </div>
       {noTrajectory || (
         <div className={cn(style.row, { [style.marked]: framesSelect })}>
           <span className={style.label}>Frames</span>
@@ -269,20 +276,6 @@ const SettingsControls = ({
           )}
         </div>
       )}
-      <div className={style.row}>
-        <span className={style.label}>Clipping</span>
-        <Slider
-          size="small"
-          title="Thickness of the slab which is shown around the focus"
-          value={Math.min(slabThickness, slabMax)}
-          min={MIN_SLAB_THICKNESS}
-          max={slabMax}
-          disabled={!clipping}
-          aria-label="Clipping slab thickness in Å"
-          onChange={(_, value) => setSlabThickness(value)}
-        />
-        <span className={style.value}>{clipping ? `${Math.min(slabThickness, slabMax)} Å` : 'off'}</span>
-      </div>
     </div>
   );
 };

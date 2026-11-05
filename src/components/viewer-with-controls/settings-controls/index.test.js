@@ -125,12 +125,14 @@ describe('<SettingsControls /> clipping', () => {
     );
   };
 
-  it('enables the thickness slider only while clipping', () => {
+  it('enables the thickness slider only while the clipping checkbox is checked', () => {
     render(<ClippingHarness sceneDiameter={300} />);
     const slider = screen.getByLabelText('Clipping slab thickness in Å');
+    const checkbox = screen.getByRole('checkbox', { name: /Clipping/ });
+    expect(checkbox).not.toBeChecked();
     expect(slider).toBeDisabled();
-    expect(screen.getByText('off')).toBeInTheDocument();
-    fireEvent.click(screen.getByTitle('Clip the view: show only a slab around the focus'));
+    fireEvent.click(checkbox);
+    expect(checkbox).toBeChecked();
     expect(slider).toBeEnabled();
     expect(screen.getByText('50 Å')).toBeInTheDocument();
   });
@@ -138,7 +140,7 @@ describe('<SettingsControls /> clipping', () => {
   // The slab can not be thicker than the whole scene
   it('caps the thickness at the scene diameter', () => {
     render(<ClippingHarness sceneDiameter={30} />);
-    fireEvent.click(screen.getByTitle('Clip the view: show only a slab around the focus'));
+    fireEvent.click(screen.getByRole('checkbox', { name: /Clipping/ }));
     expect(screen.getByLabelText('Clipping slab thickness in Å')).toHaveAttribute('max', '30');
     expect(screen.getByText('30 Å')).toBeInTheDocument();
   });

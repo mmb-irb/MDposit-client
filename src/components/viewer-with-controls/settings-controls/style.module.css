@@ -69,7 +69,20 @@
 
 .label {
   flex: none;
-  width: 4.5em;
+  width: 5.5em;
+  display: flex;
+  align-items: center;
+}
+
+/* The checkbox sits in the label column, next to its text */
+.checkbox {
+  padding: 0;
+  margin-left: 0.35em;
+}
+
+/* MUI checkboxes carry their own color, like the icon buttons */
+.settings-controls.dark:not(.docked) .checkbox {
+  color: var(--mui-palette-common-white);
 }
 
 .end {
