@@ -96,6 +96,33 @@ describe('useViewerData downloads', () => {
   });
 });
 
+describe('useViewerData trajectory format', () => {
+  // The API returns xtc by default since v2, which the viewers would read as coordinates
+  it('asks the trajectory endpoint for the binary format', () => {
+    renderViewerData();
+    const query = new URLSearchParams(findRequest('/trajectory').path.split('?')[1]);
+    expect(query.get('format')).toBe('bin');
+    expect(query.get('frames')).toBe(`1:${FRAMES}:1`);
+  });
+
+  // The files endpoint rejects any format argument with a 400 error
+  it('does not send a format when requesting a trajectory file', () => {
+    const pcaProject = {
+      ...project,
+      fileDescriptors: {
+        loading: false,
+        payload: [{ filename: 'pca_trajectory_01.bin', metadata: { frames: FRAMES, atoms: ATOMS } }],
+      },
+    };
+    const wrapper = ({ children }) => (
+      <ProjectCtx.Provider value={pcaProject}>{children}</ProjectCtx.Provider>
+    );
+    const pcaComponents = [{ topologyURL: '/structure', trajectoryURLs: ['/files/pca_trajectory_01.bin'] }];
+    renderHook(() => useViewerData(pcaComponents, FRAMES, () => {}), { wrapper });
+    expect(findRequest('/files/pca_trajectory_01.bin').path).not.toMatch(/format=/);
+  });
+});
+
 describe('useViewerData full structure', () => {
   // Reading Project's structureData getter used to start a GET of the full structure (74 MB for A05PJ)
   // that the viewer never used, since it downloads its own structure through the POST
@@ -133,7 +160,7 @@ describe('useViewerData atom subsets', () => {
     expect(requestBody(findRequest('/structure')).atomindices).toEqual([0, 1]);
     const trajectoryRequests = requests.filter(request => request.path.includes('/trajectory'));
     expect(trajectoryRequests.map(request => request.path.split('/').pop()))
-      .toEqual(['trajectory?frames=1', 'trajectory?frames=2']);
+      .toEqual(['trajectory?frames=1&format=bin', 'trajectory?frames=2&format=bin']);
     expect(trajectoryRequests.map(request => requestBody(request).atomindices)).toEqual([[0, 1], [0, 1]]);
   });
 
