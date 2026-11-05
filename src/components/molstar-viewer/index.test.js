@@ -411,7 +411,7 @@ describe('<MolstarViewer /> representations', () => {
     expect(commits).toHaveLength(1);
     expect(commits[0].map(([action, parent, , params]) => [action, parent, params.color])).toEqual([
       ['apply', 'structure', 'chain-id'],
-      ['apply', 'structure', 'element-symbol'],
+      ['apply', 'structure', 'element-cg'],
     ]);
   });
 

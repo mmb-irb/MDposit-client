@@ -1,11 +1,13 @@
 import { Color } from 'molstar/lib/mol-util/color';
 import { ColorNames } from 'molstar/lib/mol-util/color/names';
+import { ELEMENT_THEME } from '../element-color';
 
 // Map NGL coloring methods (the ones offered in the representations panel) to molstar color themes
 const COLOR_THEMES = {
   chainid: 'chain-id',
   resname: 'residue-name',
-  element: 'element-symbol',
+  // Not molstar's 'element-symbol', which paints coarse-grain beads white and carbons by chain (see element-color)
+  element: ELEMENT_THEME,
   // Molstar colors the B factor as 'uncertainty'
   bfactor: 'uncertainty',
   // NGL colors electrostatic by residue charge

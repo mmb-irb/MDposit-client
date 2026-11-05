@@ -57,6 +57,7 @@ import { AtomPairsShape } from './atom-pairs';
 import { getHighlights } from './highlights';
 import { MeshShape } from './mesh';
 import { nglColorToTheme } from './ngl-color';
+import { ElementColorThemeProvider } from './element-color';
 import { nglOrientationToCamera, cameraToNglOrientation, rotateSceneAroundX } from './ngl-orientation';
 
 import { speedToFps } from '../../utils/player-speed';
@@ -520,6 +521,8 @@ const MolstarViewer = memo(
           if (import.meta.env.DEV) window.__molstar = molstarInstance;
           // Make the NGL color schemes of the analyses available as a color theme
           molstarInstance.representation?.structure.themes.colorThemeRegistry.add(NglSchemeColorThemeProvider);
+          // Color by element as the NGL viewer does
+          molstarInstance.representation?.structure.themes.colorThemeRegistry.add(ElementColorThemeProvider);
           setMolstar(molstarInstance);
         };
         wrap();
