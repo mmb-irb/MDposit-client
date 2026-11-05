@@ -263,8 +263,6 @@ const getRepresentationParams = (molstar, { type: typeName, colorTheme, opacity,
         // https://github.com/molstar/molstar/blob/0e197b18857d59c27f51d4aa0226cd772bc872ca/src/mol-geo/geometry/base.ts
         // DANI: 'lowest' se ve muy feo y no mejora mucho el rendimiento
         quality: 'lower',
-        ignoreHydrogens: 'all',
-        ignoreHydrogensVariant: 'all',
         // ignoreLight: true,
         ...typeParams,
         ...alphaParams,

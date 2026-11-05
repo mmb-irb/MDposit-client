@@ -424,6 +424,11 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
             // We use the POST method instead of the regular GET method to allow long atom selections
             // However, if we are retrieving a specific file the the POST method is not implemented
             requestOptions.method = isTrajectoryEndpoint ? 'POST' : 'GET';
+            // Ask for the binary coordinates explicitly, since the API returns xtc by default since v2
+            // Only the endpoint accepts a format: the files endpoint rejects it with a 400 error
+            // Note that the API reads the format from the query only, not from the POST body
+            if (isTrajectoryEndpoint)
+                requestOptions.path += (requestOptions.search ? '&' : '?') + 'format=bin';
             requestOptions.headers = {
                 'Content-Type': 'application/json',
                 'Content-Length': postData.length

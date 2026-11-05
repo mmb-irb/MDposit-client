@@ -464,6 +464,19 @@ describe('<MolstarViewer /> representations', () => {
     expect(params.typeParams.solidInterior).toBe(false);
   });
 
+  // e.g. the lipid and water hydrogens of a membrane, which NGL draws
+  it('draws hydrogens, as NGL does', async () => {
+    const { commits } = await renderRepresentations(['licorice', 'ball+stick', 'spacefill', 'surface'].map(type => (
+      { name: type, selection: 'all', type, color: 'element', opacity: 1, show: true }
+    )));
+    expect(commits[0].map(([, , , params]) => [params.type, Boolean(params.typeParams.ignoreHydrogens)])).toEqual([
+      ['line', false],
+      ['ball-and-stick', false],
+      ['spacefill', false],
+      ['molecular-surface', false],
+    ]);
+  });
+
   describe('with a subset of atoms', () => {
     afterEach(() => autoLoad.mockClear());
 
