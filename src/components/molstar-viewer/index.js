@@ -361,10 +361,17 @@ const getSelectionSphere = (structure, selection, topologyManager, nglStructure,
   return StructureElement.Loci.getBoundary(loci).sphere;
 };
 
+// The clipping radius around a camera target which includes the whole structure
+const getWholeClipRadius = (structure, target) => {
+  const whole = structure.boundary.sphere;
+  return Vec3.distance(whole.center, target) + whole.radius;
+};
+
 // Move the camera to frame a sphere, looking in the given direction or in the current one if none is given
 // Molstar clips whatever is in front of the sphere it focuses, while NGL clips nothing
 // For this reason the clipping radius is extended so it includes the whole structure
-const focusCamera = (camera, structure, sphere, rotation, durationMs) => {
+// When a slab is set (thickness in Å), the camera clips everything farther than half of it from the target instead
+const focusCamera = (camera, structure, sphere, rotation, durationMs, slab) => {
   const { direction, up } = rotation || {
     direction: Vec3.sub(Vec3.zero(), camera.state.target, camera.state.position),
     up: camera.state.up,
@@ -372,7 +379,7 @@ const focusCamera = (camera, structure, sphere, rotation, durationMs) => {
   const snapshot = camera.getInvariantFocus(
     sphere.center, sphere.radius + FOCUS_EXTRA_RADIUS, up, direction);
   const whole = structure.boundary.sphere;
-  snapshot.radius = Vec3.distance(whole.center, sphere.center) + whole.radius;
+  snapshot.radius = slab ? slab / 2 : getWholeClipRadius(structure, sphere.center);
   snapshot.radiusMax = whole.radius;
   camera.setState(snapshot, durationMs);
 };
@@ -399,6 +406,7 @@ const MolstarViewer = memo(
         initialFocus, // The viewer selection to be focused by the camera initially
         darkBackground,
         perspective,
+        slab, // Thickness in Å of the slab around the focus which is shown, or nothing to show everything
         speed,
         centering, // NGL selection of atoms to center the trajectory around, every frame
         rotateX, // To rotate the scene so the Z axis goes from bottom to top
@@ -1337,6 +1345,9 @@ const MolstarViewer = memo(
       const appliedFocus = useRef(null);
       // Focus the specified selection with the camera automatically, as the NGL viewer does
       // Focuses made while the viewport has no size are performed once it has one
+      // The focus effect reads the slab without depending on it, so changing the slab does not move the camera
+      const slabRef = useRef(slab);
+      slabRef.current = slab;
       useEffect(() => {
         if (!molstar || !builtStructure || !hasViewport) return;
         if (!firstFocus.current && focus === appliedFocus.current) return;
@@ -1363,8 +1374,23 @@ const MolstarViewer = memo(
         // NGL rotates the scene once it has been focused the first time
         if (isFirstFocus && rotateX) rotation = rotateSceneAroundX(rotation, ROTATE_X_ANGLE);
         const duration = isFirstFocus ? 0 : FOCUS_TRANSITION_DURATION;
-        focusCamera(molstar.canvas3d.camera, structure, sphere, rotation, duration);
+        focusCamera(molstar.canvas3d.camera, structure, sphere, rotation, duration, slabRef.current);
       }, [molstar, builtStructure, hasViewport, focus, curatedOrientation, rotateX, topologyManager, nglStructure, subset]);
+
+      // Clip everything out of the slab, a camera-facing sheet around the target, so it stays a cross-section
+      // while rotating (e.g. to see inside vesicles)
+      // Only when the slab changes: rebuilds do not touch the clipping, and setting it would stop a focus transition
+      const appliedSlabRef = useRef(null);
+      useEffect(() => {
+        const structure = builtStructure && builtStructure.data;
+        if (!molstar || !molstar.canvas3d || !structure) return;
+        if ((slab || null) === appliedSlabRef.current) return;
+        appliedSlabRef.current = slab || null;
+        const camera = molstar.canvas3d.camera;
+        const radius = slab ? slab / 2 : getWholeClipRadius(structure, camera.state.target);
+        camera.setState({ radius, clipFar: true }, 0);
+        molstar.canvas3d.requestDraw();
+      }, [molstar, builtStructure, slab]);
 
       // The nodes of the built highlights, to remove them when they change
       const highlightRefsRef = useRef([]);
@@ -1551,8 +1577,13 @@ const MolstarViewer = memo(
           get totalExpectedFrames() {
             return expectedFramesRef.current;
           },
+          // The diameter of the whole scene in Å, to know how thick a slab can be
+          get sceneDiameter() {
+            const structure = builtStructure && builtStructure.data;
+            return structure ? 2 * structure.boundary.sphere.radius : 0;
+          },
         }),
-        [molstar],
+        [molstar, builtStructure],
       );
 
       // workaround to have multiple ref logic on one element

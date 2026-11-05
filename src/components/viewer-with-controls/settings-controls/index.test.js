@@ -97,12 +97,49 @@ describe('<SettingsControls /> frames number', () => {
 
   it('shows the total expected frames of the viewer', () => {
     renderFramesNumber({ current: { totalExpectedFrames: 20 } });
-    expect(screen.getByText('Frames: 20')).toBeInTheDocument();
+    expect(screen.getByText('Frames')).toBeInTheDocument();
+    expect(screen.getByText('20')).toBeInTheDocument();
   });
 
   // The lazy Mol* viewer has no ref while its chunk is still loading
   it('renders while the viewer is not mounted yet', () => {
     renderFramesNumber({ current: null });
-    expect(screen.getByText('Frames:')).toBeInTheDocument();
+    expect(screen.getByText('Frames')).toBeInTheDocument();
+  });
+});
+
+describe('<SettingsControls /> clipping', () => {
+  const ClippingHarness = ({ sceneDiameter }) => {
+    const [clipping, setClipping] = useState(false);
+    return (
+      <SettingsControls
+        viewerRef={{ current: { sceneDiameter } }}
+        noTrajectory
+        Viewer={NGLViewer}
+        setViewer={() => {}}
+        clipping={clipping}
+        setClipping={setClipping}
+        slabThickness={50}
+        setSlabThickness={() => {}}
+      />
+    );
+  };
+
+  it('enables the thickness slider only while clipping', () => {
+    render(<ClippingHarness sceneDiameter={300} />);
+    const slider = screen.getByLabelText('Clipping slab thickness in Å');
+    expect(slider).toBeDisabled();
+    expect(screen.getByText('off')).toBeInTheDocument();
+    fireEvent.click(screen.getByTitle('Clip the view: show only a slab around the focus'));
+    expect(slider).toBeEnabled();
+    expect(screen.getByText('50 Å')).toBeInTheDocument();
+  });
+
+  // The slab can not be thicker than the whole scene
+  it('caps the thickness at the scene diameter', () => {
+    render(<ClippingHarness sceneDiameter={30} />);
+    fireEvent.click(screen.getByTitle('Clip the view: show only a slab around the focus'));
+    expect(screen.getByLabelText('Clipping slab thickness in Å')).toHaveAttribute('max', '30');
+    expect(screen.getByText('30 Å')).toBeInTheDocument();
   });
 });

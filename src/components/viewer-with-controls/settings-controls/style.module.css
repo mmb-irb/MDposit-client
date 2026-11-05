@@ -2,7 +2,8 @@
   display: flex;
   justify-content: space-between;
   flex-direction: column;
-  padding: 0.5em 2em;
+  padding: 0.25em 1em;
+  font-size: 0.875rem;
   /* Float over the viewer so the structure stays visible behind the menu */
   position: absolute;
   left: 0;
@@ -41,7 +42,7 @@
   /* Stick to the bottom of the (flex-column) right panel, leaving the free
      white space between the representations table and the controls */
   margin-top: auto;
-  padding: 0.75em 1em;
+  padding: 0.5em 0.75em;
   background-color: transparent;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
@@ -53,12 +54,33 @@
   color: inherit;
 }
 
-/* The MUI Icon box is 1em square with overflow: hidden, which clips the wider
-   FontAwesome speed endpoint icons (the biking glyph is ~1.25em wide). Let these
-   icons size to their content so they are never cut off. */
-.settings-controls :global(.MuiIcon-root) {
-  width: auto;
-  height: auto;
+/* One line per slider: label, slider and the end icons or value */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  min-height: 2em;
+}
+
+/* Room below the slider for the marks labels (e.g. the frame numbers) */
+.row.marked {
+  padding-bottom: 0.75em;
+}
+
+.label {
+  flex: none;
+  width: 4.5em;
+}
+
+.end {
+  flex: none;
+}
+
+.value {
+  flex: none;
+  width: 3.5em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .stacked-icons {
@@ -66,9 +88,11 @@
   justify-content: space-around;
 }
 
-.stacked-icons > button {
-  padding: 8px;
+.stacked-icons button {
+  padding: 6px;
+  font-size: 1.1rem;
 }
+
 .background-toggle {
   perspective: 18px;
 }

@@ -172,6 +172,7 @@ const NGLViewer = memo(
         initialFocus, // The ngl selection to be focused by the camera initially
         darkBackground,
         perspective,
+        slab, // Thickness in Å of the slab around the focus which is shown, or nothing to show everything
         speed,
         centering,
         xSelection, // To display planes for density analysis
@@ -422,6 +423,17 @@ const NGLViewer = memo(
             perspective ? 'perspective' : 'orthographic',
           );
       }, [perspective]);
+
+      // slab
+      // In the absolute scene mode the clipping planes are offsets in Å from the rotation center, facing the camera,
+      // so the slab stays a cross-section while rotating (e.g. to see inside vesicles)
+      // The relative mode with planes at 0 and 100 is the NGL default, which shows everything
+      useEffect(() => {
+        if (!stageRef.current) return;
+        stageRef.current.setParameters(slab
+          ? { clipMode: 'scene', clipScale: 'absolute', clipNear: slab / 2, clipFar: slab / 2 }
+          : { clipMode: 'scene', clipScale: 'relative', clipNear: 0, clipFar: 100 });
+      }, [slab]);
 
       // frames
       // Update the controls progress
@@ -1750,6 +1762,10 @@ const NGLViewer = memo(
             } catch (_) {
               /* */
             }
+          },
+          // The diameter of the whole scene in Å, to know how thick a slab can be
+          get sceneDiameter() {
+            return (stageRef.current && stageRef.current.viewer.boundingBoxLength) || 0;
           },
           get totalFrames() {
             if (!(mainComponent && trajectories.length)) return 1;
