@@ -7,7 +7,7 @@ describe('NGL color to molstar color theme', () => {
   it('translates the NGL coloring methods', () => {
     expect(nglColorToTheme('chainid')).toEqual({ name: 'chain-id' });
     expect(nglColorToTheme('resname')).toEqual({ name: 'residue-name' });
-    expect(nglColorToTheme('element')).toEqual({ name: 'element-symbol' });
+    expect(nglColorToTheme('element')).toEqual({ name: 'element-cg' });
     expect(nglColorToTheme('bfactor')).toEqual({ name: 'uncertainty' });
     expect(nglColorToTheme('electrostatic')).toEqual({ name: 'residue-charge' });
     expect(nglColorToTheme('sstruc')).toEqual({ name: 'secondary-structure' });

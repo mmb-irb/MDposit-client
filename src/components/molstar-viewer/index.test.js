@@ -294,7 +294,7 @@ const settle = () => act(() => new Promise(resolve => setTimeout(resolve, 0)));
 // Render the viewer with a single component which represents its topology
 // Representations select the whole structure, so molstar is not asked to find their atoms
 // The structure is a sphere of 10 Å around the origin, which the camera focuses
-const renderRepresentations = async (representations, { component, topology, canvas3d, topologyFile = 'ATOM' } = {}) => {
+const renderRepresentations = async (representations, { component, topology, canvas3d, topologyFile = 'ATOM', ref } = {}) => {
   const plugin = fakePlugin();
   const { build, commits } = fakeState();
   const structure = { ref: 'structure', data: { boundary: { sphere: { center: [0, 0, 0], radius: 10 } } } };
@@ -323,6 +323,7 @@ const renderRepresentations = async (representations, { component, topology, can
     topologies: [{ urlpath: 'topology', file: topologyFile }],
     components: [{ name: 'main', topologyURL: 'topology', onlyTopology: true, ...component }],
     topology,
+    ref,
   };
   const { rerender } = renderViewer({ ...props, representations });
   for (let tick = 0; tick < 5; tick++) await settle();
@@ -333,8 +334,22 @@ const renderRepresentations = async (representations, { component, topology, can
     rerender(viewer({ ...props, representations: [...representations] }));
     await settle();
   };
-  return { commits, change, plugin };
+  return { commits, change, plugin, structure };
 };
+
+describe('<MolstarViewer /> scene diameter', () => {
+  // The clipping slider is as long as the scene, and it jumped back and forth while playing a trajectory
+  // since the bounding sphere of every frame is different (e.g. 330 to 660 Å in A05TX)
+  it('keeps the diameter of the structure as it was built while frames change', async () => {
+    const ref = React.createRef();
+    const { change, structure } = await renderRepresentations([], { ref });
+    expect(ref.current.sceneDiameter).toBe(20);
+    // A new frame, whose atoms spread further
+    structure.data = { boundary: { sphere: { center: [0, 0, 0], radius: 30 } } };
+    await change(() => {});
+    expect(ref.current.sceneDiameter).toBe(20);
+  });
+});
 
 describe('<MolstarViewer /> camera focus', () => {
   // Distance from which the default perspective camera frames a sphere in a viewport wider than high
@@ -411,7 +426,7 @@ describe('<MolstarViewer /> representations', () => {
     expect(commits).toHaveLength(1);
     expect(commits[0].map(([action, parent, , params]) => [action, parent, params.color])).toEqual([
       ['apply', 'structure', 'chain-id'],
-      ['apply', 'structure', 'element-symbol'],
+      ['apply', 'structure', 'element-cg'],
     ]);
   });
 

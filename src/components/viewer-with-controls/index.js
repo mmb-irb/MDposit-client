@@ -73,7 +73,7 @@ const DEFAULT_STARTS_PLAYING = !reducedMotion() && window.innerWidth > 750;
 // room below the representations table to dock them (instead of floating them
 // over the viewer). Trajectory viewers also show the speed/frames sliders, so
 // they need more room than the topology-only case.
-const DOCKED_CONTROLS_HEIGHT = 200;
+const DOCKED_CONTROLS_HEIGHT = 170;
 const DOCKED_CONTROLS_HEIGHT_NO_TRAJECTORY = 96;
 
 const DEFAULT_FRAME_NUMBER = (() => {
@@ -96,6 +96,9 @@ const DEFAULT_FRAME_NUMBERS = [
   { value: 50, label: '50' },
   { value: 100, label: '100' },
 ];
+
+// Thickness (Å) of the clipping slab when it is first turned on: a bit more than a lipid bilayer (~40 Å)
+const DEFAULT_SLAB_THICKNESS = 50;
 
 // Set the default component parameters
 // These values are used to fill missing fields in input components
@@ -532,6 +535,9 @@ const ViewerWithControls = forwardRef(
     const [perspective, togglePerspective] = useToggleState(
       useMemo(() => get('perspective', false), []),
     );
+    // Clipping: only a slab of this thickness (Å) around the focus is shown, to see inside e.g. vesicles
+    const [clipping, setClipping] = useState(false);
+    const [slabThickness, setSlabThickness] = useState(DEFAULT_SLAB_THICKNESS);
 
     // states
     const [progress, setProgress] = useState(0);
@@ -823,6 +829,10 @@ const ViewerWithControls = forwardRef(
       boxUnavailableReason,
       showBox,
       toggleShowBox,
+      clipping,
+      setClipping,
+      slabThickness,
+      setSlabThickness,
     };
 
     // Pick a readable time unit (fs, ps, ns, µs, ms) based on the trajectory total length
@@ -886,6 +896,7 @@ const ViewerWithControls = forwardRef(
                   noTrajectory={noTrajectory}
                   darkBackground={darkBackground}
                   perspective={perspective}
+                  slab={clipping ? slabThickness : null}
                   speed={speed}
                   centering={centering}
                   showBox={canShowBox && showBox}
