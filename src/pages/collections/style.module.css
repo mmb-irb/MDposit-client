@@ -91,10 +91,7 @@ th.center {
 /* If we had no valid results we render a 'no results' message inside a card */
 /* z-index prevents this element to be overlaped by overlaped elements because of the opacity */
 .no-results-card {
-  position: absolute;
-  z-index: 2;
-  width: 96%;
-  top: 5em;
+  width: 100%;
 }
 
 .no-results-text {

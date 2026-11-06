@@ -93,9 +93,11 @@ const CollectionBrowser = () => {
         matchCount = previousPayload.current.referencesCount;
     } else results = [];
 
+    // Note that the API answers a search with no matches with an empty list, not with an error
+    const noResults = !collectionsPayload || collectionsPayload.references.length === 0;
+
     // Use the reference handler to parse the results
     const parsedResults = useMemo(() => {
-        if (results.length === 0) return;
         return results.map(ref => new Reference('collections', ref));
     }, [results]);
 
@@ -113,7 +115,7 @@ const CollectionBrowser = () => {
         <div ref={componentRef}>
             <SearchBar/>
             {/* Render a 'no results' card when there are no results for the last search */}
-            {!collectionsLoading && !collectionsPayload ? (
+            {noResults ? (
             <Card className={style['no-results-card']} style={{ marginTop: '1em' }}>
                 <Typography variant="h5" className={style['no-results-text']}>
                 No results were found
@@ -135,9 +137,9 @@ const CollectionBrowser = () => {
                 {/* Table body with the content, which is defined above in the Row constant */}
                 {/* When the search has no results the table gets an opacity of 0.25 */}
                 <TableBody
-                    className={collectionsPayload
-                    ? cn(style['table-body'])
-                    : cn(style['table-body'], style['invalid-results'])
+                    className={noResults
+                    ? cn(style['table-body'], style['invalid-results'])
+                    : cn(style['table-body'])
                     }
                 >
                     {/* Create a row for each reference in the query payload*/}
