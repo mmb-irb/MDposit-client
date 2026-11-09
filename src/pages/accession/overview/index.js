@@ -14,7 +14,6 @@ import {
 } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faExclamationTriangle,
   faClipboardList,
 } from '@fortawesome/free-solid-svg-icons';
 import { useTheme } from '@mui/material/styles';
@@ -27,6 +26,7 @@ import LazyImg from 'src/components/lazy-img';
 import LigandsOverview from './ligands';
 import PdbsOverview from './pdbs';
 import SystemKeywords from './keywords';
+import Warnings from './warnings';
 // Import constants
 import { HOST_CONFIG } from '../../../utils/constants';
 
@@ -198,13 +198,7 @@ const Overview = React.memo(() => {
                 </div>
               </div>}
               <SystemKeywords keywords={metadata.SYSKEYS} />
-              {metadata.WARNINGS &&
-                metadata.WARNINGS.map((warning, w) => (
-                  <div key={w} style={{ fontWeight: 'bold' }}>
-                    <FontAwesomeIcon icon={faExclamationTriangle} size={'lg'} />
-                    {' ' + warning.message}
-                  </div>
-                ))}
+              <Warnings warnings={metadata.WARNINGS} />
             </div>
           </CardContent>
         </Card>
