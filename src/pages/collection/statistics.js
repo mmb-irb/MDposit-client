@@ -2,14 +2,18 @@ import React, { useMemo } from 'react';
 import { useParams, Link } from 'react-router';
 import { Button } from '@mui/material';
 import DataSummary from 'src/components/data-summary';
-import { HOST_CONFIG } from 'src/utils/constants';
+import useAPI from 'src/hooks/use-api';
+import { BASE_VERSIONED_PATH } from 'src/utils/constants';
 import { buildFilter } from 'src/utils/filters';
 
 
 const CollectionStatistics = () => {
     const { id: collectionId } = useParams();
-    // Collection names are loaded into HOST_CONFIG.collectionNiceNames at startup
-    const collectionName = HOST_CONFIG.collectionNiceNames?.[collectionId] || collectionId;
+    // Get the collection name from its reference
+    const referenceURL = `${BASE_VERSIONED_PATH}/references/collections/${collectionId}`;
+    const { payload: referenceData, error: referenceError } = useAPI(referenceURL);
+    if (referenceError) throw referenceError;
+    const collectionName = referenceData?.name || collectionId;
 
     const internalFilters = useMemo(
         () => [ buildFilter('metadata.COLLECTIONS', '==', collectionId) ], [collectionId]);

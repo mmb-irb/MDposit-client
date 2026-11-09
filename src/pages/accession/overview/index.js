@@ -28,7 +28,8 @@ import PdbsOverview from './pdbs';
 import SystemKeywords from './keywords';
 import Warnings from './warnings';
 // Import constants
-import { HOST_CONFIG } from '../../../utils/constants';
+import { HOST_CONFIG, BASE_VERSIONED_PATH } from '../../../utils/constants';
+import useAPI from 'src/hooks/use-api';
 
 const Overview = React.memo(() => {
   // Get context data
@@ -45,6 +46,12 @@ const Overview = React.memo(() => {
     creationDate,
     updateDate
   } = useContext(ProjectCtx);
+
+  // Get the node full name, which only exists in the global API
+  const nodesUrl = HOST_CONFIG.global && node ? `${BASE_VERSIONED_PATH}/nodes` : null;
+  const { payload: nodesPayload, error: nodesError } = useAPI(nodesUrl);
+  if (nodesError) throw nodesError;
+  const nodeName = nodesPayload?.find(nodeData => nodeData.alias === node)?.name || node;
 
   // State for protein sequence tabs
   const [proteinSeqTab, setProteinSeqTab] = useState(0);
@@ -154,7 +161,7 @@ const Overview = React.memo(() => {
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <div className={style['decorated-list-item__title']}>Node</div>
                 <div className={style['decorated-list-item__content']} style={{ wordBreak: 'break-word', borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                  {HOST_CONFIG.nodeNiceNames[node] || node}
+                  {nodeName}
                 </div>
               </div>}
               {metadata.CONTACT && metadata.CONTACT.length > 0 &&
