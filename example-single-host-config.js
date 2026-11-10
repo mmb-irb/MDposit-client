@@ -3,8 +3,14 @@
 // See src/utils/constants/default-host-config.js for a description of every field
 // Missing fields are filled with the default values
 
+// Import the footer logos
+// Logos which are specific of your node may be placed at src/images/untracked/, which is ignored by git
+import myLabLogo from 'src/images/untracked/my-lab-logo.png';
+
 // Here are the parameters assigned here for every host
 // Default values are assigned for every missing value
+// host - Host name used to set some default values (e.g. the API URL)
+//        The requesting URL domain is used by default
 // api - API URL to query
 // production - Set if this is production (true) or development (false)
 // global - Set if the API is the global (true) or federated (false)
@@ -58,7 +64,7 @@ const HOST_CONFIG = {
     searchExample: 'e.g. My lab',
     footers: [
         {
-            image: "https://my-lab.org/logo.png",
+            image: myLabLogo,
             url: "https://my-lab.org/",
         },
         {

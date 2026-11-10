@@ -7,6 +7,8 @@ import defaultQueryFields from "src/utils/constants/query-fields";
 
 // Here are the parameters assigned here for every host
 // Default values are assigned for every missing value
+// host - Host name used to set some default values (e.g. the API URL)
+//        The requesting URL domain is used by default
 // api - API URL to query
 // production - Set if this is production (true) or development (false)
 // global - Set if the API is the global (true) or federated (false)
@@ -35,16 +37,14 @@ import defaultQueryFields from "src/utils/constants/query-fields";
 // queryFields - Fields to be queried in the search and advanced search pages and their configurations
 // options - Additional flags which may be used by the cliente
 
-// Get the requesting URL domain
-const HOST = window.location.hostname;
-
-// Set default values for every host config fields
+// Get default values for every host config field, given the host name
 // These values are used to fill missing values
 // Note that these defaults are applied always, even when a custom host configuration is used
-export const DEFAULT_HOST_CONFIGURATION = {
-    api: HOST === 'localhost'
+export const getDefaultHostConfig = host => ({
+    host: host,
+    api: host === 'localhost'
         ? 'http://localhost:8000/rest/'
-        : `https://${HOST}/api/rest/`,
+        : `https://${host}/api/rest/`,
     production: false,
     name: 'MDposit',
     favicon: 'mdposit_favicon',
@@ -84,4 +84,4 @@ export const DEFAULT_HOST_CONFIGURATION = {
     queryFields: defaultQueryFields,
     singleCollection: false,
     flags: []
-};
+});

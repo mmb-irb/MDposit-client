@@ -16,9 +16,21 @@ const hostConfigPlugin = {
     if (id !== 'host-config') return null;
     return existsSync(customHostConfig) ? customHostConfig : defaultHostConfigId;
   },
+  // When the custom host configuration is created or deleted, resolve 'host-config' again and reload the page
+  configureServer(server) {
+    server.watcher.add(customHostConfig);
+    const onChange = path => {
+      if (path !== customHostConfig) return;
+      server.moduleGraph.invalidateAll();
+      server.ws.send({ type: 'full-reload' });
+    };
+    server.watcher.on('add', onChange);
+    server.watcher.on('unlink', onChange);
+  },
   load(id) {
     if (id !== defaultHostConfigId) return null;
-    return "export { DEFAULT_HOST_CONFIGURATION as default } from 'src/utils/constants/default-host-config';";
+    return "import { getDefaultHostConfig } from 'src/utils/constants/default-host-config';\n"
+      + "export default getDefaultHostConfig(window.location.hostname);";
   },
 };
 
