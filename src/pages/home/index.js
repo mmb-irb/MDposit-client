@@ -107,6 +107,8 @@ const Home = () => {
             />
           </div>
         </div>
+        {/* Node specific acknowledgements, set in the host config */}
+        {HOST_CONFIG.acknowledgements}
       </CardContent>
     </Card>
   );

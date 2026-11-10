@@ -18,6 +18,8 @@ import myLabLogo from 'src/images/untracked/my-lab-logo.png';
 // favicon - Icon filename (without the format extension) to be displayed in the sheet header
 //           Icons are located at public/.
 // description - Text or JSX to be displayed in the home page
+// acknowledgements - Text or JSX to be displayed in the home page, below the MDDB acknowledgements
+//                    The MDDB acknowledgements (European funding) are always displayed and can not be changed
 // logo - Logo filename (without the format extension) to be dipslayed on the top-left corner, in the header
 //        Images are located at src/images/.
 // logoLabel - Small text to be written right below the logo
@@ -85,6 +87,10 @@ const HOST_CONFIGURATIONS = {
         // Further customization
         description: <>
             This node contains the simulations from my group.
+        </>,
+        // Displayed below the MDDB acknowledgements in the home page
+        acknowledgements: <>
+            This node is funded by My University.
         </>,
         footers: [
             {

@@ -16,6 +16,8 @@ import defaultQueryFields from "src/utils/constants/query-fields";
 // favicon - Icon filename (without the format extension) to be displayed in the sheet header
 //           Icons are located at public/.
 // description - Text or JSX to be displayed in the home page
+// acknowledgements - Text or JSX to be displayed in the home page, below the MDDB acknowledgements
+//                    The MDDB acknowledgements (European funding) are always displayed and can not be changed
 // logo - Logo filename (without the format extension) to be dipslayed on the top-left corner, in the header
 //        Images are located at src/images/.
 // logoLabel - Small text to be written right below the logo
@@ -54,6 +56,7 @@ export const getDefaultHostConfig = host => ({
         this initiative is to ease and promote data sharing along the
         wide-world scientific community in order to contribute in research.
     </>,
+    acknowledgements: null,
     logo: 'logo-mdposit',
     logoLabel: '',
     footers: [],
