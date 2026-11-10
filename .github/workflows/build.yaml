@@ -21,9 +21,6 @@ jobs:
         with:
           node-version: '26.12.1'
 
-      - name: Copy host config
-        run: cp ./src/default-host-config.js ./src/host-config.js
-
       - name: Install dependencies
         run: |
           touch .env

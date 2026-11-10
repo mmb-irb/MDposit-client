@@ -23,5 +23,4 @@ yarn-debug.log*
 yarn-error.log*
 
 # host configuration file and symlink
-src/host-config.js
-src/utils/constants/host-config.js
+host-config.js

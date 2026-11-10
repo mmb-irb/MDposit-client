@@ -1,18 +1,37 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
+import { existsSync } from 'node:fs';
 
 const srcDir = fileURLToPath(new URL('./src/', import.meta.url));
+
+// Resolve 'host-config' to the custom host configuration at the repository root if there is one
+// Otherwise resolve it to a module which exports the default host configuration
+const customHostConfig = fileURLToPath(new URL('./host-config.js', import.meta.url));
+const defaultHostConfigId = '\0default-host-config';
+const hostConfigPlugin = {
+  name: 'host-config',
+  enforce: 'pre',
+  resolveId(id) {
+    if (id !== 'host-config') return null;
+    return existsSync(customHostConfig) ? customHostConfig : defaultHostConfigId;
+  },
+  load(id) {
+    if (id !== defaultHostConfigId) return null;
+    return "export { DEFAULT_HOST_CONFIGURATION as default } from 'src/utils/constants/default-host-config';";
+  },
+};
 
 export default defineConfig({
   // Same as CRA's "homepage": "." (the build is served from many hosts and sub-paths)
   base: './',
   // Keep the CRA variable names so .env stays as it is
   envPrefix: 'REACT_APP_',
-  plugins: [react({ include: /\.(js|jsx|ts|tsx)$/ })],
+  plugins: [hostConfigPlugin, react({ include: /\.(js|jsx|ts|tsx)$/ })],
   // JSX lives in .js files (CRA allows it, Vite/esbuild doesn't by default).
   // The tsx loader parses both the JSX in .js files and the two .ts files
-  esbuild: { loader: 'tsx', include: /src\/.*\.[jt]sx?$/, exclude: [] },
+  // The custom host configuration at the repository root may have JSX too
+  esbuild: { loader: 'tsx', include: [/src\/.*\.[jt]sx?$/, /\/host-config\.js$/], exclude: [] },
   optimizeDeps: {
     esbuildOptions: {
       loader: { '.js': 'jsx' },

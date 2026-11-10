@@ -21,7 +21,8 @@
     "noFallthroughCasesInSwitch": true,
     // Support absolute path imports such as 'src/utils/...'
     "paths": {
-      "src/*": ["./src/*"]
+      "src/*": ["./src/*"],
+      "host-config": ["./src/utils/constants/default-host-config.js"]
     }
   },
   "include": [

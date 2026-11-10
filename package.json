@@ -80,15 +80,14 @@
     "vitest": "^3.2.7"
   },
   "scripts": {
-    "start": "npm run hostlink && vite",
-    "dev_build": "npm run hostlink && vite build --sourcemap && node style-embedder/index.js && node sw-build/index.js",
-    "build": "npm run hostlink && vite build && node style-embedder/index.js && node sw-build/index.js",
+    "start": "vite",
+    "dev_build": "vite build --sourcemap && node style-embedder/index.js && node sw-build/index.js",
+    "build": "vite build && node style-embedder/index.js && node sw-build/index.js",
     "typecheck": "tsc --project tsconfig.json",
     "lint": "eslint .",
     "format": "prettier --write src",
     "format:check": "prettier --check src",
-    "test": "vitest",
-    "hostlink": "custom=host-config.js; default=default-host-config.js; [ -f src/$custom ] && source=$custom || source=$default; ln -fs ../../$source src/utils/constants/host-config.js"
+    "test": "vitest"
   },
   "overrides": {
     "molstar": {

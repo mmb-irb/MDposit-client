@@ -1,7 +1,10 @@
 // Import host configuration
-import hostConfig from "./host-config";
+import hostConfig from "host-config";
+// Import the host configuration processor
+import processHostConfig from "./process-host-config";
 
-export const HOST_CONFIG = hostConfig;
+// Complete the host configuration with default and derived values
+export const HOST_CONFIG = processHostConfig(hostConfig);
 
 // State the different reference types and how their data is organized
 export const REFERENCES = {

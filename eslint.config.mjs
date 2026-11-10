@@ -8,9 +8,8 @@ export default [
     ignores: [
       'build/**',
       '.claude/**',
-      // The host config symlink would report everything in the linked file twice
-      'src/host-config.js',
-      'src/utils/constants/host-config.js',
+      // The custom host configuration is not part of the repository
+      'host-config.js',
     ],
   },
   js.configs.recommended,

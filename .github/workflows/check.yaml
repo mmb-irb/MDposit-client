@@ -22,10 +22,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Links src/default-host-config.js; several test suites import it
-      - name: Link host config
-        run: npm run hostlink
-
       - name: Typecheck
         run: npm run typecheck
 
