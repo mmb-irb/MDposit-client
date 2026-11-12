@@ -185,6 +185,13 @@ const Overview = React.memo(() => {
                   {metadata.VERSION}
                 </div>
               </div>}
+              {metadata.FF &&
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div className={style['decorated-list-item__title']}>Force fields</div>
+                <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
+                  {metadata.FF.join(', ')}
+                </div>
+              </div>}
               {metadata.LINKS && metadata.LINKS.length > 0 &&
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <div className={style['decorated-list-item__title']}>Links</div>

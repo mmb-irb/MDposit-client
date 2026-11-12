@@ -66,6 +66,10 @@ export class Project {
         // In old metadata we may find numeric values in the program version
         if (typeof this.metadata.VERSION === 'number')
             this.metadata.VERSION = this.metadata.VERSION.toString();
+        // Force fields may be missing, null, an empty list or a list with null or empty names
+        // Keep only the names, or set null when there is none
+        const forceFields = (this.metadata.FF || []).filter(ff => typeof ff === 'string' && ff.trim());
+        this.metadata.FF = forceFields.length > 0 ? forceFields : null;
         // Set the count of MDs by excluding those MDs flagged as 'removed'
         this.mdCount = this.mds ? this.mds.filter(md => md.slice(-9) !== '(removed)').length : 0;
         // Calculate a few internal things
