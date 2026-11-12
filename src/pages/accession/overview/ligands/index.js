@@ -313,8 +313,9 @@ const LigandsOverview = () => {
                         )}
                         <Typography variant="h6" sx={{ fontSize: '1.4rem', marginLeft: residueName ? '0.8rem' : 0 }}>{name}</Typography>
                     </div>
+                    <div className={style['decorated-list']}>
                     {pubchemId && (
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <div className={style['decorated-list-item']}>
                             <div className={style["decorated-list-item__title"]}>Pubchem ID</div>
                             <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                                 <a href={`https://pubchem.ncbi.nlm.nih.gov/compound/${pubchemId}`} target="_blank" rel="noopener noreferrer">
@@ -323,7 +324,7 @@ const LigandsOverview = () => {
                             </div>
                         </div>
                     )}
-                    {pubchemData.chemblID && (<div style={{ display: 'flex', alignItems: 'center' }}>
+                    {pubchemData.chemblID && (<div className={style['decorated-list-item']}>
                         <div className={style["decorated-list-item__title"]}>ChEMBL ID</div>
                         <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                             <a href={pubchemData.chemblURL} target="_blank" rel="noopener noreferrer">
@@ -331,7 +332,7 @@ const LigandsOverview = () => {
                             </a>
                         </div>
                     </div>)}
-                    {lipidmapsId && (<div style={{ display: 'flex', alignItems: 'center' }}>
+                    {lipidmapsId && (<div className={style['decorated-list-item']}>
                         <div className={style['decorated-list-item__title']}>LIPID MAPS ID</div>
                         <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                             <a href={lipidmapsUrl} target="_blank" rel="noopener noreferrer">
@@ -340,7 +341,7 @@ const LigandsOverview = () => {
                         </div>
                         </div>
                     )}
-                    {swisslipidsId && (<div style={{ display: 'flex', alignItems: 'center' }}>
+                    {swisslipidsId && (<div className={style['decorated-list-item']}>
                         <div className={style['decorated-list-item__title']}>SwissLipids ID</div>
                         <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                             <a href={swisslipidsUrl} target="_blank" rel="noopener noreferrer">
@@ -350,7 +351,7 @@ const LigandsOverview = () => {
                         </div>
                     )}
                     {formula &&
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <div className={style['decorated-list-item']}>
                             <div className={style["decorated-list-item__title"]}>Molecular Formula</div>
                             <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                                 {renderFormula(formula)}
@@ -358,7 +359,7 @@ const LigandsOverview = () => {
                         </div>
                     }
                     {reference.smiles &&
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <div className={style['decorated-list-item']}>
                             <div className={style["decorated-list-item__title"]}>SMILES</div>
                             <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                                 <ExpanderButton text={reference.smiles} />
@@ -366,7 +367,7 @@ const LigandsOverview = () => {
                         </div>
                     }
                     {inchikey &&
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <div className={style['decorated-list-item']}>
                             <div className={style["decorated-list-item__title"]}>InChIKey</div>
                             <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                                 {inchikey}
@@ -374,48 +375,41 @@ const LigandsOverview = () => {
                         </div>
                     }
                     {inchi &&
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <div className={style['decorated-list-item']}>
                             <div className={style["decorated-list-item__title"]}>InChI</div>
                             <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                                 <ExpanderButton text={inchi} />
                             </div>
                         </div>
                     }
-                    <div>
-                    </div>
-                    <div>
-                        {pubchemData.drugbankID && (<div style={{ display: 'flex', alignItems: 'center' }}>
-                            <div className={style["decorated-list-item__title"]}>DrugBank ID</div>
-                            <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                                <a href={pubchemData.drugbankURL}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    {pubchemData.drugbankID}
-                                </a>
-                            </div>
-                        </div>)}
-                    </div>
-
+                    {pubchemData.drugbankID && (<div className={style['decorated-list-item']}>
+                        <div className={style["decorated-list-item__title"]}>DrugBank ID</div>
+                        <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
+                            <a href={pubchemData.drugbankURL}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                {pubchemData.drugbankID}
+                            </a>
+                        </div>
+                    </div>)}
                     {lipidClass && (
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <div className={style['decorated-list-item']}>
                             <div className={style['decorated-list-item__title']}>Lipid classification</div>
                             <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                                 {lipidClass}
                             </div>
                         </div>
                     )}
-
-
-
                     {synonyms.length > 0 && (
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <div className={style['decorated-list-item']}>
                             <div className={style['decorated-list-item__title']}>Synonyms</div>
                             <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                                 <ExpanderButton text={synonyms.join('; ')} />
                             </div>
                         </div>
                     )}
+                    </div>
 
                     <div>
                         {reference.mordred || reference.morgan_fp_bit_array ? (

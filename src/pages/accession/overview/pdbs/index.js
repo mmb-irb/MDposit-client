@@ -110,21 +110,21 @@ const PdbsOverview = () => {
                         />
                         <div className={style['summary-list']}>
                             <Typography variant="h6" sx={{ fontSize: '1.2rem' }}>{title}</Typography>
-                            <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <div className={style['decorated-list']}>
+                            <div className={style['decorated-list-item']}>
                             <div className={style['decorated-list-item__title']}>PDB Accession</div>
                                 <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                                 {pdbId}
                                 </div>
                             </div>
 
-                            <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <div className={style['decorated-list-item']}>
                             <div className={style['decorated-list-item__title']}>Experimental method</div>
                             <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                             {experimentalMethod}
                             </div>
                             </div>
-                            <div>
-                            <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <div className={style['decorated-list-item']}>
                                 <div className={style['decorated-list-item__title']}>
                                 Organism
                             {organisms.length > 1 && 's'}{' '}
@@ -144,8 +144,7 @@ const PdbsOverview = () => {
                                 )) : <span className={style['grey']}>not available</span>}
                                 </div>
                             </div>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <div className={style['decorated-list-item']}>
                             <div className={style['decorated-list-item__title']}>Keyword</div>
                             <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}> 
                             {keywords.length > 1 && 's'}{' '}
@@ -163,12 +162,13 @@ const PdbsOverview = () => {
                             ))}
                             </div>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center' }}>
-                            <div className={style['decorated-list-item__title']} style={{flexBasis: '12vw'}}>Publication date:</div>
+                            <div className={style['decorated-list-item']}>
+                            <div className={style['decorated-list-item__title']}>Publication date:</div>
                             <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}>
                             <time dateTime={publishDate.toISOString()}>
                                 {publishDate.toDateString()}
                             </time>
+                            </div>
                             </div>
                             </div>
                         </div>

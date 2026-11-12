@@ -98,16 +98,29 @@
   background-color: var(--mui-palette-surface-subtle);
 }
 
+/* Rows of a title and its content. Titles share one column, as wide as the longest title
+   but at most 40% of the list (longer titles wrap), so the lines between titles and contents
+   stay aligned at any width */
+.decorated-list {
+  display: grid;
+  grid-template-columns: fit-content(40%) minmax(0, 1fr);
+  align-items: center;
+  row-gap: 1ch;
+  /* Go below the floating structure image when there is not enough room for the contents beside it */
+  min-width: min(100%, 20rem);
+}
+
+.decorated-list-item {
+  display: contents;
+}
+
 .decorated-list-item__title {
-  flex-basis: 10vw;
-  flex-shrink: 0;
   text-align: right;
   padding-right: .8rem;
   word-break: keep-all;
 }
 
 .decorated-list-item__content {
-  flex-grow: 1;
   padding-left: .7rem;
   padding-top: .1rem;
   padding-bottom: .1rem;

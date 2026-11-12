@@ -20,7 +20,7 @@ const SystemKeywords = ({ keywords }) => {
   const parsedKeywords = parseKeywords(keywords);
   if (parsedKeywords.length === 0) return null;
   return (
-    <div style={{ display: 'flex', alignItems: 'center' }}>
+    <div className={style['decorated-list-item']}>
       <div className={style['decorated-list-item__title']}>Keywords</div>
       <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${theme.palette.secondary.dark}` }}>
         {parsedKeywords.map(keyword => {

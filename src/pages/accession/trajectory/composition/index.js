@@ -54,6 +54,7 @@ const CompositionOverview = () => {
         <div className={style['composition-container']}>
           <div className={`${style['summary-list']} ${style['composition-stats']}`}>
             <Typography variant="h6" sx={{ fontSize: '1.4rem', marginBottom: '10px' }}>System Composition</Typography>
+            <div className={style['decorated-list']}>
             {(() => {
               const compositionFields = [
                 { key: 'SYSTATS', label: 'Total System Atoms', showPercentage: false },
@@ -87,7 +88,7 @@ const CompositionOverview = () => {
                     : null;
                   
                   return (
-                    <div key={index} style={{ display: 'flex', alignItems: 'center' }}>
+                    <div key={index} className={style['decorated-list-item']}>
                       <div className={style['decorated-list-item__title']}>{field.label}</div>
                       <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                         {value.toLocaleString()}
@@ -97,6 +98,7 @@ const CompositionOverview = () => {
                   );
                 });
             })()}
+            </div>
           </div>
           <div className={style['composition-chart']}>
             {(() => {

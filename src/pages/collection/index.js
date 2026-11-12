@@ -94,6 +94,7 @@ const Collection = () => {
                         {reference.name}
                     </Typography>
                     <div style={{ 'marginBottom': '0.5em' }}>{reference.description}</div>
+                    <div className={style['decorated-list']}>
                     {Object.entries(PROJECT_OPTIONS).map(([optionName, optionField]) => {
                         if (!optionsPayload) return;
                         // Get the option values
@@ -102,7 +103,7 @@ const Collection = () => {
                         delete optionValues[null];
                         // If the final object is empty then do not show the section at all
                         if (Object.keys(optionValues).length === 0) return;
-                        return (<div key={optionName} style={{ display: 'flex', alignItems: 'center', marginBottom: '0.3em' }}>
+                        return (<div key={optionName} className={style['decorated-list-item']}>
                             <div className={style['decorated-list-item__title']}>{optionName}</div>
                             <div className={style['decorated-list-item__content']} style={{ borderColor: secondaryColor.dark }}>
                                 {Object.keys(optionValues).join(', ')}
@@ -110,7 +111,7 @@ const Collection = () => {
                         </div>)
                     })}
                     {reference.links && reference.links.length > 0 &&
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <div className={style['decorated-list-item']}>
                         <div className={style['decorated-list-item__title']}>Links</div>
                         <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                         {reference.links.map((link, l) => (
@@ -126,6 +127,7 @@ const Collection = () => {
                         ))}
                         </div>
                     </div>}
+                    </div>
                 </div>
                 <LazyImg src={reference.image} loading="lazy" alt={`Collection logo`}
                     style={{ maxWidth: '30%', height: 'auto', margin: '0 1em' }}

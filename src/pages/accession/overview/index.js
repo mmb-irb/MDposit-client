@@ -135,22 +135,23 @@ const Overview = React.memo(() => {
                 />
               )}
               {metadata.METHOD}
+              <div className={style['decorated-list']}>
               {metadata.DESCRIPTION && metadata.DESCRIPTION.length > 0 &&
-              <div style={{ display: 'flex', alignItems: 'center' }}>
+              <div className={style['decorated-list-item']}>
                 <div className={style['decorated-list-item__title']}>Description</div>
                 <div className={style['decorated-list-item__content']} style={{  wordBreak: 'break-word', borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                   {metadata.DESCRIPTION}
                 </div>
               </div>}
               {metadata.AUTHORS && metadata.AUTHORS.length > 0 &&
-              <div style={{ display: 'flex', alignItems: 'center' }}>
+              <div className={style['decorated-list-item']}>
                 <div className={style['decorated-list-item__title']}>Authors</div>
                 <div className={style['decorated-list-item__content']} style={{ wordBreak: 'break-word', borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                   {prettyEnumerate(metadata.AUTHORS)}
                 </div>
               </div>}
               {metadata.GROUPS && metadata.GROUPS.length > 0 &&
-              <div style={{ display: 'flex', alignItems: 'center' }}>
+              <div className={style['decorated-list-item']}>
                 <div className={style['decorated-list-item__title']}>Groups</div>
                 <div className={style['decorated-list-item__content']} style={{ wordBreak: 'break-word', borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                   {prettyEnumerate(metadata.GROUPS)}
@@ -158,42 +159,42 @@ const Overview = React.memo(() => {
               </div>}
               {/* Node will exist only in the global API, and the global client has nodes as options */}
               {HOST_CONFIG.global && node && 
-              <div style={{ display: 'flex', alignItems: 'center' }}>
+              <div className={style['decorated-list-item']}>
                 <div className={style['decorated-list-item__title']}>Node</div>
                 <div className={style['decorated-list-item__content']} style={{ wordBreak: 'break-word', borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                   {nodeName}
                 </div>
               </div>}
               {metadata.CONTACT && metadata.CONTACT.length > 0 &&
-               <div style={{ display: 'flex', alignItems: 'center' }}>
+               <div className={style['decorated-list-item']}>
                 <div className={style['decorated-list-item__title']}>Contact</div>
                 <div className={style['decorated-list-item__content']} style={{ wordBreak: 'break-word', borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                   {metadata.CONTACT}
                 </div>
               </div>}
               {metadata.PROGRAM && metadata.PROGRAM.length > 0 &&
-              <div style={{ display: 'flex', alignItems: 'center' }}>
+              <div className={style['decorated-list-item']}>
                 <div className={style['decorated-list-item__title']}>Program</div>
                 <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                   {metadata.PROGRAM}
                 </div>
               </div>}
               {metadata.VERSION && metadata.VERSION.length > 0 &&
-              <div style={{ display: 'flex', alignItems: 'center' }}>
+              <div className={style['decorated-list-item']}>
                 <div className={style['decorated-list-item__title']}>Version</div>
                 <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                   {metadata.VERSION}
                 </div>
               </div>}
               {metadata.FF &&
-              <div style={{ display: 'flex', alignItems: 'center' }}>
+              <div className={style['decorated-list-item']}>
                 <div className={style['decorated-list-item__title']}>Force fields</div>
-                <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
+                <div className={style['decorated-list-item__content']} style={{ wordBreak: 'break-word', borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                   {metadata.FF.join(', ')}
                 </div>
               </div>}
               {metadata.LINKS && metadata.LINKS.length > 0 &&
-              <div style={{ display: 'flex', alignItems: 'center' }}>
+              <div className={style['decorated-list-item']}>
                 <div className={style['decorated-list-item__title']}>Links</div>
                 <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                 {metadata.LINKS.map((link, l) => {
@@ -212,6 +213,7 @@ const Overview = React.memo(() => {
                 </div>
               </div>}
               <SystemKeywords keywords={metadata.SYSKEYS} />
+              </div>
               <Warnings warnings={metadata.WARNINGS} />
             </div>
           </CardContent>
@@ -349,19 +351,20 @@ const Overview = React.memo(() => {
                   <div className={`${style['card-background']} ${style['protein-reference-card']}`}>
                     <div className={style['summary-list']}>
                       <Typography variant="h6" sx={{ fontSize: '1.4rem' }}>{reference.name}</Typography>
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <div className={style['decorated-list']}>
+                      <div className={style['decorated-list-item']}>
                         <div className={style['decorated-list-item__title']}>Gene</div>
                         <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                           {reference.gene && `${reference.gene}`}
                         </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <div className={style['decorated-list-item']}>
                         <div className={style['decorated-list-item__title']}>Organism</div>
                         <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                           {reference.organism && `${reference.organism}`}
                         </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <div className={style['decorated-list-item']}>
                         <div className={style['decorated-list-item__title']}>UniProt ID</div>
                         <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
                           {reference.uniprot && `UniProt ID: `}
@@ -373,6 +376,7 @@ const Overview = React.memo(() => {
                             {reference.uniprot}
                           </a>
                         </div>
+                      </div>
                       </div>
                     </div>
                   </div>
@@ -422,35 +426,37 @@ const Overview = React.memo(() => {
         <CardContent className={style['card-content']}>
           <Typography variant="h6">Project information</Typography>
           <div className={style['summary-list']}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-             <div className={style['decorated-list-item__title']} style={{flexBasis: '16vw'}}>Public project accession:</div>
+          <div className={style['decorated-list']}>
+          <div className={style['decorated-list-item']}>
+             <div className={style['decorated-list-item__title']}>Public project accession:</div>
              <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}>
               {accession || <code>not assigned</code>}
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-             <div className={style['decorated-list-item__title']} style={{flexBasis: '16vw'}}>Internal project identifier:</div>
+          <div className={style['decorated-list-item']}>
+             <div className={style['decorated-list-item__title']}>Internal project identifier:</div>
              <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}>
               {internalId || identifier}
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-             <div className={style['decorated-list-item__title']} style={{ flexBasis: '16vw'}}>Status:</div>
+          <div className={style['decorated-list-item']}>
+             <div className={style['decorated-list-item__title']}>Status:</div>
              <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}>
              {published ? 'published' : 'unpublished'}
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-             <div className={style['decorated-list-item__title']} style={{flexBasis: '16vw'}}>Addition date:</div>
+          <div className={style['decorated-list-item']}>
+             <div className={style['decorated-list-item__title']}>Addition date:</div>
              <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}>
              {creationDate ? creationDate : 'Not available'}
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <div className={style['decorated-list-item__title']} style={{flexBasis: '16vw'}}>Last modification:</div>
+          <div className={style['decorated-list-item']}>
+            <div className={style['decorated-list-item__title']}>Last modification:</div>
             <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}>
               {updateDate ? updateDate : (creationDate ? creationDate : 'Not available')}
             </div>
+          </div>
           </div>
           </div>
         </CardContent>
