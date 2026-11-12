@@ -22,6 +22,7 @@ import { prettyEnumerate } from '../../../utils/pretty-enumerate';
 // Import auxiliar components
 import Card from '../../../components/animated-card';
 import LazyImg from 'src/components/lazy-img';
+import { DecoratedList, DecoratedListItem } from 'src/components/decorated-list';
 // Import other components which are part of the overview
 import LigandsOverview from './ligands';
 import PdbsOverview from './pdbs';
@@ -135,85 +136,42 @@ const Overview = React.memo(() => {
                 />
               )}
               {metadata.METHOD}
-              <div className={style['decorated-list']}>
-              {metadata.DESCRIPTION && metadata.DESCRIPTION.length > 0 &&
-              <div className={style['decorated-list-item']}>
-                <div className={style['decorated-list-item__title']}>Description</div>
-                <div className={style['decorated-list-item__content']} style={{  wordBreak: 'break-word', borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                  {metadata.DESCRIPTION}
-                </div>
-              </div>}
-              {metadata.AUTHORS && metadata.AUTHORS.length > 0 &&
-              <div className={style['decorated-list-item']}>
-                <div className={style['decorated-list-item__title']}>Authors</div>
-                <div className={style['decorated-list-item__content']} style={{ wordBreak: 'break-word', borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                  {prettyEnumerate(metadata.AUTHORS)}
-                </div>
-              </div>}
-              {metadata.GROUPS && metadata.GROUPS.length > 0 &&
-              <div className={style['decorated-list-item']}>
-                <div className={style['decorated-list-item__title']}>Groups</div>
-                <div className={style['decorated-list-item__content']} style={{ wordBreak: 'break-word', borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                  {prettyEnumerate(metadata.GROUPS)}
-                </div>
-              </div>}
-              {/* Node will exist only in the global API, and the global client has nodes as options */}
-              {HOST_CONFIG.global && node && 
-              <div className={style['decorated-list-item']}>
-                <div className={style['decorated-list-item__title']}>Node</div>
-                <div className={style['decorated-list-item__content']} style={{ wordBreak: 'break-word', borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                  {nodeName}
-                </div>
-              </div>}
-              {metadata.CONTACT && metadata.CONTACT.length > 0 &&
-               <div className={style['decorated-list-item']}>
-                <div className={style['decorated-list-item__title']}>Contact</div>
-                <div className={style['decorated-list-item__content']} style={{ wordBreak: 'break-word', borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                  {metadata.CONTACT}
-                </div>
-              </div>}
-              {metadata.PROGRAM && metadata.PROGRAM.length > 0 &&
-              <div className={style['decorated-list-item']}>
-                <div className={style['decorated-list-item__title']}>Program</div>
-                <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                  {metadata.PROGRAM}
-                </div>
-              </div>}
-              {metadata.VERSION && metadata.VERSION.length > 0 &&
-              <div className={style['decorated-list-item']}>
-                <div className={style['decorated-list-item__title']}>Version</div>
-                <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                  {metadata.VERSION}
-                </div>
-              </div>}
-              {metadata.FF &&
-              <div className={style['decorated-list-item']}>
-                <div className={style['decorated-list-item__title']}>Force fields</div>
-                <div className={style['decorated-list-item__content']} style={{ wordBreak: 'break-word', borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                  {metadata.FF.join(', ')}
-                </div>
-              </div>}
-              {metadata.LINKS && metadata.LINKS.length > 0 &&
-              <div className={style['decorated-list-item']}>
-                <div className={style['decorated-list-item__title']}>Links</div>
-                <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                {metadata.LINKS.map((link, l) => {
-                  let url = link.url;
-                  if (!url.startsWith('http')) url = 'https://' + url;
-                  return (<div key={l}>
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                    >
-                      {link.name}
-                    </a>
-                  </div>)
-                })}
-                </div>
-              </div>}
-              <SystemKeywords keywords={metadata.SYSKEYS} />
-              </div>
+              <DecoratedList>
+                {metadata.DESCRIPTION && metadata.DESCRIPTION.length > 0 &&
+                  <DecoratedListItem title="Description" breakWord>{metadata.DESCRIPTION}</DecoratedListItem>}
+                {metadata.AUTHORS && metadata.AUTHORS.length > 0 &&
+                  <DecoratedListItem title="Authors" breakWord>{prettyEnumerate(metadata.AUTHORS)}</DecoratedListItem>}
+                {metadata.GROUPS && metadata.GROUPS.length > 0 &&
+                  <DecoratedListItem title="Groups" breakWord>{prettyEnumerate(metadata.GROUPS)}</DecoratedListItem>}
+                {/* Node will exist only in the global API, and the global client has nodes as options */}
+                {HOST_CONFIG.global && node &&
+                  <DecoratedListItem title="Node" breakWord>{nodeName}</DecoratedListItem>}
+                {metadata.CONTACT && metadata.CONTACT.length > 0 &&
+                  <DecoratedListItem title="Contact" breakWord>{metadata.CONTACT}</DecoratedListItem>}
+                {metadata.PROGRAM && metadata.PROGRAM.length > 0 &&
+                  <DecoratedListItem title="Program">{metadata.PROGRAM}</DecoratedListItem>}
+                {metadata.VERSION && metadata.VERSION.length > 0 &&
+                  <DecoratedListItem title="Version">{metadata.VERSION}</DecoratedListItem>}
+                {metadata.FF &&
+                  <DecoratedListItem title="Force fields" breakWord>{metadata.FF.join(', ')}</DecoratedListItem>}
+                {metadata.LINKS && metadata.LINKS.length > 0 &&
+                  <DecoratedListItem title="Links">
+                    {metadata.LINKS.map((link, l) => {
+                      let url = link.url;
+                      if (!url.startsWith('http')) url = 'https://' + url;
+                      return (<div key={l}>
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                        >
+                          {link.name}
+                        </a>
+                      </div>)
+                    })}
+                  </DecoratedListItem>}
+                <SystemKeywords keywords={metadata.SYSKEYS} />
+              </DecoratedList>
               <Warnings warnings={metadata.WARNINGS} />
             </div>
           </CardContent>
@@ -351,22 +309,10 @@ const Overview = React.memo(() => {
                   <div className={`${style['card-background']} ${style['protein-reference-card']}`}>
                     <div className={style['summary-list']}>
                       <Typography variant="h6" sx={{ fontSize: '1.4rem' }}>{reference.name}</Typography>
-                      <div className={style['decorated-list']}>
-                      <div className={style['decorated-list-item']}>
-                        <div className={style['decorated-list-item__title']}>Gene</div>
-                        <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                          {reference.gene && `${reference.gene}`}
-                        </div>
-                      </div>
-                      <div className={style['decorated-list-item']}>
-                        <div className={style['decorated-list-item__title']}>Organism</div>
-                        <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                          {reference.organism && `${reference.organism}`}
-                        </div>
-                      </div>
-                      <div className={style['decorated-list-item']}>
-                        <div className={style['decorated-list-item__title']}>UniProt ID</div>
-                        <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
+                      <DecoratedList>
+                        <DecoratedListItem title="Gene">{reference.gene && `${reference.gene}`}</DecoratedListItem>
+                        <DecoratedListItem title="Organism">{reference.organism && `${reference.organism}`}</DecoratedListItem>
+                        <DecoratedListItem title="UniProt ID">
                           {reference.uniprot && `UniProt ID: `}
                           <a
                             href={'https://www.uniprot.org/uniprotkb/' + reference.uniprot}
@@ -375,9 +321,8 @@ const Overview = React.memo(() => {
                           >
                             {reference.uniprot}
                           </a>
-                        </div>
-                      </div>
-                      </div>
+                        </DecoratedListItem>
+                      </DecoratedList>
                     </div>
                   </div>
                 </Grid>
@@ -426,38 +371,23 @@ const Overview = React.memo(() => {
         <CardContent className={style['card-content']}>
           <Typography variant="h6">Project information</Typography>
           <div className={style['summary-list']}>
-          <div className={style['decorated-list']}>
-          <div className={style['decorated-list-item']}>
-             <div className={style['decorated-list-item__title']}>Public project accession:</div>
-             <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}>
+          <DecoratedList>
+            <DecoratedListItem title="Public project accession:" line={false}>
               {accession || <code>not assigned</code>}
-            </div>
-          </div>
-          <div className={style['decorated-list-item']}>
-             <div className={style['decorated-list-item__title']}>Internal project identifier:</div>
-             <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}>
+            </DecoratedListItem>
+            <DecoratedListItem title="Internal project identifier:" line={false}>
               {internalId || identifier}
-            </div>
-          </div>
-          <div className={style['decorated-list-item']}>
-             <div className={style['decorated-list-item__title']}>Status:</div>
-             <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}>
-             {published ? 'published' : 'unpublished'}
-            </div>
-          </div>
-          <div className={style['decorated-list-item']}>
-             <div className={style['decorated-list-item__title']}>Addition date:</div>
-             <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}>
-             {creationDate ? creationDate : 'Not available'}
-            </div>
-          </div>
-          <div className={style['decorated-list-item']}>
-            <div className={style['decorated-list-item__title']}>Last modification:</div>
-            <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}>
+            </DecoratedListItem>
+            <DecoratedListItem title="Status:" line={false}>
+              {published ? 'published' : 'unpublished'}
+            </DecoratedListItem>
+            <DecoratedListItem title="Addition date:" line={false}>
+              {creationDate ? creationDate : 'Not available'}
+            </DecoratedListItem>
+            <DecoratedListItem title="Last modification:" line={false}>
               {updateDate ? updateDate : (creationDate ? creationDate : 'Not available')}
-            </div>
-          </div>
-          </div>
+            </DecoratedListItem>
+          </DecoratedList>
           </div>
         </CardContent>
       </Card>

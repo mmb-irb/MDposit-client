@@ -9,19 +9,15 @@ import { PieChart } from 'react-minimal-pie-chart';
 import SimpleLegend from '../../../../components/simple-legend';
 import SimpleHistogram from '../../../../components/simple-histogram';
 import { createPalette } from '../../../../utils/auxiliar-functions';
-import { useTheme } from '@mui/material/styles';
 import style from './style.module.css';
 import Card from '../../../../components/animated-card';
+import { DecoratedList, DecoratedListItem } from 'src/components/decorated-list';
 import { ProjectCtx } from '../../../../contexts';
 
 const CompositionOverview = () => {
   // State for composition chart type
   const [compositionChartType, setCompositionChartType] = useState('pie');
   const { metadata } = useContext(ProjectCtx);
-
-  // Get the provided theme
-  const theme = useTheme();
-  const secondaryColor = theme.palette.secondary;
 
   // Check if there's composition data
   const compositionFields = [
@@ -54,7 +50,7 @@ const CompositionOverview = () => {
         <div className={style['composition-container']}>
           <div className={`${style['summary-list']} ${style['composition-stats']}`}>
             <Typography variant="h6" sx={{ fontSize: '1.4rem', marginBottom: '10px' }}>System Composition</Typography>
-            <div className={style['decorated-list']}>
+            <DecoratedList>
             {(() => {
               const compositionFields = [
                 { key: 'SYSTATS', label: 'Total System Atoms', showPercentage: false },
@@ -88,17 +84,14 @@ const CompositionOverview = () => {
                     : null;
                   
                   return (
-                    <div key={index} className={style['decorated-list-item']}>
-                      <div className={style['decorated-list-item__title']}>{field.label}</div>
-                      <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                        {value.toLocaleString()}
-                        {percentage && ` (${percentage}%)`}
-                      </div>
-                    </div>
+                    <DecoratedListItem key={index} title={field.label}>
+                      {value.toLocaleString()}
+                      {percentage && ` (${percentage}%)`}
+                    </DecoratedListItem>
                   );
                 });
             })()}
-            </div>
+            </DecoratedList>
           </div>
           <div className={style['composition-chart']}>
             {(() => {

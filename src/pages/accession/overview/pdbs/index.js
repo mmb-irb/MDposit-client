@@ -16,6 +16,7 @@ import style from './style.module.css';
 // Import auxiliar components
 import Card from 'src/components/animated-card';
 import LazyImg from 'src/components/lazy-img';
+import { DecoratedList, DecoratedListItem } from 'src/components/decorated-list';
 // Import other tools
 import https from 'https-browserify';
 
@@ -110,67 +111,43 @@ const PdbsOverview = () => {
                         />
                         <div className={style['summary-list']}>
                             <Typography variant="h6" sx={{ fontSize: '1.2rem' }}>{title}</Typography>
-                            <div className={style['decorated-list']}>
-                            <div className={style['decorated-list-item']}>
-                            <div className={style['decorated-list-item__title']}>PDB Accession</div>
-                                <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                                {pdbId}
-                                </div>
-                            </div>
-
-                            <div className={style['decorated-list-item']}>
-                            <div className={style['decorated-list-item__title']}>Experimental method</div>
-                            <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                            {experimentalMethod}
-                            </div>
-                            </div>
-                            <div className={style['decorated-list-item']}>
-                                <div className={style['decorated-list-item__title']}>
-                                Organism
-                            {organisms.length > 1 && 's'}{' '}
-                                </div>
-                                <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}>
-                                {organisms.length > 0 ? organisms.map((organism, o) => (
-                                    <Chip
-                                    key={o}
-                                    label={organism}
-                                    variant="outlined"
-                                    sx={{
-                                        color: secondaryColor.dark,
-                                        borderColor: secondaryColor.dark
-                                    }}                                
-                                    className={style.chip}
-                                    />
-                                )) : <span className={style['grey']}>not available</span>}
-                                </div>
-                            </div>
-                            <div className={style['decorated-list-item']}>
-                            <div className={style['decorated-list-item__title']}>Keyword</div>
-                            <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}> 
-                            {keywords.length > 1 && 's'}{' '}
-                            {keywords.map((keyword, k) => (
-                                <Chip
-                                key={k}
-                                label={keyword}
-                                variant="outlined"
-                                sx={{
-                                    color: secondaryColor.dark,
-                                    borderColor: secondaryColor.dark
-                                }}                            
-                                className={style.chip}
-                                />
-                            ))}
-                            </div>
-                            </div>
-                            <div className={style['decorated-list-item']}>
-                            <div className={style['decorated-list-item__title']}>Publication date:</div>
-                            <div className={style['decorated-list-item__content']} style={{ paddingLeft: '0rem' }}>
-                            <time dateTime={publishDate.toISOString()}>
-                                {publishDate.toDateString()}
-                            </time>
-                            </div>
-                            </div>
-                            </div>
+                            <DecoratedList>
+                                <DecoratedListItem title="PDB Accession">{pdbId}</DecoratedListItem>
+                                <DecoratedListItem title="Experimental method">{experimentalMethod}</DecoratedListItem>
+                                <DecoratedListItem title={`Organism${organisms.length > 1 ? 's' : ''}`} line={false}>
+                                    {organisms.length > 0 ? organisms.map((organism, o) => (
+                                        <Chip
+                                        key={o}
+                                        label={organism}
+                                        variant="outlined"
+                                        sx={{
+                                            color: secondaryColor.dark,
+                                            borderColor: secondaryColor.dark
+                                        }}
+                                        className={style.chip}
+                                        />
+                                    )) : <span className={style['grey']}>not available</span>}
+                                </DecoratedListItem>
+                                <DecoratedListItem title={`Keyword${keywords.length > 1 ? 's' : ''}`} line={false}>
+                                    {keywords.map((keyword, k) => (
+                                        <Chip
+                                        key={k}
+                                        label={keyword}
+                                        variant="outlined"
+                                        sx={{
+                                            color: secondaryColor.dark,
+                                            borderColor: secondaryColor.dark
+                                        }}
+                                        className={style.chip}
+                                        />
+                                    ))}
+                                </DecoratedListItem>
+                                <DecoratedListItem title="Publication date:" line={false}>
+                                    <time dateTime={publishDate.toISOString()}>
+                                        {publishDate.toDateString()}
+                                    </time>
+                                </DecoratedListItem>
+                            </DecoratedList>
                         </div>
                         </div>
                         <CardActions>

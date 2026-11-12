@@ -8,6 +8,7 @@ import useAPI from 'src/hooks/use-api'; // API acces
 import Loading from 'src/components/loading'; // Displays an animated "loading" circle
 import Card from 'src/components/animated-card';
 import LazyImg from 'src/components/lazy-img';
+import { DecoratedList, DecoratedListItem } from 'src/components/decorated-list';
 import ProjectBrowser from 'src/components/project-browser';
 import { CardContent, Typography, Button } from '@mui/material';
 import { Link } from 'react-router';
@@ -22,9 +23,6 @@ import { Reference } from 'src/utils/reference-manager';
 // Filters builder
 import { buildFilter, buildReturn, stringifyQuery } from 'src/utils/filters';
 
-// Styling
-import style from './style.module.css';
-import { useTheme } from '@mui/material/styles';
 
 // Set option fields to search among projects which belong to a collection
 const PROJECT_OPTIONS = {
@@ -61,10 +59,6 @@ const Collection = () => {
     // Set also the internal filters for the project browser
     const browserInternalFilters = useMemo(() => [ collectionFilter ], [collectionFilter]);
 
-    // Get the provided theme
-    const theme = useTheme();
-    const secondaryColor = theme.palette.secondary;
-
     if (referenceLoading) return <Loading />;
     if (referenceError) return referenceError.toString();
     if (optionsError) return optionsError.toString();
@@ -94,7 +88,7 @@ const Collection = () => {
                         {reference.name}
                     </Typography>
                     <div style={{ 'marginBottom': '0.5em' }}>{reference.description}</div>
-                    <div className={style['decorated-list']}>
+                    <DecoratedList>
                     {Object.entries(PROJECT_OPTIONS).map(([optionName, optionField]) => {
                         if (!optionsPayload) return;
                         // Get the option values
@@ -103,17 +97,12 @@ const Collection = () => {
                         delete optionValues[null];
                         // If the final object is empty then do not show the section at all
                         if (Object.keys(optionValues).length === 0) return;
-                        return (<div key={optionName} className={style['decorated-list-item']}>
-                            <div className={style['decorated-list-item__title']}>{optionName}</div>
-                            <div className={style['decorated-list-item__content']} style={{ borderColor: secondaryColor.dark }}>
-                                {Object.keys(optionValues).join(', ')}
-                            </div>
-                        </div>)
+                        return (<DecoratedListItem key={optionName} title={optionName} breakWord>
+                            {Object.keys(optionValues).join(', ')}
+                        </DecoratedListItem>)
                     })}
                     {reference.links && reference.links.length > 0 &&
-                    <div className={style['decorated-list-item']}>
-                        <div className={style['decorated-list-item__title']}>Links</div>
-                        <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
+                    <DecoratedListItem title="Links" breakWord>
                         {reference.links.map((link, l) => (
                         <div key={l}>
                             <a
@@ -125,9 +114,8 @@ const Collection = () => {
                             </a>
                         </div>
                         ))}
-                        </div>
-                    </div>}
-                    </div>
+                    </DecoratedListItem>}
+                    </DecoratedList>
                 </div>
                 <LazyImg src={reference.image} loading="lazy" alt={`Collection logo`}
                     style={{ maxWidth: '30%', height: 'auto', margin: '0 1em' }}

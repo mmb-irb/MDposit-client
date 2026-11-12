@@ -18,6 +18,7 @@ import style from './style.module.css';
 import Info from 'src/components/info';
 import Card from 'src/components/animated-card';
 import LazyImg from 'src/components/lazy-img';
+import { DecoratedList, DecoratedListItem } from 'src/components/decorated-list';
 import MoleculeViewer from 'src/components/rdkit/rdkit_viewer';
 import ExpanderButton from 'src/components/expander-button';
 // Import some components which are specific to the ligands overview component
@@ -313,103 +314,53 @@ const LigandsOverview = () => {
                         )}
                         <Typography variant="h6" sx={{ fontSize: '1.4rem', marginLeft: residueName ? '0.8rem' : 0 }}>{name}</Typography>
                     </div>
-                    <div className={style['decorated-list']}>
-                    {pubchemId && (
-                        <div className={style['decorated-list-item']}>
-                            <div className={style["decorated-list-item__title"]}>Pubchem ID</div>
-                            <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
+                    <DecoratedList>
+                        {pubchemId && (
+                            <DecoratedListItem title="Pubchem ID">
                                 <a href={`https://pubchem.ncbi.nlm.nih.gov/compound/${pubchemId}`} target="_blank" rel="noopener noreferrer">
                                     {pubchemId}
                                 </a>
-                            </div>
-                        </div>
-                    )}
-                    {pubchemData.chemblID && (<div className={style['decorated-list-item']}>
-                        <div className={style["decorated-list-item__title"]}>ChEMBL ID</div>
-                        <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                            <a href={pubchemData.chemblURL} target="_blank" rel="noopener noreferrer">
-                                {pubchemData.chemblID}
-                            </a>
-                        </div>
-                    </div>)}
-                    {lipidmapsId && (<div className={style['decorated-list-item']}>
-                        <div className={style['decorated-list-item__title']}>LIPID MAPS ID</div>
-                        <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                            <a href={lipidmapsUrl} target="_blank" rel="noopener noreferrer">
-                                {lipidmapsId}
-                            </a>
-                        </div>
-                        </div>
-                    )}
-                    {swisslipidsId && (<div className={style['decorated-list-item']}>
-                        <div className={style['decorated-list-item__title']}>SwissLipids ID</div>
-                        <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                            <a href={swisslipidsUrl} target="_blank" rel="noopener noreferrer">
-                                {swisslipidsId}
-                            </a>
-                        </div>
-                        </div>
-                    )}
-                    {formula &&
-                        <div className={style['decorated-list-item']}>
-                            <div className={style["decorated-list-item__title"]}>Molecular Formula</div>
-                            <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                                {renderFormula(formula)}
-                            </div>
-                        </div>
-                    }
-                    {reference.smiles &&
-                        <div className={style['decorated-list-item']}>
-                            <div className={style["decorated-list-item__title"]}>SMILES</div>
-                            <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                                <ExpanderButton text={reference.smiles} />
-                            </div>
-                        </div>
-                    }
-                    {inchikey &&
-                        <div className={style['decorated-list-item']}>
-                            <div className={style["decorated-list-item__title"]}>InChIKey</div>
-                            <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                                {inchikey}
-                            </div>
-                        </div>
-                    }
-                    {inchi &&
-                        <div className={style['decorated-list-item']}>
-                            <div className={style["decorated-list-item__title"]}>InChI</div>
-                            <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                                <ExpanderButton text={inchi} />
-                            </div>
-                        </div>
-                    }
-                    {pubchemData.drugbankID && (<div className={style['decorated-list-item']}>
-                        <div className={style["decorated-list-item__title"]}>DrugBank ID</div>
-                        <div className={style["decorated-list-item__content"]} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                            <a href={pubchemData.drugbankURL}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                {pubchemData.drugbankID}
-                            </a>
-                        </div>
-                    </div>)}
-                    {lipidClass && (
-                        <div className={style['decorated-list-item']}>
-                            <div className={style['decorated-list-item__title']}>Lipid classification</div>
-                            <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                                {lipidClass}
-                            </div>
-                        </div>
-                    )}
-                    {synonyms.length > 0 && (
-                        <div className={style['decorated-list-item']}>
-                            <div className={style['decorated-list-item__title']}>Synonyms</div>
-                            <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${secondaryColor.dark}` }}>
-                                <ExpanderButton text={synonyms.join('; ')} />
-                            </div>
-                        </div>
-                    )}
-                    </div>
+                            </DecoratedListItem>
+                        )}
+                        {pubchemData.chemblID && (
+                            <DecoratedListItem title="ChEMBL ID">
+                                <a href={pubchemData.chemblURL} target="_blank" rel="noopener noreferrer">
+                                    {pubchemData.chemblID}
+                                </a>
+                            </DecoratedListItem>
+                        )}
+                        {lipidmapsId && (
+                            <DecoratedListItem title="LIPID MAPS ID">
+                                <a href={lipidmapsUrl} target="_blank" rel="noopener noreferrer">
+                                    {lipidmapsId}
+                                </a>
+                            </DecoratedListItem>
+                        )}
+                        {swisslipidsId && (
+                            <DecoratedListItem title="SwissLipids ID">
+                                <a href={swisslipidsUrl} target="_blank" rel="noopener noreferrer">
+                                    {swisslipidsId}
+                                </a>
+                            </DecoratedListItem>
+                        )}
+                        {formula && <DecoratedListItem title="Molecular Formula">{renderFormula(formula)}</DecoratedListItem>}
+                        {reference.smiles && (
+                            <DecoratedListItem title="SMILES"><ExpanderButton text={reference.smiles} /></DecoratedListItem>
+                        )}
+                        {inchikey && <DecoratedListItem title="InChIKey">{inchikey}</DecoratedListItem>}
+                        {inchi && <DecoratedListItem title="InChI"><ExpanderButton text={inchi} /></DecoratedListItem>}
+                        {pubchemData.drugbankID && (
+                            <DecoratedListItem title="DrugBank ID">
+                                <a href={pubchemData.drugbankURL} target="_blank" rel="noopener noreferrer">
+                                    {pubchemData.drugbankID}
+                                </a>
+                            </DecoratedListItem>
+                        )}
+                        {lipidClass && <DecoratedListItem title="Lipid classification">{lipidClass}</DecoratedListItem>}
+                        {synonyms.length > 0 && (
+                            <DecoratedListItem title="Synonyms"><ExpanderButton text={synonyms.join('; ')} /></DecoratedListItem>
+                        )}
+                    </DecoratedList>
 
                     <div>
                         {reference.mordred || reference.morgan_fp_bit_array ? (

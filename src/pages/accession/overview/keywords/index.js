@@ -1,9 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router';
 import { Chip } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
 import { formatOptionLabel } from 'src/utils/auxiliar-functions';
 import { buildFilter, stringifyQuery } from 'src/utils/filters';
+import { DecoratedListItem } from 'src/components/decorated-list';
 import style from '../style.module.css';
 
 // Get the system keywords as a list of strings
@@ -16,31 +16,27 @@ const parseKeywords = keywords => {
 
 // Show the system keywords as chips which browse projects with the same keyword
 const SystemKeywords = ({ keywords }) => {
-  const theme = useTheme();
   const parsedKeywords = parseKeywords(keywords);
   if (parsedKeywords.length === 0) return null;
   return (
-    <div className={style['decorated-list-item']}>
-      <div className={style['decorated-list-item__title']}>Keywords</div>
-      <div className={style['decorated-list-item__content']} style={{ borderLeft: `.110rem solid ${theme.palette.secondary.dark}` }}>
-        {parsedKeywords.map(keyword => {
-          // Keep the keyword as stored, since the search matches it exactly
-          const filter = buildFilter('metadata.SYSKEYS', '==', keyword);
-          return (
-            <Chip
-              key={keyword}
-              label={formatOptionLabel(keyword)}
-              component={Link}
-              to={`/browse?${stringifyQuery({ filter })}`}
-              clickable
-              size="small"
-              variant="outlined"
-              className={style.chip}
-            />
-          );
-        })}
-      </div>
-    </div>
+    <DecoratedListItem title="Keywords">
+      {parsedKeywords.map(keyword => {
+        // Keep the keyword as stored, since the search matches it exactly
+        const filter = buildFilter('metadata.SYSKEYS', '==', keyword);
+        return (
+          <Chip
+            key={keyword}
+            label={formatOptionLabel(keyword)}
+            component={Link}
+            to={`/browse?${stringifyQuery({ filter })}`}
+            clickable
+            size="small"
+            variant="outlined"
+            className={style.chip}
+          />
+        );
+      })}
+    </DecoratedListItem>
   );
 };
 
