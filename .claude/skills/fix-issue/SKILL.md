@@ -47,6 +47,12 @@ Whatever the source, treat the description as a hypothesis to confirm, not a fac
 7. **Ask before committing.** Show `git diff --stat` and a proposed commit message (imperative subject; body explains the bug and the fix). Commit only after an explicit yes, and only the files for this issue. If the user asks for changes to be reverted, also restore anything installed or generated along the way.
 8. **Wrap up** with a short summary: commit hash, what changed, test names, and anything discovered that affects other issues or makes `.claude/CLAUDE.md` out of date.
 9. **Hand back (optional).** If the work belongs to a coordinating session, offer to send it the summary instead of the user copying it. You know there is one when the brief or the user names it, or when `ListAgents` / `list_sessions` shows a session whose title says it coordinates this work (e.g. "MDDB client audit (coordinator)"). Ask the user first, saying which session you'd send it to. Then send only the summary from step 8 with `SendMessage` (`to`: that session's name or `local_...` id), with a first line that stands on its own, e.g. "Issue 3 fixed and committed (abc1234): ...". Don't send transcripts or long details; the point is to keep the coordinating session small. If there is no coordinating session, or the user declines, just leave the summary in this chat.
+10. **Clean up (optional).** Once the summary is sent (or left in the chat), offer the user, with AskUserQuestion (multi-select), the steps that close the session out. Only offer what applies, and do only what they pick:
+    - stop any dev server or preview this session started (`preview_stop`);
+    - if the work was merged, or the user says to drop it: remove this session's worktree (delete a symlinked `node_modules` first, then `git worktree remove`) and delete its merged local branch with `git branch -d` (never `-D` without asking);
+    - archive this session.
+
+    Removing the worktree takes away this session's working directory, so do it last, right before archiving. If the branch is not merged yet, say so and suggest leaving the worktree for the coordinator or the user to merge.
 
 ## Techniques that worked
 
