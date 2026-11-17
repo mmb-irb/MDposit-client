@@ -91,3 +91,55 @@
   flex-direction: column;
 }
 
+
+/* Main card: project information on the left and the MD screenshot with keywords on the right */
+.main-card-content {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 1.5em;
+}
+
+.main-info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.side-column {
+  flex: 0 0 auto;
+  width: 25%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.side-column:empty {
+  display: none;
+}
+
+.card img.screenshot {
+  float: none;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--mui-palette-divider);
+  border-radius: 8px;
+}
+
+.keywords {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 0.5em;
+}
+
+/* At narrow widths stack the screenshot and keywords below the information */
+@media (max-width: 900px) {
+  .main-card-content {
+    flex-direction: column;
+  }
+  .side-column {
+    width: 100%;
+    max-width: 320px;
+    align-self: center;
+  }
+}

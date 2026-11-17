@@ -29,7 +29,12 @@ import PdbsOverview from './pdbs';
 import SystemKeywords from './keywords';
 import Warnings from './warnings';
 // Import constants
-import { HOST_CONFIG, BASE_VERSIONED_PATH } from '../../../utils/constants';
+import {
+  HOST_CONFIG,
+  BASE_VERSIONED_PATH,
+  BASE_PATH_PROJECTS,
+  SCREENSHOT_FILENAME,
+} from '../../../utils/constants';
 import useAPI from 'src/hooks/use-api';
 
 const Overview = React.memo(() => {
@@ -45,8 +50,15 @@ const Overview = React.memo(() => {
     mdCount,
     node,
     creationDate,
-    updateDate
+    updateDate,
+    accessionAndMdNumber,
+    files,
   } = useContext(ProjectCtx);
+
+  // Set the URL of the current MD screenshot, only if the MD has one
+  const screenshotUrl = files && files.includes(SCREENSHOT_FILENAME)
+    ? `${BASE_PATH_PROJECTS}/${accessionAndMdNumber}/files/${SCREENSHOT_FILENAME}`
+    : null;
 
   // Get the node full name, which only exists in the global API
   const nodesUrl = HOST_CONFIG.global && node ? `${BASE_VERSIONED_PATH}/nodes` : null;
@@ -118,61 +130,72 @@ const Overview = React.memo(() => {
     <>
       {metadata && (
         <Card className={style.card}>
-          <CardContent className={style['card-content']}>
-            <a className={style.title}>{metadata.NAME || 'Unnamed'}</a>
-            {mdCount > 1 && metadata.mdName && <a className={style.grey}>({metadata.mdName})</a>}
-            <div className={style['summary-list']}>
-              {metadata.TYPE && (
-                <Chip
-                  label={typeSettings[metadata.TYPE].label}
-                  variant="outlined"
-                  style={{
-                    backgroundColor: typeSettings[metadata.TYPE].color,
-                    color: secondaryColor.contrastText,
-                    fontSize: '1em',
-                    marginRight: '0.8em',
-                  }}
-                  className={style.chip}
+          <CardContent className={`${style['card-content']} ${style['main-card-content']}`}>
+            <div className={style['main-info']}>
+              <a className={style.title}>{metadata.NAME || 'Unnamed'}</a>
+              {mdCount > 1 && metadata.mdName && <a className={style.grey}>({metadata.mdName})</a>}
+              <div className={style['summary-list']}>
+                {metadata.TYPE && (
+                  <Chip
+                    label={typeSettings[metadata.TYPE].label}
+                    variant="outlined"
+                    style={{
+                      backgroundColor: typeSettings[metadata.TYPE].color,
+                      color: secondaryColor.contrastText,
+                      fontSize: '1em',
+                      marginRight: '0.8em',
+                    }}
+                    className={style.chip}
+                  />
+                )}
+                {metadata.METHOD}
+                <DecoratedList>
+                  {metadata.DESCRIPTION && metadata.DESCRIPTION.length > 0 &&
+                    <DecoratedListItem title="Description" breakWord>{metadata.DESCRIPTION}</DecoratedListItem>}
+                  {metadata.AUTHORS && metadata.AUTHORS.length > 0 &&
+                    <DecoratedListItem title="Authors" breakWord>{prettyEnumerate(metadata.AUTHORS)}</DecoratedListItem>}
+                  {metadata.GROUPS && metadata.GROUPS.length > 0 &&
+                    <DecoratedListItem title="Groups" breakWord>{prettyEnumerate(metadata.GROUPS)}</DecoratedListItem>}
+                  {/* Node will exist only in the global API, and the global client has nodes as options */}
+                  {HOST_CONFIG.global && node &&
+                    <DecoratedListItem title="Node" breakWord>{nodeName}</DecoratedListItem>}
+                  {metadata.CONTACT && metadata.CONTACT.length > 0 &&
+                    <DecoratedListItem title="Contact" breakWord>{metadata.CONTACT}</DecoratedListItem>}
+                  {metadata.PROGRAM && metadata.PROGRAM.length > 0 &&
+                    <DecoratedListItem title="Program">{metadata.PROGRAM}</DecoratedListItem>}
+                  {metadata.VERSION && metadata.VERSION.length > 0 &&
+                    <DecoratedListItem title="Version">{metadata.VERSION}</DecoratedListItem>}
+                  {metadata.FF &&
+                    <DecoratedListItem title="Force fields" breakWord>{metadata.FF.join(', ')}</DecoratedListItem>}
+                  {metadata.LINKS && metadata.LINKS.length > 0 &&
+                    <DecoratedListItem title="Links">
+                      {metadata.LINKS.map((link, l) => {
+                        let url = link.url;
+                        if (!url.startsWith('http')) url = 'https://' + url;
+                        return (<div key={l}>
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noreferrer noopener"
+                          >
+                            {link.name}
+                          </a>
+                        </div>)
+                      })}
+                    </DecoratedListItem>}
+                </DecoratedList>
+                <Warnings warnings={metadata.WARNINGS} />
+              </div>
+            </div>
+            <div className={style['side-column']}>
+              {screenshotUrl && (
+                <LazyImg
+                  src={screenshotUrl}
+                  alt={`Screenshot of ${metadata.NAME || 'the system'}`}
+                  className={style.screenshot}
                 />
               )}
-              {metadata.METHOD}
-              <DecoratedList>
-                {metadata.DESCRIPTION && metadata.DESCRIPTION.length > 0 &&
-                  <DecoratedListItem title="Description" breakWord>{metadata.DESCRIPTION}</DecoratedListItem>}
-                {metadata.AUTHORS && metadata.AUTHORS.length > 0 &&
-                  <DecoratedListItem title="Authors" breakWord>{prettyEnumerate(metadata.AUTHORS)}</DecoratedListItem>}
-                {metadata.GROUPS && metadata.GROUPS.length > 0 &&
-                  <DecoratedListItem title="Groups" breakWord>{prettyEnumerate(metadata.GROUPS)}</DecoratedListItem>}
-                {/* Node will exist only in the global API, and the global client has nodes as options */}
-                {HOST_CONFIG.global && node &&
-                  <DecoratedListItem title="Node" breakWord>{nodeName}</DecoratedListItem>}
-                {metadata.CONTACT && metadata.CONTACT.length > 0 &&
-                  <DecoratedListItem title="Contact" breakWord>{metadata.CONTACT}</DecoratedListItem>}
-                {metadata.PROGRAM && metadata.PROGRAM.length > 0 &&
-                  <DecoratedListItem title="Program">{metadata.PROGRAM}</DecoratedListItem>}
-                {metadata.VERSION && metadata.VERSION.length > 0 &&
-                  <DecoratedListItem title="Version">{metadata.VERSION}</DecoratedListItem>}
-                {metadata.FF &&
-                  <DecoratedListItem title="Force fields" breakWord>{metadata.FF.join(', ')}</DecoratedListItem>}
-                {metadata.LINKS && metadata.LINKS.length > 0 &&
-                  <DecoratedListItem title="Links">
-                    {metadata.LINKS.map((link, l) => {
-                      let url = link.url;
-                      if (!url.startsWith('http')) url = 'https://' + url;
-                      return (<div key={l}>
-                        <a
-                          href={url}
-                          target="_blank"
-                          rel="noreferrer noopener"
-                        >
-                          {link.name}
-                        </a>
-                      </div>)
-                    })}
-                  </DecoratedListItem>}
-                <SystemKeywords keywords={metadata.SYSKEYS} />
-              </DecoratedList>
-              <Warnings warnings={metadata.WARNINGS} />
+              <SystemKeywords keywords={metadata.SYSKEYS} />
             </div>
           </CardContent>
         </Card>

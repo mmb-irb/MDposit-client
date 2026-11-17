@@ -1,9 +1,6 @@
 import React from 'react';
-import { Link } from 'react-router';
 import { Chip } from '@mui/material';
 import { formatOptionLabel } from 'src/utils/auxiliar-functions';
-import { buildFilter, stringifyQuery } from 'src/utils/filters';
-import { DecoratedListItem } from 'src/components/decorated-list';
 import style from '../style.module.css';
 
 // Get the system keywords as a list of strings
@@ -14,29 +11,22 @@ const parseKeywords = keywords => {
   return [...new Set(valid)];
 };
 
-// Show the system keywords as chips which browse projects with the same keyword
+// Show the system keywords as plain (not clickable) chips
 const SystemKeywords = ({ keywords }) => {
   const parsedKeywords = parseKeywords(keywords);
   if (parsedKeywords.length === 0) return null;
   return (
-    <DecoratedListItem title="Keywords">
-      {parsedKeywords.map(keyword => {
-        // Keep the keyword as stored, since the search matches it exactly
-        const filter = buildFilter('metadata.SYSKEYS', '==', keyword);
-        return (
-          <Chip
-            key={keyword}
-            label={formatOptionLabel(keyword)}
-            component={Link}
-            to={`/browse?${stringifyQuery({ filter })}`}
-            clickable
-            size="small"
-            variant="outlined"
-            className={style.chip}
-          />
-        );
-      })}
-    </DecoratedListItem>
+    <div className={style.keywords}>
+      {parsedKeywords.map(keyword => (
+        <Chip
+          key={keyword}
+          label={formatOptionLabel(keyword)}
+          size="small"
+          variant="outlined"
+          className={style.chip}
+        />
+      ))}
+    </div>
   );
 };
 

@@ -13,35 +13,30 @@ const renderKeywords = keywords =>
     </MemoryRouter>,
   );
 
-// Browse URL filtering by one keyword, as the custom search builds it
-const browseHref = keyword => `/browse?filter=keyword=eq='${encodeURIComponent(keyword)}'`;
+// Get the text of every rendered keyword chip
+const chipLabels = container =>
+  [...container.querySelectorAll('.MuiChip-label')].map(label => label.textContent);
 
 describe('<SystemKeywords />', () => {
-  it('shows each keyword as a link to Browse filtered by it', () => {
-    renderKeywords(['protein', 'non-counter ion', 'double strand rna']);
-    const links = screen.getAllByRole('link');
-    expect(links.map(link => link.textContent)).toEqual(['Protein', 'Non-counter ion', 'Double strand RNA']);
-    expect(links.map(link => link.getAttribute('href'))).toEqual(
-      ['protein', 'non-counter ion', 'double strand rna'].map(browseHref),
-    );
+  it('shows each keyword as a chip with a formatted label', () => {
+    const { container } = renderKeywords(['protein', 'non-counter ion', 'double strand rna']);
+    expect(chipLabels(container)).toEqual(['Protein', 'Non-counter ion', 'Double strand RNA']);
   });
 
-  it('links to the keyword as stored, whatever its case', () => {
+  it('does not make the keywords links', () => {
     renderKeywords(['DNA', 'Membrane']);
-    const links = screen.getAllByRole('link');
-    expect(links.map(link => link.textContent)).toEqual(['DNA', 'Membrane']);
-    expect(links.map(link => link.getAttribute('href'))).toEqual(['DNA', 'Membrane'].map(browseHref));
+    expect(screen.queryAllByRole('link')).toEqual([]);
+    expect(screen.queryAllByRole('button')).toEqual([]);
   });
 
   it('accepts a single keyword stored as a string', () => {
-    renderKeywords('membrane');
-    expect(screen.getByRole('link').textContent).toBe('Membrane');
-    expect(screen.getByText('Keywords')).toBeTruthy();
+    const { container } = renderKeywords('membrane');
+    expect(chipLabels(container)).toEqual(['Membrane']);
   });
 
   it('skips empty, repeated and non-string values', () => {
-    renderKeywords(['lipid', '', '  ', null, 3, { name: 'x' }, 'lipid']);
-    expect(screen.getAllByRole('link').map(link => link.textContent)).toEqual(['Lipid']);
+    const { container } = renderKeywords(['lipid', '', '  ', null, 3, { name: 'x' }, 'lipid']);
+    expect(chipLabels(container)).toEqual(['Lipid']);
   });
 
   it.each([
