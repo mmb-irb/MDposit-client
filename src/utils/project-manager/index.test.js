@@ -93,6 +93,23 @@ describe('Project.checkProblems', () => {
   });
 });
 
+describe('Project force fields', () => {
+  const forceFields = FF => new Project({ accession: 'TEST1', metadata: { FF }, analyses: [] }).metadata.FF;
+
+  it('keeps the force fields names', () => {
+    expect(forceFields(['Amber ff14SB', 'GAFF'])).toEqual(['Amber ff14SB', 'GAFF']);
+  });
+
+  // Shapes stored on the nodes (2026-11): missing (bsc A002M), null, [] (irb A01NU) and [null] (irb-dev A01IO)
+  it('sets null when no force field name is stored', () => {
+    expect(forceFields(undefined)).toBe(null);
+    expect(forceFields(null)).toBe(null);
+    expect(forceFields([])).toBe(null);
+    expect(forceFields([null])).toBe(null);
+    expect(forceFields([''])).toBe(null);
+  });
+});
+
 describe('Project ligand references', () => {
   // References as stored by different workflow versions
   const makeReferences = () => [

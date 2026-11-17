@@ -27,3 +27,5 @@ host-config.js
 # Images which are specific of a node (e.g. footer logos in a custom host-config.js)
 src/images/untracked/*
 !src/images/untracked/.gitkeep
+
+.claude/skills/fix-issue/issues/
