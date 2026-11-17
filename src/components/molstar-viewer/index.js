@@ -207,7 +207,11 @@ const REPRESENTATION_TYPES = {
   // it only affects the impostor path (mol-geo/geometry/spheres/spheres.js)
   spacefill: {
     type: 'spacefill',
-    typeParams: { approximate: true },
+    typeParams: {
+      approximate: true,
+      // This improves the efficiency as suggested by Adam Midlik
+      visuals: [ "structure-element-sphere" ]
+    },
   },
   // Molstar 5.13 caps a surface with a solid face where the camera or a clip cuts it, which hides
   // what is inside (e.g. the atoms in a pocket), so leave it hollow as NGL does
