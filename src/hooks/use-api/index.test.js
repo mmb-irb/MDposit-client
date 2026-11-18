@@ -67,6 +67,7 @@ describe('useAPI errors', () => {
     await fail(requests[0], networkError());
     expect(result.current.loading).toBe(false);
     expect(result.current.error.noResponse).toBe(true);
+    expect(result.current.error.message).toBe('The node is not responding (no readable response from the API)');
   });
 
   it.each([

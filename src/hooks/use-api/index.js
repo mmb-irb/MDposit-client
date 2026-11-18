@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { isFromApi, NOT_FROM_API } from '../../utils/api-response';
+import { isFromApi, NOT_FROM_API, NO_API_RESPONSE } from '../../utils/api-response';
 
 // Empty response
 const blank = {
@@ -176,7 +176,7 @@ const makeCall = (url, timeout, cacheOn, name) => {
         error.message = errorMessage;
         // If the error comes from our own timeout then change the message completely
         if (error.code === 'ECONNABORTED' || errorOriginalMessage === 'Network Error') {
-          error.message = 'The node is not responding';
+          error.message = `The node is not responding (${NO_API_RESPONSE})`;
           // Also add a flag used by others
           error.noResponse = true;
         }

@@ -10,7 +10,7 @@ import { ProjectCtx } from '../../contexts';
 
 // To make API requests
 import { BASE_PATH_PROJECTS } from '../../utils/constants';
-import { isFromApi, NOT_FROM_API } from '../../utils/api-response';
+import { isFromApi, NOT_FROM_API, NO_API_RESPONSE } from '../../utils/api-response';
 
 // HTTP utils
 import https from 'https-browserify';
@@ -228,7 +228,7 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
                 });
             });
             // Network errors (e.g. the node is down) never reach the 'end' event
-            request.on('error', error => handleError(error.message));
+            request.on('error', error => handleError(`${error.message}, ${NO_API_RESPONSE}`));
             // Send the request data (POST method feature)
             if (requestOptions.method === 'POST'){
                 request.write(postData);
@@ -528,7 +528,7 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
                 });
             });
             // Network errors (e.g. the node is down) never reach the 'end' event
-            request.on('error', error => handleError(error.message));
+            request.on('error', error => handleError(`${error.message}, ${NO_API_RESPONSE}`));
             // Send the request data (POST method feature)
             if (requestOptions.method === 'POST') request.write(postData);
             // Close the request for it to actually start

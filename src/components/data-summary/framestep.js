@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
-import { isFromApi, NOT_FROM_API } from '../../utils/api-response';
+import { isFromApi, NOT_FROM_API, NO_API_RESPONSE } from '../../utils/api-response';
 
 // ─── Layout constants (fixed parts) ─────────────────────────────────────────
 const ML = 80, MB = 65, MT = 12, MR = 14;
@@ -689,6 +689,8 @@ const FramestepPlot = ({ jsonUrl, onPoints }) => {
 
     useEffect(() => {
         fetch(jsonUrl)
+            // Network errors (e.g. the node is down) have no response at all
+            .catch(error => { throw new Error(`${error.message} (${NO_API_RESPONSE})`); })
             .then(r => {
                 if (r.ok) return r.json();
                 const origin = isFromApi(r.headers) ? '' : ` (${NOT_FROM_API})`;
