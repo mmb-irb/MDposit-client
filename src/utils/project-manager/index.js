@@ -89,7 +89,10 @@ export class Project {
         this.directions = {
             overview: true,
             trajectory: true,
-            files: true
+            files: true,
+            // Contacts across periodic boundaries
+            // The page tells when there are no contacts, so it is always available
+            pbcontacts: true,
         }
         // Set available analyses
         // Start with the generic analyses

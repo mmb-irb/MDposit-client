@@ -11,6 +11,9 @@ import { Project } from '../../utils/project-manager';
 
 const na = 'Not available';
 
+// Directions which are not shown in the browser since they are not analyses
+const HIDDEN_DIRECTIONS = new Set(['pbcontacts']);
+
 const Row = ({ projectData, highlight, index, previewUrl }) => {
   // Parse the project data using the project manager
   const project = new Project(projectData);
@@ -85,8 +88,8 @@ const Row = ({ projectData, highlight, index, previewUrl }) => {
       <TableCell className={`${style.center} ${style['col-analyses']}`}>
         <div className={style['analyses-container']}>
           {Object.entries(directions)
-            // Display only available directions
-            .filter(([direction, available]) => available)
+            // Display only available directions, and never pages which are not analyses
+            .filter(([direction, available]) => available && !HIDDEN_DIRECTIONS.has(direction))
             // For each direction create a clickable button which links to the direction route
             .map(([direction, available]) => (
               <Chip

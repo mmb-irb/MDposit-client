@@ -23,7 +23,7 @@ import cn from 'classnames';
 // The worker script is then invalid JavaScript, so surfaces never show
 // The ngl.test.js tests run the real NGL, but they can not catch this since they do not use the build minifier
 import {
-  autoLoad, Stage, Shape, ColormakerRegistry, Matrix3, Matrix4, Vector3, MouseActions, Selection,
+  autoLoad, Stage, Shape, ColormakerRegistry, Matrix3, Matrix4, Vector3, Box3, MouseActions, Selection,
 } from 'ngl';
 
 import { frame } from 'timing-functions';
@@ -169,7 +169,11 @@ const NGLViewer = memo(
         selectedRepresentation, // String name of a representation to be painted in yellow color (only 1)
         snapRepresentations,
         noTrajectory, // True when only specific frames must be loaded
-        initialFocus, // The ngl selection to be focused by the camera initially
+        // The ngl selection to be focused by the camera initially: { comp, sele }
+        // Alternatively it may be several selections in different components: { parts: [ { comp, sele } ] }
+        // Add 'afterLoad: true' to focus again once trajectory coordinates are loaded
+        // This is useful when a single frame is shown, since its coordinates may be far from the structure
+        initialFocus,
         darkBackground,
         perspective,
         slab, // Thickness in Å of the slab around the focus which is shown, or nothing to show everything
@@ -582,19 +586,26 @@ const NGLViewer = memo(
             // Atom indices from outside are always whole system indices
             // Keep the partial system, if any, to translate them
             stageComp.partialSystem = partialSystem;
+            // Move the whole component if requested (e.g. periodic images of the system)
+            if (comp.translation) stageComp.setPosition(comp.translation);
             // Keep the structure centroid before any trajectory frame overwrites its coordinates
             // The structure is the first frame, which is used to place the simulation box
             stageComp.structureCentroid = getCentroid(stageComp.structure);
-            setMainComponent(stageComp);
+            // The main component is always the first one, as for the main trajectory (see mainNglFile)
+            if (c === 0) setMainComponent(stageComp);
             // Set the camera on the first component now, before the first render, so it is not painted off-center
             // The focus effect further does the same, but after a render where the camera is still at the origin
             // Frame the initial focus already if it is in this component, so the camera does not jump to it after
             if (c === 0) {
               if (curatedOrientation) stageRef.current.animationControls.orient(curatedOrientation, 0);
               const initialFocus = initialFocusRef.current;
-              stageComp.autoView(initialFocus && !initialFocus.comp
-                ? toPartialSelection(partialSystem, initialFocus.sele)
-                : '', 0);
+              // If the focus has several parts then use only those in this component, since others are not staged yet
+              const ownParts = initialFocus && initialFocus.parts && initialFocus.parts
+                .filter(part => !part.comp || part.comp === comp.name);
+              const initialSelection = !initialFocus ? ''
+                : ownParts ? ownParts.map(part => `(${part.sele})`).join(' or ')
+                : initialFocus.comp ? '' : initialFocus.sele;
+              stageComp.autoView(initialSelection ? toPartialSelection(partialSystem, initialSelection) : '', 0);
             }
           }
 
@@ -1336,7 +1347,8 @@ const NGLViewer = memo(
           // If the trajectory is to be centered then refocus now
           // Otherwise we may loose the structure from outside the view of the camera
           // Keep the initial focus if any, but set a new object so the focus is triggered again
-          if (centering) {
+          // Do the same if the initial focus was requested to be applied over the loaded coordinates
+          if (centering || (initialFocusRef.current && initialFocusRef.current.afterLoad)) {
             const initialFocus = initialFocusRef.current;
             setFocus(initialFocus ? { ...initialFocus } : { comp: 0, sele: 'all' });
           }
@@ -1708,10 +1720,14 @@ const NGLViewer = memo(
         if (!focus) return;
         // The selected region may be in any component, not only the main component
         // If a component name is passed then search for it
-        const comp = focus.comp
-          ? stageRef.current.compList.find(c => c.myName === focus.comp)
+        const findComponent = name => name
+          ? stageRef.current.compList.find(c => c.myName === name)
           : mainComponent;
-        if (!comp) return;
+        // Selections may be in several components, so get the components of all parts
+        const parts = focus.parts || [focus];
+        const partComponents = parts.map(part => findComponent(part.comp));
+        // Wait for all components to be staged
+        if (partComponents.some(comp => !comp)) return;
         let transition = DEFAULT_ORIENTATION_TRANSITION_DURATION;
         // First transition is instantaneous
         if (firstFocus.current) {
@@ -1727,7 +1743,15 @@ const NGLViewer = memo(
           }
           firstFocus.current = false;
         }
-        comp.autoView(toPartialSelection(comp.partialSystem, focus.sele), transition);
+        // Join the boxes of all parts
+        // Note that component boxes include the component transformation (e.g. the translation of a periodic image)
+        const box = new Box3();
+        parts.forEach((part, p) => {
+          const comp = partComponents[p];
+          box.union(comp.getBox(toPartialSelection(comp.partialSystem, part.sele)));
+        });
+        const stage = stageRef.current;
+        stage.animationControls.zoomMove(box.getCenter(new Vector3()), stage.getZoomForBox(box), transition);
       }, [mainComponent, focus, curatedOrientation]);
 
       // Expose public methods and getters/setters

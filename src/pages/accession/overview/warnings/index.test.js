@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 
 import Warnings from '.';
 
@@ -23,5 +24,25 @@ describe('<Warnings />', () => {
     render(<Warnings warnings={[{ tag: 'old', message: 'Old style warning' }]} />);
     expect(screen.getByText('Old style warning')).toBeTruthy();
     expect(screen.queryByRole('button')).toBeNull();
+  });
+
+  it('links only the first PBC contacts warning when the URL is passed', () => {
+    const warning = { tag: 'pbcontacts', message: 'Cross-PBC contacts' };
+    render(
+      <MemoryRouter>
+        <Warnings
+          warnings={[{ tag: 'old', message: 'Old style warning' }, warning, { ...warning, message: 'Repeated' }]}
+          pbcContactsUrl="/id/A0001/pbcontacts"
+        />
+      </MemoryRouter>,
+    );
+    const links = screen.getAllByRole('link', { name: 'See contacts' });
+    expect(links).toHaveLength(1);
+    expect(links[0].getAttribute('href')).toBe('/id/A0001/pbcontacts');
+  });
+
+  it('shows no link when the URL is missing', () => {
+    render(<Warnings warnings={[{ tag: 'pbcontacts', message: 'Cross-PBC contacts' }]} />);
+    expect(screen.queryByRole('link')).toBeNull();
   });
 });

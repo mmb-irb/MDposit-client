@@ -28,6 +28,7 @@ import LigandsOverview from './ligands';
 import PdbsOverview from './pdbs';
 import SystemKeywords from './keywords';
 import Warnings from './warnings';
+import { canShowPbcContacts } from '../../../utils/pbc-contacts';
 // Import constants
 import {
   HOST_CONFIG,
@@ -184,7 +185,12 @@ const Overview = React.memo(() => {
                       })}
                     </DecoratedListItem>}
                 </DecoratedList>
-                <Warnings warnings={metadata.WARNINGS} />
+                <Warnings
+                  warnings={metadata.WARNINGS}
+                  pbcContactsUrl={canShowPbcContacts(metadata)
+                    ? `/id/${accessionAndMdNumber}/pbcontacts`
+                    : null}
+                />
               </div>
             </div>
             <div className={style['side-column']}>
