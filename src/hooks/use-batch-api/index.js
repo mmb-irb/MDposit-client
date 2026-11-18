@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { isFromApi, NOT_FROM_API } from '../../utils/api-response';
 
 // Empty response
 const blank = {
@@ -74,6 +75,11 @@ const useBatchAPI = (urls, responseType = 'arraybuffer', timeout = null) => {
         // Otherwise
         .catch(error => {
           if (didCancel) return;
+          // Responses with no API header come from something in between (e.g. a proxy timeout)
+          if (error.response) {
+            error.notFromApi = !isFromApi(error.response.headers);
+            if (error.notFromApi) error.message += ` (${NOT_FROM_API})`;
+          }
           const responseData = {
             url: url,
             loading: false,

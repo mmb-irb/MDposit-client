@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
+import { isFromApi, NOT_FROM_API } from '../../utils/api-response';
 
 // ─── Layout constants (fixed parts) ─────────────────────────────────────────
 const ML = 80, MB = 65, MT = 12, MR = 14;
@@ -688,7 +689,11 @@ const FramestepPlot = ({ jsonUrl, onPoints }) => {
 
     useEffect(() => {
         fetch(jsonUrl)
-            .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status} while fetching framestep data`); return r.json(); })
+            .then(r => {
+                if (r.ok) return r.json();
+                const origin = isFromApi(r.headers) ? '' : ` (${NOT_FROM_API})`;
+                throw new Error(`HTTP ${r.status} while fetching framestep data${origin}`);
+            })
             .then(raw => {
                 const pts = processData(raw);
                 setPoints(pts);

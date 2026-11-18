@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { isFromApi, NOT_FROM_API } from '../../utils/api-response';
 
 // Empty response
 const blank = {
@@ -164,8 +165,14 @@ const makeCall = (url, timeout, cacheOn, name) => {
         // Extend the error message with the API error reason
         const errorOriginalMessage = error.message;
         let errorMessage = errorOriginalMessage || error.toString();
-        if (error.response && error.response.data)
-          errorMessage += ` -> ${error.response.data}`;
+        // The API marks all its responses with a header, errors included
+        // Responses with no header come from something in between (e.g. a proxy timeout)
+        // Their body is not an API error reason (e.g. an HTML page), so it is not added to the message
+        if (error.response) {
+          error.notFromApi = !isFromApi(error.response.headers);
+          if (error.notFromApi) errorMessage += ` (${NOT_FROM_API})`;
+          else if (error.response.data) errorMessage += ` -> ${error.response.data}`;
+        }
         error.message = errorMessage;
         // If the error comes from our own timeout then change the message completely
         if (error.code === 'ECONNABORTED' || errorOriginalMessage === 'Network Error') {
@@ -184,8 +191,9 @@ const makeCall = (url, timeout, cacheOn, name) => {
         // If the error may be temporary (no response, timeout or server error) then forget this call
         // This way the next time this url is requested a new request is made
         // Client errors (e.g. 404) are kept since asking again would get the same answer
+        // Errors not coming from the API are not kept, no matter the status (e.g. a proxy timeout returning 404)
         const status = error.response && error.response.status;
-        const isTemporary = error.noResponse || !status || status >= 500;
+        const isTemporary = error.noResponse || error.notFromApi || !status || status >= 500;
         if (isTemporary && apiCalls[url] === originalCall) delete apiCalls[url];
         // Update all setters wawiting for the response
         originalCall.setters.forEach(setter => setter(responseData));

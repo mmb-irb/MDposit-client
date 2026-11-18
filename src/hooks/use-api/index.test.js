@@ -50,9 +50,14 @@ const fail = async (request, error) => {
 };
 const networkError = () => ({ message: 'Network Error' });
 const timeoutError = () => ({ message: 'timeout of 5000ms exceeded', code: 'ECONNABORTED' });
-const httpError = status => ({
+// Errors coming from the API have the API header, while errors from something in between (e.g. a proxy) do not
+const httpError = (status, fromApi = true) => ({
   message: `Request failed with status code ${status}`,
-  response: { status, data: 'server says no' },
+  response: {
+    status,
+    data: fromApi ? 'server says no' : '<html>404 Not Found</html>',
+    headers: fromApi ? { 'x-mddb-api': '0.0.22' } : {},
+  },
 });
 
 describe('useAPI errors', () => {
@@ -69,6 +74,7 @@ describe('useAPI errors', () => {
     ['a timeout', timeoutError],
     ['a 500 server error', () => httpError(500)],
     ['a 503 server error', () => httpError(503)],
+    ['a 404 not from the API (e.g. a proxy timeout)', () => httpError(404, false)],
   ])('retries the next time the URL is asked for after %s', async (_, makeError) => {
     const url = newUrl();
     const firstVisit = renderHook(() => useAPI(url));
@@ -89,6 +95,22 @@ describe('useAPI errors', () => {
     const second = renderHook(() => useAPI(url));
     expect(requests).toHaveLength(1);
     expect(second.result.current.error.response.status).toBe(404);
+  });
+
+  it('adds the API error reason to the message', async () => {
+    const url = newUrl();
+    const { result } = renderHook(() => useAPI(url));
+    await fail(requests[0], httpError(400));
+    expect(result.current.error.message).toBe('Request failed with status code 400 -> server says no');
+    expect(result.current.error.notFromApi).toBe(false);
+  });
+
+  it('flags errors not from the API and ignores their body', async () => {
+    const url = newUrl();
+    const { result } = renderHook(() => useAPI(url));
+    await fail(requests[0], httpError(404, false));
+    expect(result.current.error.message).toBe('Request failed with status code 404 (not from the API)');
+    expect(result.current.error.notFromApi).toBe(true);
   });
 });
 

@@ -269,7 +269,8 @@ const CustomSearch = () => {
   let noResults = false;
   if (optionsError) {
     if (optionsError.noResponse) noResults = true;
-    else if (optionsError.response.status === 404) noResults = true;
+    // Note that a 404 not coming from the API (e.g. a proxy timeout) is a real error
+    else if (optionsError.response.status === 404 && !optionsError.notFromApi) noResults = true;
     else return optionsError.toString();
   }
 

@@ -10,11 +10,23 @@ import { ProjectCtx } from '../../contexts';
 
 // To make API requests
 import { BASE_PATH_PROJECTS } from '../../utils/constants';
+import { isFromApi, NOT_FROM_API } from '../../utils/api-response';
 
 // HTTP utils
 import https from 'https-browserify';
 import http from 'stream-http';
 import { parse as urlParse } from 'url';
+
+// Handle an error response (status 400 or more) when downloading a topology or trajectory
+// API errors include the error reason in the body, so it is read and added to the message
+// Responses with no API header come from something in between (e.g. a proxy timeout) so their body is ignored
+const handleErrorResponse = (response, handleError) => {
+    const status = `HTTP ${response.statusCode}`;
+    if (!isFromApi(response.headers)) return handleError(`${status}, ${NOT_FROM_API}`);
+    let body = '';
+    response.on('data', chunk => { body += chunk; });
+    response.on('end', () => handleError(body ? `${status}: ${body}` : status));
+};
 
 // Minimum time between two trajectory progress updates while no new frame is complete (ms)
 const PROGRESS_INTERVAL = 250;
@@ -191,7 +203,7 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
             };
             const request = protocol.request(requestOptions, response => {
                 // Do not use an error response body as the topology
-                if (response.statusCode >= 400) return handleError(`HTTP ${response.statusCode}`);
+                if (response.statusCode >= 400) return handleErrorResponse(response, handleError);
                 // Track the amout of bytes already downloaded
                 let responseContent = '';
                 response .on('data', chunk => {
@@ -441,7 +453,7 @@ const useViewerData = (components, requestedFramesNumber, onLoad) => {
             };
             const request = protocol.request(requestOptions, response => {
             // Do not use an error response body as trajectory coordinates
-            if (response.statusCode >= 400) return handleError(`HTTP ${response.statusCode}`);
+            if (response.statusCode >= 400) return handleErrorResponse(response, handleError);
             const totalBytes = +response.headers['content-length'] || 0;
             // Set the new trajectory
             setTrajectories(previousTrajectories => {
