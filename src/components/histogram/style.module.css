@@ -1,10 +1,13 @@
 .default {
-  height: 20vw;
+  height: 15rem;
 }
 
 .grid line {
-  stroke: #e0e0e0;
-  stroke-dasharray: 3 3;
+  stroke: var(--mui-palette-divider);
+}
+
+.axis text {
+  fill: var(--mui-palette-text-secondary);
 }
 
 .grid path {

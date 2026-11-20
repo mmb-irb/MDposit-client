@@ -14,6 +14,7 @@ import SimpleHistogram from '../simple-histogram';
 import TimelineChart from './timeline';
 import FramestepPlot from './framestep';
 import Info from '../info';
+import Card from './card';
 
 // Fields that are best represented as a pie chart (categorical, low cardinality)
 const PIE_CHART_FIELDS = new Set([
@@ -28,8 +29,10 @@ const HIDDEN_FIELDS = new Set([
 ]);
 
 // Fields excluded from the constants section (too context-specific to be useful there)
+// Warnings are excluded since only some projects have them: a single kind of warning is not a constant
 const CONSTANTS_HIDDEN_FIELDS = new Set([
     'metadata.AUTHORS', 'metadata.COLLECTIONS', 'published', 'metadata.GROUPS',
+    'metadata.WARNINGS.tag', 'mds.warnings.tag',
 ]);
 
 import style from './style.module.css';
@@ -39,6 +42,9 @@ const FEDERATED_STATS_TIMEOUT = 15000;
 const formatFieldValue = value => value.charAt(0).toUpperCase() + value.slice(1);
 
 const formatNodeDisplayName = (nodeAlias, nodeNameMap) => nodeNameMap[nodeAlias] || nodeAlias;
+
+// What a histogram column counts, e.g. "1 project" or "3,481 projects"
+const countProjects = count => `${count.toLocaleString()} project${count === 1 ? '' : 's'}`;
 
 // Utility to search for a field by title (name) or label (path) in queryFields
 export function findFieldByTitleOrLabel(queryFields, searchValue) {
@@ -408,9 +414,52 @@ const DataSummary = ({ internalFilters = null, title = 'Data summary', nodeData 
         water is removed from most trajectories during processing.
     </>);
 
-    return (<>
-        <div className={style.dataSummary}>
-            <Typography style={{ marginBottom: 10 }} variant="h5">
+    // Headline numbers: every total with its unit and a note that puts it in context
+    // Totals of a million or more are shortened (11,396,340 -> 11.4 M) and show the exact value on hover
+    const shorten = value => value >= 1e6
+        ? { text: String(Number((value / 1e6).toPrecision(3))), unit: 'M', exact: value.toLocaleString() }
+        : { text: value.toLocaleString() };
+    const shortenTime = nanoseconds => {
+        const microseconds = nanoseconds / 1000;
+        const exact = `${Math.round(microseconds).toLocaleString()} μs`;
+        return microseconds >= 1e4
+            ? { text: String(Number((microseconds / 1000).toPrecision(3))), unit: 'ms', exact }
+            : { text: Math.round(microseconds).toLocaleString(), unit: 'μs' };
+    };
+    const average = (value, count, unit) => count ? `${Math.round(value / count).toLocaleString()} ${unit}` : null;
+    // The latest month with uploads (growth is not asked for a subset of projects)
+    const lastGrowth = Array.isArray(growthPayload) && growthPayload.length > 0
+        ? growthPayload[growthPayload.length - 1] : null;
+    const lastGrowthMonth = lastGrowth && new Date(`${lastGrowth.date}-01T00:00`)
+        .toLocaleString(undefined, { month: 'short', year: 'numeric' });
+    const summaryTiles = [
+        ['Projects', s => shorten(s.projectsCount),
+            () => lastGrowth && `+${lastGrowth.newProjects.toLocaleString()} in ${lastGrowthMonth}`],
+        ['MDs', s => shorten(s.mdCount),
+            s => s.projectsCount ? `${(s.mdCount / s.projectsCount).toFixed(1)} per project` : null],
+        ['Simulated time', s => shortenTime(s.totalTime), s => average(s.totalTime, s.mdCount, 'ns per MD')],
+        ['Frames', s => shorten(s.totalFrames), s => average(s.totalFrames, s.mdCount, 'per MD')],
+        ['Files', s => shorten(s.totalFiles), s => average(s.totalFiles, s.projectsCount, 'per project')],
+        ['Analyses', s => shorten(s.totalAnalyses), s => average(s.totalAnalyses, s.mdCount, 'per MD')],
+    ].map(([label, value, note]) => displaySummaryPayload
+        ? { label, ...value(displaySummaryPayload), note: note(displaySummaryPayload) }
+        : { label, placeholder: summaryUnavailableValue });
+    // The data size is already formatted as "<number> <unit>", or as a single word while there is none
+    const [dataSizeText, dataSizeUnit] = dataSizeValue.split(' ');
+    summaryTiles.push({
+        label: 'Data',
+        info: true,
+        text: dataSizeUnit && dataSizeText,
+        unit: dataSizeUnit,
+        placeholder: dataSizeValue,
+        note: dataSizeUnit && (bsPayload
+            ? `From ${bsPayload.nodeCount} of ${bsPayload.totalNodes} nodes`
+            : 'Processed files only'),
+    });
+
+    return (<div className={style.root}>
+        <div>
+            <Typography variant="h5" sx={{ fontSize: 'var(--text-lg)', lineHeight: '1.75rem', marginBottom: 'var(--space-3)' }}>
                 {title}
                 {summaryCoverage && summaryCoverage.available < summaryCoverage.total && (
                     <Typography component="span" variant="body2">
@@ -418,42 +467,30 @@ const DataSummary = ({ internalFilters = null, title = 'Data summary', nodeData 
                     </Typography>
                 )}
             </Typography>
-            <table className={style.summaryTable}>
-                <tbody>
-                    <tr>
-                        <td className={style.summaryTitle}>Projects</td>
-                        <td className={style.summaryTitle}>MDs</td>
-                        <td className={style.summaryTitle}>Time (μs)</td>
-                        <td className={style.summaryTitle}>Frames</td>
-                        <td className={style.summaryTitle}>Files</td>
-                        <td className={style.summaryTitle}>Analyses</td>
-                        <td className={style.summaryTitle}>
-                            Data
-                            <Info tooltip={dataSizeTooltip} className={style.info} />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td className={style.summaryValue}>{displaySummaryPayload ? displaySummaryPayload.projectsCount.toLocaleString() : summaryUnavailableValue}</td>
-                        <td className={style.summaryValue}>{displaySummaryPayload ? displaySummaryPayload.mdCount.toLocaleString() : summaryUnavailableValue}</td>
-                        <td className={style.summaryValue}>{displaySummaryPayload ? Math.round(displaySummaryPayload.totalTime / 1000) : summaryUnavailableValue}</td>
-                        <td className={style.summaryValue}>{displaySummaryPayload ? displaySummaryPayload.totalFrames.toLocaleString() : summaryUnavailableValue}</td>
-                        <td className={style.summaryValue}>{displaySummaryPayload ? displaySummaryPayload.totalFiles.toLocaleString() : summaryUnavailableValue}</td>
-                        <td className={style.summaryValue}>{displaySummaryPayload ? displaySummaryPayload.totalAnalyses.toLocaleString() : summaryUnavailableValue}</td>
-                        <td className={style.summaryValue}>{dataSizeValue}</td>
-                    </tr>
-                </tbody>
-            </table>
+            <dl className={style.tiles}>
+                {summaryTiles.map(({ label, text, unit, exact, note, placeholder, info }) => (
+                    <div key={label} className={style.tile}>
+                        <dt className={style.tileLabel}>
+                            {label}
+                            {info && <Info tooltip={dataSizeTooltip} className={style.info} />}
+                        </dt>
+                        {text
+                            ? <dd className={style.tileValue} title={exact}>{text}{unit && <small> {unit}</small>}</dd>
+                            : <dd className={style.tilePending}>{placeholder}</dd>}
+                        <dd className={style.tileNote}>{note}</dd>
+                    </div>
+                ))}
+            </dl>
         </div>
-        {!internalFilters && <div className={style.growth}>
-            <Typography variant="h5">Data Growth Over Time</Typography>
+        {!internalFilters && <Card title="Data growth over time" subtitle="Cumulative projects and MDs by upload date">
             <div className={style.timelineChart}>
                 {growthPayload ? (
-                    <TimelineChart data={growthPayload} className={style.growthChart} />
+                    <TimelineChart data={growthPayload} />
                 ) : (
                     'Loading growth data...'
                 )}
             </div>
-        </div>}
+        </Card>}
         {(() => {
             const formatVal = (field, key) => field === 'node'
                 ? formatNodeDisplayName(key, nodeNameMap)
@@ -487,8 +524,7 @@ const DataSummary = ({ internalFilters = null, title = 'Data summary', nodeData 
             allConstantItems.sort((a, b) => a.displayName.localeCompare(b.displayName));
             if (allConstantItems.length === 0) return null;
             return (
-                <div className={style.constantsSection}>
-                    <Typography variant="h5">Constant fields</Typography>
+                <Card title="Constant fields">
                     <div className={style.constantsGrid}>
                         {allConstantItems.map(({ key, displayName, displayValue }) => (
                             <div key={key} className={style.constantItem}>
@@ -497,38 +533,24 @@ const DataSummary = ({ internalFilters = null, title = 'Data summary', nodeData 
                             </div>
                         ))}
                     </div>
-                </div>
+                </Card>
             );
         })()}
         {(availableOptionsFields.length === 0 || variableOptionsFields.length > 0) && (
-        <div className={style.fieldStats}>
-            <div className={style.fieldStatsHeader}>
-                <Typography variant="h5">Statistics per field</Typography>
-                <ButtonGroup size="small" variant="outlined" className={style.statsModeToggle}>
-                    <Button
-                        onClick={() => setSelectedStatsMode('mds')}
-                        variant={selectedStatsMode === 'mds' ? 'contained' : 'outlined'}
-                    >
-                        MDs
-                    </Button>
-                    <Button
-                        onClick={() => setSelectedStatsMode('projects')}
-                        variant={selectedStatsMode === 'projects' ? 'contained' : 'outlined'}
-                    >
-                        Projects
-                    </Button>
-                </ButtonGroup>
-            </div>
+        <Card
+            title="Statistics per field"
+            subtitle={`${selectedStatsMode === 'mds' ? 'MDs' : 'Projects'} per value of the selected field`}
+        >
             {availableOptionsFields.length === 0 ? (
                 <div style={{ textAlign: 'center' }}>Loading field data...</div>
             ) : (
                 <>{variableOptionsFields.length > 0 && (<>
-                    <div style={{ marginBottom: 18, width: '33%' }}>
+                    <div className={style.fieldControls}>
                         <select
                             id="options-field-select"
+                            className={style.fieldSelect}
                             value={selectedOptionsField || ''}
                             onChange={e => setSelectedOptionsField(e.target.value)}
-                            style={{ fontSize: '1rem', padding: '4px 8px', width: '99%' }}
                         >
                             {variableOptionsFields.map(field => {
                                 const fieldObj = findFieldByTitleOrLabel(queryFields, field);
@@ -543,10 +565,31 @@ const DataSummary = ({ internalFilters = null, title = 'Data summary', nodeData 
                                 );
                             })}
                         </select>
+                        <ButtonGroup size="small" variant="outlined" className={style.statsModeToggle}>
+                            <Button
+                                onClick={() => setSelectedStatsMode('mds')}
+                                variant={selectedStatsMode === 'mds' ? 'contained' : 'outlined'}
+                            >
+                                MDs
+                            </Button>
+                            <Button
+                                onClick={() => setSelectedStatsMode('projects')}
+                                variant={selectedStatsMode === 'projects' ? 'contained' : 'outlined'}
+                            >
+                                Projects
+                            </Button>
+                        </ButtonGroup>
                     </div>
                     {optionPieChartData && optionLegendData && optionLegendData.length > 0 && (
                         PIE_CHART_FIELDS.has(selectedOptionsField)
-                            ? <PieChart data={optionPieChartData} legendData={optionLegendData} autoHide={true} />
+                            ? <PieChart
+                                data={optionPieChartData}
+                                legendData={optionLegendData}
+                                autoHide={true}
+                                className={style.pie}
+                                pieClassName={style.pieChart}
+                                legendClassName={style.pieLegend}
+                            />
                             : <div className={style.fieldHistograms}>
                                 <SimpleHistogram
                                     showPercentage={false}
@@ -559,56 +602,53 @@ const DataSummary = ({ internalFilters = null, title = 'Data summary', nodeData 
                     )}
                 </>)}</>
             )}
-        </div>
+        </Card>
         )}
-        {(framesBinCount > 1 || atomsBinCount > 1 || mdsBinCount > 1) && <>
-            <Typography variant="h5">Data distributions</Typography>
+        {(framesBinCount > 1 || atomsBinCount > 1 || mdsBinCount > 1) && (
             <div
                 className={style.histograms}
                 style={{ gridTemplateColumns: `repeat(${histogramCount}, minmax(0, 1fr))` }}
             >
-                {framesBinCount > 1 && <div className={style.histogram}>
+                {framesBinCount > 1 && <Card className={style.histogram} title="Frames per MD" subtitle="Number of projects">
                     <Histogram
                         data={frameCounts}
                         xAxisLabelText={'Frames'}
-                        yAxisLabelText={'Projects'}
                         color={primaryColor}
                         binMethod={'sturges'}
-                        onHover={d => `There are ${d.length} MDs with a number of frames between ${Math.floor(d.x0)} and ${Math.floor(d.x1)}`}
+                        onHover={d => `${countProjects(d.length)} with MDs of ${Math.floor(d.x0).toLocaleString()} to ${Math.floor(d.x1).toLocaleString()} frames`}
                     />
-                </div>}
-                {atomsBinCount > 1 && <div className={style.histogram}>
+                </Card>}
+                {atomsBinCount > 1 && <Card className={style.histogram} title="Atoms per system" subtitle="Number of projects">
                     <Histogram
                         data={atomsPayload && atomsPayload["metadata.SYSTATS"]}
                         xAxisLabelText={'Atoms'}
-                        yAxisLabelText={'Projects'}
                         color={secondaryColor}
                         binMethod={'sturges'}
-                        onHover={d => `There are ${d.length} MDs with a number of atoms between ${Math.floor(d.x0)} and ${Math.floor(d.x1)}`}
+                        onHover={d => `${countProjects(d.length)} with ${Math.floor(d.x0).toLocaleString()} to ${Math.floor(d.x1).toLocaleString()} atoms`}
                     />
-                </div>}
-                {mdsBinCount > 1 && <div className={style.histogram}>
+                </Card>}
+                {mdsBinCount > 1 && <Card className={style.histogram} title="MDs per project" subtitle="Number of projects">
                     <Histogram
                         data={mdCountPayload && mdCountPayload["mdcount"]}
                         xAxisLabelText={'MDs'}
-                        yAxisLabelText={'Projects'}
                         color={primaryColor}
                         binMethod={'linear'}
                         binCount={mdCountPayload && mdCountPayload["mdcount"]
                             ? Math.max(...Object.keys(mdCountPayload["mdcount"]).map(Number))
                             : 10}
-                        onHover={d => `There are ${d.length} MDs with a number of MDs between ${Math.floor(d.x0)} and ${Math.floor(d.x1)}`}
+                        onHover={d => `${countProjects(d.length)} with ${d.x0} MD${d.x0 === 1 ? '' : 's'}`}
                     />
-                </div>}
+                </Card>}
             </div>
-        </>}
-        {showTimeDistribution && <>
-            <Typography variant="h5">Time distribution</Typography>
-            <div style={{ display: 'flex', justifyContent: 'center', margin: '20px 10%' }}>
-                <FramestepPlot jsonUrl={framestepUrl} onPoints={setFramestepPoints} />
-            </div>
-        </>}
-    </>);
+        )}
+        {showTimeDistribution && (
+            <Card title="Time distribution" subtitle="MDs by total simulated time and number of frames">
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <FramestepPlot jsonUrl={framestepUrl} onPoints={setFramestepPoints} />
+                </div>
+            </Card>
+        )}
+    </div>);
 };
 
 export default DataSummary;

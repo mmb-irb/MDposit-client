@@ -4,8 +4,8 @@ import { useTheme } from '@mui/material/styles';
 
 
 // Set the size of the axis numbers
-const axisNumbersFontSize = "14px";
-const axisLabelsFontSize = "24px";
+const axisNumbersFontSize = "12px";
+const axisLabelsFontSize = "14px";
 
 const TimelineChart = ({ data, className }) => {
   const containerRef = useRef();
@@ -36,7 +36,7 @@ const TimelineChart = ({ data, className }) => {
     d3.selectAll(".timeline-tooltip").remove();
 
     // Set dimensions and margins
-    const margin = { top: 30, right: 90, bottom: 80, left: 90 };
+    const margin = { top: 30, right: 90, bottom: 56, left: 90 };
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
@@ -71,9 +71,11 @@ const TimelineChart = ({ data, className }) => {
       .nice();
 
     // Create axes — use same tick count; grid lines align with left axis
+    // One tick per year. A growth that crosses no new year gets the year of its first month
+    const yearTicks = x.ticks(d3.timeYear.every(1));
     const xAxis = d3.axisBottom(x)
-      .ticks(12)
-      .tickFormat(d3.timeFormat("%b %Y"));
+      .tickValues(yearTicks.length > 0 ? yearTicks : [x.domain()[0]])
+      .tickFormat(d3.timeFormat("%Y"));
 
     const tickCount = 8;
     const y1Max = y1.domain()[1];
@@ -103,13 +105,8 @@ const TimelineChart = ({ data, className }) => {
     // Add X axis
     svg.append("g")
       .attr("transform", `translate(0,${innerHeight})`)
-      .call(xAxis)
-      .selectAll("text")
-      .style("text-anchor", "end")
       .style("font-size", axisNumbersFontSize)
-      .attr("dx", "-.8em")
-      .attr("dy", ".15em")
-      .attr("transform", "rotate(-36)");
+      .call(xAxis);
 
     // Add primary Y axis (projects)
     svg.append("g")
@@ -230,9 +227,9 @@ const TimelineChart = ({ data, className }) => {
 
     // Add axes labels
     svg.append("text")
-      .attr("transform", `translate(${innerWidth / 2}, ${innerHeight + 75})`)
+      .attr("transform", `translate(${innerWidth / 2}, ${innerHeight + 44})`)
       .style("text-anchor", "middle")
-      .style("font-size", "20px")
+      .style("font-size", axisLabelsFontSize)
       .text("Upload Date");
 
     // Left Y-axis label (Projects)
@@ -287,7 +284,7 @@ const TimelineChart = ({ data, className }) => {
       .attr("x", 20)
       .attr("y", 12)
       .text("Projects")
-      .style("font-size", "14px");
+      .style("font-size", axisNumbersFontSize);
 
     // MDs legend
     legend.append("rect")
@@ -301,7 +298,7 @@ const TimelineChart = ({ data, className }) => {
       .attr("x", 120)
       .attr("y", 12)
       .text("MDs")
-      .style("font-size", "14px");
+      .style("font-size", axisNumbersFontSize);
 
   }, [data, dimensions]);
 
