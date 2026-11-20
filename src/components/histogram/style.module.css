@@ -2,12 +2,10 @@
   height: 15rem;
 }
 
+/* The dashed lines of the growth chart */
 .grid line {
-  stroke: var(--mui-palette-divider);
-}
-
-.axis text {
-  fill: var(--mui-palette-text-secondary);
+  stroke: #e0e0e0;
+  stroke-dasharray: 3 3;
 }
 
 .grid path {

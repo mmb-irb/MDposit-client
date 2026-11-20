@@ -334,7 +334,7 @@ const DataSummary = ({ internalFilters = null, title = 'Data summary', nodeData 
             : [{ title: 'Loading...', value: 1, percentage: 100, color: 'lightgrey' }];
         const optionLegendData = option && option.map(([key, value], i) => ({
             value,
-            label: displayLabel(key) + ': ' + value + ' (' + (Math.round((value / divisor) * 10000) / 100) + '%)',
+            label: `${displayLabel(key)}: ${value.toLocaleString()} (${(100 * value / divisor).toFixed(1)}%)`,
             color: colors[i],
         }));
         return { optionPieChartData, optionLegendData };
@@ -391,6 +391,7 @@ const DataSummary = ({ internalFilters = null, title = 'Data summary', nodeData 
     });
 
     const dataSizeValue = useMemo(() => {
+        if (!isGlobalSummary && statsError) return 'Unavailable';
         if (!isGlobalSummary && statsPayload) {
             if (statsPayload.totalSize !== undefined)
                 return formatBytes(statsPayload.totalSize);
@@ -404,7 +405,7 @@ const DataSummary = ({ internalFilters = null, title = 'Data summary', nodeData 
         if (bsPayload) return `${bsPayload.dataSizeInTB.toLocaleString()} TB`;
         if (bsError) return 'Unavailable';
         return 'Loading...';
-    }, [isGlobalSummary, nodeData, statsPayload, bsPayload, bsLoading, bsError]);
+    }, [isGlobalSummary, nodeData, statsPayload, statsError, bsPayload, bsLoading, bsError]);
     const summaryUnavailableValue = summaryError ? 'Unavailable' : 'Loading...';
     const dataSizeTooltip = (<>
         This size accounts only for the processed files stored in the database.
@@ -487,7 +488,7 @@ const DataSummary = ({ internalFilters = null, title = 'Data summary', nodeData 
                 {growthPayload ? (
                     <TimelineChart data={growthPayload} />
                 ) : (
-                    'Loading growth data...'
+                    growthError ? 'Growth data is not available' : 'Loading growth data...'
                 )}
             </div>
         </Card>}
@@ -495,8 +496,15 @@ const DataSummary = ({ internalFilters = null, title = 'Data summary', nodeData 
             const formatVal = (field, key) => field === 'node'
                 ? formatNodeDisplayName(key, nodeNameMap)
                 : formatFieldValue(key);
+            // A field with a single value is a constant only when every project has that value
+            const projectsCount = displaySummaryPayload?.projectsCount;
+            const coversEveryProject = ({ field, entries }) => {
+                const count = optionsPayload[field][entries[0][0]];
+                return (Array.isArray(count) ? count[0] : count) === projectsCount;
+            };
             const allConstantItems = [
                 ...constantFields.filter(({ field }) => !CONSTANTS_HIDDEN_FIELDS.has(field))
+                    .filter(coversEveryProject)
                     .map(({ field, entries }) => ({
                         key: field,
                         displayName: findFieldByTitleOrLabel(queryFields, field)?.name || field,
@@ -542,7 +550,9 @@ const DataSummary = ({ internalFilters = null, title = 'Data summary', nodeData 
             subtitle={`${selectedStatsMode === 'mds' ? 'MDs' : 'Projects'} per value of the selected field`}
         >
             {availableOptionsFields.length === 0 ? (
-                <div style={{ textAlign: 'center' }}>Loading field data...</div>
+                <div style={{ textAlign: 'center' }}>
+                    {optionsError ? 'Field data is not available' : 'Loading field data...'}
+                </div>
             ) : (
                 <>{variableOptionsFields.length > 0 && (<>
                     <div className={style.fieldControls}>

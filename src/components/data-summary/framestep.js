@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useMemo, useState } from 'react';
 import * as d3 from 'd3';
 import { useTheme } from '@mui/material/styles';
 import { isFromApi, NOT_FROM_API, NO_API_RESPONSE } from '../../utils/api-response';
+import createChartTooltip from '../../utils/chart-tooltip';
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 // The margins hold text, which keeps its size, so they are fixed
@@ -324,28 +325,20 @@ function drawScatterCanvas(canvasEl, points, xSc, ySc, mainWidth, mainHeight, al
 }
 
 // ─── D3 chart renderer ────────────────────────────────────────────────────────
-const SUPERSCRIPTS = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
-function fmtLargeNumber(v) {
-    const av = Math.abs(v);
-    if (av >= 1e4) return d3.format('.0e')(v);
-    if (av >= 1) return d3.format(',.0f')(v);
-    return d3.format('.2g')(v);
+// Counts are shortened as in the histograms of the page: 1k, 20k, 1M
+const fmtCount = d3.format('~s');
+
+// A time in ns with the unit that fits it: 0.01 ns, 100 ns, 10 μs, 1 ms
+function fmtTime(ns) {
+    const [value, unit] = ns >= 1e6 ? [ns / 1e6, 'ms'] : ns >= 1e3 ? [ns / 1e3, 'μs'] : [ns, 'ns'];
+    return `${d3.format('.3~g')(value)} ${unit}`;
 }
 
-function fmtPow10(v) {
+// Labels a tick with the given format, only when it is an exact power of 10 (not 2e-3 or 5e6)
+function fmtPow10(v, format) {
     const exp = Math.floor(Math.log10(v));
     const base = v / (10 ** exp);
-    // only label exact powers of 10, not 2e-3 or 5e6
-    if (base !== 1) return '';
-    if (exp === 0) return '1';
-    const sup = String(exp).split('').map(c => SUPERSCRIPTS[c] ?? c).join('');
-    return `10${sup}`;
-}
-
-function fmtScientific(v) {
-    // Display exact values in scientific notation with no decimals
-    if (v<1000) return d3.format('.2f')(v);
-    return d3.format('.2e')(v);
+    return base === 1 ? format(v) : '';
 }
 
 // layout: the sizes from getLayout
@@ -355,20 +348,7 @@ function drawChart(el, canvasEl, points, layout, colors) {
     const svg = d3.select(el).attr('viewBox', `0 0 ${SVG_W} ${SVG_H}`);
     svg.selectAll('*').remove();
 
-    // Tooltip
-    d3.selectAll('.fs-tooltip').remove();
-    const tooltip = d3.select('body').append('div')
-        .attr('class', 'fs-tooltip')
-        .style('position', 'fixed')
-        .style('z-index', 9999)
-        .style('background', 'rgba(0,0,0,0.72)')
-        .style('color', '#fff')
-        .style('padding', '3px 8px')
-        .style('border-radius', '4px')
-        .style('font-size', '12px')
-        .style('pointer-events', 'none')
-        .style('opacity', 0)
-        .style('transition', 'opacity 0.1s');
+    const tooltip = createChartTooltip();
 
     const ox = ML, oy = MT + TOP_H + GAP_T;
 
@@ -511,28 +491,22 @@ function drawChart(el, canvasEl, points, layout, colors) {
         if (mx >= 0 && mx <= MAIN_W && my >= 0 && my <= MAIN_H) {
             const timeNs = xSc.invert(mx);
             const frames = ySc.invert(my);
-            textLines.push(`Time: ${fmtScientific(timeNs)} ns`);
-            textLines.push(`Frames: ${fmtScientific(frames)}`);
+            textLines.push(`Time: ${fmtTime(timeNs)}`);
+            textLines.push(`Frames: ${d3.format(',.0f')(frames)}`);
         }
 
         textLines.push(...customLines);
 
 
-        tooltip.style('opacity', 1)
-            .html(textLines.join('<br/>'))
-            .style('left', (d3.event.clientX + 15) + 'px')
-            .style('top', (d3.event.clientY - 5) + 'px');
+        tooltip.show(textLines.join('<br/>'), d3.event);
     }
 
     function moveTooltip() {
-        tooltip
-            .style('left', (d3.event.clientX + 15) + 'px')
-            .style('top', (d3.event.clientY - 5) + 'px');
+        tooltip.move(d3.event);
     }
 
     function showSimpleTooltip(text) {
-        tooltip.style('opacity', 1).text(text);
-        moveTooltip();
+        tooltip.show(text, d3.event);
     }
 
     // Transparent overlay for value display in empty areas
@@ -544,7 +518,7 @@ function drawChart(el, canvasEl, points, layout, colors) {
         .attr('fill', 'transparent')
         .style('pointer-events', 'visible')
         .on('mousemove', () => showTooltip([]))
-        .on('mouseout', () => tooltip.style('opacity', 0));
+        .on('mouseout', () => tooltip.hide());
 
     // Filled contours (alpha 0.2 so scatter dots show through)
     gPlot.selectAll('.cf').data(contours).enter().append('path')
@@ -566,7 +540,7 @@ function drawChart(el, canvasEl, points, layout, colors) {
         })
         .on('mouseout', function() {
             d3.select(this).attr('fill-opacity', 0.3);
-            tooltip.style('opacity', 0);
+            tooltip.hide();
         });
     // Contour edges (thin outlines, a bit darker than the fill of their level)
     gPlot.selectAll('.cl').data(contours).enter().append('path')
@@ -588,10 +562,10 @@ function drawChart(el, canvasEl, points, layout, colors) {
 
     // ── Axes ──────────────────────────────────────────────────────────────────
     gMain.append('g').attr('transform', `translate(0,${MAIN_H})`)
-        .call(d3.axisBottom(xSc).ticks(6).tickFormat(fmtPow10)).style('font-size', axisNumbersFontSize);
+        .call(d3.axisBottom(xSc).ticks(MAIN_W < 300 ? 3 : 6).tickFormat(v => fmtPow10(v, fmtTime))).style('font-size', axisNumbersFontSize);
     gMain.append('g')
-        .call(d3.axisLeft(ySc).ticks(6).tickFormat(fmtPow10)).style('font-size', axisNumbersFontSize);
-    gMain.append('text').text('Total time (ns)')
+        .call(d3.axisLeft(ySc).ticks(6).tickFormat(v => fmtPow10(v, fmtCount))).style('font-size', axisNumbersFontSize);
+    gMain.append('text').text('Total time')
         .attr('text-anchor', 'middle').attr('x', MAIN_W / 2).attr('y', MAIN_H + 52)
         .style('font-size', axisLabelsFontSize);
     gMain.append('text').text('Frames')
@@ -620,11 +594,11 @@ function drawChart(el, canvasEl, points, layout, colors) {
             .attr('y', htYSc(count)).attr('height', TOP_H - htYSc(count))
             .attr('fill', colors.dark).attr('fill-opacity', 0.75)
             .style('cursor', 'default')
-            .on('mouseover', () => showSimpleTooltip(`Count: ${count}`))
+            .on('mouseover', () => showSimpleTooltip(`Count: ${count.toLocaleString()}`))
             .on('mousemove', () => moveTooltip())
-            .on('mouseout', () => tooltip.style('opacity', 0));
+            .on('mouseout', () => tooltip.hide());
     });
-    gHT.append('g').call(d3.axisLeft(htYSc).ticks(3).tickFormat(fmtLargeNumber)).style('font-size', axisNumbersFontSize);
+    gHT.append('g').call(d3.axisLeft(htYSc).ticks(3).tickFormat(fmtCount)).style('font-size', axisNumbersFontSize);
     gHT.append('text').text('Count')
         .attr('text-anchor', 'middle')
         .attr('transform', `translate(-48,${TOP_H / 2}) rotate(-90)`)
@@ -652,12 +626,12 @@ function drawChart(el, canvasEl, points, layout, colors) {
             .attr('x', 0).attr('width', hrXSc(count))
             .attr('fill', colors.dark).attr('fill-opacity', 0.75)
             .style('cursor', 'default')
-            .on('mouseover', () => showSimpleTooltip(`Count: ${count}`))
+            .on('mouseover', () => showSimpleTooltip(`Count: ${count.toLocaleString()}`))
             .on('mousemove', () => moveTooltip())
-            .on('mouseout', () => tooltip.style('opacity', 0));
+            .on('mouseout', () => tooltip.hide());
     });
     gHR.append('g').attr('transform', `translate(0,${MAIN_H})`)
-        .call(d3.axisBottom(hrXSc).ticks(2).tickFormat(fmtLargeNumber)).style('font-size', axisNumbersFontSize);
+        .call(d3.axisBottom(hrXSc).ticks(2).tickFormat(fmtCount)).style('font-size', axisNumbersFontSize);
     gHR.append('text').text('Count')
         .attr('text-anchor', 'middle').attr('x', RIGHT_W / 2).attr('y', MAIN_H + 42)
         .style('font-size', axisNumbersFontSize);
@@ -681,7 +655,7 @@ function drawChart(el, canvasEl, points, layout, colors) {
     gCbar.append('g').attr('transform', `translate(${CBAR_W},0)`)
         .call(d3.axisRight(cbarSc)
             .tickValues(levels)
-            .tickFormat(fmtLargeNumber))
+            .tickFormat(d3.format('.3~s')))
         .style('font-size', axisNumbersFontSize);
     // Label: "MDs per decade²"
     const cbarLabelX = CBAR_W + 64;
@@ -689,6 +663,9 @@ function drawChart(el, canvasEl, points, layout, colors) {
         .attr('text-anchor', 'middle')
         .attr('transform', `translate(${cbarLabelX},${MAIN_H / 2}) rotate(-90)`)
         .style('font-size', axisLabelsFontSize);
+
+    // The tooltip is to be removed when the chart is drawn again or gone
+    return tooltip.remove;
 }
 
 // ─── React component ──────────────────────────────────────────────────────────
@@ -733,13 +710,19 @@ const FramestepPlot = ({ jsonUrl, onPoints }) => {
                 setPoints(pts);
                 onPointsRef.current?.(pts);
             })
-            .catch(err => setError(err.message));
+            .catch(err => {
+                setError(err.message);
+                // Report no points, so whoever shows this plot can hide its block
+                onPointsRef.current?.([]);
+            });
     }, [jsonUrl]);
 
     useEffect(() => {
         if (points && svgRef.current) {
-            drawChart(svgRef.current, canvasRef.current, points, layout, { main: mainColor, dark: darkColor });
-        } else if (canvasRef.current) {
+            // Drawing returns how to remove the tooltip of the chart
+            return drawChart(svgRef.current, canvasRef.current, points, layout, { main: mainColor, dark: darkColor });
+        }
+        if (canvasRef.current) {
             const ctx = canvasRef.current.getContext('2d');
             if (ctx) ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
         }
