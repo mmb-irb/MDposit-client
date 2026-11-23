@@ -107,6 +107,7 @@
 
 .side-column {
   flex: 0 0 auto;
+  align-self: center;
   width: 25%;
   max-width: 320px;
   display: flex;
@@ -129,7 +130,12 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  margin-top: 0.5em;
+  /* The chips' own margin would add to the card padding below the last row */
+  margin: 0.5em 0 -4px;
+}
+
+.keywords .chip {
+  margin: 4px;
 }
 
 /* At narrow widths stack the screenshot and keywords below the information */
