@@ -416,7 +416,12 @@ const ViewerWithControls = forwardRef(
     // Whether the reduced view is available at all (an actual membrane simulation with the whole system)
     const canReduceMembrane = !!membraneSelection && !isSubsetComponent;
     // Default on for very large membranes, where loading every lipid atom is too heavy
-    const membraneReducedDefault = !!(topology && topology.lipidAtomsCount > 100000);
+    // Read from the metadata (the same value as topology.lipidAtomsCount), so it is known before the topology
+    const membraneReducedDefault = !!(metadata && metadata.LIPIATS > 100000);
+    // The viewer must wait for the topology only when it may start in the reduced view, since the atom subset
+    // to download comes from it. Otherwise the viewer starts at once and downloads the structure and the
+    // trajectory while the topology is still downloading: the reduced view is off until the user asks for it.
+    const waitForTopology = membraneReducedDefault && !isSubsetComponent;
     // Store only the user's explicit choice (null until they toggle) and derive the effective value,
     // so it stays correct as soon as the topology (and its default) arrives.
     const [membraneReducedOverride, setMembraneReducedOverride] = useState(null);
@@ -877,11 +882,11 @@ const ViewerWithControls = forwardRef(
               }
               style={{ border: 'none', boxShadow: 'none' }}
             >
-              {/* Gate the mount on this component's own topology for the reduced-membrane feature. */}
-              {/* topology is a getter running useAPI hooks, so it starts undefined here and settles a few */}
-              {/* renders later; mounting earlier would start in 'full' mode then flip viewerReloadKey once */}
-              {/* topology (and its mem-map) resolves, remounting mid-load and stranding in-flight requests. */}
-              {topology && (
+              {/* Gate the mount on the topology only when the reduced membrane view is on by default (see */}
+              {/* waitForTopology). topology is a getter running useAPI hooks, so it starts undefined and settles */}
+              {/* later; mounting before the reduced subset is known would start in 'full' mode then flip */}
+              {/* viewerReloadKey once it resolves, remounting mid-load and stranding in-flight requests. */}
+              {(topology || !waitForTopology) && (
                 <ManagedViewer
                   key={viewerReloadKey}
                   Viewer={Viewer}

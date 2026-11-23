@@ -30,10 +30,10 @@ const makeTopology = () => ({
   ],
 });
 
-const renderViewer = (topology, props) => render(
+const renderViewer = (topology, props, metadata = {}) => render(
   <ProjectCtx.Provider value={{
     accessionAndMdNumber: 'A0001.1',
-    metadata: { mdFrames: 10 },
+    metadata: { mdFrames: 10, ...metadata },
     topology,
     fileDescriptors: { loading: false, payload: [] },
   }}>
@@ -67,5 +67,21 @@ describe('<ViewerWithControls /> representations', () => {
     renderViewer(topology, {});
     expect(lastViewerProps().representations[0].component).toBe('Main');
     expect(topology.defaultRepresentations).toEqual(original);
+  });
+});
+
+describe('<ViewerWithControls /> mount', () => {
+  beforeEach(() => { viewerProps.length = 0 });
+
+  // The structure and trajectory downloads start when the viewer mounts, so they overlap the topology download
+  it('mounts the viewer before the topology is ready', () => {
+    renderViewer(undefined, {});
+    expect(viewerProps.length).toBeGreaterThan(0);
+  });
+
+  // The reduced membrane atom subset to download comes from the topology
+  it('waits for the topology when the reduced membrane view is on by default', () => {
+    renderViewer(undefined, {}, { LIPIATS: 100001 });
+    expect(viewerProps.length).toBe(0);
   });
 });
