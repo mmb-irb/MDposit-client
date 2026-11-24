@@ -55,6 +55,7 @@ const TRAJECTORY_FORMATS = [
   { format: 'trr', label: 'TRR' },
   { format: 'nc', label: 'NetCDF' },
   { format: 'dcd', label: 'DCD' },
+  { format: 'mdcrd', label: 'MDCRD' },
 ];
 
 // Classify files per groups according to their file format
