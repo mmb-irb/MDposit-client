@@ -192,6 +192,7 @@ const REDUNDANT_FILES = [
   // The main structure and trajectory are exported by the API, but they may be stored as well
   new RegExp(MAIN_STRUCTURE_FILENAME), // The structure
   new RegExp(MAIN_TRAJECTORY_FILENAME), // The trajectory
+  new RegExp(`^structure.cif$`), // The structure in mmCIF format, also exported by the API
   MAIN_TOPOLOGY_REGEXP, // The topology
   // Typical files
   new RegExp(`.bin$`), // All files with our custom binary format
