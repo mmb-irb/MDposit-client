@@ -546,7 +546,7 @@ const AdvancedSearch = () => {
         ...search,
         filter: filters,
         // If we had a new query then reset the page
-        page: 0,
+        page: undefined,
       }),
     });
   };
