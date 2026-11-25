@@ -10,7 +10,12 @@ import {
   scaleLog,
   axisBottom,
   axisLeft,
+  format,
+  range,
+  event as d3Event,
 } from 'd3';
+
+import createChartTooltip from '../../utils/chart-tooltip';
 
 import style from './style.module.css';
 
@@ -18,31 +23,25 @@ const dataPlaceholder = {};
 
 // This graph has been done by adapting the example from https://d3-graph-gallery.com/graph/histogram_basic.html
 
-// Necessary for axes and axis labels
+// Necessary for axes and axis labels: an axis with no label needs less room
 // WARNING: Note that this is not automatic and it may require manual update when the highest value increases (left margin)
-const margin = {
-  top: 10,
-  right: 30,
-  left: 90,
-  bottom: 60,
-};
+const getMargin = (hasXAxisLabel, hasYAxisLabel) => ({
+  top: 8,
+  right: 8,
+  left: hasYAxisLabel ? 66 : 40,
+  bottom: hasXAxisLabel ? 52 : 24,
+});
 
-// Convert number to superscript 
-function formatExponent(exp) {
-  const superscripts = {
-    '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
-    '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹',
-    '-': '⁻'
-  };
-
-  return exp.toString().split('')
-    .map(char => superscripts[char] || char)
-    .join('');
-}
+// Axis numbers are shortened: 1k, 2.5k, 1M
+const formatAxisNumber = format('~s');
+// How round the top of a column is
+const COLUMN_RADIUS = 4;
+// Every histogram in the page clips its columns with a path of its own
+let clipPathCount = 0;
 
 // Set the size of the axis numbers
-const axisNumbersFontSize = "15px";
-const axisLabelsFontSize = "20px";
+const axisNumbersFontSize = "12px";
+const axisLabelsFontSize = "14px";
 
 const Histogram = forwardRef(({
   // Data containing an object with count of different values
@@ -71,7 +70,9 @@ const Histogram = forwardRef(({
   const updateXAxisLabelText = useRef(noop);
   const updateYAxisLabelText = useRef(noop);
   const updateColor = useRef(noop);
-  const updateOnHover = useRef(noop);
+  // The current onHover function, for the columns to call it under the mouse
+  const onHoverRef = useRef(onHover);
+  onHoverRef.current = onHover;
 
   // ----------------------------------------------------------------------------------------
 
@@ -87,6 +88,16 @@ const Histogram = forwardRef(({
     const y = scaleLinear();
     const yGrid = graph.append("g").attr("class", style.grid);
     const yAxis = graph.append("g");
+    // Columns are clipped at the baseline, which hides the rounding of their bottom
+    const clipPathId = `histogram-columns-${++clipPathCount}`;
+    const clipPath = graph.append("clipPath").attr("id", clipPathId).append("rect");
+    const columnsGroup = graph.append("g").attr("clip-path", `url(#${clipPathId})`);
+
+    // Tell what a column holds beside the mouse
+    const tooltip = createChartTooltip();
+    const setHover = columns => columns
+      .on("mousemove", d => onHoverRef.current && tooltip.show(onHoverRef.current(d), d3Event))
+      .on("mouseout", tooltip.hide);
 
     // Set  axis labels
     const xAxisLabel = graph.append("text")
@@ -100,9 +111,11 @@ const Histogram = forwardRef(({
     // Also call them now for this first time
     updateXAxisLabelText.current = ({ xAxisLabelText }) => {
       xAxisLabel.text(xAxisLabelText);
+      updateSizeRef.current();
     };
     updateYAxisLabelText.current = ({ yAxisLabelText }) => {
       yAxisLabel.text(yAxisLabelText);
+      updateSizeRef.current();
     };
     updateXAxisLabelText.current({ xAxisLabelText });
     updateYAxisLabelText.current({ yAxisLabelText });
@@ -146,10 +159,10 @@ const Histogram = forwardRef(({
 
         // Set axes
         x.domain([xTicks[0], xTicks[xTicks.length - 1]]);
-        y.domain([0, maxCount]);
+        y.domain([0, maxCount]).nice(4);
 
         // Load new data in columns
-        const newColumnsData = graph.selectAll("rect").data(columnsData);
+        const newColumnsData = columnsGroup.selectAll("rect").data(columnsData);
 
         // Remove columns which are no longer necessary
         newColumnsData.exit().remove();
@@ -158,10 +171,9 @@ const Histogram = forwardRef(({
         newColumnsData.enter().append('rect');
 
         // Edit the final columns now that we have added and removed some
-        graph.selectAll("rect")
+        columnsGroup.selectAll("rect")
           .attr("fill", color)
-          .append("svg:title")
-          .text(onHover);
+          .call(setHover);
 
         // Force a redraw
         updateSizeRef.current();
@@ -178,14 +190,13 @@ const Histogram = forwardRef(({
         const maxCount = Math.max(...columnsData.map(d => d.length));
         // Use linear scale for x axis
         x.domain([minValue, maxValue + 1]);
-        y.domain([0, maxCount]);
-        const newColumnsData = graph.selectAll("rect").data(columnsData);
+        y.domain([0, maxCount]).nice(4);
+        const newColumnsData = columnsGroup.selectAll("rect").data(columnsData);
         newColumnsData.exit().remove();
         newColumnsData.enter().append('rect');
-        graph.selectAll("rect")
+        columnsGroup.selectAll("rect")
           .attr("fill", color)
-          .append("svg:title")
-          .text(onHover);
+          .call(setHover);
         updateSizeRef.current();
       } else {
         if (binMethod === 'sturges' || binMethod === 'root') {
@@ -250,10 +261,10 @@ const Histogram = forwardRef(({
 
         // Set axes
         x.domain([xTicks[0], xTicks[xTicks.length - 1]]);
-        y.domain([0, maxCount]);
+        y.domain([0, maxCount]).nice(4);
 
         // Load new data in columns
-        const newColumnsData = graph.selectAll("rect").data(columnsData);
+        const newColumnsData = columnsGroup.selectAll("rect").data(columnsData);
 
         // Remove columns which are no longer necessary
         newColumnsData.exit().remove();
@@ -262,10 +273,9 @@ const Histogram = forwardRef(({
         newColumnsData.enter().append('rect');
 
         // Edit the final columns now that we have added and removed some
-        graph.selectAll("rect")
+        columnsGroup.selectAll("rect")
           .attr("fill", color)
-          .append("svg:title")
-          .text(onHover);
+          .call(setHover);
 
         // Force a redraw
         updateSizeRef.current();
@@ -274,56 +284,54 @@ const Histogram = forwardRef(({
 
     // Set a function to update columns color
     updateColor.current = ({ color }) => {
-      graph.selectAll("rect").attr("fill", color);
+      columnsGroup.selectAll("rect").attr("fill", color);
     };
 
-    // Set a function to update onHover
-    updateOnHover.current = ({ onHover }) => {
-      graph.selectAll("rect").append("svg:title").text(onHover);
-    };
 
     // This ref allows to update the graph without having to remake the whole graph
     updateSizeRef.current = () => {
       if (!containerRef.current) return;
       // Change the graph size according to the container size
       const { clientWidth: width, clientHeight: height } = containerRef.current;
+      const margin = getMargin(!!xAxisLabel.text(), !!yAxisLabel.text());
       if (width <= margin.left + margin.right || height <= margin.top + margin.bottom) return;
       graph.attr('width', width).attr('height', height);
       // Get size of the graph body after substracting margins
       const actualWidth = width - margin.left - margin.right;
       const actualHeight = height - margin.top - margin.bottom;
-      // Get all current columns to count them
-      const columns = graph.selectAll("rect");
-      const columnsCount = columns.nodes().length;
+      const columns = columnsGroup.selectAll("rect");
       // Set axis positions
       x.range([margin.left, margin.left + actualWidth]);
-      // Custom tick format for linear vs log
-      let tickFormatFn;
+      // The numbers to show under the axis
+      const [xFirst, xLast] = x.domain();
+      let xTickValues, xTickFormat;
       if (binMethod === 'linear') {
-        // Only show divisibles of 5 and 1
-        tickFormatFn = d => (d === 1 || (Number.isInteger(d) && d % 5 === 0)) ? d : '';
+        // A number under the middle of its column: every value when they are few, otherwise 1 and the multiples of 5
+        xTickValues = range(xFirst, xLast)
+          .filter(d => xLast - xFirst <= 10 || d === 1 || d % 5 === 0)
+          .map(d => d + 0.5);
+        xTickFormat = d => d - 0.5;
       } else {
-        tickFormatFn = d => {
-          if (d === 0) return '0';
-          const exp = Math.log10(d);
-          if (Number.isInteger(exp)) {
-            if (exp === 0) return '1';
-            if (exp === 1) return '10';
-            return `10${formatExponent(exp)}`;
-          }
-          return '';
-        };
+        // Powers of ten. When fewer than three fall in the axis, also their doubles and fivefolds
+        const multiples = range(Math.floor(Math.log10(xFirst)), Math.floor(Math.log10(xLast)) + 1)
+          .flatMap(exponent => [1, 2, 5].map(multiple => multiple * 10 ** exponent))
+          .filter(d => d >= xFirst && d <= xLast);
+        const powers = multiples.filter(d => Number.isInteger(Math.log10(d)));
+        xTickValues = powers.length >= 3 ? powers : multiples;
+        xTickFormat = formatAxisNumber;
       }
-      xAxis.attr("transform", "translate(0," + (margin.top + actualHeight) + ")")
-        .call(axisBottom(x)
-          .ticks(columnsCount)
-          .tickFormat(tickFormatFn)
-        )
+      const baseline = margin.top + actualHeight;
+      xAxis.attr("transform", "translate(0," + baseline + ")")
+        .call(axisBottom(x).tickValues(xTickValues).tickFormat(xTickFormat))
         .style("font-size", axisNumbersFontSize);
-      y.range([margin.top + actualHeight, margin.top]);
+      // A few horizontal lines with their numbers
+      y.range([baseline, margin.top]);
       yGrid.attr("transform", "translate(" + margin.left + ", 0)")
-        .call(axisLeft(y).tickSize(-actualWidth).tickFormat(''));
-      yAxis.attr("transform", "translate(" + margin.left + ", 0)").call(axisLeft(y))
+        .call(axisLeft(y).ticks(4).tickSize(-actualWidth).tickFormat(''));
+      // The line at 0 would run over the axis
+      yGrid.selectAll(".tick").filter(d => d === 0).remove();
+      yAxis.attr("transform", "translate(" + margin.left + ", 0)")
+        .call(axisLeft(y).ticks(4).tickFormat(formatAxisNumber))
         .style("font-size", axisNumbersFontSize);
       // Set axis label positions
       const xAxisLabelMargin = 10;
@@ -332,12 +340,17 @@ const Histogram = forwardRef(({
       yAxisLabel.attr("x", yAxisLabelMargin).attr("y", margin.top + actualHeight / 2)
         .attr("transform", `rotate(-90, ${yAxisLabelMargin}, ${margin.top + actualHeight / 2})`);
 
-      // Get all current columns and place/shape them according to data
+      // Place the columns: 2px apart, rounded at the top, and at least 2px tall unless empty
+      clipPath.attr("x", margin.left).attr("y", 0).attr("width", actualWidth).attr("height", baseline);
+      const columnTop = d => Math.min(y(d.length), baseline - 2);
+      const columnWidth = d => Math.max(1, x(d.x1) - x(d.x0) - 2);
       columns
-        //.attr("x", 1)
-        .attr("transform", d => "translate(" + x(d.x0) + "," + y(d.length) + ")")
-        .attr("width", d => x(d.x1) - x(d.x0) - 1)
-        .attr("height", d => height - margin.bottom - y(d.length))
+        .attr("x", d => x(d.x0) + 1)
+        .attr("width", columnWidth)
+        .attr("rx", d => Math.min(COLUMN_RADIUS, columnWidth(d) / 2))
+        .attr("y", d => d.length ? columnTop(d) : baseline)
+        // The rounded bottom stays below the baseline, out of the clip path
+        .attr("height", d => d.length ? baseline - columnTop(d) + COLUMN_RADIUS : 0);
     };
 
     // Redraw when either the window or the graph's own container is resized.
@@ -351,6 +364,7 @@ const Histogram = forwardRef(({
     // Cleanup function
     return () => {
       graph.remove();
+      tooltip.remove();
       resizeObserver?.disconnect();
       window.removeEventListener('resize', resizeGraph);
     }
@@ -375,11 +389,6 @@ const Histogram = forwardRef(({
   useEffect(() => {
     updateColor.current({ color });
   }, [color]);
-
-  // Handle when onHover changes
-  useEffect(() => {
-    updateOnHover.current({ onHover });
-  }, [onHover]);
 
   return (
     <div className={className ? className : style.default}>

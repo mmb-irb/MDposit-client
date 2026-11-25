@@ -1,54 +1,127 @@
-.dataSummary {
-  padding-right: 2em;
+/* Spacing and type scale, for the summary and for a card used on its own */
+.root,
+.card {
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.75rem;
 }
 
-.growth {
-  width: 100%;
-  margin: 30px 0;
+/* The blocks of the summary, one under another */
+.root {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+}
+
+.card {
+  min-width: 0;
+  padding: var(--space-4);
+  background: var(--mui-palette-background-paper);
+  border: 1px solid var(--mui-palette-divider);
+  border-radius: var(--space-2);
+}
+
+.cardHeader {
+  margin-bottom: var(--space-4);
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: var(--text-md);
+  line-height: 1.5rem;
+  font-weight: 600;
+  color: var(--mui-palette-text-primary);
+}
+
+.cardSubtitle {
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: 1rem;
+  color: var(--mui-palette-text-secondary);
 }
 
 .timelineChart {
   width: 100%;
   display: flex;
   justify-content: center;
-  margin: 10px;
 }
 
-.growthChart {
-  background-color: var(--mui-palette-background-paper);
-  border-radius: 4px;
-}
-
-.fieldStats {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  margin: 30px 0;
-  max-height: 400px;
-}
-
-.fieldStatsHeader {
+/* The field to break down at one end of the row and what to count at the other, equally tall */
+.fieldControls {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 1rem;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.fieldSelect {
+  flex: 0 1 24rem;
+  min-width: 0;
+  height: 2rem;
+  padding: 0 var(--space-2);
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--mui-palette-text-primary);
+  background: var(--mui-palette-background-paper);
+  /* The outline of the buttons beside it */
+  border: 1px solid rgba(var(--mui-palette-primary-mainChannel) / 0.5);
+  border-radius: var(--space-1);
+}
+
+.fieldSelect:focus-visible {
+  outline: 2px solid var(--mui-palette-primary-main);
+  outline-offset: 1px;
 }
 
 .statsModeToggle {
   flex: 0 0 auto;
 }
 
+.statsModeToggle button {
+  height: 2rem;
+  font-size: var(--text-xs);
+}
+
+/* A long list of values scrolls inside its card */
 .fieldHistograms {
+  max-height: 320px;
   overflow-y: auto;
-  padding-right: 4px;
-  margin: 0 40% 0 0;
+  padding-right: var(--space-1);
+}
+
+/* The pie and its legend. The legend runs to the edge of the card, so its scrollbar lines up with the controls above */
+.pie {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.pieChart {
+  flex: 1 1 auto;
+  max-height: 325px;
+  max-width: 35%;
+  margin-left: 15%;
+}
+
+.pieLegend {
+  flex: 1 1 0;
+  min-width: 0;
+  max-height: 350px;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .histograms {
-  margin: 30px 0;
   display: grid;
-  width: 100%;
+  gap: var(--space-5);
 }
 
 .histogram {
@@ -56,55 +129,86 @@
   max-width: 100%;
 }
 
-.histogram text {
-  font-size: 0.8em;
-}
-
-.summaryTable {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0 0.5em;
-  margin-bottom: 1em;
-  background: var(--mui-palette-surface-subtle);
-  box-shadow: 0 1px 6px 0 rgba(60,60,60,0.04);
-  border-radius: 8px;
+/* Headline numbers: one tile per total, with hairlines between them */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  background: var(--mui-palette-divider);
+  border: 1px solid var(--mui-palette-divider);
+  border-radius: var(--space-2);
   overflow: hidden;
 }
-.summaryTable td {
-  padding: 0.7em 2em 0.5em 1em;
-  text-align: center;
-  vertical-align: bottom;
-  border-right: 1.5px solid var(--mui-palette-divider);
-}
-.summaryTable td:last-child {
-  border-right: none;
-}
-.summaryTable .summaryTitle {
-  font-weight: 600;
-  color: var(--mui-palette-text-primary);
-  font-size: 1.15em;
-  border-bottom: 2px solid var(--mui-palette-divider);
-  background: var(--mui-palette-surface-subtle);
-  padding-bottom: 0.3em;
-}
-.summaryTable .summaryValue {
-  font-weight: 400;
-  color: var(--mui-palette-text-primary);
-  font-size: 1.1em;
+
+.tile {
+  min-width: 0;
+  padding: var(--space-4);
   background: var(--mui-palette-background-paper);
-  padding-top: 0.3em;
 }
 
-.constantsSection {
-  margin: 30px 0;
+.tile dd {
+  margin: var(--space-1) 0 0;
+}
+
+.tileLabel,
+.tileNote {
+  font-size: var(--text-xs);
+  line-height: 1rem;
+  color: var(--mui-palette-text-secondary);
+}
+
+/* Keep the room of the note while there is none, so every tile is as tall */
+.tileNote {
+  min-height: 1rem;
+}
+
+.tileValue {
+  font-size: var(--text-xl);
+  line-height: 2rem;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--mui-palette-text-primary);
+}
+
+.tileValue small {
+  font-size: var(--text-sm);
+  font-weight: 400;
+  color: var(--mui-palette-text-secondary);
+}
+
+/* Shown while a total is loading or not available */
+.tilePending {
+  font-size: var(--text-sm);
+  line-height: 2rem;
+  color: var(--mui-palette-text-secondary);
+}
+
+/* Seven tiles do not fit in a row in narrow windows: the last one fills the leftover column */
+@media (max-width: 900px) {
+  .tiles {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .tile:last-child {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 560px) {
+  .tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .tile {
+    padding: var(--space-3) var(--space-4);
+  }
 }
 
 .constantsGrid {
   display: grid;
   grid-template-columns: max-content 1fr;
-  column-gap: 16px;
+  column-gap: var(--space-4);
   row-gap: 0;
-  margin-top: 10px;
   max-width: 720px;
 }
 
@@ -121,14 +225,14 @@
   font-weight: 600;
   opacity: 0.7;
   white-space: nowrap;
-  padding: 4px 0 4px 8px;
-  font-size: 0.875rem;
+  padding: var(--space-1) 0 var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
 }
 
 .constantValue {
   font-weight: 400;
-  padding: 4px 8px 4px 0;
-  font-size: 0.875rem;
+  padding: var(--space-1) var(--space-2) var(--space-1) 0;
+  font-size: var(--text-sm);
 }
 
 .info {

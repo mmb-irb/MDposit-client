@@ -1,7 +1,8 @@
 .default {
-  height: 20vw;
+  height: 15rem;
 }
 
+/* The dashed lines of the growth chart */
 .grid line {
   stroke: #e0e0e0;
   stroke-dasharray: 3 3;

@@ -1,6 +1,10 @@
+/* The same room below as between the blocks of the summary */
+.nodes {
+  margin-bottom: var(--space-5);
+}
+
 .nodemap {
   height: 25em;
   width: 100%;
-  margin-top: 0.5em;
-  margin-bottom: 1em;
+  margin-bottom: var(--space-4);
 }

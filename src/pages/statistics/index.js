@@ -1,9 +1,6 @@
 // React logic
 import React from 'react';
 
-// Visual assets
-import { Typography } from '@mui/material';
-
 // Import the map chart to display where nodes are (global client only)
 import NodeMap from './nodemap';
 import NodeTable from './nodetable';
@@ -15,6 +12,7 @@ import useAPI from '../../hooks/use-api';
 
 import style from './style.module.css';
 import DataSummary from '../../components/data-summary';
+import Card from '../../components/data-summary/card';
 
 // Current data summary
 export default () => {
@@ -29,12 +27,10 @@ export default () => {
     if (nodesError) console.error(nodesError.message);
 
     return (<>
-        {isGlobal && <>
-            <Typography variant="h5">Node locations</Typography>
+        {isGlobal && <Card title="Node locations" className={style.nodes}>
             <NodeMap nodeData={nodesPayload} className={style.nodemap} />
             <NodeTable nodeData={nodesPayload} />
-            <br />
-        </>}
+        </Card>}
         <DataSummary nodeData={nodesPayload}/>
     </>);
 };

@@ -1,16 +1,45 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useMemo, useState } from 'react';
 import * as d3 from 'd3';
+import { useTheme } from '@mui/material/styles';
 import { isFromApi, NOT_FROM_API, NO_API_RESPONSE } from '../../utils/api-response';
+import createChartTooltip from '../../utils/chart-tooltip';
 
-// ─── Layout constants (fixed parts) ─────────────────────────────────────────
+// ─── Layout ───────────────────────────────────────────────────────────────────
+// The margins hold text, which keeps its size, so they are fixed
 const ML = 80, MB = 65, MT = 12, MR = 14;
-const MAIN_H = 520;
-const TOP_H = 100, RIGHT_W = 80, CBAR_W = 18;
+const CBAR_W = 18, CBAR_LABELS_W = 60;
 const GAP_T = 6, GAP_R = 15, GAP_CBAR = 28;
-const FIXED_W = ML + GAP_R + RIGHT_W + GAP_CBAR + CBAR_W + MR + 60;
+const FIXED_W = ML + GAP_R + GAP_CBAR + CBAR_W + CBAR_LABELS_W + MR;
+// The plots have these sizes when there is room, and shrink together in a narrower container
+const FULL_MAIN_W = 600, FULL_MAIN_H = 520, FULL_TOP_H = 100, FULL_RIGHT_W = 80;
+// The histograms keep at least the room of their axis numbers
+const MIN_TOP_H = 48, MIN_RIGHT_W = 56;
+// The main plot keeps at least this share of its full size
+// In a container too narrow for that the whole chart is scaled down, text included
+const MIN_MAIN_SCALE = 0.35;
+const MAX_W = FIXED_W + FULL_MAIN_W + FULL_RIGHT_W;
+const MIN_W = FIXED_W + FULL_MAIN_W * MIN_MAIN_SCALE + MIN_RIGHT_W;
+
+// The size of every part of the chart in a container of the given width
+function getLayout(containerWidth) {
+    const SVG_W = Math.min(MAX_W, Math.max(MIN_W, containerWidth));
+    let scale = (SVG_W - FIXED_W) / (FULL_MAIN_W + FULL_RIGHT_W);
+    let RIGHT_W = FULL_RIGHT_W * scale;
+    if (RIGHT_W < MIN_RIGHT_W) {
+        RIGHT_W = MIN_RIGHT_W;
+        scale = (SVG_W - FIXED_W - RIGHT_W) / FULL_MAIN_W;
+    }
+    const MAIN_W = FULL_MAIN_W * scale;
+    const MAIN_H = FULL_MAIN_H * scale;
+    const TOP_H = Math.max(MIN_TOP_H, FULL_TOP_H * scale);
+    const SVG_H = MT + TOP_H + GAP_T + MAIN_H + MB;
+    return { MAIN_W, MAIN_H, TOP_H, RIGHT_W, SVG_W, SVG_H };
+}
 
 const N_GRID  = 200;   // KDE grid resolution (matches Python)
 const N_LEVELS = 8;    // Number of contour levels (matches Python)
+// Above 1 the density color starts later: the low levels stay close to white
+const DENSITY_COLOR_CURVE = 2;
 const BW_METHOD = 0.9; // Bandwidth factor (tuned to match Python contour spread)
 
 // Constant FRAMESTEP isolines (ns)
@@ -23,8 +52,8 @@ const FRAMESTEP_LINES = [
     [0.001, '0.001 ns'],
 ];
 
-const axisNumbersFontSize = "15px";
-const axisLabelsFontSize = "22px";
+const axisNumbersFontSize = "12px";
+const axisLabelsFontSize = "14px";
 // Padding for the axis to add to the min/max
 const DOMAIN_PAD_DECADES = 0.5;
 
@@ -271,19 +300,18 @@ function countPointsInContour(contour, projectedPoints) {
     return count;
 }
 
-function drawScatterCanvas(canvasEl, points, xSc, ySc, mainWidth, mainHeight, alphaWeight) {
+function drawScatterCanvas(canvasEl, points, xSc, ySc, mainWidth, mainHeight, alphaWeight, color) {
     const dpr = window.devicePixelRatio || 1;
     canvasEl.width = Math.max(1, Math.round(mainWidth * dpr));
     canvasEl.height = Math.max(1, Math.round(mainHeight * dpr));
-    canvasEl.style.width = `${mainWidth}px`;
-    canvasEl.style.height = `${mainHeight}px`;
 
     const ctx = canvasEl.getContext('2d');
     if (!ctx) return;
 
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, mainWidth, mainHeight);
-    ctx.fillStyle = `rgba(70, 130, 180, ${alphaWeight / points.length})`;
+    const { r, g, b } = d3.rgb(color);
+    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alphaWeight / points.length})`;
 
     const radius = 2.5;
     for (const [t, f] of points) {
@@ -297,53 +325,30 @@ function drawScatterCanvas(canvasEl, points, xSc, ySc, mainWidth, mainHeight, al
 }
 
 // ─── D3 chart renderer ────────────────────────────────────────────────────────
-// containerWidth is the full pixel width of the wrapping div
-const SUPERSCRIPTS = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
-function fmtLargeNumber(v) {
-    const av = Math.abs(v);
-    if (av >= 1e4) return d3.format('.0e')(v);
-    if (av >= 1) return d3.format(',.0f')(v);
-    return d3.format('.2g')(v);
+// Counts are shortened as in the histograms of the page: 1k, 20k, 1M
+const fmtCount = d3.format('~s');
+
+// A time in ns with the unit that fits it: 0.01 ns, 100 ns, 10 μs, 1 ms
+function fmtTime(ns) {
+    const [value, unit] = ns >= 1e6 ? [ns / 1e6, 'ms'] : ns >= 1e3 ? [ns / 1e3, 'μs'] : [ns, 'ns'];
+    return `${d3.format('.3~g')(value)} ${unit}`;
 }
 
-function fmtPow10(v) {
+// Labels a tick with the given format, only when it is an exact power of 10 (not 2e-3 or 5e6)
+function fmtPow10(v, format) {
     const exp = Math.floor(Math.log10(v));
     const base = v / (10 ** exp);
-    // only label exact powers of 10, not 2e-3 or 5e6
-    if (base !== 1) return '';
-    if (exp === 0) return '1';
-    const sup = String(exp).split('').map(c => SUPERSCRIPTS[c] ?? c).join('');
-    return `10${sup}`;
+    return base === 1 ? format(v) : '';
 }
 
-function fmtScientific(v) {
-    // Display exact values in scientific notation with no decimals
-    if (v<1000) return d3.format('.2f')(v);
-    return d3.format('.2e')(v);
-}
-
-function drawChart(el, canvasEl, points, containerWidth = 760) {
-    const MAIN_W = Math.max(200, containerWidth - FIXED_W);
-    const SVG_W = ML + MAIN_W + GAP_R + RIGHT_W + GAP_CBAR + CBAR_W + MR + 60;
-    const SVG_H = MT + TOP_H + GAP_T + MAIN_H + MB;
-
-    const svg = d3.select(el).attr('width', SVG_W).attr('height', SVG_H);
+// layout: the sizes from getLayout
+// colors: the theme colors, as { main, dark }
+function drawChart(el, canvasEl, points, layout, colors) {
+    const { MAIN_W, MAIN_H, TOP_H, RIGHT_W, SVG_W, SVG_H } = layout;
+    const svg = d3.select(el).attr('viewBox', `0 0 ${SVG_W} ${SVG_H}`);
     svg.selectAll('*').remove();
 
-    // Tooltip
-    d3.selectAll('.fs-tooltip').remove();
-    const tooltip = d3.select('body').append('div')
-        .attr('class', 'fs-tooltip')
-        .style('position', 'fixed')
-        .style('z-index', 9999)
-        .style('background', 'rgba(0,0,0,0.72)')
-        .style('color', '#fff')
-        .style('padding', '3px 8px')
-        .style('border-radius', '4px')
-        .style('font-size', '12px')
-        .style('pointer-events', 'none')
-        .style('opacity', 0)
-        .style('transition', 'opacity 0.1s');
+    const tooltip = createChartTooltip();
 
     const ox = ML, oy = MT + TOP_H + GAP_T;
 
@@ -425,7 +430,7 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
             .attr('x', xSc(lt)).attr('y', ySc(lf))
             .attr('transform', `rotate(${angleDeg}, ${xSc(lt)}, ${ySc(lf)})`)
             .attr('dx', 2).attr('dy', -4)
-            .style('font-size', '14px').attr('fill', '#191919').attr('opacity', 0.85);
+            .style('font-size', axisNumbersFontSize).attr('fill', '#191919').attr('opacity', 0.85);
     });
 
     // ── KDE density contours in log10 space (zorder 3) ────────────────────────
@@ -448,11 +453,13 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
         10 ** (logLo + i * (logHi - logLo) / (N_LEVELS - 1))
     );
 
-    // Color mapping on a logarithmic density scale.
-    // Ref: https://matplotlib.org/stable/users/explain/colors/colormaps.html
-    const densityColor = d3.scaleSequential(d3.interpolateRdPu)
-        .domain([logLo, logHi]);
-    const getColor = v => densityColor(Math.log10(v));
+    // Color mapping on a logarithmic density scale: from white to a deep shade of the main theme color
+    // The curve keeps the low densities close to white, so the color only shows where MDs concentrate
+    // The points and the histograms use the dark theme color, to stand apart from the density
+    const deepColor = d3.rgb(colors.main).darker(1.2);
+    const densityColor = d3.scaleSequential(d3.interpolateRgbBasis(['#fff', colors.main, deepColor]))
+        .domain([0, 1]);
+    const getColor = v => densityColor(Math.max(0, (Math.log10(v) - logLo) / (logHi - logLo)) ** DENSITY_COLOR_CURVE);
 
     // Generate contours in grid coordinates, then transform to pixel space
     const contourGen = d3.contours().size([N_GRID, N_GRID]).thresholds(levels);
@@ -469,7 +476,7 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
 
     // ── Scatter points (under contours) ──────────────────────────────────────
     const alphaWeight = 10 ** (logHi / 1.5); // mid-level density for alpha scaling
-    drawScatterCanvas(canvasEl, points, xSc, ySc, MAIN_W, MAIN_H, alphaWeight);
+    drawScatterCanvas(canvasEl, points, xSc, ySc, MAIN_W, MAIN_H, alphaWeight, colors.dark);
 
     const fmtDensity = v => v >= 1 ? d3.format(',.0f')(v) : v.toFixed(1);
 
@@ -484,28 +491,22 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
         if (mx >= 0 && mx <= MAIN_W && my >= 0 && my <= MAIN_H) {
             const timeNs = xSc.invert(mx);
             const frames = ySc.invert(my);
-            textLines.push(`Time: ${fmtScientific(timeNs)} ns`);
-            textLines.push(`Frames: ${fmtScientific(frames)}`);
+            textLines.push(`Time: ${fmtTime(timeNs)}`);
+            textLines.push(`Frames: ${d3.format(',.0f')(frames)}`);
         }
 
         textLines.push(...customLines);
 
 
-        tooltip.style('opacity', 1)
-            .html(textLines.join('<br/>'))
-            .style('left', (d3.event.clientX + 15) + 'px')
-            .style('top', (d3.event.clientY - 5) + 'px');
+        tooltip.show(textLines.join('<br/>'), d3.event);
     }
 
     function moveTooltip() {
-        tooltip
-            .style('left', (d3.event.clientX + 15) + 'px')
-            .style('top', (d3.event.clientY - 5) + 'px');
+        tooltip.move(d3.event);
     }
 
     function showSimpleTooltip(text) {
-        tooltip.style('opacity', 1).text(text);
-        moveTooltip();
+        tooltip.show(text, d3.event);
     }
 
     // Transparent overlay for value display in empty areas
@@ -517,7 +518,7 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
         .attr('fill', 'transparent')
         .style('pointer-events', 'visible')
         .on('mousemove', () => showTooltip([]))
-        .on('mouseout', () => tooltip.style('opacity', 0));
+        .on('mouseout', () => tooltip.hide());
 
     // Filled contours (alpha 0.2 so scatter dots show through)
     gPlot.selectAll('.cf').data(contours).enter().append('path')
@@ -539,13 +540,13 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
         })
         .on('mouseout', function() {
             d3.select(this).attr('fill-opacity', 0.3);
-            tooltip.style('opacity', 0);
+            tooltip.hide();
         });
-    // Contour edges (thin black outlines)
+    // Contour edges (thin outlines, a bit darker than the fill of their level)
     gPlot.selectAll('.cl').data(contours).enter().append('path')
         .attr('d', d3.geoPath())
         .attr('fill', 'none')
-        .attr('stroke', '#000').attr('stroke-width', 0.5).attr('stroke-opacity', 0.35);
+        .attr('stroke', d => d3.rgb(getColor(d.value)).darker(0.7)).attr('stroke-width', 0.5).attr('stroke-opacity', 0.6);
 
 
     // ── Mean cross (zorder 5) ─────────────────────────────────────────────────
@@ -561,10 +562,10 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
 
     // ── Axes ──────────────────────────────────────────────────────────────────
     gMain.append('g').attr('transform', `translate(0,${MAIN_H})`)
-        .call(d3.axisBottom(xSc).ticks(6).tickFormat(fmtPow10)).style('font-size', '14px');
+        .call(d3.axisBottom(xSc).ticks(MAIN_W < 300 ? 3 : 6).tickFormat(v => fmtPow10(v, fmtTime))).style('font-size', axisNumbersFontSize);
     gMain.append('g')
-        .call(d3.axisLeft(ySc).ticks(6).tickFormat(fmtPow10)).style('font-size', '14px');
-    gMain.append('text').text('Total time (ns)')
+        .call(d3.axisLeft(ySc).ticks(6).tickFormat(v => fmtPow10(v, fmtCount))).style('font-size', axisNumbersFontSize);
+    gMain.append('text').text('Total time')
         .attr('text-anchor', 'middle').attr('x', MAIN_W / 2).attr('y', MAIN_H + 52)
         .style('font-size', axisLabelsFontSize);
     gMain.append('text').text('Frames')
@@ -591,13 +592,13 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
         gHT.append('rect')
             .attr('x', xSc(x0)).attr('width', Math.max(0, xSc(x1) - xSc(x0) - 0.5))
             .attr('y', htYSc(count)).attr('height', TOP_H - htYSc(count))
-            .attr('fill', 'steelblue').attr('fill-opacity', 0.75)
+            .attr('fill', colors.dark).attr('fill-opacity', 0.75)
             .style('cursor', 'default')
-            .on('mouseover', () => showSimpleTooltip(`Count: ${count}`))
+            .on('mouseover', () => showSimpleTooltip(`Count: ${count.toLocaleString()}`))
             .on('mousemove', () => moveTooltip())
-            .on('mouseout', () => tooltip.style('opacity', 0));
+            .on('mouseout', () => tooltip.hide());
     });
-    gHT.append('g').call(d3.axisLeft(htYSc).ticks(3).tickFormat(fmtLargeNumber)).style('font-size', '10px');
+    gHT.append('g').call(d3.axisLeft(htYSc).ticks(3).tickFormat(fmtCount)).style('font-size', axisNumbersFontSize);
     gHT.append('text').text('Count')
         .attr('text-anchor', 'middle')
         .attr('transform', `translate(-48,${TOP_H / 2}) rotate(-90)`)
@@ -623,14 +624,14 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
         gHR.append('rect')
             .attr('y', ySc(x1)).attr('height', Math.max(0, ySc(x0) - ySc(x1) - 0.5))
             .attr('x', 0).attr('width', hrXSc(count))
-            .attr('fill', 'steelblue').attr('fill-opacity', 0.75)
+            .attr('fill', colors.dark).attr('fill-opacity', 0.75)
             .style('cursor', 'default')
-            .on('mouseover', () => showSimpleTooltip(`Count: ${count}`))
+            .on('mouseover', () => showSimpleTooltip(`Count: ${count.toLocaleString()}`))
             .on('mousemove', () => moveTooltip())
-            .on('mouseout', () => tooltip.style('opacity', 0));
+            .on('mouseout', () => tooltip.hide());
     });
     gHR.append('g').attr('transform', `translate(0,${MAIN_H})`)
-        .call(d3.axisBottom(hrXSc).ticks(2).tickFormat(fmtLargeNumber)).style('font-size', '10px');
+        .call(d3.axisBottom(hrXSc).ticks(2).tickFormat(fmtCount)).style('font-size', axisNumbersFontSize);
     gHR.append('text').text('Count')
         .attr('text-anchor', 'middle').attr('x', RIGHT_W / 2).attr('y', MAIN_H + 42)
         .style('font-size', axisNumbersFontSize);
@@ -654,14 +655,17 @@ function drawChart(el, canvasEl, points, containerWidth = 760) {
     gCbar.append('g').attr('transform', `translate(${CBAR_W},0)`)
         .call(d3.axisRight(cbarSc)
             .tickValues(levels)
-            .tickFormat(fmtLargeNumber))
-        .style('font-size', '11px');
+            .tickFormat(d3.format('.3~s')))
+        .style('font-size', axisNumbersFontSize);
     // Label: "MDs per decade²"
     const cbarLabelX = CBAR_W + 64;
     gCbar.append('text').text('MDs per decade²')
         .attr('text-anchor', 'middle')
         .attr('transform', `translate(${cbarLabelX},${MAIN_H / 2}) rotate(-90)`)
-        .style('font-size', axisLabelsFontSize - 4);
+        .style('font-size', axisLabelsFontSize);
+
+    // The tooltip is to be removed when the chart is drawn again or gone
+    return tooltip.remove;
 }
 
 // ─── React component ──────────────────────────────────────────────────────────
@@ -672,11 +676,16 @@ const FramestepPlot = ({ jsonUrl, onPoints }) => {
     const containerRef = useRef(null);
     const [points, setPoints] = useState(null);
     const [error, setError] = useState(null);
-    const [width, setWidth] = useState(760);
+    const [width, setWidth] = useState(MAX_W);
+    const layout = useMemo(() => getLayout(width), [width]);
     const onPointsRef = useRef(onPoints);
     useEffect(() => { onPointsRef.current = onPoints; });
+    // Get the provided theme
+    const theme = useTheme();
+    const mainColor = theme.palette.primary.main;
+    const darkColor = theme.palette.primary.dark;
 
-    // Track container width for responsive layout
+    // Track the container width, which sets the size of the plots
     useEffect(() => {
         if (!containerRef.current) return;
         const observer = new ResizeObserver(entries => {
@@ -701,17 +710,23 @@ const FramestepPlot = ({ jsonUrl, onPoints }) => {
                 setPoints(pts);
                 onPointsRef.current?.(pts);
             })
-            .catch(err => setError(err.message));
+            .catch(err => {
+                setError(err.message);
+                // Report no points, so whoever shows this plot can hide its block
+                onPointsRef.current?.([]);
+            });
     }, [jsonUrl]);
 
     useEffect(() => {
         if (points && svgRef.current) {
-            drawChart(svgRef.current, canvasRef.current, points, width);
-        } else if (canvasRef.current) {
+            // Drawing returns how to remove the tooltip of the chart
+            return drawChart(svgRef.current, canvasRef.current, points, layout, { main: mainColor, dark: darkColor });
+        }
+        if (canvasRef.current) {
             const ctx = canvasRef.current.getContext('2d');
             if (ctx) ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
         }
-    }, [points, width]);
+    }, [points, layout, mainColor, darkColor]);
 
     // Old APIs have no framestep endpoint so we just return and empty component
     if (error) {
@@ -719,21 +734,24 @@ const FramestepPlot = ({ jsonUrl, onPoints }) => {
         return null;
     }
     return (
-        <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
+        <div ref={containerRef} style={{ position: 'relative', width: '100%', maxWidth: MAX_W }}>
             {!points && <div style={{ padding: 8 }}>Loading...</div>}
             <canvas
                 ref={canvasRef}
                 className="fs-scatter-canvas"
                 aria-hidden="true"
+                // Placed over the main plot in shares of the chart size, so it scales with the chart
                 style={{
                     position: 'absolute',
-                    left: ML,
-                    top: MT + TOP_H + GAP_T,
+                    left: `${100 * ML / layout.SVG_W}%`,
+                    top: `${100 * (MT + layout.TOP_H + GAP_T) / layout.SVG_H}%`,
+                    width: `${100 * layout.MAIN_W / layout.SVG_W}%`,
+                    height: `${100 * layout.MAIN_H / layout.SVG_H}%`,
                     zIndex: 0,
                     pointerEvents: 'none',
                 }}
             />
-            <svg ref={svgRef} style={{ display: 'block', position: 'relative', zIndex: 1 }} />
+            <svg ref={svgRef} style={{ display: 'block', position: 'relative', zIndex: 1, width: '100%', height: 'auto' }} />
         </div>
     );
 };
