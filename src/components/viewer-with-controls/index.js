@@ -34,7 +34,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 // Load components used specifically in the viewer with controls
 import RepresentationsManager from './representations-manager';
-import SettingsControls from './settings-controls';
+import SettingsControls, { MolstarViewer } from './settings-controls';
 
 import { get, setAsync } from '../../utils/storage';
 
@@ -265,7 +265,10 @@ const ViewerWithControls = forwardRef(
     if (startingRepresentations && representationsState)
       throw new Error('startingRepresentations and representationsState are not compatilbe inputs. Choose one.');
     // Set which viewer is used: NGL or MolStar (the default is NGL)
-    const [Viewer, setViewer] = useState(NGLViewer);
+    // The last choice of the user is remembered, but pages which do not allow MolStar always use NGL
+    const [Viewer, setViewer] = useState(() =>
+      allowMolstar && get('viewer', 'ngl') === 'molstar' ? MolstarViewer : NGLViewer,
+    );
     // Get project metadata
     const { metadata, accessionAndMdNumber, topology, fileDescriptors } = useContext(ProjectCtx);
     // Track the current frame and time

@@ -28,7 +28,7 @@ import { setAsync } from '../../../utils/storage';
 import NGLViewer from '../../ngl-viewer';
 // Mol* is a ~3 MB chunk only needed once the user switches to it, so it is loaded lazily
 // The lazy component is created once here so the identity checks below keep working
-const MolstarViewer = lazy(() =>
+export const MolstarViewer = lazy(() =>
   import(/* webpackChunkName: 'molstar-viewer' */ '../../molstar-viewer'),
 );
 
@@ -208,6 +208,8 @@ const SettingsControls = ({
                 if (currentViewer === MolstarViewer) return NGLViewer;
                 throw new Error('Unrecognized current viewer');
               });
+              // Remember the choice for the next time
+              setAsync('viewer', Viewer === NGLViewer ? 'molstar' : 'ngl');
             }}
           >
             <FontAwesomeIcon icon={Viewer === NGLViewer ? faStarOfLife : faShareAlt} />
