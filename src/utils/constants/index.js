@@ -87,6 +87,7 @@ export const NICE_NAMES = new Map([
     ['allostery', 'Allostery'],
     ['chemical-shifts', 'Chemical shifts'],
     ['pbcontacts', 'PBC contacts'],
+    ['provenance', 'Provenance'],
 ]);
 
 // Set manually which references have entropies or epitopes

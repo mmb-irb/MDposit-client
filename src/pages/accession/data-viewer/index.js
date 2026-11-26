@@ -68,6 +68,7 @@ const ENDPOINTS = {
   dihenergies: ['analyses/dihenergies'],
   allostery: ['analyses/allostery'],
   'chemical-shifts': ['analyses/chemshifts'],
+  provenance: [],
 }
 
 // Set a flag for the subpages that are not implemented yet

@@ -12,7 +12,7 @@ import { Project } from '../../utils/project-manager';
 const na = 'Not available';
 
 // Directions which are not shown in the browser since they are not analyses
-const HIDDEN_DIRECTIONS = new Set(['pbcontacts']);
+const HIDDEN_DIRECTIONS = new Set(['pbcontacts', 'provenance']);
 
 const Row = ({ projectData, highlight, index, previewUrl }) => {
   // Parse the project data using the project manager

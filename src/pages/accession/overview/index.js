@@ -15,7 +15,9 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faClipboardList,
+  faProjectDiagram,
 } from '@fortawesome/free-solid-svg-icons';
+import { Link } from 'react-router';
 import { useTheme } from '@mui/material/styles';
 import style from './style.module.css';
 import { prettyEnumerate } from '../../../utils/pretty-enumerate';
@@ -29,6 +31,7 @@ import PdbsOverview from './pdbs';
 import SystemKeywords from './keywords';
 import Warnings from './warnings';
 import { canShowPbcContacts } from '../../../utils/pbc-contacts';
+import { hasProvenance } from '../../../utils/provenance';
 // Import constants
 import {
   HOST_CONFIG,
@@ -185,6 +188,17 @@ const Overview = React.memo(() => {
                       })}
                     </DecoratedListItem>}
                 </DecoratedList>
+                {hasProvenance(metadata) && (
+                  <Button
+                    component={Link}
+                    to={`/id/${accessionAndMdNumber}/provenance`}
+                    variant="outlined"
+                    size="small"
+                    startIcon={<FontAwesomeIcon icon={faProjectDiagram} />}
+                  >
+                    Provenance
+                  </Button>
+                )}
                 <Warnings
                   warnings={metadata.WARNINGS}
                   pbcContactsUrl={canShowPbcContacts(metadata)

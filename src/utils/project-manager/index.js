@@ -13,6 +13,7 @@ import {
 // Import the topology manager class
 import { Topology } from '../topology-manager';
 import { Reference } from '../reference-manager';
+import { hasProvenance } from '../provenance';
 // Import the NGL structure parser
 
 // Check if an interactions analysis payload is an index of interaction analyses (new format)
@@ -124,6 +125,8 @@ export class Project {
         if (this.analyses.includes('allostery')) this.directions['allostery'] = true;
         // Set the chemical shifts analysis, which is hidden unless available
         if (this.analyses.includes('chemshifts')) this.directions['chemical-shifts'] = true;
+        // Set the provenance, which is available only when the project has it
+        if (hasProvenance(this.metadata)) this.directions['provenance'] = true;
         // Set an internal object to save loading status of every call
         this._apiQueriesLoading = {};
         // Save the topology manager apart so we do not have to re-instantiate the class every time
