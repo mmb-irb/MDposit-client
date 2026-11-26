@@ -88,7 +88,7 @@ const DensityPlot = forwardRef(({
     // Set the graph actual drawing
     const drawing = graph.append("path")
       .attr("opacity", ".8")
-      .attr("stroke", "#000")
+      .attr("stroke", "var(--mui-palette-text-primary)")
       .attr("stroke-width", 1)
       .attr("stroke-linejoin", "round");
 

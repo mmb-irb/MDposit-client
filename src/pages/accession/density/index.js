@@ -21,6 +21,7 @@ import { ProjectCtx } from '../../../contexts';
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 import { getMean } from '../../../utils/statistics';
 import style from './style.module.css';
+import ink from '../../../utils/ink';
 
 const Graph = lazy(() =>
   import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
@@ -210,7 +211,7 @@ const Density = () => {
                         control={
                           <Checkbox
                             checked={display[key]}
-                            style={{ color: colors[i] }}
+                            style={{ color: ink(colors[i]) }}
                           />
                         }
                         label={key}

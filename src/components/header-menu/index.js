@@ -27,12 +27,14 @@ import {
     Storage as StorageIcon,
     Assignment as AssignmentIcon,
     ArrowDropDown as ArrowDropDownIcon,
+    DarkMode as DarkModeIcon,
+    LightMode as LightModeIcon,
 } from '@mui/icons-material';
 // Import constants
 import { BASE_PATH, HOST_CONFIG, MDPOSIT_URL } from '../../utils/constants';
 // Import CSS style
 import style from './style.module.css';
-import { alpha, useTheme } from '@mui/material/styles';
+import { alpha, useTheme, useColorScheme } from '@mui/material/styles';
 
 // Render all buttons in the superior header and manage the user redirection when they are clicked
 const HeaderMenu = () => {
@@ -52,9 +54,12 @@ const HeaderMenu = () => {
     const isAboutCurrent = isCurrent('documents') || isCurrent('help') || isCurrent('contact');
     // Get the provided theme
     const theme = useTheme();
+    // Get the colour scheme (light or dark), which MUI keeps in the local storage
+    const { mode, setMode } = useColorScheme();
+    const isDark = mode === 'dark';
     // Set some style-related values
-    const primaryColor = theme.palette.primary.light;
-    const secondaryColor = theme.palette.primary.dark;
+    const primaryColor = 'var(--header-light)';
+    const secondaryColor = 'var(--header-dark)';
     const contrastText = theme.palette.secondary.contrastText;
     const selectedTabStyle = {  color: contrastText, backgroundColor: secondaryColor };
     const normalTabStyle= { color: contrastText };
@@ -245,6 +250,14 @@ const HeaderMenu = () => {
                                     <MailIcon fontSize="small" sx={{ color: contrastText }} />
                                 </ListItemIcon>
                                 Contact
+                            </MenuItem>
+                            <MenuItem onClick={() => setMode(isDark ? 'light' : 'dark')}>
+                                <ListItemIcon>
+                                    {isDark
+                                        ? <LightModeIcon fontSize="small" sx={{ color: contrastText }} />
+                                        : <DarkModeIcon fontSize="small" sx={{ color: contrastText }} />}
+                                </ListItemIcon>
+                                {isDark ? 'Light mode' : 'Dark mode'}
                             </MenuItem>
                         </MenuList>
                     </Paper>

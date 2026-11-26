@@ -2,6 +2,7 @@ import React, {
   lazy,
   useContext,
   useState,
+  useEffect,
   useRef,
   useMemo,
   useCallback,
@@ -36,11 +37,15 @@ import useAPI from '../../../hooks/use-api';
 import useColors from '../../../hooks/use-colors';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
+import ink from '../../../utils/ink';
 
 const pdbUrlBase = 'https://www.rcsb.org/structure/';
 
 const hoveredEpitopeColor = 'yellow';
-const defaultRepresentationsColor = 'black';
+// The opacity of the default representations, which show the whole system as a reference
+const BASE_OPACITY = 0.3;
+// Their colour is black, or white if the viewer background is dark, since black would be invisible
+const getBaseColor = darkBackground => (darkBackground ? 'white' : 'black');
 
 const dashStyles = [
   null,
@@ -253,6 +258,23 @@ const Epitopes = () => {
 
   // Define the representations to be displayed in the viewer
   const [ representations, setRepresentations ] = useState(null);
+  // Whether the viewer background is dark, since the reference representations must stand out
+  const [ darkBackground, setDarkBackground ] = useState(false);
+
+  // Swap the colour of the reference representations when the background changes
+  // Only black and white are swapped, so a colour picked by the user is respected
+  useEffect(() => {
+    const from = getBaseColor(!darkBackground);
+    const to = getBaseColor(darkBackground);
+    setRepresentations(previousRepresentations => {
+      if (!previousRepresentations || !defaultRepresentations) return previousRepresentations;
+      const baseCount = defaultRepresentations.length;
+      const isBase = (rep, i) => i < baseCount && rep.opacity === BASE_OPACITY && rep.color === from;
+      if (!previousRepresentations.some(isBase)) return previousRepresentations;
+      return previousRepresentations.map((rep, i) =>
+        isBase(rep, i) ? { ...rep, color: to } : rep);
+    });
+  }, [darkBackground, defaultRepresentations]);
 
   // Set or update the viewer representations
   useMemo(() => {
@@ -266,9 +288,9 @@ const Epitopes = () => {
       // If this is the first time we set the representations then set some default values
       if (previousRepresentations === null) {
         const newRepresentations = [];
-        // Reduce the opacity of all default representations and set their color as black
+        // Reduce the opacity of all default representations and set their color as black (or white in a dark background)
         defaultRepresentations.forEach(representation => {
-          newRepresentations.push({ ...representation, opacity: 0.3, color: defaultRepresentationsColor });
+          newRepresentations.push({ ...representation, opacity: BASE_OPACITY, color: getBaseColor(darkBackground) });
         });
         // In case there are selected epitopes add an extra representation for each one
         selectedEpitopes.forEach((color, i) => {
@@ -467,9 +489,7 @@ const Epitopes = () => {
                             <Checkbox
                               checked={selectedEpitopes[num] ? true : false}
                               style={{
-                                color: selectedEpitopes[num]
-                                  ? selectedEpitopes[num]
-                                  : 'black',
+                                color: ink(selectedEpitopes[num]),
                               }}
                               inputProps={{ 'data-key': epitopeName }}
                             />
@@ -522,6 +542,7 @@ const Epitopes = () => {
             className={style.container}
             startingComponents={components}
             representationsState={[representations, setRepresentations]}
+            onDarkBackgroundChange={setDarkBackground}
             snapRepresentations={snapRepresentations}
             onProgress={handleFrameProgress}
             ref={viewerRef}

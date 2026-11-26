@@ -25,6 +25,7 @@ import { getMeanAndStdv } from '../../../utils/statistics';
 import { getLipidNames, getReferenceResidueNames } from '../../../utils/lipids';
 
 import style from './style.module.css';
+import ink from '../../../utils/ink';
 
 const Graph = lazy(() =>
   import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
@@ -233,7 +234,7 @@ const LipidOrder = () => {
                       control={
                         <Checkbox
                           checked={display[key]}
-                          style={{ color: data.color }}
+                          style={{ color: ink(data.color) }}
                         />
                       }
                       label={key}

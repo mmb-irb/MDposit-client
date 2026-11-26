@@ -140,8 +140,8 @@ const ProjectMenu = ({ accessionAndMdNumber, subPage }) => {
 
   // Get the provided theme
   const theme = useTheme();
-  const primaryColor = theme.palette.primary.main;
-  const primaryDarkColor = theme.palette.primary.dark;
+  const primaryColor = 'var(--header-main)';
+  const primaryDarkColor = 'var(--header-dark)';
   const secondaryColor = theme.palette.secondary.contrastText;
 
   // Set the style of the current selected tab

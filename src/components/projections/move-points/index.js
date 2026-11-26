@@ -9,7 +9,8 @@ const customElastic = easeElastic.amplitude(1).period(0.5);
 // timer instance variable
 let t;
 
-export default ({ context, dataPoints, width, height, maxTime, isFirstTime }) =>
+// background: the colour to clean the canvas with. It must be already resolved, since canvas can not read CSS variables
+export default ({ context, dataPoints, width, height, maxTime, isFirstTime, background = 'white' }) =>
   new Promise(res => {
     if (t) t.stop();
     t = timer(elapsed => {
@@ -17,14 +18,16 @@ export default ({ context, dataPoints, width, height, maxTime, isFirstTime }) =>
       // if we finished transitioning, clear completely the canvas
       if (isLastDraw) {
         t.stop();
-        context.fillStyle = 'white';
+        context.fillStyle = background;
         context.fillRect(0, 0, width * dPR, height * dPR);
       } else {
         // clean up the canvas before drawing everything else
-        // using white, but opacity 0.25, to keep a shadow of the previous drawings
+        // using the background, but opacity 0.25, to keep a shadow of the previous drawings
         // to give the illusion of movement
-        context.fillStyle = `rgba(255, 255, 255, 0.25)`;
+        context.fillStyle = background;
+        context.globalAlpha = 0.25;
         context.fillRect(0, 0, width * dPR, height * dPR);
+        context.globalAlpha = 1;
       }
       // loop on every data point and draw them
       for (const dataPoint of dataPoints) {

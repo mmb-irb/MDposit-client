@@ -23,12 +23,13 @@ import {
 } from 'd3';
 
 import { FormControlLabel, Checkbox } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
+import { useTheme, useColorScheme } from '@mui/material/styles';
 
 import { NICE_NAMES } from '../../utils/constants';
 
 import addTextBackground from './add-text-background';
 import addMasks from './add-masks';
+import inkColor, { INK } from '../../utils/ink';
 
 import { getTextWidth, getTextSizeDOM } from '../../utils/document-measurer';
 
@@ -167,6 +168,14 @@ const Graph = forwardRef(({
   // Marks are tinted with the host primary colour, like selected table rows
   const theme = useTheme();
   const markFill = `rgba(${theme.vars.palette.primary.mainChannel} / 0.3)`;
+  // Series without colour (or black) are drawn with the text colour, so they are visible in dark mode
+  const ink = INK;
+  const inkOf = inkColor;
+  // The canvas can not read CSS variables, so it is redrawn with the resolved colours when the mode changes
+  const { mode } = useColorScheme();
+  // The draw function is made only once, so it reads the mode through a reference
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
 
   // Get each dataset
   const { yEntries, yKeys } = useMemo(() => {
@@ -455,6 +464,7 @@ const Graph = forwardRef(({
           .append('text')
           .attr('id', 'title')
           .attr('class', 'title')
+          .attr('fill', ink)
           .style('text-anchor', 'middle')
           .attr('x', width / 2)
           .attr('y', margin.top + labelsHeight)
@@ -509,6 +519,7 @@ const Graph = forwardRef(({
           .append('text')
           .attr('id', 'xlab')
           .attr('class', 'x label')
+          .attr('fill', ink)
           .attr('text-anchor', 'middle')
           .attr('x', offset.left + bodyWidth / 2)
           .attr('y', offset.top + bodyHeight + requiredBottomOffset)
@@ -549,6 +560,7 @@ const Graph = forwardRef(({
           .append('text')
           .attr('id', 'ylab')
           .attr('class', 'y label')
+          .attr('fill', ink)
           .attr('text-anchor', 'middle')
           .attr('x', -(offset.top + bodyHeight / 2))
           .attr(
@@ -570,7 +582,7 @@ const Graph = forwardRef(({
           .append('line')
           .attr('class', 'zero')
           .merge(zeroLineEl)
-          .attr('stroke', '#000000')
+          .attr('stroke', ink)
           .attr('stroke-width', 1)
           .attr('stroke-dasharray', '5,5')
           .attr('x1', x(xMin))
@@ -590,7 +602,7 @@ const Graph = forwardRef(({
           .append('line')
           .attr('class', 'mean')
           .merge(meanLines)
-          .attr('stroke', d => (data[d] && data[d].color) || 'black')
+          .attr('stroke', d => inkOf(data[d] && data[d].color))
           .attr('x1', x(xMin))
           .attr('x2', x(xMax))
           .attr('y1', d => y(getMean(data[d].data)))
@@ -617,7 +629,7 @@ const Graph = forwardRef(({
           .append('rect')
           .attr('class', 'sd')
           .merge(sdRects)
-          .attr('fill', d => (data[d] && data[d].color) || 'black')
+          .attr('fill', d => inkOf(data[d] && data[d].color))
           .attr('x', x(xMin))
           .attr('width', x(xMax) - x(xMin))
           .attr('y', d => {
@@ -649,7 +661,7 @@ const Graph = forwardRef(({
           .append('path')
           .attr('class', 'density-sd')
           .merge(sdAreas)
-          .attr('fill', d => (data[d] && data[d].color) || 'black')
+          .attr('fill', d => inkOf(data[d] && data[d].color))
           .attr('d', d => {
             if (!data[d] || !data[d].data || !data[d].areaStdDev) return null;
             
@@ -690,7 +702,7 @@ const Graph = forwardRef(({
           .attr('fill', 'none')
           // Update existing lines with the mapped data
           .merge(linesData)
-          .attr('stroke', d => data[d].color || 'black')
+          .attr('stroke', d => inkOf(data[d].color))
           .style('stroke-dasharray', d =>
             data[d].dash ? data[d].dash : undefined,
           )
@@ -719,7 +731,10 @@ const Graph = forwardRef(({
         canvasContext.clearRect(0, 0, width, height);
         for (const [key, { data: values, color, errorBars }] of Object.entries(data)) {
           if (!labels[key]) continue;
-          canvasContext.fillStyle = color || '#000000';
+          // Canvas needs the resolved colour of the text, not the CSS variable
+          canvasContext.fillStyle = inkOf(color) === ink
+            ? getComputedStyle(containerRef.current).color
+            : color;
           canvasContext.lineWidth = dPR;
           const maxInView = Math.min(values.length - 1, maxIndex);
           // each atom in view
@@ -736,7 +751,7 @@ const Graph = forwardRef(({
               // If the color is white (i.e. it is an hydrogen) then paint it slightly grey
               // The background is white so a white rectangle would be not visible
               canvasContext.fillStyle =
-                atomColor === 'white' ? '#eeeeee' : atomColor;
+                atomColor === 'white' && modeRef.current !== 'dark' ? '#eeeeee' : atomColor;
             }
             // Draw a vertical error bar, centered in the dash/dot, using the same color
             if (errorBars) {
@@ -807,15 +822,15 @@ const Graph = forwardRef(({
         .attr('cx', 0)
         .attr('cy', 0)
         .attr('r', 5)
-        .attr('fill', d => (data[d] && data[d].color) || 'black');
+        .attr('fill', d => inkOf(data[d] && data[d].color));
       dotGroups
         .append('text')
         .style('text-anchor', 'middle')
         .style('font-weight', 'bold')
         .style('paint-order', 'stroke')
         .attr('y', '-5px')
-        .attr('fill', d => (data[d] && data[d].color) || 'black')
-        .attr('stroke', 'rgba(255, 255, 255, 0.5)')
+        .attr('fill', d => inkOf(data[d] && data[d].color))
+        .attr('stroke', `rgba(${theme.vars.palette.background.paperChannel} / 0.5)`)
         .attr('stroke-width', 5)
         .attr('filter', textBackgroundURL);
 
@@ -828,15 +843,15 @@ const Graph = forwardRef(({
         .attr('cx', 0)
         .attr('cy', 0)
         .attr('r', 5)
-        .attr('fill', 'black');
+        .attr('fill', ink);
       actualXDot
         .append('text')
         .style('text-anchor', 'middle')
         .style('font-weight', 'bold')
         .style('paint-order', 'stroke')
         .attr('y', '-5px')
-        .attr('fill', 'black')
-        .attr('stroke', 'rgba(255, 255, 255, 0.5)')
+        .attr('fill', ink)
+        .attr('stroke', `rgba(${theme.vars.palette.background.paperChannel} / 0.5)`)
         .attr('stroke-width', 5)
         .attr('filter', textBackgroundURL);
 
@@ -1116,7 +1131,8 @@ const Graph = forwardRef(({
     xColors,
     xTooltip,
     areaStdDev,
-    yPadding
+    yPadding,
+    mode
   ]);
 
   // Handle when weights change apart, since they must be normalized
@@ -1226,7 +1242,7 @@ const Graph = forwardRef(({
                 control={
                   <Checkbox
                     checked={lab[key]}
-                    style={{ color: yData[key].color || 'black' }}
+                    style={{ color: inkOf(yData[key].color) }}
                     inputProps={{ 'data-key': key }}
                   />
                 }

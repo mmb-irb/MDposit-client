@@ -36,11 +36,11 @@ const bentControlPoint = (startX, startY, endX, endY, bendFraction) => {
 
 // Set display colors
 const colors = {
-  default: "black",
+  default: "var(--mui-palette-text-primary)",
   hovered: "blue",
   selected: "green",
   link: "#aaa",
-  hoveredLink: "#333"
+  hoveredLink: "var(--mui-palette-text-primary)"
 }
 const strokeWidths = {
   default: 2,

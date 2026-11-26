@@ -10,7 +10,7 @@ const addTextBackground = defs => {
     .attr('width', 1)
     .attr('height', 1)
     .attr('id', id);
-  filter.append('feFlood').attr('flood-color', 'white');
+  filter.append('feFlood').style('flood-color', 'var(--mui-palette-background-paper)');
   filter.append('feComposite').attr('in', 'SourceGraphic');
   return `url(#${id})`;
 };

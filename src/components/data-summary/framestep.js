@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useMemo, useState } from 'react';
 import * as d3 from 'd3';
-import { useTheme } from '@mui/material/styles';
+import { useTheme, useColorScheme } from '@mui/material/styles';
 import { isFromApi, NOT_FROM_API, NO_API_RESPONSE } from '../../utils/api-response';
 import createChartTooltip from '../../utils/chart-tooltip';
 
@@ -378,11 +378,11 @@ function drawChart(el, canvasEl, points, layout, colors) {
     xMajorTicks.forEach(v =>
         gPlot.append('line')
             .attr('x1', xSc(v)).attr('x2', xSc(v)).attr('y1', 0).attr('y2', MAIN_H)
-            .attr('stroke', '#444').attr('stroke-opacity', 0.45).attr('stroke-width', 0.8));
+            .attr('stroke', 'var(--mui-palette-text-secondary)').attr('stroke-opacity', 0.45).attr('stroke-width', 0.8));
     yMajorTicks.forEach(v =>
         gPlot.append('line')
             .attr('x1', 0).attr('x2', MAIN_W).attr('y1', ySc(v)).attr('y2', ySc(v))
-            .attr('stroke', '#444').attr('stroke-opacity', 0.45).attr('stroke-width', 0.8));
+            .attr('stroke', 'var(--mui-palette-text-secondary)').attr('stroke-opacity', 0.45).attr('stroke-width', 0.8));
 
     // Minor grid
     xMinorTicks.forEach(v => {
@@ -430,7 +430,7 @@ function drawChart(el, canvasEl, points, layout, colors) {
             .attr('x', xSc(lt)).attr('y', ySc(lf))
             .attr('transform', `rotate(${angleDeg}, ${xSc(lt)}, ${ySc(lf)})`)
             .attr('dx', 2).attr('dy', -4)
-            .style('font-size', axisNumbersFontSize).attr('fill', '#191919').attr('opacity', 0.85);
+            .style('font-size', axisNumbersFontSize).attr('fill', 'var(--mui-palette-text-primary)').attr('opacity', 0.85);
     });
 
     // ── KDE density contours in log10 space (zorder 3) ────────────────────────
@@ -456,8 +456,10 @@ function drawChart(el, canvasEl, points, layout, colors) {
     // Color mapping on a logarithmic density scale: from white to a deep shade of the main theme color
     // The curve keeps the low densities close to white, so the color only shows where MDs concentrate
     // The points and the histograms use the dark theme color, to stand apart from the density
+    // The lowest density is the colour of the page cards (white in light mode), resolved since d3 can not interpolate CSS variables
+    const paperColor = getComputedStyle(el).getPropertyValue('--mui-palette-background-paper').trim() || '#fff';
     const deepColor = d3.rgb(colors.main).darker(1.2);
-    const densityColor = d3.scaleSequential(d3.interpolateRgbBasis(['#fff', colors.main, deepColor]))
+    const densityColor = d3.scaleSequential(d3.interpolateRgbBasis([paperColor, colors.main, deepColor]))
         .domain([0, 1]);
     const getColor = v => densityColor(Math.max(0, (Math.log10(v) - logLo) / (logHi - logLo)) ** DENSITY_COLOR_CURVE);
 
@@ -585,7 +587,7 @@ function drawChart(el, canvasEl, points, layout, colors) {
     htYSc.ticks(3).forEach(v => {
         gHT.append('line')
             .attr('x1', 0).attr('x2', MAIN_W).attr('y1', htYSc(v)).attr('y2', htYSc(v))
-            .attr('stroke', '#444').attr('stroke-opacity', 0.4).attr('stroke-width', 0.6);
+            .attr('stroke', 'var(--mui-palette-text-secondary)').attr('stroke-opacity', 0.4).attr('stroke-width', 0.6);
     });
     tBins.forEach(({ x0, x1, count }) => {
         if (!count) return;
@@ -617,7 +619,7 @@ function drawChart(el, canvasEl, points, layout, colors) {
     hrXSc.ticks(3).forEach(v => {
         gHR.append('line')
             .attr('x1', hrXSc(v)).attr('x2', hrXSc(v)).attr('y1', 0).attr('y2', MAIN_H)
-            .attr('stroke', '#444').attr('stroke-opacity', 0.4).attr('stroke-width', 0.6);
+            .attr('stroke', 'var(--mui-palette-text-secondary)').attr('stroke-opacity', 0.4).attr('stroke-width', 0.6);
     });
     fBins.forEach(({ x0, x1, count }) => {
         if (!count) return;
@@ -649,7 +651,7 @@ function drawChart(el, canvasEl, points, layout, colors) {
             .attr('fill', getColor(10 ** logV));
     }
     gCbar.append('rect').attr('width', CBAR_W).attr('height', MAIN_H)
-        .attr('fill', 'none').attr('stroke', '#ccc');
+        .attr('fill', 'none').attr('stroke', 'var(--mui-palette-divider)');
     const cbarSc = d3.scaleLog().domain([levels[0], levels[N_LEVELS - 1]]).range([MAIN_H, 0]);
     // Show all contour level values on the colorbar (matching Python)
     gCbar.append('g').attr('transform', `translate(${CBAR_W},0)`)
@@ -683,7 +685,9 @@ const FramestepPlot = ({ jsonUrl, onPoints }) => {
     // Get the provided theme
     const theme = useTheme();
     const mainColor = theme.palette.primary.main;
-    const darkColor = theme.palette.primary.dark;
+    // The points are drawn with the dark colour, which in dark mode would vanish against the background
+    const { mode } = useColorScheme();
+    const darkColor = mode === 'dark' ? theme.palette.primary.light : theme.palette.primary.dark;
 
     // Track the container width, which sets the size of the plots
     useEffect(() => {
@@ -726,7 +730,7 @@ const FramestepPlot = ({ jsonUrl, onPoints }) => {
             const ctx = canvasRef.current.getContext('2d');
             if (ctx) ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
         }
-    }, [points, layout, mainColor, darkColor]);
+    }, [points, layout, mainColor, darkColor, mode]);
 
     // Old APIs have no framestep endpoint so we just return and empty component
     if (error) {

@@ -55,6 +55,8 @@ import connectionLevel, {
 import reducedMotion from '../../utils/reduced-motion';
 import useMembraneReducedView from './use-membrane-reduced-view';
 // Import CSS style
+import { useColorScheme } from '@mui/material/styles';
+
 import style from './style.module.css';
 // Import context data
 import { ProjectCtx } from '../../contexts';
@@ -249,6 +251,9 @@ const ViewerWithControls = forwardRef(
       preventTrajectory = false,
       // Set a state setter to handle the frame progress
       onProgress,
+      // Callback to be told whether the background is dark (on start and whenever it changes)
+      // This allows to pick representation colours which stand out in both cases
+      onDarkBackgroundChange,
       // NGL selection of atoms to center the trajectory around, every frame
       centering = null,
       // Set if the user may switch to the MolStar viewer
@@ -432,9 +437,22 @@ const ViewerWithControls = forwardRef(
     const [spinning, toggleSpinning] = useToggleState(false);
     const [smooth, setSmooth] = useState(true);
     const [showBox, toggleShowBox] = useToggleState(false);
+    // The viewer background follows the colour scheme of the page (dark mode) when this changes
+    // Otherwise it starts with the background the user chose last, or the one matching the scheme
+    const { mode } = useColorScheme();
     const [darkBackground, toggleDarkBackground] = useToggleState(
-      useMemo(() => get('dark-background', false), []),
+      useMemo(() => get('dark-background', mode === 'dark'), []), // eslint-disable-line react-hooks/exhaustive-deps
     );
+    useEffect(() => {
+      if (onDarkBackgroundChange) onDarkBackgroundChange(darkBackground);
+    }, [darkBackground, onDarkBackgroundChange]);
+    const previousMode = useRef(mode);
+    useEffect(() => {
+      if (previousMode.current === mode) return;
+      previousMode.current = mode;
+      toggleDarkBackground(mode === 'dark');
+      setAsync('dark-background', mode === 'dark');
+    }, [mode, toggleDarkBackground]);
     const [perspective, togglePerspective] = useToggleState(
       useMemo(() => get('perspective', false), []),
     );

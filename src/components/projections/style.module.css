@@ -8,15 +8,6 @@
   position: absolute;
 }
 
-.graph-container .axis {
-  opacity: 0.1;
-  transition: opacity 0.25s ease-in-out;
-}
-
-.graph-container:hover .axis {
-  opacity: 1;
-}
-
 .legend-text {
   text-anchor: middle;
 }

@@ -3,6 +3,7 @@ import React from 'react';
 import { FormControlLabel, Checkbox } from '@mui/material';
 
 import style from './style.module.css';
+import ink from '../../utils/ink';
 
 // Expected input format is entires =
 //  [
@@ -25,7 +26,7 @@ const Legend = ({ entries, onChange, onMouseOver, onMouseOut }) => {
           control={
             <Checkbox
               checked={check}
-              style={{ color: color || 'black' }}
+              style={{ color: ink(color) }}
               inputProps={{ 'data-key': name }}
             />
           }

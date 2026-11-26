@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
-import { useTheme } from '@mui/material/styles';
+import { useTheme, useColorScheme } from '@mui/material/styles';
 import createChartTooltip from '../../utils/chart-tooltip';
 
 
@@ -15,7 +15,9 @@ const TimelineChart = ({ data, className }) => {
   // Get the provided theme
   const theme = useTheme();
   const primaryColor = theme.palette.primary.main;
-  const secondaryColor = theme.palette.primary.dark;
+  // The dark colour would be dim against the dark mode background
+  const { mode } = useColorScheme();
+  const secondaryColor = mode === 'dark' ? theme.palette.primary.light : theme.palette.primary.dark;
 
   // Observe container size changes
   useEffect(() => {
@@ -104,7 +106,7 @@ const TimelineChart = ({ data, className }) => {
       )
       .call(g => g.select(".domain").remove())
       .call(g => g.selectAll(".tick line")
-        .style("stroke", "#e0e0e0")
+        .style("stroke", "var(--mui-palette-divider)")
         .style("stroke-dasharray", "3,3")
       );
 
@@ -258,7 +260,7 @@ const TimelineChart = ({ data, className }) => {
       .attr("y", -4)
       .attr("width", legendWidth + 12)
       .attr("height", legendHeight)
-      .attr("fill", "white")
+      .style("fill", "var(--mui-palette-background-paper)")
       .attr("opacity", 0.85)
       .attr("rx", 3);
 
@@ -292,7 +294,7 @@ const TimelineChart = ({ data, className }) => {
 
     // The tooltip goes away with this drawing of the chart
     return tooltip.remove;
-  }, [data, dimensions]);
+  }, [data, dimensions, primaryColor, secondaryColor]);
 
   return (
     <div ref={containerRef} className={className} style={{ width: '100%', height: '100%' }}>

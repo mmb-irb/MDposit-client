@@ -10,7 +10,8 @@ import ColorLegend from '../color-legend';
 
 import useColors from '../../hooks/use-colors';
 
-import { scaleLinear } from 'd3';
+import { scaleLinear, color as d3color } from 'd3';
+import { useColorScheme } from '@mui/material/styles';
 
 import { ProjectCtx } from '../../contexts';
 
@@ -33,6 +34,17 @@ const addPointer = target => {
 // Set the color of each residue letter in the residue selector by default
 // WARNING: White looks better as minimum color because the background is white so the contrast is low
 const defaultColorPlan = ['white', 'yellow', 'red'];
+// The same scale, darkened for dark mode so the residues do not glare against the dark page
+const darkDefaultColorPlan = ['#303030', '#8a6d00', '#b71c1c'];
+
+// Get a letter color which can be read over the given background color
+const getLetterColor = background => {
+  const rgb = d3color(background)?.rgb();
+  if (!rgb) return undefined;
+  // Perceived brightness, from 0 (black) to 255 (white)
+  const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+  return brightness > 140 ? 'var(--mui-palette-common-black)' : 'var(--mui-palette-common-white)';
+};
 
 // Render a flexible sequence of numerated residues which is also interactive
 const ResidueSelector = ({
@@ -41,7 +53,7 @@ const ResidueSelector = ({
   // Null values will hide residues in the selector
   residueValues,
   // Set how residues must be colored according to their 'value'
-  colorPlan = defaultColorPlan,
+  colorPlan: colorPlanProp,
   // Set the title for the color legend
   legendTitle,
   // Use these callbacks to receive the selected/deselected residues and all its data
@@ -56,6 +68,11 @@ const ResidueSelector = ({
   // To force a styling
   className,
 }) => {
+  // Without a given color plan, use the default one of the current color scheme
+  const { mode } = useColorScheme();
+  const colorPlan = colorPlanProp === undefined
+    ? (mode === 'dark' ? darkDefaultColorPlan : defaultColorPlan)
+    : colorPlanProp;
   // Get the current project data
   const { topology: topologyManager } = useContext(ProjectCtx);
 
@@ -279,7 +296,7 @@ const ResidueSelector = ({
                           >
                             <span
                               className={style['letter']}
-                              style={{ backgroundColor: residue.color }}
+                              style={{ backgroundColor: residue.color, color: getLetterColor(residue.color) }}
                             >
                               {residue.letter}
                             </span>

@@ -25,6 +25,8 @@ import { IconButton } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faRandom } from '@fortawesome/free-solid-svg-icons';
 
+import { useColorScheme } from '@mui/material/styles';
+
 import style from './style.module.css';
 
 // device pixel ratio (for "retina" screens)
@@ -60,6 +62,8 @@ const Projections = ({
   const delaunayDiagramRef = useRef({ find() {} });
 
   const [switched, toggleSwitched] = useToggleState(false);
+  // Redraw the canvas when the colour scheme changes, since it is painted with resolved colours
+  const { mode } = useColorScheme();
 
   // Count the number of coordinates
   const coordinatesCount = useMemo(() => 
@@ -294,6 +298,8 @@ const Projections = ({
         height: height * dPR,
         maxTime,
         isFirstTime,
+        // The colour of the cards (white in light mode), resolved since canvas can not read CSS variables
+        background: getComputedStyle(canvas.node()).getPropertyValue('--mui-palette-background-paper').trim() || 'white',
       });
 
       const handleHover = ({ datumIndex, datum } = {}) => {
@@ -435,7 +441,7 @@ const Projections = ({
       await schedule(100);
       delaunayDiagramRef.current = Delaunay.from(zipped);
     })();
-  }, [projectionsData, coordinatesCount, projections, framestep, switched]);
+  }, [projectionsData, coordinatesCount, projections, framestep, switched, mode]);
 
   return (
     <>

@@ -5,6 +5,19 @@ import { getTextWidth, getTextSizeDOM } from '../../utils/document-measurer';
 import { axisBottom, select, scaleLinear, scaleBand, axisLeft } from 'd3';
 
 import { setTooltipPosition } from '../../utils/tooltip-position-manager';
+import { useColorScheme } from '@mui/material/styles';
+
+// Darker versions of the colours used in the scales, so they do not glare in dark mode
+// Colours which are not here are left as they are
+const DARK_COLORS = {
+  white: '#303030',
+  red: '#b71c1c',
+  blue: '#1565c0',
+  yellow: '#8a6d00',
+  grey: '#505050',
+  gray: '#505050',
+};
+const darkenColor = color => DARK_COLORS[color] || color;
 
 // According to d3 documentation
 const defaultD3font = 'normal 10px sans-serif';
@@ -34,11 +47,14 @@ const D3HeatmapGrid = memo(
     margin = { top: 10, right: 10, bottom: 10, left: 10 },
     className,
     style,
-    NaNColor = '#ffffff', // Default black color for NaN
+    NaNColor, // Color for NaN (white by default, or dark in dark mode)
     minValue,
     maxValue,
     addBorder = true, // Add a border to each cell
   }) => {
+    // In dark mode the scale colours are darkened
+    const { mode } = useColorScheme();
+    const isDark = mode === 'dark';
     if (!data)
       throw new Error(
         `Data is missing. Data is mandatory for the heatmap representation`,
@@ -286,13 +302,13 @@ const D3HeatmapGrid = memo(
       // Build color scale
       const myColor = value => {
         if (isNaN(value)) {
-          return NaNColor;
+          return NaNColor ?? (isDark ? darkenColor('white') : '#ffffff');
         }
         
         const colorMapper = colorScale 
           ? colorScale 
           : scaleLinear()
-              .range(colorPlan)
+              .range(isDark ? colorPlan.map(darkenColor) : colorPlan)
               .domain([minv, (minv + maxv) / 2, maxv]);
               
         return colorMapper(value);

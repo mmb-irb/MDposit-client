@@ -47,11 +47,24 @@ if (HOST_CONFIG.palette) {
 // The palette is also written as --mui-* CSS variables, which the CSS modules use for their colours
 // The neutrals MUI has no token for are added here (e.g. --mui-palette-surface-subtle)
 const theme = createTheme({
-  cssVariables: true,
-  palette: {
-    ...palette,
-    surface: { subtle: '#fafafa', muted: '#eeeeee' },
-    border: { strong: 'rgba(0, 0, 0, 0.23)' },
+  // The scheme (light or dark) is set through the data-dark attribute of the document (none for light)
+  // Without a choice stored (mui-mode) it follows the browser/OS preference
+  cssVariables: { colorSchemeSelector: 'data' },
+  colorSchemes: {
+    light: {
+      palette: {
+        ...palette,
+        surface: { subtle: '#fafafa', muted: '#eeeeee' },
+        border: { strong: 'rgba(0, 0, 0, 0.23)' },
+      },
+    },
+    dark: {
+      palette: {
+        ...palette,
+        surface: { subtle: '#1a1a1a', muted: '#2a2a2a' },
+        border: { strong: 'rgba(255, 255, 255, 0.23)' },
+      },
+    },
   },
   components: {
     MuiTablePagination: {
@@ -166,7 +179,7 @@ const App = () => {
   return (
     <ErrorBoundary>
       <StyledEngineProvider injectFirst>
-        <ThemeProvider theme={theme}>
+        <ThemeProvider theme={theme} defaultMode="system">
           <CustomRouter history={history}>
             <Routes>
               <Route

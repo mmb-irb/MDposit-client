@@ -15,8 +15,8 @@ const logoWebP = new URL(`../../images/${HOST_CONFIG.logo}.webp`, import.meta.ur
 const logoLabel = HOST_CONFIG.logoLabel;
 
 // Create styled AppBar with gradient
-const GradientAppBar = styled(AppBar)(({ theme }) => ({
-  background: `linear-gradient(90deg, ${theme.palette.primary.main} 65%, ${theme.palette.primary.dark} 100%)`,
+const GradientAppBar = styled(AppBar)(() => ({
+  background: `linear-gradient(90deg, var(--header-main) 65%, var(--header-dark) 100%)`,
 }));
 
 // Renders the logo and all the menu buttons next to it

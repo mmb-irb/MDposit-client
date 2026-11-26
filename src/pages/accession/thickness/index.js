@@ -23,6 +23,7 @@ import { getBilayers } from '../../../utils/lipids';
 import style from './style.module.css';
 import ColorLegend from '../../../components/color-legend';
 import { ColormakerRegistry } from 'ngl';
+import ink from '../../../utils/ink';
 
 
 const Graph = lazy(() =>
@@ -313,7 +314,7 @@ const Thickness = () => {
                                                 control={
                                                     <Checkbox
                                                         checked={display[key]}
-                                                        style={{ color: colors[i] }}
+                                                        style={{ color: ink(colors[i]) }}
                                                     />
                                                 }
                                                 label={key}

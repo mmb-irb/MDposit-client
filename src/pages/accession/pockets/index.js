@@ -34,6 +34,10 @@ import useAPI from '../../../hooks/use-api';
 import useColors from '../../../hooks/use-colors';
 
 import { BASE_PATH_PROJECTS } from '../../../utils/constants';
+import ink from '../../../utils/ink';
+
+// The opacity of the reference representation, the one with the whole system
+const BASE_OPACITY = 0.3;
 
 const Graph = lazy(() =>
   import(/* webpackChunkName: 'graph' */ '../../../components/graph'),
@@ -131,6 +135,8 @@ const Pockets = () => {
 
   // Define the representations to be displayed in the viewer
   const [ representations, setRepresentations ] = useState(null);
+  // Whether the viewer background is dark, since the reference representation must stand out
+  const [ darkBackground, setDarkBackground ] = useState(false);
 
   // Set or update the representations state
   useMemo(() => {
@@ -145,7 +151,7 @@ const Pockets = () => {
       if (previousRepresentations !== null) return previousRepresentations;
       // Reduce the opacity of all default representations
       const baseRepresentations = defaultRepresentations.map(rep =>
-        ({ ...rep, color: 'black', opacity: 0.3 }));
+        ({ ...rep, color: darkBackground ? 'white' : 'black', opacity: BASE_OPACITY }));
       // Set the surface representation of each pocket, which are to be linked to the main component
       const pocketSurfaceRepresentations = data.map(pocket => ({
         name: pocket.name + ' surface',
@@ -176,6 +182,20 @@ const Pockets = () => {
       return allRepresentations;
     });
   }, [components, defaultRepresentations]);
+
+  // Black is invisible over a dark background, so the reference representation turns white (it stays greyish)
+  // Only black and white are swapped, so a colour picked by the user is respected
+  useEffect(() => {
+    const from = darkBackground ? 'black' : 'white';
+    const to = darkBackground ? 'white' : 'black';
+    setRepresentations(previousRepresentations => {
+      if (!previousRepresentations) return previousRepresentations;
+      if (!previousRepresentations.some(rep => rep.opacity === BASE_OPACITY && rep.color === from))
+        return previousRepresentations;
+      return previousRepresentations.map(rep =>
+        rep.opacity === BASE_OPACITY && rep.color === from ? { ...rep, color: to } : rep);
+    });
+  }, [darkBackground]);
 
   // Set the graph parameters
   const { graphInputData, dataDisplay } = useMemo(() => {
@@ -322,9 +342,7 @@ const Pockets = () => {
                           <Checkbox
                             checked={selectedPockets[p] ? true : false}
                             style={{
-                              color: selectedPockets[p]
-                                ? selectedPockets[p]
-                                : 'black',
+                              color: ink(selectedPockets[p]),
                             }}
                             inputProps={{ 'data-key': pocketName }}
                           />
@@ -349,6 +367,7 @@ const Pockets = () => {
             className={style.container}
             startingComponents={components}
             representationsState={[representations, setRepresentations]}
+            onDarkBackgroundChange={setDarkBackground}
             preventTrajectory
             ref={viewerRef}
           />

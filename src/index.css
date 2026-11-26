@@ -20,6 +20,19 @@ html {
   }
 }
 
+/* Header colours: the host colours, softened in dark mode so they do not glare against the dark page */
+html {
+  --header-main: var(--mui-palette-primary-main);
+  --header-light: var(--mui-palette-primary-light);
+  --header-dark: var(--mui-palette-primary-dark);
+}
+
+html[data-dark] {
+  --header-main: color-mix(in srgb, var(--mui-palette-primary-main) 40%, var(--mui-palette-background-default));
+  --header-light: color-mix(in srgb, var(--mui-palette-primary-light) 40%, var(--mui-palette-background-default));
+  --header-dark: color-mix(in srgb, var(--mui-palette-primary-dark) 40%, var(--mui-palette-background-default));
+}
+
 *,
 *:before,
 *:after {
@@ -35,6 +48,9 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Follow the colour scheme chosen by the user (light or dark) */
+  background-color: var(--mui-palette-background-default);
+  color: var(--mui-palette-text-primary);
 }
 
 code {
@@ -45,4 +61,9 @@ code {
 #root {
   min-height: 100vh;
   overflow-x: hidden;
+}
+
+/* SVG texts without an explicit fill (e.g. d3 axis labels) are black by default, so they follow the text colour */
+main svg text:not([fill]) {
+  fill: currentColor;
 }
