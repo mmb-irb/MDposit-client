@@ -17,10 +17,6 @@ import { BASE_PATH_PROJECTS } from '../../../utils/constants';
 // Load CSS style
 import style from './style.module.css';
 
-// Set the heatmap minimum and maximum colors
-const heatmapMinimumColor = { r: 0, g: 0, b: 255 };
-const heatmapMaximumColor = { r: 255, g: 0, b: 0 };
-
 // Distance per residue analysis
 const DistPerres = () => {
   // Get the current project data
@@ -334,9 +330,6 @@ const DistPerres = () => {
                   ? 'Distance average (Å)'
                   : 'Distance standard deviation (Å)'
               }
-              // Invert colors here, since minimum values belong to closer residues
-              maxValueColor={heatmapMinimumColor}
-              minValueColor={heatmapMaximumColor}
               xTitle={xTitle}
               yTitle={yTitle}
             />

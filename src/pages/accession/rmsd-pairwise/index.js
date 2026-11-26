@@ -396,8 +396,6 @@ const RmsdPairwise = () => {
                 setSelectedFramePair([xAxisValue, yAxisValue])
               }
               legendTitle={'RMSD (Å)'}
-              maxColor={'red'}
-              minColor={'blue'}
               xTitle={'Frames'}
               yTitle={'Frames'}
             />
