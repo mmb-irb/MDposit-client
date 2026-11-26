@@ -173,12 +173,23 @@ const debugFpsBadgeStyle = {
   pointerEvents: 'none',
 };
 
+// Ball-and-stick, also used for 'base' and for the types molstar has no equivalent of (see below)
+// The 'structure-*' visuals are requested for many units, see the comment of 'spacefill'
+// 'inter-bond' joins different units and is a ComplexVisual either way, so it is kept
+const BALL_AND_STICK = {
+  type: 'ball-and-stick',
+  structureVisuals: {
+    minUnits: 30,
+    visuals: ['structure-element-sphere', 'structure-intra-bond', 'inter-bond'],
+  },
+};
+
 // Map this app's NGL-style representation type names (set in get-default-representations)
 // to molstar representation type names
 // Molstar has no dedicated 'licorice' or 'base' type, so those are approximated with ball-and-stick
 const REPRESENTATION_TYPES = {
   cartoon: { type: 'cartoon' },
-  'ball+stick': { type: 'ball-and-stick' },
+  'ball+stick': BALL_AND_STICK,
   // Bond lines only. Molstar's 'line' also draws a point and a cross at every atom by default,
   // which on A01IP's 80k-atom membrane cost ~20 ms/frame - two thirds of the whole representation -
   // while being invisible under the bond lines. NGL's 'line' draws bond lines only too, so this
@@ -191,38 +202,61 @@ const REPRESENTATION_TYPES = {
     type: 'line',
     typeParams: { aromaticBonds: false, multipleBonds: 'off', visuals: ['intra-bond'] },
   },
-  // Deliberately NOT requesting the 'structure-*' visual variants ('structure-element-sphere',
-  // 'structure-intra-bond'). They batch everything into a single draw call, which sounds like a
-  // win, but they are ComplexVisuals, and a ComplexVisual force-sets updateColor and updateSize
-  // whenever it rebuilds geometry - which for a trajectory is every single frame, since the
-  // coordinates always differ. The default per-unit visuals are UnitsVisuals, which rebuild only
-  // the geometry and skip colour/size unless the structure hash changes (it doesn't) or the colour
-  // theme is vertex/volume granularity (ours are group/uniform)
-  // The draw-call argument does not apply here either: Structure.ofModel makes roughly one unit
-  // per chain, so we are in the single digits, nowhere near the >10000 unitSymmetryGroups at which
-  // molstar itself switches these on (getSpacefillParams in
-  // mol-repr/structure/representation/spacefill.js)
+  // Spacefill and ball-and-stick switch to molstar's 'structure-*' visuals (structure-element-sphere,
+  // structure-intra-bond) when the structure has many units (~one per chain), see
+  // 'structureVisuals' and getRepresentationType. The default per-unit visuals build one visual per unit,
+  // so their cost grows with the number of chains. The 'structure-*' ones batch the whole selection
+  // into a single visual, which is much cheaper for many chains, but they are ComplexVisuals, and a
+  // ComplexVisual force-sets updateColor and updateSize whenever it rebuilds geometry - which for a
+  // trajectory is every frame - while the per-unit ones (UnitsVisuals) rebuild only the geometry
+  // That fixed cost makes 'structure-*' slower with few chains, hence the minimum number of units
+  // Adam Midlik suggested 'structure-element-sphere' for spacefill
   // 'approximate' trades some impostor-sphere shading accuracy (visible mostly on overlaps)
   // for faster fragment shading - kept paired with the default tryUseImpostor: true, since
   // it only affects the impostor path (mol-geo/geometry/spheres/spheres.js)
+  // Measured with GPU (Intel Meteor Lake iGPU, Chromium) updating modelIndex frame by frame,
+  // with only the representation under test in the scene (median ms/frame, per unit vs structure-*):
+  //   A01R1,  31632 atoms,   4 units: spacefill 25-31 vs 34-42;  ball-and-stick  97-104 vs 135-145
+  //   A01ON,  25386 atoms,   9 units: spacefill 11-18 vs 9-10;   ball-and-stick   40-60 vs 54-67
+  //   A0176,  42294 atoms,  31 units: spacefill 47-50 vs 18-19;  ball-and-stick  99-126 vs 104-121
+  //   A05TZ, 158351 atoms, 424 units: spacefill 119-204 vs 30-32; ball-and-stick 332-342 vs 156-168
+  // The cost follows the number of units (chains) of the structure, not the number of representations or
+  // how many units each one has: on A0176, one
+  // representation over 1, 3, 6, 12 and 30 chains costs 4, 5, 6, 11 and 15 ms per unit and 0.4, 0.5,
+  // 0.7, 1 and 2 ms with structure-*, while 1, 5 and 30 representations over the same 30 chains cost
+  // 15, 15, 19 (per unit) and 2, 3, 9 (structure-*). More representations do add cost to structure-*
+  // (and on A01R1, 4 chains, 40 representations add ~25 ms to both) but never flipped the winner
+  // The minimum units are interpolated from those: the per-unit visuals win by ~10 ms (spacefill) and
+  // ~40 ms (ball-and-stick) at 4 units, spacefill flips between 4 and 9 and ball-and-stick is tied at
+  // 31 and loses by 175 ms at 424. They are approximate: the crossover was only bracketed, static
+  // structures were not measured, and these are GPU timings of the state update, not of the rendering
+  // The ball-and-stick measurements left out 'inter-bond' in both variants, it is kept here since it
+  // is a ComplexVisual either way (it joins different units)
   spacefill: {
     type: 'spacefill',
-    typeParams: {
-      approximate: true,
-      // This improves the efficiency as suggested by Adam Midlik
-      visuals: [ "structure-element-sphere" ]
-    },
+    typeParams: { approximate: true },
+    structureVisuals: { minUnits: 8, visuals: ['structure-element-sphere'] },
   },
   // Molstar 5.13 caps a surface with a solid face where the camera or a clip cuts it, which hides
   // what is inside (e.g. the atoms in a pocket), so leave it hollow as NGL does
   surface: { type: 'molecular-surface', typeParams: { solidInterior: false } },
   line: { type: 'line' },
   point: { type: 'point' },
-  base: { type: 'ball-and-stick' },
+  base: BALL_AND_STICK,
 };
-const DEFAULT_REPRESENTATION_TYPE = { type: 'ball-and-stick' };
-const getRepresentationType = typeName =>
-  REPRESENTATION_TYPES[typeName] || DEFAULT_REPRESENTATION_TYPE;
+const DEFAULT_REPRESENTATION_TYPE = BALL_AND_STICK;
+// Get the molstar type and parameters of a representation type
+// 'unitCount' is the number of units of the whole structure, which decides if the 'structure-*'
+// visuals are requested (see above). When it is unknown the default visuals are used
+export const getRepresentationType = (typeName, unitCount) => {
+  const { structureVisuals, typeParams, ...representation } =
+    REPRESENTATION_TYPES[typeName] || DEFAULT_REPRESENTATION_TYPE;
+  const useStructureVisuals = structureVisuals && unitCount >= structureVisuals.minUnits;
+  return {
+    ...representation,
+    typeParams: useStructureVisuals ? { ...typeParams, visuals: structureVisuals.visuals } : typeParams,
+  };
+};
 
 
 // Build a molstar expression selecting exactly the given atom indices
@@ -247,8 +281,8 @@ export const getOtherParams = (typeName, other) => {
 // Get the molstar parameters of a representation, as the NGL viewer represents it
 // The type is an NGL one, which is translated to molstar, and the color theme is already translated
 // (see nglColorToTheme and nglSchemeToTheme)
-const getRepresentationParams = (molstar, { type: typeName, colorTheme, opacity, sizeFactor, other }) => {
-  const { type, typeParams } = getRepresentationType(typeName);
+const getRepresentationParams = (molstar, { type: typeName, colorTheme, opacity, sizeFactor, other }, unitCount) => {
+  const { type, typeParams } = getRepresentationType(typeName, unitCount);
   // Molstar calls opacity 'alpha'. Representations only carry an opacity when
   // something asked for one (e.g. PBC regions, which are drawn faded so it is
   // clear they have jumped across a periodic boundary), so leave molstar's own
@@ -283,10 +317,16 @@ const getRepresentationParams = (molstar, { type: typeName, colorTheme, opacity,
 // Add a molstar component and representation for some atoms of a structure to a state update
 // Atom indices are those of the loaded topology, or null to represent the whole structure
 // Return the node which is to be deleted to remove the representation, the representation node itself,
-// to update its parameters, and the bundle component, if any
+// to update its parameters, the number of units of the structure (to update it with the same visuals),
+// and the bundle component, if any
 // Return null if there are no atoms to represent
 const addRepresentation = (molstar, update, structure, atomIndices, { label, ...params }) => {
   let component = structure;
+  // The number of units of the whole structure, which decides the visuals (see getRepresentationType)
+  // It is not the number of units of this selection: the app builds one representation per chain, so
+  // each one has a single unit, and the cost still follows the total (30 representations of 1 chain
+  // each were also 2x faster with structure-* than with the per-unit visuals)
+  const unitCount = structure.data.units.length;
   if (atomIndices !== null) {
     if (atomIndices.length === 0) return null;
     // Resolve the selection into a 'bundle' (a plain list of unit ids + element
@@ -316,12 +356,13 @@ const addRepresentation = (molstar, update, structure, atomIndices, { label, ...
   }
   const representation = update.to(component).apply(
     StateTransforms.Representation.StructureRepresentation3D,
-    getRepresentationParams(molstar, params),
+    getRepresentationParams(molstar, params, unitCount),
   );
   // Deleting a component deletes its representation as well
   return {
     ref: component === structure ? representation.ref : component.ref,
     representationRef: representation.ref,
+    unitCount,
     bundleComponent: component === structure ? null : { label, component: component.selector },
   };
 };
@@ -1234,7 +1275,7 @@ const MolstarViewer = memo(
                 // Representations with no atoms have nothing to update
                 toUpdate.forEach(({ previous, snapshot }) => {
                   if (previous.representationRef)
-                    update.to(previous.representationRef).update(getRepresentationParams(molstar, snapshot));
+                    update.to(previous.representationRef).update(getRepresentationParams(molstar, snapshot, previous.unitCount));
                 });
                 toBuild.forEach(snapshot => {
                   // Representations with no atoms are not built, but they are kept to tell when they change

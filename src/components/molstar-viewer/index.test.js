@@ -26,7 +26,7 @@ vi.mock('react-intersection-observer', () => ({ useInView: () => [() => {}, fals
 const { createPluginUI } = await import('molstar/lib/mol-plugin-ui/index');
 const { autoLoad } = await import('ngl');
 const { getHoveredAtoms, getHoveredAtomPair } = await import('./hovered-atoms');
-const { default: MolstarViewer, getPlaybackMode, getOtherParams } = await import('.');
+const { default: MolstarViewer, getPlaybackMode, getOtherParams, getRepresentationType } = await import('.');
 
 const viewer = ({ topology = {}, ...props } = {}) => (
   <ProjectCtx.Provider value={{ metadata: {}, topology }}>
@@ -297,7 +297,7 @@ const settle = () => act(() => new Promise(resolve => setTimeout(resolve, 0)));
 const renderRepresentations = async (representations, { component, topology, canvas3d, topologyFile = 'ATOM', ref } = {}) => {
   const plugin = fakePlugin();
   const { build, commits } = fakeState();
-  const structure = { ref: 'structure', data: { boundary: { sphere: { center: [0, 0, 0], radius: 10 } } } };
+  const structure = { ref: 'structure', data: { units: [], boundary: { sphere: { center: [0, 0, 0], radius: 10 } } } };
   Object.assign(plugin, {
     build,
     builders: {
@@ -511,5 +511,41 @@ describe('<MolstarViewer /> representations', () => {
       await renderRepresentations(reps, { component: { atomIndices: [0, 1, 2] }, topology: { atomCount: 10 } });
       expect(autoLoad).toHaveBeenCalledTimes(1);
     });
+  });
+});
+
+describe('molstar representation visuals', () => {
+  // The 'structure-*' visuals are cheaper with many chains but slower with few (see REPRESENTATION_TYPES)
+  it('uses the per-unit spacefill visual with few units and the structure one from 8 units', () => {
+    expect(getRepresentationType('spacefill', 7).typeParams).toEqual({ approximate: true });
+    expect(getRepresentationType('spacefill', 8).typeParams).toEqual({
+      approximate: true,
+      visuals: ['structure-element-sphere'],
+    });
+  });
+
+  it('uses the default ball-and-stick visuals with few units and the structure ones from 30 units', () => {
+    expect(getRepresentationType('ball+stick', 29)).toEqual({ type: 'ball-and-stick', typeParams: undefined });
+    expect(getRepresentationType('ball+stick', 30)).toEqual({
+      type: 'ball-and-stick',
+      typeParams: { visuals: ['structure-element-sphere', 'structure-intra-bond', 'inter-bond'] },
+    });
+  });
+
+  it('treats base and the types molstar has no equivalent of as ball-and-stick', () => {
+    for (const typeName of ['base', 'hyperball']) {
+      expect(getRepresentationType(typeName, 5).typeParams).toBeUndefined();
+      expect(getRepresentationType(typeName, 424).typeParams.visuals).toContain('structure-intra-bond');
+    }
+  });
+
+  it('keeps the default visuals when the number of units is unknown', () => {
+    expect(getRepresentationType('spacefill').typeParams).toEqual({ approximate: true });
+    expect(getRepresentationType('ball+stick').typeParams).toBeUndefined();
+  });
+
+  it('does not touch the representations with no structure visuals', () => {
+    expect(getRepresentationType('cartoon', 1000)).toEqual({ type: 'cartoon', typeParams: undefined });
+    expect(getRepresentationType('licorice', 1000).typeParams.visuals).toEqual(['intra-bond']);
   });
 });
