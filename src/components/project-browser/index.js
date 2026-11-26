@@ -33,6 +33,7 @@ import { BASE_PATH_PROJECTS, HOST_CONFIG } from '../../utils/constants';
 // Auxiliar functions
 import { parseLocationSearch } from '../../utils/auxiliar-functions';
 import { buildFilter, getFiltersList, stringifyQuery } from '../../utils/filters';
+import { BROWSER_RETURN_QUERY, formatRawProject } from '../../utils/project-formatter';
 
 // CSS styles
 import style from './style.module.css';
@@ -120,7 +121,8 @@ const ProjectBrowser = ({ internalFilters }) => {
     const previousPayload = useRef(null);
 
     // Projects data from the API
-    const queryUrl = `${BASE_PATH_PROJECTS}?${searchString}`;
+    // Request only the fields needed by the table. Note that this makes the API return raw projects
+    const queryUrl = `${BASE_PATH_PROJECTS}?${searchString}&${BROWSER_RETURN_QUERY}`;
     const { loading: queryLoading, payload: queryPayload, error: queryError } = useAPI(queryUrl);
 
     // While loading
@@ -136,12 +138,12 @@ const ProjectBrowser = ({ internalFilters }) => {
     let matchCount = 0;
     let mdCount = 0;
     if (queryPayload) {
-        results = queryPayload.projects;
+        results = queryPayload.projects.map(formatRawProject);
         matchCount = queryPayload.filteredCount;
         mdCount = queryPayload.totalMdsCount;  
         previousPayload.current = queryPayload;
     } else if (previousPayload.current) {
-        results = previousPayload.current.projects;
+        results = previousPayload.current.projects.map(formatRawProject);
         matchCount = previousPayload.current.filteredCount;
         mdCount = previousPayload.current.totalMdsCount;  
     } else results = [];
