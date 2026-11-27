@@ -5,7 +5,7 @@ import useAPI from 'src/hooks/use-api'; // API acces
 // Components
 import { TableCell, Chip } from '@mui/material';
 import AnimatedTableRow from '../../components/animated-table-row';
-import LazyImg from '../../components/lazy-img';
+import LogoImg from '../../components/logo-img';
 import Highlight from '../../components/highlight';
 import Loading from '../../components/loading'; // Displays an animated "loading" circle
 // Utils
@@ -64,7 +64,7 @@ const Row = ({ data, highlight, index }) => {
       </TableCell>
       {/* preview */}
       <TableCell className={`${style.center} ${style['col-preview']}`}>
-        <LazyImg
+        <LogoImg
           src={data.image}
           className={style['preview-img']}
           loading="lazy"

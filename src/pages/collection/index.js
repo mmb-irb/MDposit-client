@@ -7,7 +7,7 @@ import useAPI from 'src/hooks/use-api'; // API acces
 // Additional components
 import Loading from 'src/components/loading'; // Displays an animated "loading" circle
 import Card from 'src/components/animated-card';
-import LazyImg from 'src/components/lazy-img';
+import LogoImg from 'src/components/logo-img';
 import { DecoratedList, DecoratedListItem } from 'src/components/decorated-list';
 import ProjectBrowser from 'src/components/project-browser';
 import { CardContent, Typography, Button } from '@mui/material';
@@ -117,7 +117,7 @@ const Collection = () => {
                     </DecoratedListItem>}
                     </DecoratedList>
                 </div>
-                <LazyImg src={reference.image} loading="lazy" alt={`Collection logo`}
+                <LogoImg src={reference.image} loading="lazy" alt={`Collection logo`}
                     style={{ maxWidth: '30%', height: 'auto', margin: '0 1em' }}
                 />
             </div>

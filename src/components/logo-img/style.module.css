@@ -1,0 +1,16 @@
+/* Backdrops for the logos which would not be visible over the page, which have a similar brightness */
+.light-backdrop, .dark-backdrop {
+  padding: 0.4em 0.6em;
+  border-radius: 0.4em;
+  box-sizing: border-box;
+}
+
+/* Dark letters in dark mode: light backdrop */
+:global([data-dark]) .light-backdrop {
+  background-color: #d9d9d9;
+}
+
+/* Light letters in light mode (the light mode has no data-dark attribute): dark backdrop */
+:global(html:not([data-dark])) .dark-backdrop {
+  background-color: #424242;
+}
