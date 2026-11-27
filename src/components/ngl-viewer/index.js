@@ -735,8 +735,9 @@ const NGLViewer = memo(
                 else {
                   var elm = document.createElement('div');
                   elm.innerText = rep.label;
-                  elm.style.color = '#76FF03';
-                  elm.style.backgroundColor = '#607D8B';
+                  // Theme colours, so host branding and dark mode apply (--header-main is the softened primary in dark mode)
+                  elm.style.color = 'var(--mui-palette-common-white)';
+                  elm.style.backgroundColor = 'var(--header-main)';
                   elm.style.padding = '8px';
                   // get the geometrical center of the representation
                   const center = stageComp.reprList[r].repr.structureView.center;
